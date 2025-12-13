@@ -1,0 +1,22 @@
+/* client/src/style.css */
+:root {
+  /* AMIS CXD 主题变量覆盖 */
+  --primary: #1a3c6e;
+  --link-color: #1a3c6e;
+  
+  /* 按钮主色 */
+  --Button-primary-bg: #1a3c6e;
+  --Button-primary-border: #1a3c6e;
+  --Button-primary-onHover-bg: #254e8a;
+  --Button-primary-onHover-border: #254e8a;
+  
+  /* 侧边栏/导航栏相关 (预留) */
+  --Layout-aside-bg: #fff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f0f2f5; /* 浅灰底色，适合中后台 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
