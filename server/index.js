@@ -14,6 +14,7 @@ const difyConfigRoutes = require("./routes/dify-config");
 const menuRoutes = require("./routes/menu");
 const pageTemplateRoutes = require("./routes/page-template");
 const backendConfigRoutes = require("./routes/backend-config");
+const demoChartRoutes = require("./routes/demo-chart");
 
 
 const app = express();
@@ -100,6 +101,9 @@ app.use("/api/system", pageTemplateRoutes);
 
 // 5. 注册后端配置管理路由
 app.use("/api/system", backendConfigRoutes);
+
+// 6. 注册演示图表路由
+app.use("/api/demo", demoChartRoutes);
 
 // 3. 404 错误处理（必须在所有路由之后）
 app.use(notFoundHandler);
