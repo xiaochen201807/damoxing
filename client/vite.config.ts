@@ -18,5 +18,24 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
-  }
+  },
+  build: {
+    // 代码分割优化
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // AMIS 相关库单独打包
+          'amis-vendor': ['amis', 'amis-ui', 'amis-formula'],
+          // React 相关库单独打包
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // MobX 相关库单独打包
+          'mobx-vendor': ['mobx', 'mobx-react', 'mobx-react-lite'],
+        },
+      },
+    },
+    // 启用 gzip 压缩提示
+    reportCompressedSize: true,
+    // chunk 大小警告限制
+    chunkSizeWarningLimit: 1000,
+  },
 })

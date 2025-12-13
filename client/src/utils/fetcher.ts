@@ -1,8 +1,9 @@
 // client/src/utils/fetcher.ts
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { FetcherConfig, FetcherResponse } from '../types/models';
 
-// 后端服务地址
-const BASE_URL = '';
+// 后端服务地址（从环境变量读取，默认为空字符串依赖 Vite proxy）
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
  * AMIS 请求适配器
@@ -11,16 +12,15 @@ const BASE_URL = '';
  * @param data 请求数据
  * @param config 额外配置
  */
-export const fetcher = ({
-  url, // 接口地址
-  method, // 请求方法 get, post, ...
-  data, // 请求数据
+export const fetcher = <T = any>({
+  url,
+  method,
+  data,
   responseType,
-  config, // 其他配置
-  headers // 请求头
-}: any) => {
-  
-  // 处理 URL，如果不是 http 开头，则拼接 Base URL
+  config,
+  headers
+}: FetcherConfig): Promise<FetcherResponse<T>> => {
+
   config = config || {};
   config.withCredentials = true;
   responseType && (config.responseType = responseType);
@@ -31,41 +31,35 @@ export const fetcher = ({
 
   config.headers = headers || {};
 
-  // 处理 URL：如果是 /api 开头，拼上后端地址
   let requestUrl = url;
   if (url.startsWith('/api')) {
     requestUrl = `${BASE_URL}${url}`;
   } else if (!url.startsWith('http')) {
-     // 支持 amis 内部的一些相对路径
-     requestUrl = `${BASE_URL}${url}`;
+    requestUrl = `${BASE_URL}${url}`;
   }
 
   return axios(requestUrl, {
     method,
     data,
     ...config
-  }).then((response: any) => {
-    // Axios 包装了一层 data，AMIS 需要直接的响应体
+  }).then((response) => {
     const res = response.data;
-    
-    // 适配逻辑：如果你后端的 status 字段定义不同，可以在这里转换
-    // 我们之前的后端定义是 { status: 0, msg: 'success', data: ... }，这符合 AMIS 规范
-    // AMIS 默认规范：status === 0 表示成功
-    
+
     return {
-      data: res // AMIS 期望返回 { data: { status: 0, data: ... } } 或者直接返回 res 供 adapter 处理
+      data: res
     };
-  }).catch((error: any) => {
-    // 错误处理
+  }).catch((error: AxiosError) => {
     if (error.response) {
       return {
         status: error.response.status,
-        msg: error.response.data.msg || '网络请求错误'
+        msg: (error.response.data as any)?.msg || '网络请求错误',
+        data: error.response.data
       };
     }
     return {
       status: 500,
-      msg: error.message
+      msg: error.message,
+      data: null as any
     };
   });
 };

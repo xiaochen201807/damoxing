@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import AmisRenderer from '../components/AmisRenderer'; // 引入上一环节封装的渲染器
 import { fetcher } from '../utils/fetcher';
 import { Spinner } from 'amis-ui';
+import type { RouteParams } from '../types/models';
+import type { AmisSchema } from '../types/amis';
+import type { ApiResponse, PageTemplate } from '../types/api';
 
 const AutoDashboard: React.FC = () => {
-  const { pageId } = useParams<{ pageId: string }>();
-  const [schema, setSchema] = useState<any>(null);
+  const { pageId } = useParams<RouteParams>();
+  const [schema, setSchema] = useState<AmisSchema | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,18 +21,18 @@ const AutoDashboard: React.FC = () => {
     setSchema(null);
 
     // 请求后端页面配置接口
-    fetcher({
+    fetcher<ApiResponse<AmisSchema>>({
       url: `/api/page/${pageId}`,
       method: 'get'
     })
-      .then((res: any) => {
+      .then((res) => {
         if (res.data && res.data.status === 0) {
-          setSchema(res.data.data);
+          setSchema(res.data.data as AmisSchema);
         } else {
           setError(res.data?.msg || '获取页面配置失败');
         }
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         console.error(err);
         setError('网络请求错误');
       })

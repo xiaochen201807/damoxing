@@ -1,0 +1,648 @@
+{
+    "type": "page",
+    "title": "系统配置中心",
+    "titleClassName": "text-center",
+    "css": {
+        ".cxd-Page-title": {
+            "text-align": "center !important",
+            "display": "block !important",
+            "width": "100%"
+        },
+        ".cxd-Page-subTitle": {
+            "text-align": "center !important",
+            "display": "block !important",
+            "width": "100%"
+        }
+    },
+    "subTitle": "统一管理系统菜单、页面模板和AI工作流配置",
+    "body": [
+        {
+            "type": "tabs",
+            "tabsMode": "line",
+            "tabs": [
+                {
+                    "title": "菜单管理",
+                    "icon": "fa fa-bars",
+                    "body": [
+                        {
+                            "type": "crud",
+                            "syncLocation": false,
+                            "api": {
+                                "method": "get",
+                                "url": "/api/system/menu",
+                                "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: payload.data || [], total: (payload.data || []).length } };"
+                            },
+                            "headerToolbar": [
+                                "bulkActions",
+                                {
+                                    "type": "button",
+                                    "label": "新增菜单",
+                                    "icon": "fa fa-plus",
+                                    "level": "primary",
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "新增菜单",
+                                        "body": {
+                                            "type": "form",
+                                            "api": {
+                                                "method": "post",
+                                                "url": "/api/system/menu"
+                                            },
+                                            "body": [
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "label",
+                                                    "label": "菜单名称",
+                                                    "required": true,
+                                                    "placeholder": "如: 贷款风险分析"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "subtitle",
+                                                    "label": "菜单副标题",
+                                                    "placeholder": "如: 风险智能预警系统",
+                                                    "description": "可选，显示在菜单名称下方"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "path",
+                                                    "label": "页面路径",
+                                                    "placeholder": "如: /dashboard/loan_risk",
+                                                    "description": "可选，不填则不可点击"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "icon",
+                                                    "label": "图标类名",
+                                                    "placeholder": "如: fa fa-line-chart",
+                                                    "description": "可选，使用 FontAwesome 图标"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "footerToolbar": [
+                                "statistics",
+                                "pagination"
+                            ],
+                            "columns": [
+                                {
+                                    "name": "id",
+                                    "label": "ID",
+                                    "width": 60
+                                },
+                                {
+                                    "name": "label",
+                                    "label": "菜单名称"
+                                },
+                                {
+                                    "name": "subtitle",
+                                    "label": "副标题"
+                                },
+                                {
+                                    "name": "path",
+                                    "label": "页面路径",
+                                    "copyable": true
+                                },
+                                {
+                                    "name": "icon",
+                                    "label": "图标",
+                                    "type": "tpl",
+                                    "tpl": "<i class='${icon}'></i> ${icon}"
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "编辑",
+                                            "level": "link",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "编辑菜单",
+                                                "body": {
+                                                    "type": "form",
+                                                    "api": {
+                                                        "method": "put",
+                                                        "url": "/api/system/menu/${id}"
+                                                    },
+                                                    "body": [
+                                                        {
+                                                            "type": "static",
+                                                            "name": "id",
+                                                            "label": "菜单ID"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "label",
+                                                            "label": "菜单名称",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "subtitle",
+                                                            "label": "菜单副标题",
+                                                            "placeholder": "如: 风险智能预警系统"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "path",
+                                                            "label": "页面路径",
+                                                            "placeholder": "如: /dashboard/loan_risk"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "icon",
+                                                            "label": "图标类名",
+                                                            "placeholder": "如: fa fa-line-chart"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "label": "删除",
+                                            "level": "link",
+                                            "className": "text-danger",
+                                            "actionType": "ajax",
+                                            "confirmText": "确认要删除菜单 ${label} 吗？删除后需要同步删除对应的页面模板。",
+                                            "api": {
+                                                "method": "delete",
+                                                "url": "/api/system/menu/${id}"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "页面模板管理",
+                    "icon": "fa fa-file-code-o",
+                    "body": [
+                        {
+                            "type": "crud",
+                            "syncLocation": false,
+                            "api": {
+                                "method": "get",
+                                "url": "/api/system/template",
+                                "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: payload.data || [], total: (payload.data || []).length } };"
+                            },
+                            "headerToolbar": [
+                                "bulkActions",
+                                {
+                                    "type": "button",
+                                    "label": "新增页面模板",
+                                    "icon": "fa fa-plus",
+                                    "level": "primary",
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "新增页面模板",
+                                        "size": "lg",
+                                        "body": {
+                                            "type": "form",
+                                            "api": {
+                                                "method": "post",
+                                                "url": "/api/system/template"
+                                            },
+                                            "body": [
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "page_key",
+                                                    "label": "页面标识",
+                                                    "required": true,
+                                                    "placeholder": "如: loan_risk",
+                                                    "description": "与菜单路径中的最后一段对应，如 /dashboard/loan_risk 中的 loan_risk"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "title",
+                                                    "label": "页面标题",
+                                                    "required": true,
+                                                    "placeholder": "如: 贷款风险智能分析"
+                                                },
+                                                {
+                                                    "type": "editor",
+                                                    "name": "schema_json",
+                                                    "label": "AMIS Schema",
+                                                    "language": "json",
+                                                    "required": true,
+                                                    "size": "xxl",
+                                                    "value": "{\"type\":\"page\",\"title\":\"示例页面\",\"body\":[{\"type\":\"tpl\",\"tpl\":\"页面内容\"}]}",
+                                                    "description": "AMIS 页面配置的 JSON 格式"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "footerToolbar": [
+                                "statistics",
+                                "pagination"
+                            ],
+                            "columns": [
+                                {
+                                    "name": "id",
+                                    "label": "ID",
+                                    "width": 60
+                                },
+                                {
+                                    "name": "page_key",
+                                    "label": "页面标识",
+                                    "searchable": true,
+                                    "copyable": true
+                                },
+                                {
+                                    "name": "title",
+                                    "label": "页面标题"
+                                },
+                                {
+                                    "name": "schema_size",
+                                    "label": "Schema大小",
+                                    "type": "tpl",
+                                    "tpl": "${schema_size} 字符"
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "编辑",
+                                            "level": "link",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "编辑页面模板",
+                                                "size": "lg",
+                                                "body": {
+                                                    "type": "form",
+                                                    "initApi": {
+                                                        "method": "get",
+                                                        "url": "/api/system/template/${page_key}"
+                                                    },
+                                                    "api": {
+                                                        "method": "put",
+                                                        "url": "/api/system/template/${page_key}"
+                                                    },
+                                                    "body": [
+                                                        {
+                                                            "type": "static",
+                                                            "name": "page_key",
+                                                            "label": "页面标识"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "title",
+                                                            "label": "页面标题",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "editor",
+                                                            "name": "schema_json",
+                                                            "label": "AMIS Schema",
+                                                            "language": "json",
+                                                            "required": true,
+                                                            "size": "xxl"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "label": "删除",
+                                            "level": "link",
+                                            "className": "text-danger",
+                                            "actionType": "ajax",
+                                            "confirmText": "确认要删除页面模板 ${page_key} 吗？",
+                                            "api": {
+                                                "method": "delete",
+                                                "url": "/api/system/template/${page_key}"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "AI 工作流配置",
+                    "icon": "fa fa-cogs",
+                    "body": [
+                        {
+                            "type": "crud",
+                            "syncLocation": false,
+                            "api": {
+                                "method": "get",
+                                "url": "/api/dify/config",
+                                "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: payload.data || [], total: (payload.data || []).length } };"
+                            },
+                            "headerToolbar": [
+                                "bulkActions",
+                                {
+                                    "type": "button",
+                                    "label": "新增配置",
+                                    "icon": "fa fa-plus",
+                                    "level": "primary",
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "新增 Dify 配置",
+                                        "size": "lg",
+                                        "body": {
+                                            "type": "form",
+                                            "api": {
+                                                "method": "post",
+                                                "url": "/api/dify/config"
+                                            },
+                                            "body": [
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "page_key",
+                                                    "label": "页面标识",
+                                                    "required": true,
+                                                    "placeholder": "如: loan_risk",
+                                                    "description": "页面的唯一标识符，需与页面模板的 page_key 一致"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "workflow_name",
+                                                    "label": "工作流名称",
+                                                    "required": true,
+                                                    "placeholder": "如: 贷款风险分析工作流"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "api_url",
+                                                    "label": "API 地址",
+                                                    "required": true,
+                                                    "value": "https://api.dify.ai/v1",
+                                                    "description": "Dify API 的基础地址"
+                                                },
+                                                {
+                                                    "type": "input-password",
+                                                    "name": "api_key",
+                                                    "label": "API Key",
+                                                    "required": true,
+                                                    "placeholder": "输入 Dify API Key",
+                                                    "description": "请妥善保管您的 API Key"
+                                                },
+                                                {
+                                                    "type": "switch",
+                                                    "name": "enabled",
+                                                    "label": "启用状态",
+                                                    "value": 1,
+                                                    "trueValue": 1,
+                                                    "falseValue": 0
+                                                },
+                                                {
+                                                    "type": "textarea",
+                                                    "name": "description",
+                                                    "label": "描述",
+                                                    "placeholder": "可选，配置说明"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "footerToolbar": [
+                                "statistics",
+                                "pagination"
+                            ],
+                            "columns": [
+                                {
+                                    "name": "page_key",
+                                    "label": "页面标识",
+                                    "searchable": true
+                                },
+                                {
+                                    "name": "workflow_name",
+                                    "label": "工作流名称"
+                                },
+                                {
+                                    "name": "api_url",
+                                    "label": "API 地址",
+                                    "type": "text",
+                                    "copyable": true
+                                },
+                                {
+                                    "name": "api_key",
+                                    "label": "API Key",
+                                    "type": "text",
+                                    "toggled": false,
+                                    "copyable": {
+                                        "content": "${api_key}"
+                                    }
+                                },
+                                {
+                                    "name": "enabled",
+                                    "label": "状态",
+                                    "type": "status",
+                                    "map": {
+                                        "1": {
+                                            "label": "已启用",
+                                            "icon": "fa fa-check-circle",
+                                            "status": "success"
+                                        },
+                                        "0": {
+                                            "label": "已禁用",
+                                            "icon": "fa fa-ban",
+                                            "status": "danger"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "description",
+                                    "label": "描述",
+                                    "toggled": false
+                                },
+                                {
+                                    "name": "created_at",
+                                    "label": "创建时间",
+                                    "type": "datetime",
+                                    "format": "YYYY-MM-DD HH:mm:ss"
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "编辑",
+                                            "level": "link",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "编辑配置",
+                                                "size": "lg",
+                                                "body": {
+                                                    "type": "form",
+                                                    "api": {
+                                                        "method": "put",
+                                                        "url": "/api/dify/config/${page_key}"
+                                                    },
+                                                    "body": [
+                                                        {
+                                                            "type": "static",
+                                                            "name": "page_key",
+                                                            "label": "页面标识"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "workflow_name",
+                                                            "label": "工作流名称",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "api_url",
+                                                            "label": "API 地址",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "input-password",
+                                                            "name": "api_key",
+                                                            "label": "API Key",
+                                                            "required": true,
+                                                            "description": "留空则不修改"
+                                                        },
+                                                        {
+                                                            "type": "switch",
+                                                            "name": "enabled",
+                                                            "label": "启用状态",
+                                                            "trueValue": 1,
+                                                            "falseValue": 0
+                                                        },
+                                                        {
+                                                            "type": "textarea",
+                                                            "name": "description",
+                                                            "label": "描述"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "label": "删除",
+                                            "level": "link",
+                                            "className": "text-danger",
+                                            "actionType": "ajax",
+                                            "confirmText": "确认要删除配置 ${page_key} 吗？",
+                                            "api": {
+                                                "method": "delete",
+                                                "url": "/api/dify/config/${page_key}"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "后端设置",
+                    "icon": "fa fa-server",
+                    "body": [
+                        {
+                            "type": "alert",
+                            "level": "warning",
+                            "body": "⚠️ 修改后端配置后需要 **重启服务器** 才能生效！"
+                        },
+                        {
+                            "type": "crud",
+                            "syncLocation": false,
+                            "api": {
+                                "method": "get",
+                                "url": "/api/system/backend-config",
+                                "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: payload.data || [], total: (payload.data || []).length } };"
+                            },
+                            "headerToolbar": [],
+                            "footerToolbar": [
+                                "statistics"
+                            ],
+                            "columns": [
+                                {
+                                    "name": "config_key",
+                                    "label": "配置项",
+                                    "type": "tpl",
+                                    "tpl": "<code>${config_key}</code>"
+                                },
+                                {
+                                    "name": "config_value",
+                                    "label": "当前值",
+                                    "type": "tpl",
+                                    "tpl": "<strong>${config_value}</strong>"
+                                },
+                                {
+                                    "name": "description",
+                                    "label": "说明"
+                                },
+                                {
+                                    "name": "updated_at",
+                                    "label": "更新时间",
+                                    "type": "datetime",
+                                    "format": "YYYY-MM-DD HH:mm:ss"
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "修改",
+                                            "level": "link",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "修改配置",
+                                                "body": {
+                                                    "type": "form",
+                                                    "api": {
+                                                        "method": "put",
+                                                        "url": "/api/system/backend-config/${config_key}"
+                                                    },
+                                                    "body": [
+                                                        {
+                                                            "type": "static",
+                                                            "name": "config_key",
+                                                            "label": "配置项"
+                                                        },
+                                                        {
+                                                            "type": "static",
+                                                            "name": "description",
+                                                            "label": "说明"
+                                                        },
+                                                        {
+                                                            "type": "input-number",
+                                                            "name": "config_value",
+                                                            "label": "配置值",
+                                                            "required": true,
+                                                            "min": 1,
+                                                            "description": "窗口时间范围: 1000-3600000ms, 最大请求数: 1-10000"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "divider"
+                        },
+                        {
+                            "type": "alert",
+                            "level": "info",
+                            "body": "💡 **提示**: 当前配置说明<br/>• global_rate_limit_window: 全局限流时间窗口(毫秒)<br/>• global_rate_limit_max: 全局最大请求数<br/>• ai_rate_limit_window: AI接口限流窗口(毫秒)<br/>• ai_rate_limit_max: AI接口最大请求数"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

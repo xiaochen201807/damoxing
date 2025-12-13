@@ -4,10 +4,11 @@ import { render as renderAmis } from 'amis';
 import { ToastComponent, AlertComponent, toast } from 'amis-ui';
 import { fetcher } from '../utils/fetcher';
 import { useNavigate, useLocation } from 'react-router-dom';
+import type { AmisSchema } from '../types/amis';
 
 interface Props {
-  schema: any;
-  data?: any;
+  schema: AmisSchema;
+  data?: Record<string, any>;
 }
 
 const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
@@ -33,17 +34,17 @@ const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
           fetcher: fetcher as any, // <--- 移到这里
 
           jumpTo: (to: string) => {
-             navigate(to);
+            navigate(to);
           },
           updateLocation: (to: string, replace?: boolean) => {
-             if (replace) {
-               navigate(to, { replace: true });
-             } else {
-               navigate(to);
-             }
+            if (replace) {
+              navigate(to, { replace: true });
+            } else {
+              navigate(to);
+            }
           },
           isCurrentUrl: (to: string) => {
-             return location.pathname === to;
+            return location.pathname === to;
           },
           // 1. 将 type 改为 string (匹配 AMIS 定义)
           // 2. 使用 if/else 显式调用，避免 TS 索引报错
@@ -61,8 +62,8 @@ const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
           },
           copy: (content: string) => {
             import('copy-to-clipboard').then(({ default: copy }) => {
-                copy(content);
-                toast.success('内容已复制到剪贴板');
+              copy(content);
+              toast.success('内容已复制到剪贴板');
             });
           },
           theme: 'cxd'

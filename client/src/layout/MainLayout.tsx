@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
-
-interface MenuItem {
-  id: number;
-  label: string;
-  path: string;
-  icon: string;
-}
+import type { MenuItem, ApiResponse } from '../types/api';
 
 const MainLayout: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -15,14 +9,14 @@ const MainLayout: React.FC = () => {
 
   useEffect(() => {
     // 请求后端菜单接口
-    fetcher({
+    fetcher<ApiResponse<MenuItem[]>>({
       url: '/api/system/menu',
       method: 'get'
-    }).then((res: any) => {
+    }).then((res) => {
       // fetcher 封装层返回了 { data: 后端原始响应 }
       // 后端原始响应结构: { status: 0, msg: 'success', data: [...] }
       if (res.data && res.data.status === 0) {
-        setMenus(res.data.data);
+        setMenus(res.data.data || []);
       } else {
         console.error('Failed to load menus', res);
       }
@@ -54,25 +48,51 @@ const MainLayout: React.FC = () => {
 
         <nav style={{ flex: 1, overflowY: 'auto', paddingTop: '10px' }}>
           {menus.map((menu) => {
-            const isActive = location.pathname.startsWith(menu.path);
-            return (
+            const isActive = menu.path && location.pathname.startsWith(menu.path);
+            const hasPath = menu.path && menu.path.trim() !== '';
+
+            const linkStyle = {
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 20px',
+              color: '#fff',
+              textDecoration: 'none',
+              backgroundColor: isActive ? '#254e8a' : 'transparent',
+              borderLeft: isActive ? '4px solid #61dafb' : '4px solid transparent',
+              transition: 'all 0.3s',
+              cursor: hasPath ? 'pointer' : 'default',
+              opacity: hasPath ? 1 : 0.7
+            };
+
+            const content = (
+              <>
+                {menu.icon && <i className={menu.icon} style={{ width: '24px', marginRight: '8px', flexShrink: 0 }}></i>}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span>{menu.label}</span>
+                  {menu.subtitle && (
+                    <span style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>
+                      {menu.subtitle}
+                    </span>
+                  )}
+                </div>
+              </>
+            );
+
+            return hasPath ? (
               <Link
                 key={menu.id}
                 to={menu.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 20px',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  backgroundColor: isActive ? '#254e8a' : 'transparent', // 高亮色
-                  borderLeft: isActive ? '4px solid #61dafb' : '4px solid transparent',
-                  transition: 'all 0.3s'
-                }}
+                style={linkStyle}
               >
-                <i className={menu.icon} style={{ width: '24px', marginRight: '8px' }}></i>
-                <span>{menu.label}</span>
+                {content}
               </Link>
+            ) : (
+              <div
+                key={menu.id}
+                style={linkStyle}
+              >
+                {content}
+              </div>
             );
           })}
         </nav>

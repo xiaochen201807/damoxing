@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const db = require("../db");
+const { aiLimiter } = require("../middleware/security");
+const { validate, schemas } = require("../middleware/validator");
+
+
 
 /**
  * 静态 Mock 数据 (当没有配置 API Key 时返回)
@@ -48,65 +53,111 @@ const MOCK_AMIS_JSON = {
 };
 
 // POST /api/ai/generate
-router.post("/generate", async (req, res) => {
+router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
   const { query, pageId } = req.body;
-  // 【修复点 1】获取环境变量中的 Key
-  const apiKey = process.env.DIFY_API_KEY;
-  // 1. Mock 模式检查
-  if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-    console.log("⚠️ 未检测到 Dify Key，使用本地 Mock 数据返回");
 
-    // 返回假的成功数据，骗过前端
-    return res.json({
-      status: 0,
-      msg: "success",
-      data: {
-        // 这下面的 JSON 就是“Mock 数据”
-        // AMIS 收到这坨 JSON，就会渲染出图表
-        type: "grid",
-        columns: [
-          {
-            md: 6,
-            body: {
-              type: "chart",
-              height: 300,
-              config: {
-                title: { text: "Mock数据-模拟逾期趋势" },
-                xAxis: {
-                  type: "category",
-                  data: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-                },
-                series: [{ data: [820, 932, 901, 934, 1290], type: "line" }],
-              },
-            },
-          },
-          {
-            md: 6,
-            body: {
-              type: "chart",
-              height: 300,
-              config: {
-                title: { text: "Mock数据-模拟风险分布" },
-                series: [
-                  {
-                    type: "pie",
-                    data: [
-                      { value: 30, name: "高风险" },
-                      { value: 70, name: "低风险" },
-                    ],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      },
+  // 1. 从数据库获取 Dify 配置
+  const getConfig = () => {
+    return new Promise((resolve, reject) => {
+      if (!pageId) {
+        // 如果没有 pageId，尝试使用环境变量作为兜底
+        const apiKey = process.env.DIFY_API_KEY;
+        const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+          return resolve(null); // 返回 null 表示使用 Mock 模式
+        }
+
+        return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
+      }
+
+      // 从数据库查询配置
+      const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
+      db.get(sql, [pageId], (err, row) => {
+        if (err) {
+          console.error('[AI Generate] 查询配置失败:', err);
+          return reject(err);
+        }
+
+        // 如果数据库没有配置，尝试使用环境变量
+        if (!row) {
+          const apiKey = process.env.DIFY_API_KEY;
+          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+            return resolve(null);
+          }
+
+          console.log(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
+          return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
+        }
+
+        resolve(row);
+      });
     });
-  }
+  };
 
-  // 2. 真实调用 Dify 模式
   try {
-    const difyUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+    const config = await getConfig();
+
+    // 2. Mock 模式检查
+    if (!config) {
+      console.log("⚠️ 未检测到 Dify 配置，使用本地 Mock 数据返回");
+
+      // 返回假的成功数据，骗过前端
+      return res.json({
+        status: 0,
+        msg: "success",
+        data: {
+          // 这下面的 JSON 就是"Mock 数据"
+          // AMIS 收到这坨 JSON，就会渲染出图表
+          type: "grid",
+          columns: [
+            {
+              md: 6,
+              body: {
+                type: "chart",
+                height: 300,
+                config: {
+                  title: { text: "Mock数据-模拟逾期趋势" },
+                  xAxis: {
+                    type: "category",
+                    data: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+                  },
+                  series: [{ data: [820, 932, 901, 934, 1290], type: "line" }],
+                },
+              },
+            },
+            {
+              md: 6,
+              body: {
+                type: "chart",
+                height: 300,
+                config: {
+                  title: { text: "Mock数据-模拟风险分布" },
+                  series: [
+                    {
+                      type: "pie",
+                      data: [
+                        { value: 30, name: "高风险" },
+                        { value: 70, name: "低风险" },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      });
+    }
+
+    // 3. 真实调用 Dify 模式
+    const difyUrl = config.api_url;
+    const apiKey = config.api_key;
+
+    console.log(`[AI] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
+
 
     // 构造 Dify 请求体 (Chat Messages API)
     const payload = {
@@ -184,16 +235,58 @@ router.post("/generate", async (req, res) => {
   }
 });
 
-// POST /api/ai/generate
-router.post("/generate-page", async (req, res) => {
+// POST /api/ai/generate-page
+router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
   const { query, pageId } = req.body;
 
   if (!query) {
     return res.status(400).json({ error: "缺少 prompt 参数" });
   }
-    const DIFY_API_URL = process.env.DIFY_API_URL;
-    const DIFY_API_KEY = process.env.DIFY_API_KEY;
+
+  // 1. 从数据库获取 Dify 配置
+  const getConfig = () => {
+    return new Promise((resolve, reject) => {
+      if (!pageId) {
+        const apiKey = process.env.DIFY_API_KEY;
+        const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+          return reject(new Error('未配置 Dify API Key'));
+        }
+
+        return resolve({ api_url: apiUrl, api_key: apiKey });
+      }
+
+      const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
+      db.get(sql, [pageId], (err, row) => {
+        if (err) {
+          console.error('[AI Workflow] 查询配置失败:', err);
+          return reject(err);
+        }
+
+        if (!row) {
+          const apiKey = process.env.DIFY_API_KEY;
+          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+            return reject(new Error(`页面 ${pageId} 未配置工作流`));
+          }
+
+          console.log(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
+          return resolve({ api_url: apiUrl, api_key: apiKey });
+        }
+
+        resolve(row);
+      });
+    });
+  };
+
   try {
+    const config = await getConfig();
+    const DIFY_API_URL = config.api_url;
+    const DIFY_API_KEY = config.api_key;
+
+    console.log(`[AI Workflow] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
     console.log(`[AI Workflow] 正在请求 Dify Workflow: ${query}`);
 
     // Dify Workflow API 调用结构
@@ -212,7 +305,7 @@ router.post("/generate-page", async (req, res) => {
           Authorization: `Bearer ${DIFY_API_KEY}`,
           "Content-Type": "application/json",
         },
-        timeout: 120000, // Workflow 运行时间可能较长，设置 60秒超时
+        timeout: 120000, // Workflow 运行时间可能较长，设置 120秒超时
       }
     );
 
@@ -230,32 +323,32 @@ router.post("/generate-page", async (req, res) => {
     const workflowData = response.data;
     //   console.log("[AI Workflow] 生成成功",JSON.stringify(workflowData, null, 2));
 
-      if (workflowData.data.status === "succeeded") {
-        // 获取 Dify 返回的原始结果 (这是一个 String，因为我们在 Python 节点打包了)
-        const rawResult = workflowData.data.outputs.result;
+    if (workflowData.data.status === "succeeded") {
+      // 获取 Dify 返回的原始结果 (这是一个 String，因为我们在 Python 节点打包了)
+      const rawResult = workflowData.data.outputs.result;
 
-        console.log("[AI Workflow] Dify 原始输出类型:", typeof rawResult); // 应该是 string
-        let finalJsonObj;
-        const generatedJson = JSON.stringify(workflowData.data.outputs.result);
-        try {
-          // 【关键修改】这里要用 parse，而不是 stringify
-          // 只有把字符串还原成对象，AMIS 才能直接读取 body 里的数组
-          finalJsonObj =
-            typeof rawResult === "string" ? JSON.parse(rawResult) : rawResult;
-        } catch (e) {
-          console.error("解析 Dify 返回的 JSON 字符串失败", e);
-          // 兜底：如果解析失败，至少发个报错给前端，别崩
-          finalJsonObj = { type: "page", body: "后端解析数据格式错误" };
-        }
+      console.log("[AI Workflow] Dify 原始输出类型:", typeof rawResult); // 应该是 string
+      let finalJsonObj;
+      const generatedJson = JSON.stringify(workflowData.data.outputs.result);
+      try {
+        // 【关键修改】这里要用 parse，而不是 stringify
+        // 只有把字符串还原成对象，AMIS 才能直接读取 body 里的数组
+        finalJsonObj =
+          typeof rawResult === "string" ? JSON.parse(rawResult) : rawResult;
+      } catch (e) {
+        console.error("解析 Dify 返回的 JSON 字符串失败", e);
+        // 兜底：如果解析失败，至少发个报错给前端，别崩
+        finalJsonObj = { type: "page", body: "后端解析数据格式错误" };
+      }
 
-        console.log("[AI Workflow] 解析成功，准备返回给前端");
-        // 直接返回 JSON 对象给前端 AMIS 渲染
-        res.json({
-          status: 0,
-          msg: "success",
-          data: finalJsonObj, // 这里的结构应该是 { type: "page", body: [...] }
-        });
-      } else {
+      console.log("[AI Workflow] 解析成功，准备返回给前端");
+      // 直接返回 JSON 对象给前端 AMIS 渲染
+      res.json({
+        status: 0,
+        msg: "success",
+        data: finalJsonObj, // 这里的结构应该是 { type: "page", body: [...] }
+      });
+    } else {
       console.error("[AI Workflow] 运行状态非成功:", workflowData);
       res.status(500).json({ status: 1, msg: "Workflow 运行未完成或失败" });
     }

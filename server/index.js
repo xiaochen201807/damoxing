@@ -4,12 +4,23 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const db = require("./db");
+const logger = require("./utils/logger");
+const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
+const { globalLimiter, helmetConfig, sqlInjectionProtection } = require("./middleware/security");
 
 // 引入 AI 路由
 const aiRoutes = require("./routes/ai");
+const difyConfigRoutes = require("./routes/dify-config");
+const menuRoutes = require("./routes/menu");
+const pageTemplateRoutes = require("./routes/page-template");
+const backendConfigRoutes = require("./routes/backend-config");
+
 
 const app = express();
 const PORT = 3001;
+
+// 安全头配置（必须在最前面）
+app.use(helmetConfig);
 
 // CORS 配置 (允许携带凭证，配合前端 Vite 代理或直接请求)
 const corsOptions = {
@@ -21,6 +32,16 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// HTTP 请求日志
+app.use(logger.httpLogger);
+
+// 全局限流
+app.use(globalLimiter);
+
+// SQL 注入防护
+app.use(sqlInjectionProtection);
+
 
 // API: 获取系统菜单
 app.get("/api/system/menu", (req, res) => {
@@ -65,14 +86,33 @@ app.get("/api/page/:pageKey", (req, res) => {
   });
 });
 
+// 1. 注册 Dify 配置管理路由
+app.use("/api/dify", difyConfigRoutes);
+
 // 2. 注册 AI 路由
 app.use("/api/ai", aiRoutes);
 
+// 3. 注册菜单管理路由
+app.use("/api/system", menuRoutes);
+
+// 4. 注册页面模板管理路由
+app.use("/api/system", pageTemplateRoutes);
+
+// 5. 注册后端配置管理路由
+app.use("/api/system", backendConfigRoutes);
+
+// 3. 404 错误处理（必须在所有路由之后）
+app.use(notFoundHandler);
+
+// 4. 全局错误处理中间件（必须在最后）
+app.use(errorHandler);
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
   if (process.env.DIFY_API_KEY) {
-    console.log("AI Service: Active (Dify Mode)");
+    logger.info("AI Service: Active (Dify Mode)");
   } else {
-    console.log("AI Service: Active (Mock Mode)");
+    logger.info("AI Service: Active (Mock Mode)");
   }
 });
+

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/xiaochen/Downloads/damoxing/server/logs/.d391a2b573a65244391721f399db6550e7b0bf3b-audit.json",
+    "files": [
+        {
+            "date": 1765628325822,
+            "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-13.log",
+            "hash": "48c1ad2b6f3536fde478bb795cd11fc8c9e2c4c6f7bd9a183e1ceb34864f4a7f"
+        }
+    ],
+    "hashType": "sha256"
+}
