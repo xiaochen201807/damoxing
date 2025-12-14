@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const logger = require('../utils/logger');
 const { validate, schemas } = require('../middleware/validator');
 
 
@@ -15,7 +16,7 @@ router.get('/config', (req, res) => {
 
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error('[Dify Config] 查询失败:', err);
+            logger.error('[Dify Config] 查询失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '查询配置失败',
@@ -38,7 +39,7 @@ router.get('/config/:pageKey', (req, res) => {
 
     db.get(sql, [pageKey], (err, row) => {
         if (err) {
-            console.error('[Dify Config] 查询失败:', err);
+            logger.error('[Dify Config] 查询失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '查询配置失败',
@@ -90,7 +91,7 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
 
     db.run(sql, params, function (err) {
         if (err) {
-            console.error('[Dify Config] 创建失败:', err);
+            logger.error('[Dify Config] 创建失败:', err);
 
             if (err.message.includes('UNIQUE constraint failed')) {
                 return res.status(409).json({
@@ -172,7 +173,7 @@ function updateDifyConfig(req, res) {
 
     db.run(sql, params, function (err) {
         if (err) {
-            console.error('[Dify Config] 更新失败:', err);
+            logger.error('[Dify Config] 更新失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '更新配置失败',
@@ -202,7 +203,7 @@ router.delete('/config/:pageKey', validate(schemas.pageKey, 'params'), (req, res
 
     db.run(sql, [pageKey], function (err) {
         if (err) {
-            console.error('[Dify Config] 删除失败:', err);
+            logger.error('[Dify Config] 删除失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '删除配置失败',

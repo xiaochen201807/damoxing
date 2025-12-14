@@ -2,6 +2,7 @@
  * 后端配置表迁移
  * 创建 sys_backend_config 表，存储系统后端配置参数
  */
+const logger = require('../../utils/logger');
 
 exports.up = function (db) {
     return db.serialize(() => {
@@ -36,13 +37,13 @@ exports.up = function (db) {
       `, [key, value, type, desc]);
         });
 
-        console.log('Migration 003: Backend config table created with default values');
+        logger.info('Migration 003: Backend config table created with default values');
     });
 };
 
 exports.down = function (db) {
     return db.serialize(() => {
         db.run('DROP TABLE IF EXISTS sys_backend_config');
-        console.log('Migration 003: Rolled back');
+        logger.info('Migration 003: Rolled back');
     });
 };

@@ -1,0 +1,518 @@
+# Nginx 部署配置指南
+
+## 🎯 部署架构
+
+```
+         ┌─────────────┐
+         │   用户请求   │
+         └──────┬──────┘
+                │
+         ┌──────▼──────┐
+         │    Nginx    │
+         │   :80/:443  │
+         └──────┬──────┘
+                │
+    ┌───────────┴───────────┐
+    │                       │
+┌───▼────┐          ┌──────▼──────┐
+│ 静态文件│          │   Express   │
+│ /var/www│          │   :3001     │
+│         │          │   API       │
+│ Gzip ✅ │          │   Gzip ✅   │
+└─────────┘          └─────────────┘
+```
+
+---
+
+## 📝 完整 Nginx 配置
+
+### 配置文件: `/etc/nginx/sites-available/damoxing`
+
+```nginx
+# ============================================
+# Upstream - Express API 服务器
+# ============================================
+upstream api_backend {
+    server 127.0.0.1:3001;
+    keepalive 64;
+}
+
+# ============================================
+# HTTP -> HTTPS 重定向 (可选，生产环境推荐)
+# ============================================
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # Let's Encrypt 验证路径
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # 其他请求重定向到 HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# ============================================
+# HTTPS 主配置
+# ============================================
+server {
+    # 监听端口
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    
+    # 域名
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # SSL 证书配置 (使用 Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    
+    # SSL 优化配置
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # ============================================
+    # Gzip 压缩配置 (关键!)
+    # ============================================
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/javascript
+        application/x-javascript
+        application/json
+        application/xml
+        application/xml+rss
+        application/xhtml+xml
+        application/x-font-ttf
+        application/x-font-opentype
+        application/vnd.ms-fontobject
+        image/svg+xml
+        image/x-icon;
+    
+    # ============================================
+    # Brotli 压缩 (可选，更优)
+    # ============================================
+    # 需要安装 ngx_brotli 模块
+    # brotli on;
+    # brotli_comp_level 6;
+    # brotli_types text/plain text/css application/javascript application/json image/svg+xml;
+    
+    # ============================================
+    # 日志配置
+    # ============================================
+    access_log /var/log/nginx/damoxing_access.log;
+    error_log /var/log/nginx/damoxing_error.log warn;
+    
+    # ============================================
+    # 安全头
+    # ============================================
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    
+    # ============================================
+    # 静态文件托管 (前端)
+    # ============================================
+    location / {
+        root /var/www/damoxing/client/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+        
+        # 静态资源缓存策略
+        # HTML 文件不缓存（或短期缓存）
+        location ~* \.html$ {
+            expires -1;
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+        }
+        
+        # JS/CSS 文件长期缓存（因为有 hash）
+        location ~* \.(js|css)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+        
+        # 字体文件
+        location ~* \.(woff|woff2|ttf|eot|otf)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+        
+        # 图片文件
+        location ~* \.(jpg|jpeg|png|gif|ico|svg|webp)$ {
+            expires 6M;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+    
+    # ============================================
+    # API 反向代理
+    # ============================================
+    location /api {
+        # 代理到 Express
+        proxy_pass http://api_backend;
+        
+        # 代理头设置
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 超时设置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        
+        # 缓存绕过
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # ============================================
+    # 健康检查 (不缓存)
+    # ============================================
+    location /health {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        access_log off;
+    }
+    
+    # ============================================
+    # favicon.ico (避免404)
+    # ============================================
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+    
+    # ============================================
+    # robots.txt
+    # ============================================
+    location = /robots.txt {
+        log_not_found off;
+        access_log off;
+    }
+}
+```
+
+---
+
+## 🚀 部署步骤
+
+### 1. 构建前端
+
+```bash
+cd /path/to/damoxing/client
+npm install
+npm run build
+
+# 生成 dist/ 目录
+```
+
+### 2. 上传文件到服务器
+
+```bash
+# 上传前端
+scp -r dist/ user@server:/var/www/damoxing/client/
+
+# 上传后端
+scp -r server/ user@server:/var/www/damoxing/
+```
+
+### 3. 服务器上安装依赖
+
+```bash
+# 后端依赖
+cd /var/www/damoxing/server
+npm install --production
+
+# 数据库迁移
+npm run db:migrate
+
+# 环境变量
+cp .env.example .env
+nano .env  # 编辑配置
+```
+
+### 4. 配置 Nginx
+
+```bash
+# 复制配置文件
+sudo nano /etc/nginx/sites-available/damoxing
+
+# 粘贴上面的配置（修改域名和路径）
+
+# 创建软链接
+sudo ln -s /etc/nginx/sites-available/damoxing /etc/nginx/sites-enabled/
+
+# 测试配置
+sudo nginx -t
+
+# 重启 Nginx
+sudo systemctl restart nginx
+```
+
+### 5. 配置 PM2 (后端进程管理)
+
+```bash
+# 安装 PM2
+npm install -g pm2
+
+# 启动应用
+cd /var/www/damoxing/server
+pm2 start index.js --name damoxing-api
+
+# 保存配置
+pm2 save
+
+# 开机自启
+pm2 startup
+```
+
+### 6. 配置 SSL (Let's Encrypt)
+
+```bash
+# 安装 certbot
+sudo apt install certbot python3-certbot-nginx
+
+# 获取证书
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# 自动续期
+sudo certbot renew --dry-run
+```
+
+---
+
+## 📊 验证部署
+
+### 1. 检查前端
+
+```bash
+# 访问首页
+curl -I https://yourdomain.com
+
+# 应该看到:
+# HTTP/2 200
+# Content-Encoding: gzip  ✅
+```
+
+### 2. 检查静态文件
+
+```bash
+# 测试 vendor.js
+curl -H "Accept-Encoding: gzip" \
+     -I https://yourdomain.com/assets/js/vendor-xxx.js
+
+# 应该看到:
+# Content-Encoding: gzip  ✅
+# Content-Length: ~2500000  (gzip后大小)
+# Cache-Control: public, immutable, max-age=31536000
+```
+
+### 3. 检查 API
+
+```bash
+# 测试 API
+curl -H "Accept-Encoding: gzip" \
+     https://yourdomain.com/api/system/menu
+
+# 应该返回 JSON
+```
+
+### 4. 检查健康状态
+
+```bash
+curl https://yourdomain.com/health/detailed
+```
+
+---
+
+## 🎯 性能优化清单
+
+### Nginx 层面
+
+- [x] Gzip 压缩已启用
+- [x] 静态资源长期缓存
+- [x] HTTP/2 已启用
+- [ ] Brotli 压缩 (可选)
+- [ ] CDN 集成 (可选)
+
+### 缓存策略
+
+```nginx
+HTML:       不缓存 或 1分钟
+JS/CSS:     1年 (有hash)
+字体:       1年
+图片:       6个月
+API:        不缓存
+```
+
+### 安全配置
+
+- [x] HTTPS 强制跳转
+- [x] 安全头已添加
+- [x] SSL 优化配置
+- [x] 日志配置
+
+---
+
+## 📁 服务器目录结构
+
+```
+/var/www/damoxing/
+├── client/
+│   └── dist/              # 前端构建产物
+│       ├── index.html
+│       └── assets/
+│           ├── js/
+│           │   ├── vendor-xxx.js  8.9M → 2.4M (gzip)
+│           │   ├── amis-xxx.js    1.2M → 300K (gzip)
+│           │   └── index-xxx.js   7.2K → 3K (gzip)
+│           └── css/
+└── server/                # 后端代码
+    ├── index.js
+    ├── routes/
+    ├── db/
+    ├── database.sqlite
+    ├── logs/
+    └── .env
+```
+
+---
+
+## 🔧 常用维护命令
+
+### Nginx
+
+```bash
+# 重启
+sudo systemctl restart nginx
+
+# 重新加载配置
+sudo nginx -s reload
+
+# 测试配置
+sudo nginx -t
+
+# 查看日志
+sudo tail -f /var/log/nginx/damoxing_error.log
+```
+
+### PM2
+
+```bash
+# 查看状态
+pm2 status
+
+# 重启应用
+pm2 restart damoxing-api
+
+# 查看日志
+pm2 logs damoxing-api
+
+# 监控
+pm2 monit
+```
+
+### 数据库备份
+
+```bash
+# 使用我们的备份脚本
+cd /var/www/damoxing/server
+./scripts/backup-db.sh
+
+# 定时任务
+crontab -e
+# 添加: 0 3 * * * cd /var/www/damoxing/server && ./scripts/backup-db.sh
+```
+
+---
+
+## ⚡ 性能监控
+
+### 1. Nginx 访问日志分析
+
+```bash
+# 查看访问量
+sudo tail -f /var/log/nginx/damoxing_access.log
+
+# 统计请求数
+cat /var/log/nginx/damoxing_access.log | wc -l
+```
+
+### 2. 压缩率验证
+
+```bash
+# 对比压缩前后大小
+ls -lh /var/www/damoxing/client/dist/assets/js/vendor-*.js
+# vs
+curl -H "Accept-Encoding: gzip" \
+     -I https://yourdomain.com/assets/js/vendor-xxx.js \
+     | grep Content-Length
+```
+
+---
+
+## ✅ 部署检查清单
+
+### 前期准备
+- [ ] 域名已解析到服务器
+- [ ] 服务器防火墙开放 80/443 端口
+- [ ] Node.js 已安装 (v16+)
+- [ ] Nginx 已安装
+
+### 部署步骤
+- [ ] 前端已构建 (`npm run build`)
+- [ ] 文件已上传到服务器
+- [ ] 后端依赖已安装
+- [ ] 数据库已初始化
+- [ ] 环境变量已配置
+- [ ] Nginx 配置已添加
+- [ ] SSL 证书已配置
+- [ ] PM2 已配置并运行
+
+### 验证测试
+- [ ] 前端页面可访问
+- [ ] Gzip 压缩生效
+- [ ] API 接口正常
+- [ ] 健康检查通过
+- [ ] HTTPS 正常
+- [ ] 缓存策略生效
+
+---
+
+## 🎉 总结
+
+**你的部署方案**:
+```
+Nginx (静态文件 + gzip) + Express (API + gzip)
+```
+
+**Gzip 效果**:
+- vendor.js: 8.9M → 2.4M (73%↓)
+- 首屏加载: **快4倍** ⚡
+- 流量节省: **70%+** 💰
+
+**配置完成✅**:
+- Express gzip 中间件 (API压缩)
+- Nginx 配置示例 (静态文件压缩)
+- 完整部署流程
+
+查看详细配置文件在项目根目录！

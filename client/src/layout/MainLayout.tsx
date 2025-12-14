@@ -43,7 +43,7 @@ const MainLayout: React.FC = () => {
           fontWeight: 'bold',
           borderBottom: '1px solid rgba(255,255,255,0.1)'
         }}>
-          <span>系统控制台</span>
+          <span>{import.meta.env.VITE_APP_SIDEBAR_TITLE || '系统控制台'}</span>
         </div>
 
         <nav style={{ flex: 1, overflowY: 'auto', paddingTop: '10px' }}>

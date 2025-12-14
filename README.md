@@ -92,7 +92,7 @@ npm run dev
 
 ```
 damoxing/
-├── client/                 # 前端项目
+├── client/                 # 前端项目 (React + TypeScript + AMIS)
 │   ├── src/
 │   │   ├── components/    # React 组件
 │   │   ├── pages/         # 页面组件
@@ -103,15 +103,29 @@ damoxing/
 │   ├── .env.development   # 开发环境配置
 │   └── package.json
 │
-└── server/                # 后端项目
-    ├── db/
-    │   ├── migrations/    # 数据库迁移脚本
-    │   └── migrate.js     # 迁移工具
-    ├── middleware/        # Express 中间件
-    ├── routes/            # API 路由
-    ├── utils/             # 工具函数
-    ├── .env.example       # 环境变量示例
-    └── package.json
+├── server/                # 后端项目 (Node.js + Express)
+│   ├── db/
+│   │   ├── migrations/    # 数据库迁移脚本
+│   │   └── migrate.js     # 迁移工具
+│   ├── middleware/        # Express 中间件
+│   ├── routes/            # API 路由
+│   ├── utils/             # 工具函数
+│   ├── .env.example       # 环境变量示例
+│   └── package.json
+│
+├── schema-builder/        # 独立的 Python 模板生成工具
+│   ├── templates/         # Jinja2 模板文件
+│   │   ├── base/         # 基础模板（颜色、变量）
+│   │   ├── components/   # 可复用组件
+│   │   └── pages/        # 页面主模板
+│   ├── configs/          # JSON 配置文件
+│   ├── output/           # 生成的 Schema 输出
+│   ├── build_schema.py   # 构建脚本
+│   ├── template_helpers.py # 辅助函数
+│   ├── requirements.txt  # Python 依赖
+│   └── README.md         # 详细文档
+│
+└── docs/                  # 项目文档
 ```
 
 ---

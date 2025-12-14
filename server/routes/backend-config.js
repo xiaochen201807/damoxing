@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const logger = require('../utils/logger');
 
 // 获取所有后端配置
 router.get('/backend-config', (req, res) => {
@@ -13,7 +14,7 @@ router.get('/backend-config', (req, res) => {
 
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error('[Backend Config] 查询失败:', err);
+            logger.error('[Backend Config] 查询失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '查询后端配置失败',
@@ -42,7 +43,7 @@ router.get('/backend-config/:key', (req, res) => {
 
     db.get(sql, [key], (err, row) => {
         if (err) {
-            console.error('[Backend Config] 查询失败:', err);
+            logger.error('[Backend Config] 查询失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '查询配置失败',
@@ -103,7 +104,7 @@ function updateBackendConfig(req, res) {
 
     db.run(sql, [String(config_value), key], function (err) {
         if (err) {
-            console.error('[Backend Config] 更新失败:', err);
+            logger.error('[Backend Config] 更新失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '更新配置失败',
@@ -118,7 +119,7 @@ function updateBackendConfig(req, res) {
             });
         }
 
-        console.log(`[Backend Config] 配置已更新: ${key} = ${config_value}`);
+        logger.info(`[Backend Config] 配置已更新: ${key} = ${config_value}`);
 
         res.json({
             status: 0,

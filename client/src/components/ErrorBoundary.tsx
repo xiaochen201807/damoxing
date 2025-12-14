@@ -3,7 +3,8 @@
  * 捕获子组件树中的 JavaScript 错误，记录错误并显示降级 UI
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
     children: ReactNode;
@@ -28,7 +29,7 @@ class ErrorBoundary extends Component<Props, State> {
         };
     }
 
-    static getDerivedStateFromError(error: Error): Partial<State> {
+    static getDerivedStateFromError(_error: Error): Partial<State> {
         // 更新 state 使下一次渲染能够显示降级后的 UI
         return { hasError: true };
     }

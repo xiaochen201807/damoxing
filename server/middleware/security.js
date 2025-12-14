@@ -68,26 +68,74 @@ const helmetConfig = helmet({
 });
 
 /**
- * SQL 注入防护检查
- * 检测常见的 SQL 注入模式
+ * SQL 注入防护检查（优化版）
+ * 
+ * 【注意】本项目已使用参数化查询（最佳实践），此中间件仅作为额外防护层
+ * 
+ * 防护策略：
+ * 1. 只检测明显的 SQL 注入攻击模式
+ * 2. 避免误报合法用户输入（如包含 "--" 的文本）
+ * 3. 对于特定字段（如 schema_json）跳过检测
+ * 
+ * 已移除的过于严格的规则：
+ * - 单独的 SQL 关键字（SELECT, INSERT 等）- 用户可能正常输入这些词
+ * - 单独的双横线 "--" - 这在中文输入中很常见
+ * 
+ * 保留的关键模式：
+ * - 多个 SQL 注入组合模式
+ * - 明显的恶意字符序列
  */
 const sqlInjectionProtection = (req, res, next) => {
-    const sqlPatterns = [
-        /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/gi,
-        /(--|;|\/\*|\*\/|xp_|sp_)/gi,
-        /('|(\\')|(;)|(--)|(\/\*))/gi,
+    // 需要跳过检测的字段（比如 AMIS schema 中可能包含 SQL 关键字）
+    const skipFields = ['schema_json', 'config', 'body', 'template', 'schema'];
+
+    // 只检测明显的 SQL 注入组合模式
+    const dangerousPatterns = [
+        // 注释符号与引号的组合（经典 SQL 注入）
+        /['"][\s]*--/gi,                          // ' -- 或 " --
+        /['"][\s]*;/gi,                           // '; 或 ";
+        /['"][\s]*\/\*/gi,                        // '/* 或 "/*
+
+        // 多个 SQL 关键字的组合（更可能是攻击）
+        /\bunion[\s]+select\b/gi,                // UNION SELECT
+        /\bselect[\s]+.*[\s]+from\b/gi,          // SELECT ... FROM
+        /\bdrop[\s]+table\b/gi,                  // DROP TABLE
+        /\binsert[\s]+into\b/gi,                 // INSERT INTO
+        /\bdelete[\s]+from\b/gi,                 // DELETE FROM
+        /\bexec[\s]*\(/gi,                       // EXEC(
+        /\bexecute[\s]*\(/gi,                    // EXECUTE(
+
+        // 危险的存储过程
+        /\bxp_cmdshell\b/gi,
+        /\bsp_executesql\b/gi,
+
+        // Base64 encoded SQL patterns (高级攻击)
+        /U0VMRUNUI|RFTEVU|SU5TRVJU|REVMRVRF/g,
     ];
 
-    const checkValue = (value) => {
+    const checkValue = (value, fieldName = '') => {
+        // 跳过特定字段的检测
+        if (skipFields.includes(fieldName)) {
+            return false;
+        }
+
         if (typeof value === 'string') {
-            for (const pattern of sqlPatterns) {
+            // 只有字符串长度超过 10 才检测（过短的字符串不太可能是攻击）
+            if (value.length < 10) {
+                return false;
+            }
+
+            // 检测危险模式
+            for (const pattern of dangerousPatterns) {
                 if (pattern.test(value)) {
+                    logger.warn(`Suspicious SQL pattern detected: ${pattern.toString()}, value: ${value.substring(0, 50)}...`);
                     return true;
                 }
             }
         } else if (typeof value === 'object' && value !== null) {
+            // 递归检查对象
             for (const key in value) {
-                if (checkValue(value[key])) {
+                if (checkValue(value[key], key)) {
                     return true;
                 }
             }
@@ -97,10 +145,10 @@ const sqlInjectionProtection = (req, res, next) => {
 
     // 检查 query、body、params
     if (checkValue(req.query) || checkValue(req.body) || checkValue(req.params)) {
-        logger.warn(`Potential SQL injection detected from IP: ${req.ip}, path: ${req.path}`);
+        logger.warn(`Potential SQL injection blocked - IP: ${req.ip}, path: ${req.path}, method: ${req.method}`);
         return res.status(400).json({
             status: 400,
-            msg: '请求包含非法字符',
+            msg: '请求包含可疑内容，已被安全系统拦截',
         });
     }
 

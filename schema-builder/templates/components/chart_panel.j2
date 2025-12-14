@@ -1,0 +1,180 @@
+{# Chart Panel Component - Complete JSON Block (Not Modularized) #}
+{
+    "type": "chart",
+    "api": {
+        "url": "{{ api_url }}",
+        "method": "get",
+        "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].radius = ['50%', '70%']; option.series[0].emphasis = { scale: true, scaleSize: 10 }; option.series[0].itemStyle = { borderRadius: 8, borderColor: '#fff', borderWidth: 2 }; } option.legend = { orient: 'horizontal', bottom: '0', left: 'center', icon: 'circle', itemWidth: 14, itemHeight: 14, textStyle: { fontSize: 13, color: '#666' } }; return { ...payload, data: option };"
+    },
+    "height": {{ height }},
+    "clickAction": {
+        "actionType": "dialog",
+        "dialog": {
+            "title": "${event.data.name}客户清册 (共${event.data.value}条)",
+            "size": "xl",
+            "actions": [
+                {
+                    "type": "button",
+                    "label": "关闭",
+                    "actionType": "close"
+                }
+            ],
+            "body": {
+                "type": "service",
+                "api": {
+                    "method": "get",
+                    "url": "/api/demo/risk-list/\${event.data.itemId}"
+                },
+                "body": {
+                    "type": "table",
+                    "affixHeader": true,
+                    "columns": [
+                        {
+                            "name": "id",
+                            "label": "ID",
+                            "width": 60
+                        },
+                        {
+                            "name": "customer_name",
+                            "label": "客户姓名"
+                        },
+                        {
+                            "name": "amount",
+                            "label": "贷款金额",
+                            "type": "tpl",
+                            "tpl": "¥${amount | number:0,0}"
+                        },
+                        {
+                            "name": "overdue_days",
+                            "label": "逾期天数",
+                            "type": "mapping",
+                            "map": {
+                                "*": "<span class='label label-${overdue_days > 60 ? \"danger\" : overdue_days > 30 ? \"warning\" : \"success\"}'>${overdue_days}天</span>"
+                            }
+                        },
+                        {
+                            "name": "risk_score",
+                            "label": "风险评分",
+                            "type": "progress",
+                            "map": {
+                                "*": {
+                                    "value": "${risk_score}",
+                                    "color": "${risk_score >= 80 ? 'danger' : risk_score >= 50 ? 'warning' : 'success'}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "status",
+                            "label": "处理状态",
+                            "type": "mapping",
+                            "map": {
+                                "pending": "<span class='label label-warning'>待处理</span>",
+                                "processing": "<span class='label label-info'>处理中</span>",
+                                "completed": "<span class='label label-success'>已完成</span>"
+                            }
+                        },
+                        {
+                            "type": "operation",
+                            "label": "操作",
+                            "width": 180,
+                            "buttons": [
+                                {
+                                    "type": "button",
+                                    "label": "详情",
+                                    "level": "link",
+                                    "icon": "fa fa-eye",
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "客户详细信息 - ${customer_name}",
+                                        "size": "lg",
+                                        "body": {
+                                            "type": "form",
+                                            "mode": "horizontal",
+                                            "wrapWithPanel": false,
+                                            "initApi": {
+                                                "method": "get",
+                                                "url": "/api/demo/customer/${id}"
+                                            },
+                                            "api": {
+                                                "method": "post",
+                                                "url": "/api/demo/customer/${id}"
+                                            },
+                                            "body": [
+                                                {
+                                                    "type": "static",
+                                                    "name": "id",
+                                                    "label": "客户ID"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "customer_name",
+                                                    "label": "客户姓名",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "type": "input-number",
+                                                    "name": "amount",
+                                                    "label": "贷款金额",
+                                                    "prefix": "¥",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "type": "input-number",
+                                                    "name": "overdue_days",
+                                                    "label": "逾期天数",
+                                                    "min": 0
+                                                },
+                                                {
+                                                    "type": "input-number",
+                                                    "name": "risk_score",
+                                                    "label": "风险评分",
+                                                    "min": 0,
+                                                    "max": 100,
+                                                    "description": "0-100分，分数越高风险越大"
+                                                },
+                                                {
+                                                    "type": "select",
+                                                    "name": "status",
+                                                    "label": "处理状态",
+                                                    "options": [
+                                                        {
+                                                            "label": "待处理",
+                                                            "value": "pending"
+                                                        },
+                                                        {
+                                                            "label": "处理中",
+                                                            "value": "processing"
+                                                        },
+                                                        {
+                                                            "label": "已完成",
+                                                            "value": "completed"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "button",
+                                    "label": "标记已处理",
+                                    "level": "link",
+                                    "className": "text-success",
+                                    "icon": "fa fa-check",
+                                    "visibleOn": "${status !== 'completed'}",
+                                    "actionType": "ajax",
+                                    "api": {
+                                        "method": "post",
+                                        "url": "/api/demo/customer/${id}/mark-processed"
+                                    },
+                                    "confirmText": "确认标记该客户为已处理？",
+                                    "reload": "window"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

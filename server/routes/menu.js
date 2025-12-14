@@ -6,20 +6,38 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const logger = require('../utils/logger');
+const cache = require('../utils/cache');
 
-// 获取所有菜单
+// 获取所有菜单（带缓存）
 router.get('/menu', (req, res) => {
+    // 1. 先尝试从缓存获取
+    const cachedMenu = cache.menu.get();
+    if (cachedMenu) {
+        logger.debug('[Menu] Cache hit');
+        return res.json({
+            status: 0,
+            msg: 'success',
+            data: cachedMenu,
+            cached: true, // 标识数据来自缓存
+        });
+    }
+
+    // 2. 缓存未命中，查询数据库
     const sql = 'SELECT * FROM sys_menu ORDER BY id ASC';
 
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error('[Menu] 查询失败:', err);
+            logger.error('[Menu] 查询失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '查询菜单失败',
                 error: err.message
             });
         }
+
+        // 3. 缓存查询结果
+        cache.menu.set(rows);
 
         res.json({
             status: 0,
@@ -44,13 +62,16 @@ router.post('/menu', (req, res) => {
 
     db.run(sql, [label, subtitle || '', path || '', icon || ''], function (err) {
         if (err) {
-            console.error('[Menu] 创建失败:', err);
+            logger.error('[Menu] 创建失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '创建菜单失败',
                 error: err.message
             });
         }
+
+        // 清除缓存
+        cache.menu.clear();
 
         res.json({
             status: 0,
@@ -109,7 +130,7 @@ function updateMenu(req, res) {
 
     db.run(sql, params, function (err) {
         if (err) {
-            console.error('[Menu] 更新失败:', err);
+            logger.error('[Menu] 更新失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '更新菜单失败',
@@ -139,7 +160,7 @@ router.delete('/menu/:id', (req, res) => {
 
     db.run(sql, [id], function (err) {
         if (err) {
-            console.error('[Menu] 删除失败:', err);
+            logger.error('[Menu] 删除失败:', err);
             return res.status(500).json({
                 status: 500,
                 msg: '删除菜单失败',

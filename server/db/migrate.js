@@ -6,6 +6,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const logger = require('../utils/logger');
 
 // 加载环境变量
 require('dotenv').config();
@@ -15,10 +16,10 @@ const migrationsDir = path.resolve(__dirname, './migrations');
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-        console.error('❌ 无法连接到数据库:', err);
+        logger.error('❌ 无法连接到数据库:', err);
         process.exit(1);
     }
-    console.log('✅ 已连接到数据库:', dbPath);
+    logger.info('✅ 已连接到数据库:', dbPath);
 });
 
 // 创建迁移记录表
@@ -70,7 +71,7 @@ function removeMigrationRecord(name) {
 // 获取所有迁移文件
 function getMigrationFiles() {
     if (!fs.existsSync(migrationsDir)) {
-        console.log('⚠️  迁移目录不存在，创建目录:', migrationsDir);
+        logger.warn('⚠️  迁移目录不存在，创建目录:', migrationsDir);
         fs.mkdirSync(migrationsDir, { recursive: true });
         return [];
     }
@@ -89,18 +90,18 @@ async function runMigrations() {
         const pending = allMigrations.filter(m => !executed.includes(m));
 
         if (pending.length === 0) {
-            console.log('✅ 没有待执行的迁移');
+            logger.info('✅ 没有待执行的迁移');
             return;
         }
 
-        console.log(`📦 发现 ${pending.length} 个待执行的迁移:\n`);
+        logger.info(`📦 发现 ${pending.length} 个待执行的迁移:\n`);
 
         for (const migration of pending) {
-            console.log(`⏳ 执行迁移: ${migration}`);
+            logger.info(`⏳ 执行迁移: ${migration}`);
             const migrationModule = require(path.join(migrationsDir, migration));
 
             if (typeof migrationModule.up !== 'function') {
-                console.error(`❌ 迁移文件 ${migration} 缺少 up 方法`);
+                logger.error(`❌ 迁移文件 ${migration} 缺少 up 方法`);
                 continue;
             }
 
@@ -110,7 +111,7 @@ async function runMigrations() {
                 setTimeout(() => {
                     recordMigration(migration)
                         .then(() => {
-                            console.log(`✅ 迁移完成: ${migration}\n`);
+                            logger.info(`✅ 迁移完成: ${migration}\n`);
                             resolve();
                         })
                         .catch(reject);
@@ -118,9 +119,9 @@ async function runMigrations() {
             });
         }
 
-        console.log('🎉 所有迁移执行完成！');
+        logger.info('🎉 所有迁移执行完成！');
     } catch (error) {
-        console.error('❌ 迁移执行失败:', error);
+        logger.error('❌ 迁移执行失败:', error);
         process.exit(1);
     } finally {
         db.close();
@@ -134,17 +135,17 @@ async function rollbackMigration() {
         const executed = await getExecutedMigrations();
 
         if (executed.length === 0) {
-            console.log('✅ 没有可回滚的迁移');
+            logger.info('✅ 没有可回滚的迁移');
             return;
         }
 
         const lastMigration = executed[executed.length - 1];
-        console.log(`⏳ 回滚迁移: ${lastMigration}`);
+        logger.info(`⏳ 回滚迁移: ${lastMigration}`);
 
         const migrationModule = require(path.join(migrationsDir, lastMigration));
 
         if (typeof migrationModule.down !== 'function') {
-            console.error(`❌ 迁移文件 ${lastMigration} 缺少 down 方法`);
+            logger.error(`❌ 迁移文件 ${lastMigration} 缺少 down 方法`);
             return;
         }
 
@@ -153,7 +154,7 @@ async function rollbackMigration() {
             setTimeout(() => {
                 removeMigrationRecord(lastMigration)
                     .then(() => {
-                        console.log(`✅ 回滚完成: ${lastMigration}`);
+                        logger.info(`✅ 回滚完成: ${lastMigration}`);
                         resolve();
                     })
                     .catch(reject);
@@ -161,7 +162,7 @@ async function rollbackMigration() {
         });
 
     } catch (error) {
-        console.error('❌ 回滚失败:', error);
+        logger.error('❌ 回滚失败:', error);
         process.exit(1);
     } finally {
         db.close();

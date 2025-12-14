@@ -1,5 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const logger = require("../utils/logger");
 
 // 数据库路径
 const dbPath = path.resolve(__dirname, "../database.sqlite");
@@ -56,10 +57,10 @@ const newSchema = {
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error("无法连接到数据库:", err.message);
+    logger.error("无法连接到数据库:", err.message);
     process.exit(1);
   }
-  console.log("已连接到 SQLite 数据库");
+  logger.info("已连接到 SQLite 数据库");
 });
 
 // 执行更新操作
@@ -67,23 +68,23 @@ const targetKey = "loan_risk";
 const jsonString = JSON.stringify(newSchema);
 const newTitle = "贷款风险智能分析 (AI驱动版)";
 
-const sql = `UPDATE sys_page_template SET schema_json = ?, title = ? WHERE page_key = ?`;
+const sql = `UPDATE sys_page_template SET schema_json = ?, title = ? WHERE page_key = ? AND is_active = 1`;
 
 db.run(sql, [jsonString, newTitle, targetKey], function (err) {
   if (err) {
-    return console.error("更新失败:", err.message);
+    return logger.error("更新失败:", err.message);
   }
 
-  console.log(`------------------------------------------------`);
+  logger.info(`------------------------------------------------`);
   if (this.changes > 0) {
-    console.log(`✅ 成功修正页面 [${targetKey}] 配置！`);
-    console.log(
+    logger.info(`✅ 成功修正页面 [${targetKey}] 配置！`);
+    logger.info(
       `   核心变更: 已启用 schemaApi 模式，解决了 [object Object] 问题。`
     );
   } else {
-    console.log(`⚠️  未找到记录，未进行更新。`);
+    logger.warn(`⚠️  未找到记录，未进行更新。`);
   }
-  console.log(`------------------------------------------------`);
+  logger.info(`------------------------------------------------`);
 
   db.close();
 });

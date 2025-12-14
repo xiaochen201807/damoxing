@@ -2,6 +2,7 @@
  * Dify 配置表迁移
  * 创建 sys_dify_config 表，支持每个页面独立的工作流配置
  */
+const logger = require('../../utils/logger');
 
 exports.up = function (db) {
     return db.serialize(() => {
@@ -36,16 +37,16 @@ exports.up = function (db) {
         ('loan_risk', '贷款风险分析工作流', ?, ?, 1, '默认工作流配置')
       `, [defaultUrl, defaultKey]);
 
-            console.log('Migration 002: Default Dify config inserted from environment variables');
+            logger.info('Migration 002: Default Dify config inserted from environment variables');
         }
 
-        console.log('Migration 002: Dify config table created');
+        logger.info('Migration 002: Dify config table created');
     });
 };
 
 exports.down = function (db) {
     return db.serialize(() => {
         db.run('DROP TABLE IF EXISTS sys_dify_config');
-        console.log('Migration 002: Rolled back');
+        logger.info('Migration 002: Rolled back');
     });
 };

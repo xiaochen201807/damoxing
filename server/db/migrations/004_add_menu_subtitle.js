@@ -1,13 +1,14 @@
 /**
  * 菜单表添加副标题字段
  */
+const logger = require('../../utils/logger');
 
 exports.up = function (db) {
     return db.serialize(() => {
         // 添加 subtitle 字段
         db.run(`ALTER TABLE sys_menu ADD COLUMN subtitle TEXT DEFAULT ''`);
 
-        console.log('Migration 004: Added subtitle column to sys_menu table');
+        logger.info('Migration 004: Added subtitle column to sys_menu table');
     });
 };
 
@@ -29,6 +30,6 @@ exports.down = function (db) {
         db.run(`INSERT INTO sys_menu SELECT * FROM sys_menu_backup;`);
         db.run(`DROP TABLE sys_menu_backup;`);
 
-        console.log('Migration 004: Rolled back');
+        logger.info('Migration 004: Rolled back');
     });
 };

@@ -3,12 +3,11 @@ import { useParams } from 'react-router-dom';
 import AmisRenderer from '../components/AmisRenderer'; // 引入上一环节封装的渲染器
 import { fetcher } from '../utils/fetcher';
 import { Spinner } from 'amis-ui';
-import type { RouteParams } from '../types/models';
 import type { AmisSchema } from '../types/amis';
-import type { ApiResponse, PageTemplate } from '../types/api';
+import type { ApiResponse } from '../types/api';
 
 const AutoDashboard: React.FC = () => {
-  const { pageId } = useParams<RouteParams>();
+  const { pageId } = useParams<{ pageId: string }>();
   const [schema, setSchema] = useState<AmisSchema | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

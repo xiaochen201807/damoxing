@@ -1,0 +1,31 @@
+{# Page Header Component - Title and Subtitle #}
+{% import 'base/colors.j2' as theme %}
+"title": "{{ title }}",
+"subTitle": "{{ subtitle }}",
+"titleClassName": "text-center",
+"bodyClassName": "p-3",
+"style": {
+    "backgroundColor": "{{ theme.colors.background }}"
+},
+"css": {
+    ".cxd-Page-title": {
+        "text-align": "center !important",
+        "width": "100%",
+        "display": "block",
+        "margin-bottom": "6px",
+        "margin-top": "10px",
+        "font-size": "22px",
+        "font-weight": "600",
+        "color": "{{ theme.colors.title }}"
+    },
+    ".cxd-Page-subTitle": {
+        "text-align": "center !important",
+        "width": "100%",
+        "display": "block",
+        "color": "{{ theme.colors.subtitle }}",
+        "font-weight": "400",
+        "font-size": "13px",
+        "margin-bottom": "15px",
+        "margin-top": "0"
+    }
+}

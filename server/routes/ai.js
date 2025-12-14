@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 const db = require("../db");
+const logger = require("../utils/logger");
+const cache = require("../utils/cache");
 const { aiLimiter } = require("../middleware/security");
 const { validate, schemas } = require("../middleware/validator");
 
@@ -56,7 +58,19 @@ const MOCK_AMIS_JSON = {
 router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
   const { query, pageId } = req.body;
 
-  // 1. 从数据库获取 Dify 配置
+  // 1. 先检查缓存
+  const cachedResult = cache.ai.get(pageId || 'default', query);
+  if (cachedResult) {
+    logger.info('[AI] Cache hit for query:', query.substring(0, 50));
+    return res.json({
+      status: 0,
+      msg: 'success (cached)',
+      data: cachedResult,
+      cached: true,
+    });
+  }
+
+  // 2. 从数据库获取 Dify 配置
   const getConfig = () => {
     return new Promise((resolve, reject) => {
       if (!pageId) {
@@ -75,7 +89,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
       const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
       db.get(sql, [pageId], (err, row) => {
         if (err) {
-          console.error('[AI Generate] 查询配置失败:', err);
+          logger.error('[AI Generate] 查询配置失败:', err);
           return reject(err);
         }
 
@@ -88,7 +102,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
             return resolve(null);
           }
 
-          console.log(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
+          logger.warn(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
           return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
         }
 
@@ -102,7 +116,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 
     // 2. Mock 模式检查
     if (!config) {
-      console.log("⚠️ 未检测到 Dify 配置，使用本地 Mock 数据返回");
+      logger.warn("⚠️ 未检测到 Dify 配置，使用本地 Mock 数据返回");
 
       // 返回假的成功数据，骗过前端
       return res.json({
@@ -156,7 +170,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
     const difyUrl = config.api_url;
     const apiKey = config.api_key;
 
-    console.log(`[AI] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
+    logger.info(`[AI] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
 
 
     // 构造 Dify 请求体 (Chat Messages API)
@@ -170,7 +184,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
       conversation_id: "", // 如果需要连续对话，需前端传递 conversation_id
     };
 
-    console.log(`[AI] Calling Dify: ${difyUrl}/chat-messages`);
+    logger.info(`[AI] Calling Dify: ${difyUrl}/chat-messages`);
 
     const response = await axios.post(`${difyUrl}/chat-messages`, payload, {
       headers: {
@@ -206,14 +220,17 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
     try {
       const parsedData = JSON.parse(cleanJsonStr);
 
+      // 缓存成功的 AI 结果
+      cache.ai.set(pageId || 'default', query, parsedData);
+
       res.json({
         status: 0,
         msg: "success",
         data: parsedData,
       });
     } catch (parseError) {
-      console.error("[AI] JSON Parse Error:", parseError);
-      console.error("[AI] Raw Content:", rawAnswer);
+      logger.error("[AI] JSON Parse Error:", parseError);
+      logger.error("[AI] Raw Content:", rawAnswer);
       res.json({
         status: 1,
         msg: "LLM 返回的内容不是有效的 JSON 格式",
@@ -223,9 +240,9 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
       });
     }
   } catch (error) {
-    console.error("[AI] Request Error:", error.message);
+    logger.error("[AI] Request Error:", error.message);
     if (error.response) {
-      console.error("[AI] Dify Error Details:", error.response.data);
+      logger.error("[AI] Dify Error Details:", error.response.data);
     }
 
     res.status(500).json({
@@ -260,7 +277,7 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
       const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
       db.get(sql, [pageId], (err, row) => {
         if (err) {
-          console.error('[AI Workflow] 查询配置失败:', err);
+          logger.error('[AI Workflow] 查询配置失败:', err);
           return reject(err);
         }
 
@@ -272,7 +289,7 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
             return reject(new Error(`页面 ${pageId} 未配置工作流`));
           }
 
-          console.log(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
+          logger.warn(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
           return resolve({ api_url: apiUrl, api_key: apiKey });
         }
 
@@ -286,8 +303,8 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
     const DIFY_API_URL = config.api_url;
     const DIFY_API_KEY = config.api_key;
 
-    console.log(`[AI Workflow] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
-    console.log(`[AI Workflow] 正在请求 Dify Workflow: ${query}`);
+    logger.info(`[AI Workflow] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
+    logger.info(`[AI Workflow] 正在请求 Dify Workflow: ${query}`);
 
     // Dify Workflow API 调用结构
     const response = await axios.post(
@@ -321,13 +338,12 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
     // }
 
     const workflowData = response.data;
-    //   console.log("[AI Workflow] 生成成功",JSON.stringify(workflowData, null, 2));
 
     if (workflowData.data.status === "succeeded") {
       // 获取 Dify 返回的原始结果 (这是一个 String，因为我们在 Python 节点打包了)
       const rawResult = workflowData.data.outputs.result;
 
-      console.log("[AI Workflow] Dify 原始输出类型:", typeof rawResult); // 应该是 string
+      logger.info("[AI Workflow] Dify 原始输出类型:", typeof rawResult);
       let finalJsonObj;
       const generatedJson = JSON.stringify(workflowData.data.outputs.result);
       try {
@@ -336,12 +352,12 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
         finalJsonObj =
           typeof rawResult === "string" ? JSON.parse(rawResult) : rawResult;
       } catch (e) {
-        console.error("解析 Dify 返回的 JSON 字符串失败", e);
+        logger.error("解析 Dify 返回的 JSON 字符串失败", e);
         // 兜底：如果解析失败，至少发个报错给前端，别崩
         finalJsonObj = { type: "page", body: "后端解析数据格式错误" };
       }
 
-      console.log("[AI Workflow] 解析成功，准备返回给前端");
+      logger.info("[AI Workflow] 解析成功，准备返回给前端");
       // 直接返回 JSON 对象给前端 AMIS 渲染
       res.json({
         status: 0,
@@ -349,11 +365,11 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
         data: finalJsonObj, // 这里的结构应该是 { type: "page", body: [...] }
       });
     } else {
-      console.error("[AI Workflow] 运行状态非成功:", workflowData);
+      logger.error("[AI Workflow] 运行状态非成功:", workflowData);
       res.status(500).json({ status: 1, msg: "Workflow 运行未完成或失败" });
     }
   } catch (error) {
-    console.error(
+    logger.error(
       "[AI Workflow] API 调用出错:",
       error.response?.data || error.message
     );

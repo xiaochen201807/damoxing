@@ -46,20 +46,22 @@ export const fetcher = <T = any>({
     const res = response.data;
 
     return {
+      status: 0,
+      msg: 'success',
       data: res
-    };
+    } as FetcherResponse<T>;
   }).catch((error: AxiosError) => {
     if (error.response) {
       return {
         status: error.response.status,
         msg: (error.response.data as any)?.msg || '网络请求错误',
-        data: error.response.data
-      };
+        data: error.response.data as T
+      } as FetcherResponse<T>;
     }
     return {
       status: 500,
       msg: error.message,
-      data: null as any
-    };
+      data: null as T
+    } as FetcherResponse<T>;
   });
 };
