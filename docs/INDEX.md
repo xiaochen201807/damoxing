@@ -8,6 +8,13 @@
 - [开发指南](DEVELOPMENT.md) - 开发环境配置
 - [部署指南](DEPLOYMENT.md) - 生产环境部署
 
+## Schema Builder 文档
+
+- [Schema Builder 快速入门](schema-builder/QUICKSTART.md) - AMIS 图表模板快速上手
+- [组件参考手册](schema-builder/COMPONENT_REFERENCE.md) - 所有图表组件速查表
+- [柱状图更新说明](schema-builder/BAR_CHART_UPDATE.md) - 柱状图组件简化说明
+- [Schema Builder 文档目录](schema-builder/README.md) - 完整文档索引
+
 ## 📊 优化总结
 
 - [2025-12-14 优化总结](SUMMARY_20251214.md) ⭐ - 今日所有优化的完整总结

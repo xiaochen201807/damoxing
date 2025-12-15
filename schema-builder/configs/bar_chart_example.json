@@ -1,0 +1,47 @@
+{
+    "chart_type": "bar",
+    "title": "月度客户数量统计",
+    "subtitle": "2024年各月份新增客户",
+    "bar_api_url": "/api/customer/monthly-count",
+    "bar_method": "get",
+    "bar_height": 350,
+    "bar_clickable": true,
+    "bar_detail_api": "/api/customer/monthly-detail",
+    "bar_color": "#5470c6",
+    "bar_emphasis_color": "#3aa1ff",
+    "bar_border_radius": 4,
+    "bar_show_label": false,
+    "bar_x_rotate": 0,
+    "bar_y_axis_name": "客户数",
+    "content": {
+        "title": "数据说明",
+        "sections": [
+            {
+                "heading": "统计维度",
+                "text": "本图表展示2024年每个月份的新增客户数量，点击柱子可查看该月份的详细客户列表。"
+            },
+            {
+                "heading": "使用说明",
+                "items": [
+                    "每个柱子代表一个月份的客户数量",
+                    "点击柱子查看该月份的客户详情",
+                    "支持导出Excel格式数据",
+                    "可以按客户状态筛选"
+                ]
+            }
+        ]
+    },
+    "sections": [
+        {
+            "label": "数据分析",
+            "color": "#0050b3",
+            "content": "从图表可以看出，客户数量在3月和9月出现两个高峰，分别对应春季和秋季营销活动的效果。总体呈现上升趋势，说明业务发展良好。"
+        },
+        {
+            "label": "优化建议",
+            "color": "#006d75",
+            "content": "建议在淡季（7-8月）加强市场推广力度，平衡全年客户增长曲线。同时关注高峰月份的客户转化质量，确保服务品质。"
+        }
+    ],
+    "footer_text": "客户管理部门 © 2024"
+}

@@ -2,6 +2,12 @@
 
 AMIS 页面 Schema 生成工具 - 基于 Jinja2 模板引擎
 
+## 📚 文档导航
+
+- 🚀 **[快速入门](../docs/schema-builder/QUICKSTART.md)** - 5分钟上手教程
+- 📊 **[组件参考手册](../docs/schema-builder/COMPONENT_REFERENCE.md)** - 组件速查表和参数对照
+- 🔄 **[柱状图更新说明](../docs/schema-builder/BAR_CHART_UPDATE.md)** - 柱状图组件简化说明
+
 ## 📁 目录结构
 
 ```
@@ -219,7 +225,9 @@ config['processed'] = my_helper_function(config['raw_data'])
 
 - [Jinja2 官方文档](https://jinja.palletsprojects.com/)
 - [AMIS 组件文档](https://aisuda.bce.baidu.com/amis/zh-CN/components/page)
-- [模板系统详细说明](templates/README.md)
+- [项目文档目录](../docs/)
+- [快速入门指南](../docs/schema-builder/QUICKSTART.md)
+- [组件参考手册](../docs/schema-builder/COMPONENT_REFERENCE.md)
 
 ## 🐛 故障排查
 
