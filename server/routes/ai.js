@@ -73,8 +73,35 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
   // 2. 从数据库获取 Dify 配置
   const getConfig = () => {
     return new Promise((resolve, reject) => {
-      if (!pageId) {
-        // 如果没有 pageId，尝试使用环境变量作为兜底
+      // 优先从数据库查询配置（如果提供了 pageId）
+      if (pageId) {
+        const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
+        db.get(sql, [pageId], (err, row) => {
+          if (err) {
+            logger.error('[AI Generate] 查询配置失败:', err);
+            return reject(err);
+          }
+
+          if (row) {
+            // 找到配置，直接使用
+            logger.info(`[AI Generate] 使用页面配置: ${row.workflow_name} (${pageId})`);
+            return resolve(row);
+          }
+
+          // 数据库中没有找到配置，使用环境变量兜底
+          logger.warn(`⚠️  页面 ${pageId} 未配置工作流，尝试使用环境变量`);
+          const apiKey = process.env.DIFY_API_KEY;
+          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+            return resolve(null); // 返回 null 表示使用 Mock 模式
+          }
+
+          return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
+        });
+      } else {
+        // 没有提供 pageId，直接使用环境变量
+        logger.warn('[AI Generate] 未提供 pageId，使用环境变量配置');
         const apiKey = process.env.DIFY_API_KEY;
         const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
@@ -84,30 +111,6 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 
         return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
       }
-
-      // 从数据库查询配置
-      const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
-      db.get(sql, [pageId], (err, row) => {
-        if (err) {
-          logger.error('[AI Generate] 查询配置失败:', err);
-          return reject(err);
-        }
-
-        // 如果数据库没有配置，尝试使用环境变量
-        if (!row) {
-          const apiKey = process.env.DIFY_API_KEY;
-          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-
-          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-            return resolve(null);
-          }
-
-          logger.warn(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
-          return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
-        }
-
-        resolve(row);
-      });
     });
   };
 
@@ -263,17 +266,6 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
   // 1. 从数据库获取 Dify 配置
   const getConfig = () => {
     return new Promise((resolve, reject) => {
-      if (!pageId) {
-        const apiKey = process.env.DIFY_API_KEY;
-        const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-
-        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-          return reject(new Error('未配置 Dify API Key'));
-        }
-
-        return resolve({ api_url: apiUrl, api_key: apiKey });
-      }
-
       const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
       db.get(sql, [pageId], (err, row) => {
         if (err) {

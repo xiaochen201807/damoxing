@@ -28,5 +28,21 @@
     "subtitle_margin_top": "10px",
     "subtitle_margin_bottom": "0px",
     "subtitle_margin_bottom_stats": "20px",
-    "footer_text": "XXX 公积金管理中心 © 2024"
+    "footer_text": "XXX 公积金管理中心 © 2024",
+    "import_dialog_title": "2025年度风险数据归集",
+    "import_items": [
+        {
+            "title": "公积金提取明细表",
+            "desc": "请上传财务系统导出的原始 .xlsx",
+            "key": "file_gjj_detail",
+            "template_url": "/downloads/template_A.xlsx"
+        },
+        {
+            "title": "不动产登记信息",
+            "desc": "包含抵押、查封状态",
+            "key": "file_house_status",
+            "template_url": "/downloads/template_B.xlsx"
+        }
+    ],
+    "page_key": "jcycdj"
 }

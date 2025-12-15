@@ -1,0 +1,192 @@
+{# 定义默认的导入项配置 #}
+{% set default_items = [
+    { "title": "各区县逾期率 & 房价跌幅数据", "desc": "支持格式: .xls,.xlsx", "key": "file_rate", "template_url": "/api/template/rate.xlsx" },
+    { "title": "抵押房产估值偏离度数据", "desc": "支持格式: .xls,.xlsx", "key": "file_valuation", "template_url": "/api/template/valuation.xlsx" },
+    { "title": "抵押物查封/冻结情况", "desc": "支持格式: .xls,.xlsx", "key": "file_seize", "template_url": "/api/template/seize.xlsx" },
+    { "title": "本市房价指数 & 贷款余额趋势", "desc": "支持格式: .xls,.xlsx", "key": "file_trend", "template_url": "/api/template/trend.xlsx" }
+] %}
+
+{
+    "type": "wrapper",
+    "className": "p-none",
+    "body": [
+        {# ================== 第一部分：按钮操作区 ================== #}
+        {
+            "type": "container",
+            "className": "m-t-lg",
+            "style": {
+                "border": "1px dashed #1890ff",
+                "borderRadius": "8px",
+                "backgroundColor": "#f0f7ff",
+                "padding": "30px",
+                "textAlign": "center"
+            },
+            "body": [
+                {
+                    "type": "button-group",
+                    "buttons": [
+                        {# --- 按钮 1：数据导入 (逻辑保持不变) --- #}
+                        {% if enable_data_import | default(true) %}
+                        {
+                            "type": "button",
+                            "label": "☁️ 数据导入",
+                            "className": "m-r-lg",
+                            "style": {
+                                "border": "1px solid #1890ff",
+                                "color": "#003a8c",
+                                "backgroundColor": "#e6f7ff",
+                                "fontWeight": "bold",
+                                "width": "140px",
+                                "height": "40px"
+                            },
+                            "actionType": "dialog",
+                            "dialog": {
+                                "title": "{{ import_dialog_title | default('违规提取风险数据导入') }}",
+                                "size": "lg",
+                                "body": {
+                                    "type": "form",
+                                    "api": "{{ import_api | default('post:/api/risk/import/batch') }}",
+                                    "mode": "normal",
+                                    "body": [
+                                        {% for item in import_items | default(default_items) %}
+                                        {
+                                            "type": "container",
+                                            "className": "import-card-row",
+                                            "style": {
+                                                "border": "1px solid #e8e8e8",
+                                                "borderRadius": "6px",
+                                                "padding": "16px 20px",
+                                                "marginBottom": "12px",
+                                                "backgroundColor": "#fff",
+                                                "display": "flex",
+                                                "alignItems": "center",
+                                                "justifyContent": "space-between"
+                                            },
+                                            "body": [
+                                                {
+                                                    "type": "tpl",
+                                                    "tpl": "<div><div style='font-weight: 600; font-size: 14px; color: #333; margin-bottom: 4px;'>{{ item.title }}</div><div style='font-size: 12px; color: #999;'>{{ item.desc | default('支持格式: .xls,.xlsx') }}</div></div>",
+                                                    "style": { "flex": "1" }
+                                                },
+                                                {
+                                                    "type": "container",
+                                                    "style": { "display": "flex", "alignItems": "center", "gap": "10px" },
+                                                    "body": [
+                                                        {
+                                                            "type": "button",
+                                                            "label": "⬇ 下载模板",
+                                                            "level": "default",
+                                                            "size": "sm",
+                                                            "actionType": "download",
+                                                            "api": "{{ item.template_url }}",
+                                                            "style": { "borderColor": "#d9d9d9", "color": "#666" }
+                                                        },
+                                                        {
+                                                            "type": "input-file",
+                                                            "name": "{{ item.key }}",
+                                                            "btnLabel": "⬆ 上传文件",
+                                                            "level": "primary",
+                                                            "mode": "inline",
+                                                            "accept": ".xlsx,.xls",
+                                                            "maxSize": 10485760,
+                                                            "asBlob": true,
+                                                            "inputClassName": "m-b-none",
+                                                            "style": { "margin": "0" }
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                        {% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    ]
+                                },
+                                "actions": [
+                                    { "type": "button", "actionType": "cancel", "label": "取消" },
+                                    { "type": "button", "actionType": "confirm", "label": "确定导入", "level": "primary" }
+                                ]
+                            }
+                        }
+                        {% endif %}
+
+                        {# 逗号逻辑 #}
+                        {% if enable_data_import | default(true) and enable_ai_analysis | default(true) %},{% endif %}
+
+                        {# --- 按钮 2：智能分析 (更新为触发 Schema 刷新) --- #}
+                        {% if enable_ai_analysis | default(true) %}
+                        {
+                            "type": "button",
+                            "label": "📊 智能分析",
+                            "level": "danger",
+                            "style": {
+                                "background": "linear-gradient(180deg, #ff4d4f 0%, #cf1322 100%)",
+                                "border": "none",
+                                "boxShadow": "0 4px 10px rgba(207, 19, 34, 0.3)",
+                                "fontWeight": "bold",
+                                "width": "140px",
+                                "height": "40px"
+                            },
+                            "onEvent": {
+                                "click": {
+                                    "actions": [
+                                        {# 动作 1: 给用户一个反馈，表示开始请求了 #}
+                                        {
+                                            "actionType": "toast",
+                                            "msgType": "info",
+                                            "msg": "正在请求 AI 生成分析报告，请稍候...",
+                                            "position": "top-center"
+                                        },
+                                        {# 动作 2: 核心！刷新下方的 Service 组件，触发它的 schemaApi #}
+                                        {
+                                            "actionType": "reload",
+                                            "componentId": "service_ai_result_area"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                        {% endif %}
+                    ]
+                }
+            ]
+        },
+
+        {# ================== 第二部分：AI 结果展示容器 ================== #}
+        {% if enable_ai_analysis | default(true) %}
+        {
+            "type": "service",
+            "id": "service_ai_result_area",
+            "className": "m-t-md",
+            
+            {# 关键属性 1: schemaApi #}
+            {# 告诉 Amis：去调用这个接口，接口返回的 JSON 将直接渲染为 UI 组件 #}
+            "schemaApi": {
+                "method": "post",
+                "url": "{{ ai_generate_api | default('/api/ai/generate') }}",
+                "data": {
+                    "pageId": "{{ page_key }}",
+                    "query": "请严格遵守 amis 对 json 的要求",
+                    "timestamp": "${new Date().getTime()}" 
+                }
+            },
+            
+            {# 关键属性 2: initFetch #}
+            {# 设置为 false，代表页面加载时不自动调接口，只有点击上面的按钮触发 reload 时才调 #}
+            "initFetch": false,
+            
+            {# 加载中的状态 #}
+            "spinner": {
+                "size": "lg",
+                "tip": "AI 正在思考并构建分析报表..."
+            },
+            
+            {# 初始状态/空状态 (接口没调用时显示的内容) #}
+            "body": {
+                "type": "tpl",
+                "tpl": "",
+                "visible": false
+            }
+        }
+        {% endif %}
+    ]
+}
