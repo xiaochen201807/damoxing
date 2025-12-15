@@ -14,6 +14,11 @@
             "date": 1765641731427,
             "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-14.log",
             "hash": "deba162b37c1ab635b2b1d4ecdb30bf9ff8acb3421eccc91aecc62513f6c2bab"
+        },
+        {
+            "date": 1765764980652,
+            "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-15.log",
+            "hash": "e812affe313e04fb458bdd2204b4461995ce0fe868f7c370d0cc05949877badc"
         }
     ],
     "hashType": "sha256"

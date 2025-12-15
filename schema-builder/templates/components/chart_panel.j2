@@ -10,7 +10,7 @@
     "clickAction": {
         "actionType": "dialog",
         "dialog": {
-            "title": "${event.data.name}客户清册 (共${event.data.value}条)",
+            "title": "${selectedName}客户清册",
             "size": "xl",
             "actions": [
                 {
@@ -19,11 +19,15 @@
                     "actionType": "close"
                 }
             ],
+            "data": {
+            "selectedId": "${data.itemId}",
+            "selectedName": "${data.name}"
+            },
             "body": {
                 "type": "service",
                 "api": {
                     "method": "get",
-                    "url": "/api/demo/risk-list/\${event.data.itemId}"
+                    "url": "/api/demo/risk-list/${selectedId}"
                 },
                 "body": {
                     "type": "table",

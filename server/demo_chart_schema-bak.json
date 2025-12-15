@@ -1,0 +1,353 @@
+{
+    "type": "page",
+    "title": "图表交互示例",
+    "subTitle": "ECharts + 多层弹窗演示 (已修复交互数据透传问题)",
+    "titleClassName": "text-center",
+    "bodyClassName": "p-3",
+    "style": {
+        "backgroundColor": "#f7f8fa"
+    },
+    "css": {
+        ".cxd-Page-title": {
+            "text-align": "center !important",
+            "width": "100%",
+            "display": "block",
+            "margin-bottom": "6px",
+            "margin-top": "10px",
+            "font-size": "22px",
+            "font-weight": "600",
+            "color": "#1d1d1f"
+        },
+        ".cxd-Page-subTitle": {
+            "text-align": "center !important",
+            "width": "100%",
+            "display": "block",
+            "color": "#86868b",
+            "font-weight": "400",
+            "font-size": "13px",
+            "margin-bottom": "15px",
+            "margin-top": "0"
+        }
+    },
+    "body": [
+        {
+            "type": "tpl",
+            "tpl": "<div style='margin-bottom: 12px;'><div style='background-color: #ffffff; border: 1px solid #d9d9d9; border-radius: 8px; padding: 20px 24px; line-height: 1.7;'><div style='color: #1d1d1f; font-weight: 700; font-size: 16px; margin-bottom: 18px; padding-left: 12px; border-left: 4px solid #1890ff;'>定义与分类</div><div style='margin-bottom: 20px;'><div style='color: #1890ff; font-weight: 600; font-size: 14px; margin-bottom: 12px;'>风险定义</div><div style='color: #333; font-size: 13px; line-height: 1.8; margin-bottom: 12px; text-align: justify;'>缴存异常风险是指公积金缴存单位因缴款不符合法定规范，或未正常缴纳、缴款异常中断等导致的公积金合规性风险。</div></div></div></div>"
+        },
+        {
+            "type": "panel",
+            "title": "<div style='padding-left: 12px; border-left: 4px solid #1890ff; font-weight: 600; font-size: 16px; color: #1d1d1f;'>风险分布分析</div>",
+            "className": "m-b-none",
+            "bodyClassName": "p-4",
+            "style": {
+                "boxShadow": "0 4px 12px rgba(0,0,0,0.08)",
+                "borderRadius": "8px",
+                "border": "1px solid #f0f0f0"
+            },
+            "body": {
+                "type": "grid",
+                "align": "middle",
+                "columns": [
+                    {
+                        "md": 8,
+                        "body": [
+                            {
+                                "type": "chart",
+                                "api": {
+                                    "url": "/api/demo/chart/risk-pie",
+                                    "method": "get",
+                                    "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].radius = ['50%', '70%']; option.series[0].emphasis = { scale: true, scaleSize: 10 }; option.series[0].itemStyle = { borderRadius: 8, borderColor: '#fff', borderWidth: 2 }; } option.legend = { orient: 'horizontal', bottom: '0', left: 'center', icon: 'circle', itemWidth: 14, itemHeight: 14, textStyle: { fontSize: 13, color: '#666' } }; return { ...payload, data: option };"
+                                },
+                                "height": 380,
+                                "clickAction": {
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "${selectedName}客户清册",
+                                        "size": "xl",
+                                        "actions": [
+                                            {
+                                                "type": "button",
+                                                "label": "关闭",
+                                                "actionType": "close"
+                                            }
+                                        ],
+                                        "data": {
+                                            "selectedId": "${data.itemId}",
+                                            "selectedName": "${data.name}"
+                                        },
+                                        "body": {
+                                            "type": "service",
+                                            "api": {
+                                                "method": "get",
+                                                "url": "/api/demo/risk-list/${selectedId}",
+                                                "adaptor": "return payload;"
+                                            },
+                                            "body": {
+                                                "type": "table",
+                                                "affixHeader": true,
+                                                "columns": [
+                                                    {
+                                                        "name": "id",
+                                                        "label": "ID",
+                                                        "width": 60
+                                                    },
+                                                    {
+                                                        "name": "customer_name",
+                                                        "label": "客户姓名"
+                                                    },
+                                                    {
+                                                        "name": "amount",
+                                                        "label": "贷款金额",
+                                                        "type": "tpl",
+                                                        "tpl": "¥${amount | number:0,0}"
+                                                    },
+                                                    {
+                                                        "name": "overdue_days",
+                                                        "label": "逾期天数",
+                                                        "type": "mapping",
+                                                        "map": {
+                                                            "*": "<span class='label label-${overdue_days > 60 ? \"danger\" : overdue_days > 30 ? \"warning\" : \"success\"}'>${overdue_days}天</span>"
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "risk_score",
+                                                        "label": "风险评分",
+                                                        "type": "progress",
+                                                        "map": {
+                                                            "*": {
+                                                                "value": "${risk_score}",
+                                                                "color": "${risk_score >= 80 ? 'danger' : risk_score >= 50 ? 'warning' : 'success'}"
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "status",
+                                                        "label": "处理状态",
+                                                        "type": "mapping",
+                                                        "map": {
+                                                            "pending": "<span class='label label-warning'>待处理</span>",
+                                                            "processing": "<span class='label label-info'>处理中</span>",
+                                                            "completed": "<span class='label label-success'>已完成</span>"
+                                                        }
+                                                    },
+                                                    {
+                                                        "type": "operation",
+                                                        "label": "操作",
+                                                        "width": 180,
+                                                        "buttons": [
+                                                            {
+                                                                "type": "button",
+                                                                "label": "详情",
+                                                                "level": "link",
+                                                                "icon": "fa fa-eye",
+                                                                "actionType": "dialog",
+                                                                "dialog": {
+                                                                    "title": "客户详细信息 - ${customer_name}",
+                                                                    "size": "lg",
+                                                                    "body": {
+                                                                        "type": "form",
+                                                                        "mode": "horizontal",
+                                                                        "wrapWithPanel": false,
+                                                                        "initApi": {
+                                                                            "method": "get",
+                                                                            "url": "/api/demo/customer/${id}"
+                                                                        },
+                                                                        "body": [
+                                                                            {
+                                                                                "type": "static",
+                                                                                "name": "id",
+                                                                                "label": "客户ID"
+                                                                            },
+                                                                            {
+                                                                                "type": "input-text",
+                                                                                "name": "customer_name",
+                                                                                "label": "客户姓名",
+                                                                                "required": true
+                                                                            },
+                                                                            {
+                                                                                "type": "input-number",
+                                                                                "name": "amount",
+                                                                                "label": "贷款金额",
+                                                                                "prefix": "¥"
+                                                                            },
+                                                                            {
+                                                                                "type": "input-number",
+                                                                                "name": "risk_score",
+                                                                                "label": "风险评分"
+                                                                            },
+                                                                            {
+                                                                                "type": "select",
+                                                                                "name": "status",
+                                                                                "label": "处理状态",
+                                                                                "options": [
+                                                                                    {
+                                                                                        "label": "待处理",
+                                                                                        "value": "pending"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "处理中",
+                                                                                        "value": "processing"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "已完成",
+                                                                                        "value": "completed"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "md": 4,
+                        "style": {
+                            "borderLeft": "1px dashed #e8e8e8",
+                            "paddingLeft": "40px",
+                            "height": "80%",
+                            "margin": "auto 0",
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "justifyContent": "center"
+                        },
+                        "body": [
+                            {
+                                "type": "tpl",
+                                "tpl": "<div style='margin-bottom: 5px;'><span style='background: #0050b3; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>风险分析</span></div><div style='margin-bottom: 25px; font-size: 14px; line-height: 1.6; color: #666;'>当前系统监测显示，高风险客户占比维持在合理水平，但近期有小幅上升趋势。主要集中在逾期天数超过 90 天的贷款组合中，建议重点关注该类客户的后续还款能力。</div>"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "panel",
+            "title": "<div style='padding-left: 12px; border-left: 4px solid #1890ff; font-weight: 600; font-size: 16px; color: #1d1d1f;'>风险趋势分析</div>",
+            "className": "m-t-md m-b-none",
+            "bodyClassName": "p-4",
+            "style": {
+                "boxShadow": "0 4px 12px rgba(0,0,0,0.08)",
+                "borderRadius": "8px",
+                "border": "1px solid #f0f0f0"
+            },
+            "body": {
+                "type": "grid",
+                "align": "middle",
+                "columns": [
+                    {
+                        "md": 8,
+                        "body": [
+                            {
+                                "type": "chart",
+                                "api": {
+                                    "url": "/api/demo/chart/risk-bar",
+                                    "method": "get"
+                                },
+                                "height": 350,
+                                "clickAction": {
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "${event.seriesName} - ${event.name} (共${event.value}条)",
+                                        "size": "xl",
+                                        "actions": [
+                                            {
+                                                "type": "button",
+                                                "label": "关闭",
+                                                "actionType": "close"
+                                            }
+                                        ],
+                                        "data": {
+                                            "selectedSeries": "${event.seriesName}",
+                                            "selectedMonth": "${event.name}"
+                                        },
+                                        "body": {
+                                            "type": "service",
+                                            "api": {
+                                                "method": "get",
+                                                "url": "/api/demo/bar-risk-list/high",
+                                                "requestAdaptor": "const seriesMap = {'高风险':'high','中风险':'medium','低风险':'low'}; const mapKey = api.data.selectedSeries || '高风险'; const itemId = seriesMap[mapKey] || 'high'; const month = api.data.selectedMonth || '2024-07'; return { ...api, url: '/api/demo/bar-risk-list/' + itemId + '?month=' + month };"
+                                            },
+                                            "body": {
+                                                "type": "table",
+                                                "affixHeader": true,
+                                                "columns": [
+                                                    {
+                                                        "name": "id",
+                                                        "label": "ID",
+                                                        "width": 60
+                                                    },
+                                                    {
+                                                        "name": "customer_name",
+                                                        "label": "客户姓名"
+                                                    },
+                                                    {
+                                                        "name": "amount",
+                                                        "label": "贷款金额",
+                                                        "type": "tpl",
+                                                        "tpl": "¥${amount | number:0,0}"
+                                                    },
+                                                    {
+                                                        "name": "risk_score",
+                                                        "label": "风险评分",
+                                                        "type": "progress",
+                                                        "map": {
+                                                            "*": {
+                                                                "value": "${risk_score}",
+                                                                "color": "${risk_score >= 80 ? 'danger' : risk_score >= 50 ? 'warning' : 'success'}"
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "status",
+                                                        "label": "处理状态",
+                                                        "type": "mapping",
+                                                        "map": {
+                                                            "pending": "<span class='label label-warning'>待处理</span>",
+                                                            "processing": "<span class='label label-info'>处理中</span>",
+                                                            "completed": "<span class='label label-success'>已完成</span>"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "md": 4,
+                        "style": {
+                            "borderLeft": "1px dashed #e8e8e8",
+                            "paddingLeft": "40px",
+                            "height": "80%",
+                            "margin": "auto 0",
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "justifyContent": "center"
+                        },
+                        "body": [
+                            {
+                                "type": "tpl",
+                                "tpl": "<div style='margin-bottom: 5px;'><span style='background: #0050b3; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>风险分析</span></div><div style='margin-bottom: 25px; font-size: 14px; line-height: 1.6; color: #666;'>当前系统监测显示，高风险客户占比维持在合理水平，但近期有小幅上升趋势。主要集中在逾期天数超过 90 天的贷款组合中，建议重点关注该类客户的后续还款能力。</div>"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "tpl",
+            "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>XXX 科技有限公司 © 2024</div>"
+        }
+    ]
+}

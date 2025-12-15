@@ -127,6 +127,47 @@ router.post('/template', (req, res) => {
     });
 });
 
+// 删除页面模板 (软删除) - 从 body 中获取 page_key
+router.post('/template/delete', (req, res) => {
+    const { page_key } = req.body;
+
+    if (!page_key) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必填参数: page_key'
+        });
+    }
+
+    // 软删除：将当前活动版本的 is_active 设置为 0
+    const sql = 'UPDATE sys_page_template SET is_active = 0 WHERE page_key = ? AND is_active = 1';
+
+    db.run(sql, [page_key], function (err) {
+        if (err) {
+            logger.error('[Template] 软删除失败:', err);
+            return res.status(500).json({
+                status: 500,
+                msg: '删除页面模板失败',
+                error: err.message
+            });
+        }
+
+        if (this.changes === 0) {
+            return res.status(404).json({
+                status: 404,
+                msg: '页面模板不存在或已被删除'
+            });
+        }
+
+        logger.info(`[Template] 软删除页面模板成功: ${page_key}`);
+
+        res.json({
+            status: 0,
+            msg: 'success',
+            data: { page_key, deleted: true, soft_delete: true }
+        });
+    });
+});
+
 // 更新页面模板 (自动备份)
 router.put('/template/:pageKey', updateTemplate);
 router.post('/template/:pageKey', updateTemplate);
@@ -263,30 +304,5 @@ router.delete('/template/:pageKey/backups/:version', (req, res) => {
     });
 });
 
-// 删除页面模板 (删除所有版本)
-router.delete('/template/:pageKey', (req, res) => {
-    const { pageKey } = req.params;
-    const sql = 'DELETE FROM sys_page_template WHERE page_key = ?';
-
-    db.run(sql, [pageKey], function (err) {
-        if (err) {
-            logger.error('[Template] 删除失败:', err);
-            return res.status(500).json({ status: 500, msg: '删除页面模板失败', error: err.message });
-        }
-
-        if (this.changes === 0) {
-            return res.status(404).json({
-                status: 404,
-                msg: '页面模板不存在'
-            });
-        }
-
-        res.json({
-            status: 0,
-            msg: 'success',
-            data: { page_key: pageKey, deleted: true }
-        });
-    });
-});
 
 module.exports = router;

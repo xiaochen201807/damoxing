@@ -38,11 +38,22 @@ export const fetcher = <T = any>({
     requestUrl = `${BASE_URL}${url}`;
   }
 
-  return axios(requestUrl, {
+  // 构建 axios 请求配置
+  // GET 和 DELETE 不应该有 data，应该放在 params 中（如果有的话）
+  const axiosConfig: any = {
     method,
-    data,
     ...config
-  }).then((response) => {
+  };
+
+  // 只有 POST、PUT、PATCH 才在 body 中发送 data
+  if (method && ['post', 'put', 'patch'].includes(method.toLowerCase())) {
+    axiosConfig.data = data;
+  } else if (data) {
+    // GET、DELETE 等方法如果有数据，放到 params（查询字符串）
+    axiosConfig.params = data;
+  }
+
+  return axios(requestUrl, axiosConfig).then((response) => {
     const res = response.data;
 
     return {

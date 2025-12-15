@@ -122,6 +122,46 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
     });
 });
 
+// 删除配置 (物理删除) - 从 body 中获取 page_key
+router.post('/config/delete', (req, res) => {
+    const { page_key } = req.body;
+
+    if (!page_key) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必填参数: page_key'
+        });
+    }
+
+    const sql = 'DELETE FROM sys_dify_config WHERE page_key = ?';
+
+    db.run(sql, [page_key], function (err) {
+        if (err) {
+            logger.error('[Dify Config] 删除失败:', err);
+            return res.status(500).json({
+                status: 500,
+                msg: '删除配置失败',
+                error: err.message
+            });
+        }
+
+        if (this.changes === 0) {
+            return res.status(404).json({
+                status: 404,
+                msg: '配置不存在'
+            });
+        }
+
+        logger.info(`[Dify Config] 删除配置成功: ${page_key}`);
+
+        res.json({
+            status: 0,
+            msg: 'success',
+            data: { page_key, deleted: true }
+        });
+    });
+});
+
 // 更新配置
 // 更新配置 (PUT)
 router.put('/config/:pageKey', validate(schemas.difyConfigUpdate), validate(schemas.pageKey, 'params'), updateDifyConfig);
@@ -195,38 +235,5 @@ function updateDifyConfig(req, res) {
         });
     });
 }
-
-// 删除配置
-router.delete('/config/:pageKey', validate(schemas.pageKey, 'params'), (req, res) => {
-    const { pageKey } = req.params;
-    const sql = 'DELETE FROM sys_dify_config WHERE page_key = ?';
-
-    db.run(sql, [pageKey], function (err) {
-        if (err) {
-            logger.error('[Dify Config] 删除失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除配置失败',
-                error: err.message
-            });
-        }
-
-        if (this.changes === 0) {
-            return res.status(404).json({
-                status: 404,
-                msg: '配置不存在'
-            });
-        }
-
-        res.json({
-            status: 0,
-            msg: 'success',
-            data: {
-                page_key: pageKey,
-                deleted: true
-            }
-        });
-    });
-});
 
 module.exports = router;
