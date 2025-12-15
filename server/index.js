@@ -36,7 +36,10 @@ const corsOptions = {
     // 允许没有 origin 的请求（如 Postman, curl）
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) ||
+      origin.startsWith("http://192.168.") ||
+      origin.startsWith("http://10.") ||
+      origin.startsWith("http://172.")) {
       callback(null, true);
     } else {
       logger.warn(`CORS blocked request from origin: ${origin} `);

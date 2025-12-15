@@ -1,0 +1,32 @@
+{
+    "title": "住房公积金缴存断缴风险",
+    "content": {
+        "title": "定义与分类",
+        "sections": [
+            {
+                "heading": "风险定义",
+                "text": "缴存异常风险是指公积金缴存单位因缴款不符合法定规范，或未正常缴纳、缴款异常中断等导致的公积金合规性风险。"
+            },
+            {
+                "heading": "风险分类",
+                "items": [
+                    "开户风险单位：单位/个人违法开户（伪造账户开户、使用多余名义开户、以违法事由开户），无实则真正注册证照，或违反规缴规定。",
+                    "缴存赋异常风险：缴存基数/比例与申报工资不匹配入额不符（意愿/虚报），频繁调整存档入额数据。",
+                    "人员赋配风险：单位违规批准入数，需承赋承，信用性已过信报性法与正常公积金投资。",
+                    "补缴赋配风险：违规未通用补缴违规法定规范虚报，无正常性入信为，以错误针对初次。",
+                    "应缴赋异缴批：公积金蓝莓赔验板局，缴存照赋通过批量直接板局，民过统规范应方法性，驾过规范赔验应趴。"
+                ]
+            }
+        ]
+    },
+    "enable_report_button": true,
+    "title_font_size": "24px",
+    "subtitle_api": "/api/demo/header-info",
+    "subtitle_api_method": "get",
+    "subtitle_color": "#666",
+    "subtitle_font_size": "13px",
+    "subtitle_margin_top": "10px",
+    "subtitle_margin_bottom": "0px",
+    "subtitle_margin_bottom_stats": "20px",
+    "footer_text": "XXX 公积金管理中心 © 2024"
+}

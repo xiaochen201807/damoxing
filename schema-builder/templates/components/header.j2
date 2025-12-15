@@ -1,31 +1,115 @@
-{# Page Header Component - Title and Subtitle #}
+{# Page Header Component - Title and Dynamic Subtitle #}
 {% import 'base/colors.j2' as theme %}
+"type": "page",
 "title": "{{ title }}",
-"subTitle": "{{ subtitle }}",
+
+{# --- 核心修改：动态/静态副标题 --- #}
+{% if subtitle_api %}
+    "initApi": {
+        "method": "{{ subtitle_api_method | default('get') }}",
+        "url": "{{ subtitle_api }}"
+        {% if subtitle_api_adaptor %},
+        "adaptor": "{{ subtitle_api_adaptor }}"
+        {% endif %}
+    },
+    "subTitle": "{{ subtitle_tpl | default('${displayText}') }}",
+{% else %}
+    "subTitle": "{{ subtitle | default('') }}",
+{% endif %}
+{# --------------------------- #}
+
 "titleClassName": "text-center",
 "bodyClassName": "p-3",
 "style": {
     "backgroundColor": "{{ theme.colors.background }}"
 },
 "css": {
+    ".cxd-Page-header": {
+        "position": "relative !important",
+        "padding-right": "0 !important"
+    },
+    ".cxd-Page-headerRow": {
+        "width": "100% !important",
+        "display": "block !important"
+    },
+    ".cxd-Page-toolbar": {
+        "position": "absolute !important",
+        "top": "10px !important",
+        "right": "15px !important",
+        "z-index": "10 !important"
+    },
     ".cxd-Page-title": {
         "text-align": "center !important",
-        "width": "100%",
-        "display": "block",
-        "margin-bottom": "6px",
+        "width": "100% !important",
+        "display": "block !important",
+        "margin-bottom": "0",
         "margin-top": "10px",
-        "font-size": "22px",
+        "font-size": "{{ title_font_size | default('22px') }}",
         "font-weight": "600",
-        "color": "{{ theme.colors.title }}"
+        "color": "{{ theme.colors.title }}",
+        "padding-right": "0 !important"
     },
     ".cxd-Page-subTitle": {
         "text-align": "center !important",
-        "width": "100%",
-        "display": "block",
-        "color": "{{ theme.colors.subtitle }}",
+        "width": "100% !important",
+        "display": "block !important",
+        "color": "{{ subtitle_color | default(theme.colors.subtitle) }}",
         "font-weight": "400",
-        "font-size": "13px",
-        "margin-bottom": "15px",
-        "margin-top": "0"
+        "font-size": "{{ subtitle_font_size | default('13px') }}",
+        "margin-bottom": "{{ subtitle_margin_bottom_stats | default('15px') }}",
+        "margin-top": "{{ subtitle_margin_top | default('10px') }}",
+        "padding-right": "0 !important"
     }
-}
+},
+
+{# --- 新增：Toolbar (右上角红色按钮) --- #}
+{% if enable_report_button %}
+"toolbar": [
+    {
+        "type": "button",
+        "label": "{{ report_button_label | default('生成风险分析报告') }}",
+        "level": "danger",
+        "actionType": "dialog",
+        "dialog": {
+            "title": "{{ report_button_label | default('生成风险分析报告') }}",
+            "size": "lg",
+            "body": {
+                "type": "form",
+                "api": "{{ report_api | default('post:/api/report/generate') }}",
+                "body": [
+                    {
+                        "type": "select",
+                        "name": "report_type",
+                        "label": "报告类型",
+                        "options": [
+                            {
+                                "label": "月度分析报告",
+                                "value": "month"
+                            },
+                            {
+                                "label": "季度分析报告",
+                                "value": "quarter"
+                            }
+                        ],
+                        "required": true
+                    },
+                    {
+                        "type": "input-date-range",
+                        "name": "date_range",
+                        "label": "时间范围",
+                        "required": true
+                    },
+                    {
+                        "type": "textarea",
+                        "name": "remark",
+                        "label": "备注说明"
+                    }
+                ]
+            }
+        }
+    }
+],
+{% endif %}
+{# ----------------------------------- #}
+
+"body": [

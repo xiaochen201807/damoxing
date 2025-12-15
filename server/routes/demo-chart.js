@@ -333,4 +333,50 @@ router.post('/customer/:id/mark-processed', (req, res) => {
     });
 });
 
+// 获取页面头部统计信息
+router.get('/header-info', (req, res) => {
+    // 计算总客户数（所有风险级别）
+    const totalCustomers = Object.values(mockData).reduce(
+        (sum, category) => sum + category.length,
+        0
+    );
+
+    // 计算总房产数（模拟：假设每个客户平均0.7套房产）
+    const totalHouses = Math.floor(totalCustomers * 0.7);
+
+    // 获取当前时间
+    const now = new Date();
+    const updateTime = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    // 格式化数字（添加千位分隔符）
+    const formatNumber = (num) => {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
+
+    const customerCountFormatted = formatNumber(totalCustomers);
+    const houseCountFormatted = formatNumber(totalHouses);
+
+    // 生成完整的显示文本（后端控制）
+    const displayText = `数据更新时间: ${updateTime} | 覆盖范围: 全市在贷客户 ${customerCountFormatted} 人，抵押房产 ${houseCountFormatted} 套`;
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            // 完整的显示文本（推荐使用）
+            displayText: displayText,
+
+            // 原始数据（兼容旧版本，可选使用）
+            updateTime: updateTime,
+            customerCount: customerCountFormatted,
+            houseCount: houseCountFormatted,
+
+            // 额外的统计信息
+            highRiskCount: mockData.high.length,
+            mediumRiskCount: mockData.medium.length,
+            lowRiskCount: mockData.low.length
+        }
+    });
+});
+
 module.exports = router;
