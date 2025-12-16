@@ -307,14 +307,6 @@
                                                             "show_analysis_result": true
                                                         }
                                                     }
-                                                },
-                                                {
-                                                    "actionType": "toast",
-                                                    "args": {
-                                                        "msgType": "info",
-                                                        "msg": "正在请求 AI 生成分析报告，请稍候...",
-                                                        "position": "top-center"
-                                                    }
                                                 }
                                             ]
                                         }
