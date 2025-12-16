@@ -1,8 +1,8 @@
-# 大魔星项目部署指南
+# 大模型项目部署指南
 
 ## 部署概述
 
-本文档提供大魔星项目在不同环境下的部署指南。
+本文档提供大模型项目在不同环境下的部署指南。
 
 ---
 
@@ -68,7 +68,7 @@ LOG_DIR=./logs
 VITE_API_BASE_URL=http://your-domain.com:3001
 
 # 应用信息
-VITE_APP_NAME=大魔星系统
+VITE_APP_NAME=大模型系统
 VITE_APP_VERSION=1.0.0
 ```
 

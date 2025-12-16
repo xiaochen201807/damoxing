@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # 单容器服务 (前端 Nginx + 后端 Node.js)
+  # ============================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: damoxing-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/database.sqlite
+      - LOG_DIR=/app/logs
+      - CORS_ORIGIN=http://localhost
+      # 只读模式 (生产环境推荐)
+      # - SQLITE_READONLY=true
+    volumes:
+      # 数据库持久化
+      - ./data:/app/data
+      # 日志持久化
+      - ./logs:/app/logs
+      # 备份持久化
+      - ./backups:/app/backups
+      # 环境变量文件 (可选)
+      - ./server/.env:/app/.env:ro
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+# ============================================
+# 多副本部署 (可选)
+# ============================================
+# 如需多副本，取消下面的注释并使用:
+# docker-compose up -d --scale app=3
+#
+# 注意: 多副本需要外部负载均衡器 (如 Nginx)
+# 或者使用 Docker Swarm mode

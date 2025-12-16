@@ -2,7 +2,7 @@
 
 ## 概述
 
-大魔星系统提供 RESTful API 接口，支持系统菜单、页面模板、Dify 配置管理和 AI 生成功能。
+大模型系统提供 RESTful API 接口，支持系统菜单、页面模板、Dify 配置管理和 AI 生成功能。
 
 **Base URL**: `http://localhost:3001/api`
 

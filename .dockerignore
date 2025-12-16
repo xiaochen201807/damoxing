@@ -1,0 +1,29 @@
+node_modules
+.git
+.gitignore
+*.log
+.DS_Store
+.env
+.env.development
+.env.local
+
+# 前端
+client/node_modules
+client/dist
+
+# 后端
+server/node_modules
+server/logs
+server/backups
+server/database.sqlite
+server/damoxing.db
+server/data.db
+
+# 文档和配置
+docs
+.venv
+schema-builder
+nginx
+README.md
+DEPLOYMENT.md
+DEPLOYMENT_MULTI_REPLICA.md

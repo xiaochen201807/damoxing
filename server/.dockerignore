@@ -1,0 +1,13 @@
+node_modules
+logs
+backups
+*.log
+.git
+.gitignore
+.env
+.env.example
+npm-debug.log*
+.DS_Store
+database.sqlite
+damoxing.db
+data.db
