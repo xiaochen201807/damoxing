@@ -1,29 +1,48 @@
-node_modules
+# Node modules (必须排除,避免架构不匹配)
+node_modules/
+**/node_modules/
+
+# Git
 .git
 .gitignore
+
+# Logs
 *.log
+logs/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Environment files
 .env
 .env.development
 .env.local
+.env.*.local
 
 # 前端
-client/node_modules
-client/dist
+client/node_modules/
+client/dist/
+client/.vite/
 
 # 后端
-server/node_modules
-server/logs
-server/backups
+server/node_modules/
+server/logs/
+server/backups/
 server/database.sqlite
 server/damoxing.db
 server/data.db
 
 # 文档和配置
-docs
-.venv
-schema-builder
-nginx
+docs/
+.venv/
+schema-builder/
+nginx/
 README.md
 DEPLOYMENT.md
 DEPLOYMENT_MULTI_REPLICA.md
+DEPLOYMENT_SIMPLE.md
+
+# 其他
+*.md
+!package*.json
