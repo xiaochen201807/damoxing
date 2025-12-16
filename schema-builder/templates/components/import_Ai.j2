@@ -10,10 +10,7 @@
     "type": "service",
     "id": "risk_analysis_root",
     "className": "p-none",
-    "data": {
-        "show_analysis_result": false,
-        "ai_loading": false
-    },
+    
     "body": [
         {# ================== 1. 按钮操作区 ================== #}
         {
@@ -87,9 +84,10 @@
                             "onEvent": {
                                 "click": {
                                     "actions": [
+                                        {# 1. 修改最外层 Page 变量：开启遮罩，显示区域 #}
                                         {
                                             "actionType": "setValue",
-                                            "componentId": "risk_analysis_root",
+                                            "componentId": "global_page_root",
                                             "args": {
                                                 "value": {
                                                     "show_analysis_result": true,
@@ -97,9 +95,10 @@
                                                 }
                                             }
                                         },
+                                        {# 2. 触发 Service 重新加载 #}
                                         {
                                             "actionType": "reload",
-                                            "componentId": "service_ai_result_area"
+                                            "componentId": "risk_analysis_service_inner"
                                         }
                                     ]
                                 }
@@ -111,7 +110,7 @@
             ]
         },
 
-        {# ================== 2. 全局 Loading 遮罩 (带关闭按钮) ================== #}
+        {# ================== 2. 全局 Loading 遮罩 ================== #}
         {
             "type": "container",
             "visibleOn": "${ai_loading}",
@@ -142,30 +141,18 @@
                         "position": "relative"
                     },
                     "body": [
-                        {# 新增：右上角强制关闭按钮 (救命按钮) #}
+                        {# 强制关闭按钮 #}
                         {
                             "type": "button",
                             "icon": "fa fa-times",
                             "level": "link",
-                            "style": {
-                                "position": "absolute",
-                                "top": "10px",
-                                "right": "10px",
-                                "color": "#999"
-                            },
-                            "tooltip": "强制停止并关闭",
+                            "style": { "position": "absolute", "top": "12px", "right": "12px", "color": "#999", "fontSize": "16px", "cursor": "pointer", "zIndex": "10001" },
+                            "tooltip": "强制取消",
                             "onEvent": {
                                 "click": {
                                     "actions": [
-                                        {
-                                            "actionType": "setValue",
-                                            "componentId": "risk_analysis_root",
-                                            "args": { "value": { "ai_loading": false } }
-                                        },
-                                        {
-                                            "actionType": "toast",
-                                            "args": { "msgType": "warning", "msg": "已取消等待" }
-                                        }
+                                        { "actionType": "setValue", "componentId": "global_page_root", "args": { "value": { "ai_loading": false } } },
+                                        { "actionType": "toast", "args": { "msgType": "info", "msg": "已手动取消" } }
                                     ]
                                 }
                             }
@@ -187,51 +174,60 @@
         {% if enable_ai_analysis | default(true) %}
         {
             "type": "service",
-            "id": "service_ai_result_area",
+            "id": "risk_analysis_service_inner", 
             
-            {# 逻辑：没点击过或正在加载时隐藏，加载完显示 #}
-            "className": "${!show_analysis_result || ai_loading ? 'hidden' : 'm-t-md'}",
+            {# 保持 hidden 逻辑，避免 ECharts 在 display:none 下计算尺寸出错 #}
+            "className": "${!show_analysis_result ? 'hidden' : 'm-t-md'}",
             
-            {# 🔴 修复点 1：虽然设为 false，但为了保险，加上 sendOn #}
             "initFetch": false,
-
             "spinner": null, 
 
             "schemaApi": {
                 "method": "post",
                 "url": "{{ ai_generate_api | default('/api/ai/generate-page') }}",
                 
-                {# 🔴 修复点 2：API 门禁。只有 ai_loading 为 true 时才允许发送请求 #}
-                {# 这彻底杜绝了页面加载时的自动请求，因为初始状态 ai_loading=false #}
+                {# 门禁：检查最外层 Page 变量 #}
                 "sendOn": "this.ai_loading === true",
                 
                 "data": {
-                    "page_id": "{{ page_key }}",
-                    "query": {{ query | tojson if query is defined and query else '{}' }},
+                    "pageId": "{{ page_key }}",
+                    "query": "{{ query | default('{}') }}",
                     "timestamp": "${date(now(), 'x')}"
                 }
             },
             
             "onEvent": {
-                "fetchSuccess": {
+                {# ⭐⭐ 核心：使用官方事件 fetchSchemaInited ⭐⭐ #}
+                {# 该事件专门在 schemaApi 返回并初始化 UI 完成后触发 #}
+                "fetchSchemaInited": {
                     "actions": [
                         {
                             "actionType": "setValue",
-                            "componentId": "risk_analysis_root",
-                            "args": { "value": { "ai_loading": false } }
+                            "componentId": "global_page_root",
+                            "args": {
+                                "value": {
+                                    "ai_loading": false
+                                }
+                            }
+                        },
+                        {
+                            "actionType": "toast",
+                            "args": { "msgType": "success", "msg": "分析完成" }
                         }
                     ]
                 },
+                
+                {# 处理失败情况 #}
                 "fetchFailed": {
                     "actions": [
                         {
                             "actionType": "setValue",
-                            "componentId": "risk_analysis_root",
+                            "componentId": "global_page_root",
                             "args": { "value": { "ai_loading": false } }
                         },
                         {
                             "actionType": "toast",
-                            "args": { "msgType": "error", "msg": "分析服务异常 (500)，请重试" }
+                            "args": { "msgType": "error", "msg": "服务异常，请重试" }
                         }
                     ]
                 }
