@@ -20,7 +20,8 @@ RUN npm ci
 # 复制前端源代码
 COPY client/ ./
 
-# 构建前端
+# 构建前端 (增加 Node.js 内存限制)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # ============================================
