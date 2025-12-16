@@ -44,5 +44,6 @@
             "template_url": "/downloads/template_B.xlsx"
         }
     ],
-    "page_key": "jcycdj"
+    "page_key": "jcycdj",
+    "query": "请严格按照 amis 对 json 的要求返回数据"
 }

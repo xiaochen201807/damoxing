@@ -1,4 +1,4 @@
-{# 定义默认的导入项配置 #}
+{# ... 前面的导入项配置保持不变 ... #}
 {% set default_items = [
     { "title": "各区县逾期率 & 房价跌幅数据", "desc": "支持格式: .xls,.xlsx", "key": "file_rate", "template_url": "/api/template/rate.xlsx" },
     { "title": "抵押房产估值偏离度数据", "desc": "支持格式: .xls,.xlsx", "key": "file_valuation", "template_url": "/api/template/valuation.xlsx" },
@@ -7,8 +7,12 @@
 ] %}
 
 {
-    "type": "wrapper",
+    "type": "service",          {# 👈 修改点 1：把 wrapper 改为 service #}
+    "id": "risk_analysis_root", {# 👈 保持 ID 不变，现在它可以被找到了 #}
     "className": "p-none",
+    "data": {
+        "show_analysis_result": false  {# 👈 最佳实践：初始化变量 #}
+    },
     "body": [
         {# ================== 第一部分：按钮操作区 ================== #}
         {
@@ -25,7 +29,7 @@
                 {
                     "type": "button-group",
                     "buttons": [
-                        {# --- 按钮 1：数据导入 (逻辑保持不变) --- #}
+                        {# ... 数据导入按钮保持不变 ... #}
                         {% if enable_data_import | default(true) %}
                         {
                             "type": "button",
@@ -109,10 +113,9 @@
                         }
                         {% endif %}
 
-                        {# 逗号逻辑 #}
                         {% if enable_data_import | default(true) and enable_ai_analysis | default(true) %},{% endif %}
 
-                        {# --- 按钮 2：智能分析 (更新为触发 Schema 刷新) --- #}
+                        {# --- 智能分析按钮 --- #}
                         {% if enable_ai_analysis | default(true) %}
                         {
                             "type": "button",
@@ -129,17 +132,24 @@
                             "onEvent": {
                                 "click": {
                                     "actions": [
-                                        {# 动作 1: 给用户一个反馈，表示开始请求了 #}
+                                        {# 动作 1: 设置变量 #}
+                                        {
+                                            "actionType": "setValue",
+                                            "componentId": "risk_analysis_root",
+                                            "args": {
+                                                "value": {
+                                                    "show_analysis_result": true
+                                                }
+                                            }
+                                        },
+                                        {# 动作 2: Toast 提示 #}
                                         {
                                             "actionType": "toast",
-                                            "msgType": "info",
-                                            "msg": "正在请求 AI 生成分析报告，请稍候...",
-                                            "position": "top-center"
-                                        },
-                                        {# 动作 2: 核心！刷新下方的 Service 组件，触发它的 schemaApi #}
-                                        {
-                                            "actionType": "reload",
-                                            "componentId": "service_ai_result_area"
+                                            "args": {
+                                                "msgType": "info",
+                                                "msg": "正在请求 AI 生成分析报告，请稍候...",
+                                                "position": "top-center"
+                                            }
                                         }
                                     ]
                                 }
@@ -158,29 +168,23 @@
             "id": "service_ai_result_area",
             "className": "m-t-md",
             
-            {# 关键属性 1: schemaApi #}
-            {# 告诉 Amis：去调用这个接口，接口返回的 JSON 将直接渲染为 UI 组件 #}
+            "visibleOn": "${show_analysis_result}",
+            "initFetch": true,
+
             "schemaApi": {
                 "method": "post",
                 "url": "{{ ai_generate_api | default('/api/ai/generate') }}",
                 "data": {
                     "pageId": "{{ page_key }}",
-                    "query": "请严格遵守 amis 对 json 的要求",
+                    "query": "{{query}}",
                     "timestamp": "${new Date().getTime()}" 
                 }
             },
             
-            {# 关键属性 2: initFetch #}
-            {# 设置为 false，代表页面加载时不自动调接口，只有点击上面的按钮触发 reload 时才调 #}
-            "initFetch": false,
-            
-            {# 加载中的状态 #}
             "spinner": {
                 "size": "lg",
                 "tip": "AI 正在思考并构建分析报表..."
             },
-            
-            {# 初始状态/空状态 (接口没调用时显示的内容) #}
             "body": {
                 "type": "tpl",
                 "tpl": "",
