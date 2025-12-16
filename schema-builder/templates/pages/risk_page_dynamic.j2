@@ -1,7 +1,9 @@
 {# Risk Analysis Page - 使用 API 动态副标题示例 #}
 {% import 'base/colors.j2' as theme %}
 {
-    {% include 'components/header.j2' %}
+    "type": "page",
+    "body": [
+        {% include 'components/header.j2' %},
         {# 主要内容区域 #}
         {
             "type": "panel",

@@ -1,128 +1,142 @@
 {# Page Header Component - Title and Dynamic Subtitle #}
 {% import 'base/colors.j2' as theme %}
-"type": "page",
-"title": "{{ title }}",
 
-{# --- 动态/静态副标题逻辑 --- #}
-{% if subtitle_api %}
-    "initApi": {
-        "method": "{{ subtitle_api_method | default('get') }}",
-        "url": "{{ subtitle_api }}"
-        {% if subtitle_api_adaptor %},
-        "adaptor": "{{ subtitle_api_adaptor }}"
-        {% endif %}
+{# 🔴 修复：改为 container 类型，使其成为可复用组件 #}
+{
+    "type": "container",
+    "className": "page-header-component",
+    "style": {
+        "backgroundColor": "{{ theme.colors.background }}",
+        "padding": "20px 0",
+        "marginBottom": "20px"
     },
-    "subTitle": "{{ subtitle_tpl | default('${displayText}') }}",
-{% else %}
-    "subTitle": "{{ subtitle | default('') }}",
-{% endif %}
-
-"titleClassName": "text-center",
-"bodyClassName": "p-3",
-"style": {
-    "backgroundColor": "{{ theme.colors.background }}"
-},
-"css": {
-    {# 1. 定位基准：针对 Amis 的 headerRow 结构设置相对定位 #}
-    ".cxd-Page-headerRow": {
-        "position": "relative !important",
-        "display": "flex !important",
-        "justify-content": "center !important",
-        "align-items": "flex-start !important",
-        "padding": "0 !important",
-        "margin-bottom": "0 !important"
-    },
-
-    {# 2. 标题区域：占满宽度，内部文字居中 #}
-    ".cxd-Page-header": {
-        "width": "100% !important",
-        "flex": "1 1 auto !important",
-        "text-align": "center !important",
-        "padding": "0 !important",
-        "margin": "0 !important",
-        "border": "none !important"
-    },
-
-    {# 3. 工具栏(按钮)：绝对定位，消除高度拉伸 #}
-    ".cxd-Page-toolbar": {
-        "position": "absolute !important",
-        "right": "0px !important",
-        "top": "10px !important",
-        "height": "auto !important",
-        "min-height": "0 !important",
-        "width": "auto !important",
-        "margin": "0 !important",
-        "z-index": "100"
-    },
-
-    {# 4. 标题文字样式 #}
-    ".cxd-Page-title": {
-        "text-align": "center !important",
-        "display": "block",
-        "font-size": "{{ title_font_size | default('22px') }}",
-        "font-weight": "600",
-        "color": "{{ theme.colors.title }}",
-        "margin-top": "10px",
-        "margin-bottom": "5px"
-    },
-
-    {# 5. 副标题样式 #}
-    ".cxd-Page-subTitle": {
-        "text-align": "center !important",
-        "display": "block",
-        "color": "{{ subtitle_color | default(theme.colors.subtitle) }}",
-        "font-weight": "400",
-        "font-size": "{{ subtitle_font_size | default('13px') }}",
-        "margin-bottom": "{{ subtitle_margin_bottom_stats | default('15px') }}"
-    }
-},
-
-{% if enable_report_button %}
-"toolbar": [
-    {
-        "type": "button",
-        "label": "{{ report_button_label | default('生成风险分析报告') }}",
-        "level": "danger",
-        "actionType": "dialog",
-        "dialog": {
-            "title": "{{ report_button_label | default('生成风险分析报告') }}",
-            "size": "lg",
-            "body": {
-                "type": "form",
-                "api": "{{ report_api | default('post:/api/report/generate') }}",
-                "body": [
-                    {
-                        "type": "select",
-                        "name": "report_type",
-                        "label": "报告类型",
-                        "options": [
-                            {
-                                "label": "月度分析报告",
-                                "value": "month"
-                            },
-                            {
-                                "label": "季度分析报告",
-                                "value": "quarter"
+    
+    {# --- 动态/静态副标题逻辑 --- #}
+    {% if subtitle_api %}
+    "body": [
+        {
+            "type": "service",
+            "api": {
+                "method": "{{ subtitle_api_method | default('get') }}",
+                "url": "{{ subtitle_api }}"
+                {% if subtitle_api_adaptor %},
+                "adaptor": "{{ subtitle_api_adaptor }}"
+                {% endif %}
+            },
+            "body": [
+                {
+                    "type": "container",
+                    "className": "text-center",
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "tpl": "<h2 style='font-size: {{ title_font_size | default('22px') }}; font-weight: 600; color: {{ theme.colors.title }}; margin: 10px 0 5px 0;'>{{ title }}</h2>"
+                        },
+                        {
+                            "type": "tpl",
+                            "tpl": "<div style='color: {{ subtitle_color | default(theme.colors.subtitle) }}; font-size: {{ subtitle_font_size | default('13px') }}; margin-bottom: {{ subtitle_margin_bottom_stats | default('15px') }};'>{{ subtitle_tpl | default('${displayText}') }}</div>"
+                        }
+                        {% if enable_report_button %},
+                        {
+                            "type": "button",
+                            "label": "{{ report_button_label | default('生成风险分析报告') }}",
+                            "level": "danger",
+                            "className": "m-t-sm",
+                            "actionType": "dialog",
+                            "dialog": {
+                                "title": "{{ report_button_label | default('生成风险分析报告') }}",
+                                "size": "lg",
+                                "body": {
+                                    "type": "form",
+                                    "api": "{{ report_api | default('post:/api/report/generate') }}",
+                                    "body": [
+                                        {
+                                            "type": "select",
+                                            "name": "report_type",
+                                            "label": "报告类型",
+                                            "options": [
+                                                { "label": "月度分析报告", "value": "month" },
+                                                { "label": "季度分析报告", "value": "quarter" }
+                                            ],
+                                            "required": true
+                                        },
+                                        {
+                                            "type": "input-date-range",
+                                            "name": "date_range",
+                                            "label": "时间范围",
+                                            "required": true
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "remark",
+                                            "label": "备注说明"
+                                        }
+                                    ]
+                                }
                             }
-                        ],
-                        "required": true
-                    },
-                    {
-                        "type": "input-date-range",
-                        "name": "date_range",
-                        "label": "时间范围",
-                        "required": true
-                    },
-                    {
-                        "type": "textarea",
-                        "name": "remark",
-                        "label": "备注说明"
-                    }
-                ]
-            }
+                        }
+                        {% endif %}
+                    ]
+                }
+            ]
         }
-    }
-],
-{% endif %}
-
-"body": [
+    ]
+    {% else %}
+    "body": [
+        {
+            "type": "container",
+            "className": "text-center",
+            "body": [
+                {
+                    "type": "tpl",
+                    "tpl": "<h2 style='font-size: {{ title_font_size | default('22px') }}; font-weight: 600; color: {{ theme.colors.title }}; margin: 10px 0 5px 0;'>{{ title }}</h2>"
+                },
+                {
+                    "type": "tpl",
+                    "tpl": "<div style='color: {{ subtitle_color | default(theme.colors.subtitle) }}; font-size: {{ subtitle_font_size | default('13px') }}; margin-bottom: {{ subtitle_margin_bottom_stats | default('15px') }};'>{{ subtitle | default('') }}</div>"
+                }
+                {% if enable_report_button %},
+                {
+                    "type": "button",
+                    "label": "{{ report_button_label | default('生成风险分析报告') }}",
+                    "level": "danger",
+                    "className": "m-t-sm",
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "{{ report_button_label | default('生成风险分析报告') }}",
+                        "size": "lg",
+                        "body": {
+                            "type": "form",
+                            "api": "{{ report_api | default('post:/api/report/generate') }}",
+                            "body": [
+                                {
+                                    "type": "select",
+                                    "name": "report_type",
+                                    "label": "报告类型",
+                                    "options": [
+                                        { "label": "月度分析报告", "value": "month" },
+                                        { "label": "季度分析报告", "value": "quarter" }
+                                    ],
+                                    "required": true
+                                },
+                                {
+                                    "type": "input-date-range",
+                                    "name": "date_range",
+                                    "label": "时间范围",
+                                    "required": true
+                                },
+                                {
+                                    "type": "textarea",
+                                    "name": "remark",
+                                    "label": "备注说明"
+                                }
+                            ]
+                        }
+                    }
+                }
+                {% endif %}
+            ]
+        }
+    ]
+    {% endif %}
+}

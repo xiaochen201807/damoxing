@@ -1,4 +1,4 @@
-{# ... 前面的导入项配置保持不变 ... #}
+{# 定义默认的导入项配置 #}
 {% set default_items = [
     { "title": "各区县逾期率 & 房价跌幅数据", "desc": "支持格式: .xls,.xlsx", "key": "file_rate", "template_url": "/api/template/rate.xlsx" },
     { "title": "抵押房产估值偏离度数据", "desc": "支持格式: .xls,.xlsx", "key": "file_valuation", "template_url": "/api/template/valuation.xlsx" },
@@ -7,14 +7,15 @@
 ] %}
 
 {
-    "type": "service",          {# 👈 修改点 1：把 wrapper 改为 service #}
-    "id": "risk_analysis_root", {# 👈 保持 ID 不变，现在它可以被找到了 #}
+    "type": "service",
+    "id": "risk_analysis_root",
     "className": "p-none",
     "data": {
-        "show_analysis_result": false  {# 👈 最佳实践：初始化变量 #}
+        "show_analysis_result": false,
+        "ai_loading": false
     },
     "body": [
-        {# ================== 第一部分：按钮操作区 ================== #}
+        {# ================== 1. 按钮操作区 ================== #}
         {
             "type": "container",
             "className": "m-t-lg",
@@ -29,20 +30,13 @@
                 {
                     "type": "button-group",
                     "buttons": [
-                        {# ... 数据导入按钮保持不变 ... #}
+                        {# --- 数据导入按钮 (保持不变) --- #}
                         {% if enable_data_import | default(true) %}
                         {
                             "type": "button",
                             "label": "☁️ 数据导入",
                             "className": "m-r-lg",
-                            "style": {
-                                "border": "1px solid #1890ff",
-                                "color": "#003a8c",
-                                "backgroundColor": "#e6f7ff",
-                                "fontWeight": "bold",
-                                "width": "140px",
-                                "height": "40px"
-                            },
+                            "style": { "border": "1px solid #1890ff", "color": "#003a8c", "backgroundColor": "#e6f7ff", "fontWeight": "bold", "width": "140px", "height": "40px" },
                             "actionType": "dialog",
                             "dialog": {
                                 "title": "{{ import_dialog_title | default('违规提取风险数据导入') }}",
@@ -56,49 +50,10 @@
                                         {
                                             "type": "container",
                                             "className": "import-card-row",
-                                            "style": {
-                                                "border": "1px solid #e8e8e8",
-                                                "borderRadius": "6px",
-                                                "padding": "16px 20px",
-                                                "marginBottom": "12px",
-                                                "backgroundColor": "#fff",
-                                                "display": "flex",
-                                                "alignItems": "center",
-                                                "justifyContent": "space-between"
-                                            },
+                                            "style": { "border": "1px solid #e8e8e8", "borderRadius": "6px", "padding": "16px 20px", "marginBottom": "12px", "backgroundColor": "#fff", "display": "flex", "alignItems": "center", "justifyContent": "space-between" },
                                             "body": [
-                                                {
-                                                    "type": "tpl",
-                                                    "tpl": "<div><div style='font-weight: 600; font-size: 14px; color: #333; margin-bottom: 4px;'>{{ item.title }}</div><div style='font-size: 12px; color: #999;'>{{ item.desc | default('支持格式: .xls,.xlsx') }}</div></div>",
-                                                    "style": { "flex": "1" }
-                                                },
-                                                {
-                                                    "type": "container",
-                                                    "style": { "display": "flex", "alignItems": "center", "gap": "10px" },
-                                                    "body": [
-                                                        {
-                                                            "type": "button",
-                                                            "label": "⬇ 下载模板",
-                                                            "level": "default",
-                                                            "size": "sm",
-                                                            "actionType": "download",
-                                                            "api": "{{ item.template_url }}",
-                                                            "style": { "borderColor": "#d9d9d9", "color": "#666" }
-                                                        },
-                                                        {
-                                                            "type": "input-file",
-                                                            "name": "{{ item.key }}",
-                                                            "btnLabel": "⬆ 上传文件",
-                                                            "level": "primary",
-                                                            "mode": "inline",
-                                                            "accept": ".xlsx,.xls",
-                                                            "maxSize": 10485760,
-                                                            "asBlob": true,
-                                                            "inputClassName": "m-b-none",
-                                                            "style": { "margin": "0" }
-                                                        }
-                                                    ]
-                                                }
+                                                { "type": "tpl", "tpl": "<div><div style='font-weight: 600; font-size: 14px; color: #333; margin-bottom: 4px;'>{{ item.title }}</div><div style='font-size: 12px; color: #999;'>{{ item.desc | default('支持格式: .xls,.xlsx') }}</div></div>", "style": { "flex": "1" } },
+                                                { "type": "container", "style": { "display": "flex", "alignItems": "center", "gap": "10px" }, "body": [ { "type": "button", "label": "⬇ 下载模板", "level": "default", "size": "sm", "actionType": "download", "api": "{{ item.template_url }}", "style": { "borderColor": "#d9d9d9", "color": "#666" } }, { "type": "input-file", "name": "{{ item.key }}", "btnLabel": "⬆ 上传文件", "level": "primary", "mode": "inline", "accept": ".xlsx,.xls", "maxSize": 10485760, "asBlob": true, "inputClassName": "m-b-none", "style": { "margin": "0" } } ] }
                                             ]
                                         }
                                         {% if not loop.last %},{% endif %}
@@ -132,25 +87,20 @@
                             "onEvent": {
                                 "click": {
                                     "actions": [
-                                        {# 动作 1: 设置变量 #}
                                         {
                                             "actionType": "setValue",
                                             "componentId": "risk_analysis_root",
                                             "args": {
                                                 "value": {
-                                                    "show_analysis_result": true
+                                                    "show_analysis_result": true,
+                                                    "ai_loading": true
                                                 }
                                             }
+                                        },
+                                        {
+                                            "actionType": "reload",
+                                            "componentId": "service_ai_result_area"
                                         }
-                                        {# 动作 2: Toast 提示 #}
-                                        {#
-                                            "actionType": "toast",
-                                            "args": {
-                                                "msgType": "info",
-                                                "msg": "正在请求 AI 生成分析报告，请稍候...",
-                                                "position": "top-center"
-                                            }
-                                        #}
                                     ]
                                 }
                             }
@@ -161,30 +111,132 @@
             ]
         },
 
-        {# ================== 第二部分：AI 结果展示容器 ================== #}
+        {# ================== 2. 全局 Loading 遮罩 (带关闭按钮) ================== #}
+        {
+            "type": "container",
+            "visibleOn": "${ai_loading}",
+            "style": {
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "width": "100vw",
+                "height": "100vh",
+                "backgroundColor": "rgba(255, 255, 255, 0.9)",
+                "zIndex": "9999",
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "backdropFilter": "blur(4px)"
+            },
+            "body": [
+                {
+                    "type": "container",
+                    "style": {
+                        "backgroundColor": "#fff",
+                        "borderRadius": "16px",
+                        "boxShadow": "0 20px 50px rgba(0,0,0,0.1)",
+                        "padding": "40px",
+                        "width": "320px",
+                        "textAlign": "center",
+                        "border": "1px solid rgba(0,0,0,0.05)",
+                        "position": "relative"
+                    },
+                    "body": [
+                        {# 新增：右上角强制关闭按钮 (救命按钮) #}
+                        {
+                            "type": "button",
+                            "icon": "fa fa-times",
+                            "level": "link",
+                            "style": {
+                                "position": "absolute",
+                                "top": "10px",
+                                "right": "10px",
+                                "color": "#999"
+                            },
+                            "tooltip": "强制停止并关闭",
+                            "onEvent": {
+                                "click": {
+                                    "actions": [
+                                        {
+                                            "actionType": "setValue",
+                                            "componentId": "risk_analysis_root",
+                                            "args": { "value": { "ai_loading": false } }
+                                        },
+                                        {
+                                            "actionType": "toast",
+                                            "args": { "msgType": "warning", "msg": "已取消等待" }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {# 动画内容 #}
+                        {
+                            "type": "custom",
+                            "name": "ai-modal-timer",
+                            "html": "<div style='font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial; color: #333;'><div style='position: relative; width: 80px; height: 80px; margin: 0 auto 24px auto;'><svg viewBox='0 0 50 50' style='width: 100%; height: 100%; animation: spin 2s linear infinite;'><circle cx='25' cy='25' r='20' fill='none' stroke='#f0f0f0' stroke-width='4'></circle><circle cx='25' cy='25' r='20' fill='none' stroke='#ff4d4f' stroke-width='4' stroke-dasharray='80' stroke-dashoffset='60' stroke-linecap='round'></circle></svg><div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #ff4d4f; font-feature-settings: \"tnum\";'><span id='modal-timer-sec'>0</span><span style='font-size: 12px; margin-left: 2px; font-weight: 400;'>s</span></div></div><div style='font-size: 18px; font-weight: 600; color: #1f1f1f; margin-bottom: 12px; letter-spacing: 0.5px;'>AI 智能分析中</div><div id='modal-timer-text' style='font-size: 13px; color: #8c8c8c; height: 20px;'>正在接入数据中心...</div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></div>",
+                            "onMount": "const startTime = Date.now(); const secDom = document.getElementById('modal-timer-sec'); const textDom = document.getElementById('modal-timer-text'); const texts = ['正在加载业务数据...', '正在构建风险模型...', 'AI 正在生成洞察...', '正在渲染分析报告...']; window.modalTimer = setInterval(() => { const elapsed = ((Date.now() - startTime) / 1000).toFixed(1); if(secDom) secDom.innerText = elapsed; const step = Math.floor(elapsed / 3) % texts.length; if(textDom) textDom.innerText = texts[step]; }, 100);",
+                            "onUnmount": "clearInterval(window.modalTimer);"
+                        }
+                    ]
+                }
+            ]
+        },
+
+        {# ================== 3. 结果展示区 (Service) ================== #}
         {% if enable_ai_analysis | default(true) %}
         {
             "type": "service",
             "id": "service_ai_result_area",
-            "className": "m-t-md",
             
-            "visibleOn": "${show_analysis_result}",
-            "initFetch": true,
+            {# 逻辑：没点击过或正在加载时隐藏，加载完显示 #}
+            "className": "${!show_analysis_result || ai_loading ? 'hidden' : 'm-t-md'}",
+            
+            {# 🔴 修复点 1：虽然设为 false，但为了保险，加上 sendOn #}
+            "initFetch": false,
+
+            "spinner": null, 
 
             "schemaApi": {
                 "method": "post",
                 "url": "{{ ai_generate_api | default('/api/ai/generate-page') }}",
+                
+                {# 🔴 修复点 2：API 门禁。只有 ai_loading 为 true 时才允许发送请求 #}
+                {# 这彻底杜绝了页面加载时的自动请求，因为初始状态 ai_loading=false #}
+                "sendOn": "this.ai_loading === true",
+                
                 "data": {
-                    "pageId": "{{ page_key }}",
-                    "query": "{{query}}",
-                    "timestamp": "${new Date().getTime()}" 
+                    "page_id": "{{ page_key }}",
+                    "query": {{ query | tojson if query is defined and query else '{}' }},
+                    "timestamp": "${date(now(), 'x')}"
                 }
             },
             
-            "spinner": {
-                "size": "lg",
-                "tip": "AI 正在思考并构建分析报表..."
+            "onEvent": {
+                "fetchSuccess": {
+                    "actions": [
+                        {
+                            "actionType": "setValue",
+                            "componentId": "risk_analysis_root",
+                            "args": { "value": { "ai_loading": false } }
+                        }
+                    ]
+                },
+                "fetchFailed": {
+                    "actions": [
+                        {
+                            "actionType": "setValue",
+                            "componentId": "risk_analysis_root",
+                            "args": { "value": { "ai_loading": false } }
+                        },
+                        {
+                            "actionType": "toast",
+                            "args": { "msgType": "error", "msg": "分析服务异常 (500)，请重试" }
+                        }
+                    ]
+                }
             },
+            
             "body": {
                 "type": "tpl",
                 "tpl": "",

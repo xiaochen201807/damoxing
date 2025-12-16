@@ -33,7 +33,8 @@
                 "stageId": "${data.stageId}"
             },
             "body": {
-                "type": "page",
+                {# 🔴 修复：Dialog 中不应使用 page，改为 container #}
+                "type": "container",
                 "body": [
                     {
                         "type": "grid",
