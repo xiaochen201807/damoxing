@@ -332,7 +332,7 @@
                     "initFetch": true,
                     "schemaApi": {
                         "method": "post",
-                        "url": "/api/ai/generate_page",
+                        "url": "/api/ai/generate-page",
                         "data": {
                             "pageId": "jcycdj",
                             "query": "请严格按照 amis 对 json 的要求返回数据",

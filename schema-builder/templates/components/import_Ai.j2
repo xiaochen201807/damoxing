@@ -173,7 +173,7 @@
 
             "schemaApi": {
                 "method": "post",
-                "url": "{{ ai_generate_api | default('/api/ai/generate_page') }}",
+                "url": "{{ ai_generate_api | default('/api/ai/generate-page') }}",
                 "data": {
                     "pageId": "{{ page_key }}",
                     "query": "{{query}}",
