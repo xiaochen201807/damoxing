@@ -7,11 +7,15 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/client
 
+# 配置 npm 使用淘宝镜像源 (加速下载)
+RUN npm config set registry https://registry.npmmirror.com
+
 # 复制前端 package 文件
 COPY client/package*.json ./
 
-# 安装前端依赖
-RUN npm ci --only=production
+# 安装前端依赖 (包含 devDependencies,因为构建需要)
+# 移除 --only=production 以确保安装可选依赖 (如 @rollup/rollup-linux-x64-musl)
+RUN npm ci
 
 # 复制前端源代码
 COPY client/ ./
@@ -28,6 +32,9 @@ FROM node:18-alpine
 RUN apk add --no-cache nginx sqlite supervisor
 
 WORKDIR /app
+
+# 配置 npm 使用淘宝镜像源 (加速下载)
+RUN npm config set registry https://registry.npmmirror.com
 
 # 复制后端代码
 COPY server/package*.json ./
