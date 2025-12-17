@@ -314,7 +314,8 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
           Authorization: `Bearer ${DIFY_API_KEY}`,
           "Content-Type": "application/json",
         },
-        timeout: 120000, // Workflow 运行时间可能较长，设置 120秒超时
+        // 从环境变量读取超时时间，默认 300秒 (5分钟)
+        timeout: parseInt(process.env.DIFY_API_TIMEOUT || '300000'),
       }
     );
 
@@ -361,14 +362,24 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
       res.status(500).json({ status: 1, msg: "Workflow 运行未完成或失败" });
     }
   } catch (error) {
-    logger.error(
-      "[AI Workflow] API 调用出错:",
-      error.response?.data || error.message
-    );
+    logger.error("[AI Workflow] API 调用出错详情:");
+    if (error.response) {
+      // 服务器返回了错误状态码 (4xx, 5xx)
+      logger.error(`Status: ${error.response.status}`);
+      logger.error(`Data: ${JSON.stringify(error.response.data)}`);
+    } else if (error.request) {
+      // 请求发出去了，但没有收到响应 (超时/网络断开)
+      logger.error("无响应 (Timeout/Network Error)");
+      logger.error(error.message);
+    } else {
+      // 设置请求时发生错误
+      logger.error("Error Message:", error.message);
+    }
+
     res.status(500).json({
       status: 1,
-      msg: "生成页面失败，请检查后端日志",
-      details: error.response?.data,
+      msg: "生成页面失败: " + (error.message || "未知错误"),
+      details: error.response?.data || "无详细信息",
     });
   }
 });

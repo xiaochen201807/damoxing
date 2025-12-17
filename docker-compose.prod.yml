@@ -23,6 +23,8 @@ services:
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
       - CORS_ORIGIN=*
+      # AI 接口超时时间 (毫秒)，默认 5分钟
+      - DIFY_API_TIMEOUT=300000
       # 只读模式 (生产环境推荐)
       # - SQLITE_READONLY=true
 
