@@ -22,6 +22,9 @@ const healthRoutes = require("./routes/health");
 const app = express();
 const PORT = 3001;
 
+// 信任 Nginx 代理，以便获取正确的客户端 IP
+app.set('trust proxy', 1);
+
 // 安全头配置（必须在最前面）
 app.use(helmetConfig);
 
