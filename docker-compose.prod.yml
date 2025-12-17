@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  app:
+    # 使用 GitHub Container Registry 镜像
+    image: ghcr.io/xiaoguan521/damoxing:latest
+
+    # 或使用特定版本
+    # image: ghcr.io/xiaoguan521/damoxing:v1.0.0
+
+    # 或使用 x86 快速构建版本
+    # image: ghcr.io/xiaoguan521/damoxing:x86
+
+    container_name: damoxing-app
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/database.sqlite
+      - LOG_DIR=/app/data/logs
+      - CORS_ORIGIN=*
+      # AI 接口超时时间 (毫秒)，默认 5分钟
+      - DIFY_API_TIMEOUT=300000
+      # 只读模式 (生产环境推荐)
+      # - SQLITE_READONLY=true
+
+    volumes:
+      # 统一数据目录挂载（包含数据库、日志、备份）
+      # data/
+      #   ├── database.sqlite    (数据库文件)
+      #   ├── logs/              (日志目录)
+      #   └── backups/           (备份目录)
+      - ./data:/app/data
+      # 环境变量文件 (可选)
+      # - ./server/.env:/app/.env:ro
+
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+# ============================================
+# 多副本部署 (可选)
+# ============================================
+# 如需多副本，使用:
+# docker-compose up -d --scale app=3
+#
+# 注意: 多副本需要外部负载均衡器 (如 Nginx)
+# 或者使用 Docker Swarm mode

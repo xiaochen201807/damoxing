@@ -22,6 +22,9 @@ const healthRoutes = require("./routes/health");
 const app = express();
 const PORT = 3001;
 
+// 信任 Nginx 代理，以便获取正确的客户端 IP
+app.set('trust proxy', 1);
+
 // 安全头配置（必须在最前面）
 app.use(helmetConfig);
 
@@ -35,6 +38,9 @@ const corsOptions = {
   origin: (origin, callback) => {
     // 允许没有 origin 的请求（如 Postman, curl）
     if (!origin) return callback(null, true);
+
+    // 如果配置了通配符 '*'，则允许所有请求
+    if (allowedOrigins.includes('*')) return callback(null, true);
 
     if (allowedOrigins.includes(origin) ||
       origin.startsWith("http://192.168.") ||
