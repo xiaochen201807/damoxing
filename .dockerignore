@@ -29,9 +29,12 @@ client/.vite/
 server/node_modules/
 server/logs/
 server/backups/
-server/database.sqlite
+# server/database.sqlite  # 注释掉，需要作为模板复制到镜像
 server/damoxing.db
 server/data.db
+# 排除其他 sqlite 文件，但保留 database.sqlite
+server/*.sqlite
+!server/database.sqlite
 
 # 文档和配置
 docs/
