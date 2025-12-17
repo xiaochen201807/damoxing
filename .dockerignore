@@ -49,3 +49,7 @@ DEPLOYMENT_SIMPLE.md
 # 其他
 *.md
 !package*.json
+
+# 重要：允许必需的 shell 脚本
+!docker-entrypoint.sh
+!backup-db.sh
