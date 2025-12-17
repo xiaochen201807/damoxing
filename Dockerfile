@@ -8,14 +8,20 @@ FROM node:18-alpine AS frontend-builder
 WORKDIR /app/client
 
 # 配置 npm 使用淘宝镜像源 (加速下载)
-RUN npm config set registry https://registry.npmmirror.com
+# 同时增加超时时间和重试次数，解决网络不稳定问题
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm config set fetch-timeout 600000 && \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
 
 # 复制前端 package 文件
 COPY client/package*.json ./
 
 # 安装前端依赖 (包含 devDependencies,因为构建需要)
 # 移除 --only=production 以确保安装可选依赖 (如 @rollup/rollup-linux-x64-musl)
-RUN npm ci
+# 使用 --prefer-offline 优先使用缓存，减少网络请求
+RUN npm ci --prefer-offline || npm ci || npm ci
 
 # 复制前端源代码
 COPY client/ ./
@@ -35,11 +41,16 @@ RUN apk add --no-cache nginx sqlite supervisor dcron
 WORKDIR /app
 
 # 配置 npm 使用淘宝镜像源 (加速下载)
-RUN npm config set registry https://registry.npmmirror.com
+# 同时增加超时时间和重试次数
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm config set fetch-timeout 600000 && \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
 
 # 复制后端代码
 COPY server/package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production --prefer-offline || npm ci --only=production
 COPY server/ ./
 
 # 复制数据库模板（用于首次启动时初始化）
