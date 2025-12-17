@@ -36,6 +36,9 @@ const corsOptions = {
     // 允许没有 origin 的请求（如 Postman, curl）
     if (!origin) return callback(null, true);
 
+    // 如果配置了通配符 '*'，则允许所有请求
+    if (allowedOrigins.includes('*')) return callback(null, true);
+
     if (allowedOrigins.includes(origin) ||
       origin.startsWith("http://192.168.") ||
       origin.startsWith("http://10.") ||
