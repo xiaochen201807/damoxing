@@ -29,8 +29,8 @@ RUN npm run build
 # ============================================
 FROM node:18-alpine
 
-# 安装 Nginx 和 SQLite
-RUN apk add --no-cache nginx sqlite supervisor
+# 安装 Nginx、SQLite 和 cronie（定时任务）
+RUN apk add --no-cache nginx sqlite supervisor dcron
 
 WORKDIR /app
 
@@ -42,6 +42,9 @@ COPY server/package*.json ./
 RUN npm ci --only=production
 COPY server/ ./
 
+# 复制数据库模板（用于首次启动时初始化）
+COPY server/database.sqlite /app/database.sqlite.template
+
 # 从构建阶段复制前端构建产物
 COPY --from=frontend-builder /app/client/dist /usr/share/nginx/html
 
@@ -51,8 +54,21 @@ COPY nginx-single.conf /etc/nginx/http.d/default.conf
 # 复制 Supervisor 配置 (管理多进程)
 COPY supervisord.conf /etc/supervisord.conf
 
-# 创建必要的目录
-RUN mkdir -p /app/data /app/logs /app/backups /run/nginx
+# 复制备份脚本和 crontab
+COPY backup-db.sh /app/backup-db.sh
+COPY crontab /etc/crontabs/root
+RUN chmod +x /app/backup-db.sh
+
+# 复制并设置启动脚本
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# 创建统一的 data 目录结构
+# data/
+#   ├── database.sqlite    (数据库文件，首次启动时从模板复制)
+#   ├── logs/              (日志目录)
+#   └── backups/           (备份目录)
+RUN mkdir -p /app/data/logs /app/data/backups /run/nginx
 
 # 暴露端口
 EXPOSE 80
@@ -61,5 +77,10 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# 使用 Supervisor 启动 Nginx 和 Node.js
+# 设置启动脚本为入口点
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# 使用 Supervisor 启动 Nginx、Node.js 和 Cron
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+
+

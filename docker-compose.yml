@@ -16,17 +16,17 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
-      - LOG_DIR=/app/logs
-      - CORS_ORIGIN=http://localhost
+      - LOG_DIR=/app/data/logs
+      - CORS_ORIGIN=*
       # 只读模式 (生产环境推荐)
       # - SQLITE_READONLY=true
     volumes:
-      # 数据库持久化
+      # 统一数据目录挂载（包含数据库、日志、备份）
+      # data/
+      #   ├── database.sqlite    (数据库文件)
+      #   ├── logs/              (日志目录)
+      #   └── backups/           (备份目录)
       - ./data:/app/data
-      # 日志持久化
-      - ./logs:/app/logs
-      # 备份持久化
-      - ./backups:/app/backups
       # 环境变量文件 (可选)
       - ./server/.env:/app/.env:ro
     healthcheck:
