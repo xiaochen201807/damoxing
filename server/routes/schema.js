@@ -278,8 +278,9 @@ router.post('/save', (req, res) => {
 
             try {
                 // 渲染模板生成 Schema
-                // 注意：传入 page_key 和 title 到模板上下文，以备不时之需
-                const renderContext = { ...params, page_key, title };
+                // 注意：传入 page_key, title 和 app_theme 到模板上下文
+                const app_theme = params.app_theme || 'default';
+                const renderContext = { ...params, page_key, title, app_theme };
                 const schema_json = env.render(template.template_file, renderContext);
                 JSON.parse(schema_json); // 验证 JSON 格式
 
@@ -319,11 +320,11 @@ router.post('/save', (req, res) => {
                         // 2. 插入新版本
                         const sql = `
                             INSERT INTO sys_page_template 
-                            (page_key, title, schema_json, version, is_active)
-                            VALUES (?, ?, ?, ?, 1)
+                            (page_key, title, schema_json, version, is_active, created_at, updated_at, source_template_id, source_params)
+                            VALUES (?, ?, ?, ?, 1, datetime('now', '+08:00'), datetime('now', '+08:00'), ?, ?)
                         `;
 
-                        db.run(sql, [page_key, title, schema_json, newVersion], function (err) {
+                        db.run(sql, [page_key, title, schema_json, newVersion, template_id, JSON.stringify(params)], function (err) {
                             if (err) {
                                 db.run('ROLLBACK');
                                 logger.error('[Schema API] Failed to save page:', err);
@@ -334,6 +335,8 @@ router.post('/save', (req, res) => {
                                     error: err.message
                                 });
                             }
+
+                            db.run('COMMIT');
 
                             // 3. 清理旧备份 (保留最近5个)
                             if (current) {
@@ -346,10 +349,11 @@ router.post('/save', (req, res) => {
                                         ORDER BY version DESC 
                                         LIMIT 5
                                     )
-                                `, [page_key, page_key]);
+                                `, [page_key, page_key], (err) => {
+                                    if (err) logger.error('Failed to clean old backups', err);
+                                });
                             }
 
-                            db.run('COMMIT');
                             logger.info(`[Schema API] Page saved: ${page_key} v${newVersion} (id: ${this.lastID})`);
                             res.json({
                                 status: 0,

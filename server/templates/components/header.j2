@@ -74,8 +74,11 @@
     {% endset %}
 
     "body": [
+        {% set comma = joiner(",") %}
+
         {# --- 场景 A：动态副标题 (需要 Service) --- #}
         {% if subtitle_api %}
+        {{ comma() }}
         {
             "type": "service",
             "style": {
@@ -89,6 +92,8 @@
                 {% endif %}
             },
             "body": [
+                {% set inner_comma = joiner(",") %}
+                {{ inner_comma() }}
                 {
                     "type": "container",
                     "className": "text-center",
@@ -107,13 +112,15 @@
                     ]
                 }
                 {% if enable_report_button %}
-                ,{{ report_button_json }}
+                {{ inner_comma() }}
+                {{ report_button_json | safe }}
                 {% endif %}
             ]
         }
         
         {# --- 场景 B：静态副标题 (直接渲染) --- #}
         {% else %}
+        {{ comma() }}
         {
             "type": "container",
             "className": "text-center",
@@ -132,7 +139,8 @@
             ]
         }
         {% if enable_report_button %}
-        ,{{ report_button_json }}
+        {{ comma() }}
+        {{ report_button_json | safe }}
         {% endif %}
         
         {% endif %}

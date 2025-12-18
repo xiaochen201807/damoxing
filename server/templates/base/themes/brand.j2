@@ -1,0 +1,81 @@
+{# Design Tokens (Ant Design Style) - Brand Theme (Orange/Gold) #}
+
+{# 1. Primitive Colors (基础色板 - 橙色系) #}
+{% set orange = {
+  "1": "#fff7e6",
+  "2": "#ffe7ba",
+  "3": "#ffd591",
+  "4": "#ffc069",
+  "5": "#ffa940",
+  "6": "#fa8c16",
+  "7": "#d46b08",
+  "8": "#ad4e00",
+  "9": "#873800",
+  "10": "#612500"
+} %}
+
+{% set green = {
+  "6": "#52c41a"
+} %}
+
+{% set gold = {
+  "6": "#faad14"
+} %}
+
+{% set red = {
+  "6": "#f5222d"
+} %}
+
+{% set blue = {
+  "6": "#1890FF"
+} %}
+
+{% set neutral = {
+  "1": "#ffffff",
+  "2": "#fafafa",
+  "3": "#f5f5f5",
+  "4": "#f0f0f0",
+  "5": "#d9d9d9",
+  "6": "#bfbfbf",
+  "7": "#8c8c8c",
+  "8": "#595959",
+  "9": "#434343",
+  "10": "#262626",
+  "11": "#1f1f1f",
+  "12": "#141414",
+  "13": "#000000"
+} %}
+
+{# 2. Semantic Tokens (语义变量) #}
+{% set colors = {
+  "brand": orange['6'],
+  "brand_hover": orange['5'],
+  "brand_active": orange['7'],
+  "brand_bg": orange['1'],
+
+  "success": green['6'],
+  "warning": gold['6'],
+  "error": red['6'],
+  "info": blue['6'],
+
+  "text_primary": neutral['10'],
+  "text_secondary": neutral['7'],
+  "text_tertiary": neutral['6'],
+  "text_inverse": neutral['1'],
+
+  "bg_container": neutral['1'],
+  "bg_layout": neutral['3'],
+  "bg_spotlight": neutral['8'],
+  "bg_mask": "rgba(0, 0, 0, 0.45)",
+
+  "border_color": neutral['4'],
+  "border_color_split": neutral['4'],
+
+  "shadow_sm": "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
+  "shadow_md": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+  
+  "chart_primary": orange['6'],
+  "chart_secondary": green['6'],
+  "chart_tertiary": blue['6'],
+  "chart_quaternary": red['6']
+} %}

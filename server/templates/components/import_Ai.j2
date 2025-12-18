@@ -37,8 +37,10 @@
                 {
                     "type": "button-group",
                     "buttons": [
+                        {% set btn_comma = joiner(",") %}
                         {# --- 数据导入按钮 (保持不变) --- #}
                         {% if enable_data_import | default(true) %}
+                        {{ btn_comma() }}
                         {
                             "type": "button",
                             "label": "☁️ 数据导入",
@@ -75,10 +77,9 @@
                         }
                         {% endif %}
 
-                        {% if enable_data_import | default(true) and enable_ai_analysis | default(true) %},{% endif %}
-
                         {# --- 智能分析按钮 --- #}
                         {% if enable_ai_analysis | default(true) %}
+                        {{ btn_comma() }}
                         {
                             "type": "button",
                             "label": "📊 智能分析",
@@ -162,11 +163,20 @@
                     ]
                 }
             ]
-        },
+        }
 
         {# ================== 3. 结果展示区 (Service) ================== #}
         {% if enable_ai_analysis | default(true) %}
-        {
+        {% set footer_comma = joiner(",") %}
+        {{ footer_comma() }} {# consumes first comma if run before, but joiner is new instance? No, need to be careful. Joiner creates NEW instance. #}
+        {# Wait, I cannot use joiner across disjoint blocks easily if I don't pass it. #}
+        {# But here, we have: [ ...buttonsContainer... , ...loadingMask... ] #}
+        {# Then we have Service. #}
+        {# The structure is: body: [ {Container}, {Mask} (COMMA) {Service} ] #}
+        {# The Mask is ALWAYS present. So there is ALWAYS a comma before Service if Service exists. #}
+        {# So comma is safe here. But my previous fix was just adding a comma. #}
+        {# If I use ,{...} that's fine. #}
+        ,{
             "type": "service",
             "id": "risk_analysis_service_inner", 
             
