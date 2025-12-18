@@ -50,7 +50,8 @@ RUN npm config set registry https://registry.npmmirror.com && \
 
 # 复制后端代码
 COPY server/package*.json ./
-RUN npm ci --only=production --prefer-offline || npm ci --only=production
+# 若 package-lock.json 不存在，fallback 到 npm install
+RUN if [ -f package-lock.json ]; then npm ci --only=production --prefer-offline; else npm install --only=production; fi
 COPY server/ ./
 
 # 复制数据库模板（用于首次启动时初始化）
