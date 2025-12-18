@@ -19,6 +19,7 @@
         "express": "^4.21.2",
         "express-rate-limit": "^7.5.0",
         "helmet": "^8.0.0",
+        "node-cache": "^5.1.2",
         "nunjucks": "^3.2.4",
         "sqlite3": "^5.1.7",
         "winston": "^3.17.0",

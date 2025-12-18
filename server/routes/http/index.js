@@ -17,6 +17,7 @@ const healthRoutes = require("./health");
 const schemaRoutes = require("./schema");
 const themesRoutes = require("./themes");
 const routesApi = require("./routes");
+const mcpSseRoutes = require("./mcp-sse");
 
 /**
  * 注册所有 HTTP 路由
@@ -64,6 +65,9 @@ function setupHttpRoutes(app) {
     app.use("/api/demo", demoChartRoutes);
     app.use("/api/schema", schemaRoutes);
     app.use("/api/themes", themesRoutes);
+
+    // MCP SSE Endpoints (for Dify)
+    app.use("/api/mcp", mcpSseRoutes);
 }
 
 module.exports = setupHttpRoutes;
