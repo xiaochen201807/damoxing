@@ -18,6 +18,11 @@ const demoChartRoutes = require("./routes/demo-chart");
 const cacheRoutes = require("./routes/cache");
 const healthRoutes = require("./routes/health");
 
+// 新增：统一页面生成架构路由
+const schemaRoutes = require("./routes/schema");
+const themesRoutes = require("./routes/themes");
+const mcpRoutes = require("./routes/mcp");
+
 
 const app = express();
 const PORT = 3001;
@@ -155,6 +160,15 @@ app.use("/api/demo", demoChartRoutes);
 
 // 7. 注册缓存管理路由
 app.use("/api/system", cacheRoutes);
+
+// 8. 注册 Schema 配置路由（新增）
+app.use("/api/schema", schemaRoutes);
+
+// 9. 注册主题管理路由（新增）
+app.use("/api/themes", themesRoutes);
+
+// 10. 注册 MCP Server 路由（新增）
+app.use("/api/mcp", mcpRoutes);
 
 // 404 错误处理（必须在所有路由之后）
 app.use(notFoundHandler);

@@ -1,0 +1,193 @@
+{# Funnel Chart Panel Component - Conversion Analysis #}
+{
+    "type": "chart",
+    "api": {
+        "url": "{{ funnel_api_url }}",
+        "method": "{{ funnel_method | default('get') }}",
+        "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].type = 'funnel'; option.series[0].left = '{{ funnel_align | default('center') }}'; option.series[0].width = '{{ funnel_width | default('80%') }}'; option.series[0].sort = '{{ funnel_sort | default('descending') }}'; option.series[0].gap = {{ funnel_gap | default(2) }}; option.series[0].label = { show: true, position: 'inside', formatter: '{b}: {c}', fontSize: 14 }; option.series[0].labelLine = { show: false }; option.series[0].itemStyle = { borderColor: '#fff', borderWidth: 1 }; option.series[0].emphasis = { label: { fontSize: 18, fontWeight: 'bold' } }; if (option.series[0].data) { for (let i = 0; i < option.series[0].data.length - 1; i++) { const current = option.series[0].data[i].value; const next = option.series[0].data[i + 1].value; const rate = ((next / current) * 100).toFixed(1); option.series[0].data[i].conversion = rate + '%'; } } } option.tooltip = { trigger: 'item', formatter: '{b}<br/>数量: {c}<br/>占比: {d}%' }; return { ...payload, data: option };"
+    },
+    "height": {{ funnel_height | default(450) }},
+    {% if funnel_clickable | default(true) %}
+    "clickAction": {
+        "actionType": "dialog",
+        "dialog": {
+            "title": "${event.name} - 详细数据",
+            "size": "xl",
+            "actions": [
+                {
+                    "type": "button",
+                    "label": "导出",
+                    "level": "primary",
+                    "actionType": "download",
+                    "api": "/api/export/funnel?stage=${event.name}"
+                },
+                {
+                    "type": "button",
+                    "label": "关闭",
+                    "actionType": "close"
+                }
+            ],
+            "data": {
+                "stageName": "${event.name}",
+                "stageValue": "${event.value}",
+                "stageId": "${data.stageId}"
+            },
+            "body": {
+                {# 🔴 修复：Dialog 中不应使用 page，改为 container #}
+                "type": "container",
+                "body": [
+                    {
+                        "type": "grid",
+                        "columns": [
+                            {
+                                "md": 4,
+                                "body": [
+                                    {
+                                        "type": "card",
+                                        "header": {
+                                            "title": "当前阶段"
+                                        },
+                                        "body": [
+                                            {
+                                                "type": "tpl",
+                                                "tpl": "<div style='text-align: center; padding: 20px;'><div style='font-size: 36px; font-weight: bold; color: #1890ff;'>${stageValue}</div><div style='color: #999; margin-top: 10px;'>总数量</div></div>"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "md": 4,
+                                "body": [
+                                    {
+                                        "type": "card",
+                                        "header": {
+                                            "title": "转化率"
+                                        },
+                                        "body": [
+                                            {
+                                                "type": "service",
+                                                "api": "{{ funnel_detail_api | default('/api/demo/funnel-rate') }}?stage=${stageId}",
+                                                "body": [
+                                                    {
+                                                        "type": "tpl",
+                                                        "tpl": "<div style='text-align: center; padding: 20px;'><div style='font-size: 36px; font-weight: bold; color: ${conversion_rate >= 80 ? '#52c41a' : conversion_rate >= 60 ? '#faad14' : '#f5222d'};'>${conversion_rate}%</div><div style='color: #999; margin-top: 10px;'>转化率</div></div>"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "md": 4,
+                                "body": [
+                                    {
+                                        "type": "card",
+                                        "header": {
+                                            "title": "流失数量"
+                                        },
+                                        "body": [
+                                            {
+                                                "type": "service",
+                                                "api": "{{ funnel_detail_api | default('/api/demo/funnel-loss') }}?stage=${stageId}",
+                                                "body": [
+                                                    {
+                                                        "type": "tpl",
+                                                        "tpl": "<div style='text-align: center; padding: 20px;'><div style='font-size: 36px; font-weight: bold; color: #ff4d4f;'>${loss_count}</div><div style='color: #999; margin-top: 10px;'>流失数</div></div>"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "service",
+                        "className": "m-t-md",
+                        "api": {
+                            "method": "get",
+                            "url": "{{ funnel_list_api | default('/api/demo/funnel-list') }}?stage=${stageId}"
+                        },
+                        "body": {
+                            "type": "crud",
+                            "syncLocation": false,
+                            "api": "${api}",
+                            "columns": [
+                                {
+                                    "name": "id",
+                                    "label": "ID",
+                                    "width": 60
+                                },
+                                {
+                                    "name": "user_name",
+                                    "label": "用户名称"
+                                },
+                                {
+                                    "name": "enter_time",
+                                    "label": "进入时间",
+                                    "type": "datetime",
+                                    "format": "YYYY-MM-DD HH:mm"
+                                },
+                                {
+                                    "name": "status",
+                                    "label": "状态",
+                                    "type": "mapping",
+                                    "map": {
+                                        "in_progress": "<span class='label label-info'>进行中</span>",
+                                        "completed": "<span class='label label-success'>已完成</span>",
+                                        "lost": "<span class='label label-danger'>已流失</span>"
+                                    }
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "详情",
+                                            "level": "link",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "用户详情 - ${user_name}",
+                                                "body": {
+                                                    "type": "service",
+                                                    "api": "/api/demo/user/${id}",
+                                                    "body": {
+                                                        "type": "form",
+                                                        "mode": "horizontal",
+                                                        "wrapWithPanel": false,
+                                                        "body": [
+                                                            {
+                                                                "type": "static",
+                                                                "name": "user_name",
+                                                                "label": "用户名"
+                                                            },
+                                                            {
+                                                                "type": "static",
+                                                                "name": "email",
+                                                                "label": "邮箱"
+                                                            },
+                                                            {
+                                                                "type": "static",
+                                                                "name": "phone",
+                                                                "label": "电话"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    {% endif %}
+}

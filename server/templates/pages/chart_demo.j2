@@ -1,0 +1,85 @@
+{# Chart Demo Page - Simplified Approach #}
+{% import 'base/colors.j2' as theme %}
+{
+    "type": "page",
+    "body": [
+        {% include 'components/header.j2' %},
+        {% include 'components/alert.j2' %},
+        {
+            "type": "panel",
+            "title": "<div style='padding-left: 12px; border-left: 4px solid #1890ff; font-weight: 600; font-size: 16px; color: #1d1d1f;'>风险分布分析</div>",
+            "className": "m-b-none",
+            "bodyClassName": "p-4",
+            "style": {
+                "boxShadow": "{{ theme.colors.panel_shadow }}",
+                "borderRadius": "8px",
+                "border": "1px solid {{ theme.colors.panel_border }}"
+            },
+            "body": {
+                "type": "grid",
+                "align": "middle",
+                "columns": [
+                    {
+                        "md": 8,
+                        "body": [
+                            {% include 'components/chart_panel.j2' %}
+                        ]
+                    },
+                    {
+                        "md": 4,
+                        "style": {
+                            "borderLeft": "1px dashed {{ theme.colors.divider }}",
+                            "paddingLeft": "40px",
+                            "height": "80%",
+                            "margin": "auto 0",
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "justifyContent": "center"
+                        },
+                        "body": {% include 'components/text_section.j2' %}
+                    }
+                ]
+            }
+        },
+        {
+            "type": "panel",
+            "title": "<div style='padding-left: 12px; border-left: 4px solid #1890ff; font-weight: 600; font-size: 16px; color: #1d1d1f;'>风险趋势分析</div>",
+            "className": "m-t-md m-b-none",
+            "bodyClassName": "p-4",
+            "style": {
+                "boxShadow": "{{ theme.colors.panel_shadow }}",
+                "borderRadius": "8px",
+                "border": "1px solid {{ theme.colors.panel_border }}"
+            },
+            "body": {
+                "type": "grid",
+                "align": "middle",
+                "columns": [
+                    {
+                        "md": 8,
+                        "body": [
+                            {% include 'components/bar_chart_panel.j2' %}
+                        ]
+                    },
+                    {
+                        "md": 4,
+                        "style": {
+                            "borderLeft": "1px dashed {{ theme.colors.divider }}",
+                            "paddingLeft": "40px",
+                            "height": "80%",
+                            "margin": "auto 0",
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "justifyContent": "center"
+                        },
+                        "body": {% include 'components/text_section.j2' %}
+                    }
+                ]
+            }
+        },
+        {
+            "type": "tpl",
+            "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>{{ footer_text }}</div>"
+        }
+    ]
+}

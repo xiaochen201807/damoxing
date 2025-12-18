@@ -19,6 +19,16 @@
             "date": 1765764980652,
             "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-15.log",
             "hash": "e812affe313e04fb458bdd2204b4461995ce0fe868f7c370d0cc05949877badc"
+        },
+        {
+            "date": 1765965445563,
+            "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-17.log",
+            "hash": "154c5d4f650b55062942604e06282df9651250ba2ec5d54bed13a2bac6414b15"
+        },
+        {
+            "date": 1766020316131,
+            "name": "/Users/xiaochen/Downloads/damoxing/server/logs/error-2025-12-18.log",
+            "hash": "1d8e5ef58493486768ffc48238cd44e2c35360ab97a0a1f2184b1aca8fe62d05"
         }
     ],
     "hashType": "sha256"

@@ -1,0 +1,10 @@
+{# Text Section Component - Analysis and Recommendations #}
+{% import 'base/colors.j2' as theme %}
+[
+    {% for section in sections %}
+    {
+        "type": "tpl",
+        "tpl": "<div style='margin-bottom: 5px;'><span style='background: {{ section.color }}; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>{{ section.label }}</span></div><div style='{% if not loop.last %}margin-bottom: 25px; {% endif %}font-size: 14px; line-height: 1.6; color: {{ theme.colors.text_secondary }};'>{{ section.content }}</div>"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+]
