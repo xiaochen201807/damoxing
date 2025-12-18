@@ -55,7 +55,8 @@ RUN if [ -f package-lock.json ]; then npm ci --only=production --prefer-offline;
 COPY server/ ./
 
 # 复制数据库模板（用于首次启动时初始化）
-COPY server/database.sqlite /app/database.sqlite.template
+# 注意：使用 server/data/database.sqlite 作为种子数据
+COPY server/data/database.sqlite /app/database.sqlite.template
 
 # 从构建阶段复制前端构建产物
 COPY --from=frontend-builder /app/client/dist /usr/share/nginx/html
