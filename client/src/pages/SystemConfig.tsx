@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { fetcher } from '../utils/fetcher';
+import { useNavigate } from 'react-router-dom';
 import AmisRenderer from '../components/AmisRenderer';
+import { fetcher } from '../utils/fetcher';
 import type { AmisSchema } from '../types/amis';
-import type { ApiResponse } from '../types/api';
+import type { ApiResponse, PageTemplate } from '../types/api';
 
 const SystemConfig: React.FC = () => {
     const [schema, setSchema] = useState<AmisSchema | null>(null);

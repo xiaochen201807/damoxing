@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const nunjucks = require('nunjucks');
 const path = require('path');
-const logger = require('../utils/logger');
+const logger = require('../../utils/logger');
 
 // 配置 Nunjucks
 const env = nunjucks.configure(path.join(__dirname, '../templates'), {

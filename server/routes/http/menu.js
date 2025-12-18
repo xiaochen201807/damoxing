@@ -5,28 +5,43 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const logger = require('../utils/logger');
-const cache = require('../utils/cache');
+const db = require('../../db');
+const logger = require('../../utils/logger');
+const cache = require('../../utils/cache');
 
-// 获取所有菜单（带缓存）
+// 获取所有菜单
 router.get('/menu', (req, res) => {
-    // 1. 先尝试从缓存获取
-    const cachedMenu = cache.menu.get();
-    if (cachedMenu) {
-        logger.debug('[Menu] Cache hit');
-        return res.json({
-            status: 0,
-            msg: 'success',
-            data: cachedMenu,
-            cached: true, // 标识数据来自缓存
-        });
+    // 获取查询参数
+    const { route_key } = req.query;
+    console.log('[DEBUG Menu API] Query params:', req.query);
+    console.log('[DEBUG Menu API] route_key:', route_key);
+
+    // 1. 尝试从缓存获取（仅在无过滤条件时使用缓存）
+    if (!route_key) {
+        const cachedMenu = cache.menu.get();
+        if (cachedMenu) {
+            logger.debug('[Menu] Cache hit');
+            return res.json({
+                status: 0,
+                msg: 'success',
+                data: cachedMenu,
+                cached: true,
+            });
+        }
     }
 
-    // 2. 缓存未命中，查询数据库
-    const sql = 'SELECT * FROM sys_menu ORDER BY id ASC';
+    // 2. 构建查询SQL
+    let sql = 'SELECT * FROM sys_menu';
+    const params = [];
 
-    db.all(sql, [], (err, rows) => {
+    if (route_key) {
+        sql += ' WHERE route_key = ?';
+        params.push(route_key);
+    }
+
+    sql += ' ORDER BY route_key ASC, `order` ASC, id ASC';
+
+    db.all(sql, params, (err, rows) => {
         if (err) {
             logger.error('[Menu] 查询失败:', err);
             return res.status(500).json({
@@ -36,8 +51,10 @@ router.get('/menu', (req, res) => {
             });
         }
 
-        // 3. 缓存查询结果
-        cache.menu.set(rows);
+        // 3. 仅在无过滤条件时缓存结果
+        if (!route_key) {
+            cache.menu.set(rows);
+        }
 
         res.json({
             status: 0,
@@ -49,7 +66,7 @@ router.get('/menu', (req, res) => {
 
 // 创建菜单
 router.post('/menu', (req, res) => {
-    const { label, subtitle, page_key, icon } = req.body;
+    const { label, subtitle, page_key, icon, order, route_key } = req.body;
 
     if (!label) {
         return res.status(400).json({
@@ -91,12 +108,19 @@ router.post('/menu', (req, res) => {
             });
         }
 
-        // 自动生成 path
-        const path = `/dashboard/${page_key}`;
+        // 设置默认值
+        const menuOrder = order !== undefined ? order : 0;
+        const menuRouteKey = route_key || 'dashboard';
 
-        const sql = `INSERT INTO sys_menu (label, subtitle, page_key, path, icon) VALUES (?, ?, ?, ?, ?)`;
+        // 自动生成 path (使用 route_key 作为前缀)
+        const path = `/${menuRouteKey}/${page_key}`;
 
-        db.run(sql, [label, subtitle || '', page_key, path, icon || ''], function (err) {
+        const sql = `
+            INSERT INTO sys_menu (label, subtitle, page_key, path, icon, \`order\`, route_key) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        db.run(sql, [label, subtitle || '', page_key, path, icon || '', menuOrder, menuRouteKey], function (err) {
             if (err) {
                 logger.error('[Menu] 创建失败:', err);
                 if (err.message.includes('UNIQUE constraint failed')) {
@@ -115,7 +139,7 @@ router.post('/menu', (req, res) => {
             // 清除缓存
             cache.menu.clear();
 
-            logger.info(`[Menu] 创建菜单成功: ${label} (${page_key})`);
+            logger.info(`[Menu] 创建菜单成功: ${label} (${page_key}, route_key: ${menuRouteKey}, order: ${menuOrder})`);
 
             res.json({
                 status: 0,
@@ -126,14 +150,15 @@ router.post('/menu', (req, res) => {
                     subtitle,
                     page_key,
                     path,
-                    icon
+                    icon,
+                    route_key
                 }
             });
         });
     });
 });
 
-// 删除菜单 - 从 body 中获取 page_key (必须在 /:pageKey 路由之前)
+// 删除菜单 - 从 body 中获取 page_key
 router.post('/menu/delete', (req, res) => {
     const { page_key } = req.body;
 
@@ -185,7 +210,7 @@ router.post('/menu/:pageKey', updateMenu);
 // 更新菜单的实际处理函数
 function updateMenu(req, res) {
     const { pageKey } = req.params;
-    const { label, subtitle, icon, page_key: newPageKey } = req.body;
+    const { label, subtitle, icon, page_key: newPageKey, order, route_key } = req.body;
 
     // 1. 如果要修改 page_key，需要检查新 key 是否已存在
     if (newPageKey !== undefined && newPageKey !== pageKey) {
@@ -234,6 +259,14 @@ function updateMenu(req, res) {
         if (icon !== undefined) {
             updates.push('icon = ?');
             params.push(icon);
+        }
+        if (order !== undefined) {
+            updates.push('`order` = ?');
+            params.push(order);
+        }
+        if (route_key !== undefined) {
+            updates.push('route_key = ?');
+            params.push(route_key);
         }
 
         if (updates.length === 0) {

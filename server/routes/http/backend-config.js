@@ -5,8 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const logger = require('../utils/logger');
+const db = require('../../db');
+const logger = require('../../utils/logger');
 
 // 获取所有后端配置
 router.get('/backend-config', (req, res) => {

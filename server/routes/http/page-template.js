@@ -5,12 +5,15 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const logger = require('../utils/logger');
+const db = require('../../db');
+const logger = require('../../utils/logger');
 
 // 获取所有页面模板 (仅返回当前活动版本) + 备份数量
 router.get('/template', (req, res) => {
-    const sql = `
+    const { route_key, menu_id } = req.query;
+    const params = [];
+
+    let sql = `
         SELECT 
             t.id, 
             t.page_key, 
@@ -20,11 +23,23 @@ router.get('/template', (req, res) => {
             t.updated_at,
             (SELECT COUNT(*) FROM sys_page_template WHERE page_key = t.page_key AND is_active = 0) as backup_count
         FROM sys_page_template t
-        WHERE t.is_active = 1 
-        ORDER BY t.id ASC
+        LEFT JOIN sys_menu m ON t.page_key = m.page_key
+        WHERE t.is_active = 1
     `;
 
-    db.all(sql, [], (err, rows) => {
+    if (route_key) {
+        sql += ' AND m.route_key = ?';
+        params.push(route_key);
+    }
+
+    if (menu_id) {
+        sql += ' AND m.id = ?';
+        params.push(menu_id);
+    }
+
+    sql += ' GROUP BY t.id ORDER BY t.id ASC';
+
+    db.all(sql, params, (err, rows) => {
         if (err) {
             logger.error('[Template] 查询失败:', err);
             return res.status(500).json({
@@ -301,6 +316,126 @@ router.delete('/template/:pageKey/backups/:version', (req, res) => {
         if (this.changes === 0) return res.status(404).json({ status: 404, msg: '备份不存在或为活动版本不可删除' });
 
         res.json({ status: 0, msg: 'success', deleted: true });
+    });
+});
+
+// ========== 模板定义管理 (sys_page_templates_config) ==========
+
+// 获取所有模板定义
+router.get('/template-definitions', (req, res) => {
+    const sql = `
+        SELECT 
+            template_id, 
+            template_name, 
+            description, 
+            template_file,
+            components,
+            is_active,
+            created_at
+        FROM sys_page_templates_config
+        ORDER BY template_id ASC
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            logger.error('[Template Definitions] 查询失败:', err);
+            return res.status(500).json({
+                status: 500,
+                msg: '查询模板定义失败',
+                error: err.message
+            });
+        }
+
+        res.json({
+            status: 0,
+            msg: 'success',
+            data: rows
+        });
+    });
+});
+
+// 更新模板定义元数据
+router.put('/template-definitions/:templateId', (req, res) => {
+    const { templateId } = req.params;
+    const { template_name, description, preview_image, is_active } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (template_name !== undefined) {
+        updates.push('template_name = ?');
+        params.push(template_name);
+    }
+    if (description !== undefined) {
+        updates.push('description = ?');
+        params.push(description);
+    }
+    if (preview_image !== undefined) {
+        updates.push('preview_image = ?');
+        params.push(preview_image);
+    }
+    if (is_active !== undefined) {
+        updates.push('is_active = ?');
+        params.push(is_active);
+    }
+
+    if (updates.length === 0) {
+        return res.status(400).json({
+            status: 400,
+            msg: '没有需要更新的字段'
+        });
+    }
+
+    params.push(templateId);
+    const sql = `UPDATE sys_page_templates_config SET ${updates.join(', ')} WHERE template_id = ?`;
+
+    db.run(sql, params, function (err) {
+        if (err) {
+            logger.error('[Template Definitions] 更新失败:', err);
+            return res.status(500).json({
+                status: 500,
+                msg: '更新模板定义失败',
+                error: err.message
+            });
+        }
+
+        if (this.changes === 0) {
+            return res.status(404).json({
+                status: 404,
+                msg: '模板定义不存在'
+            });
+        }
+
+        res.json({
+            status: 0,
+            msg: 'success',
+            data: { template_id: templateId, updated: true }
+        });
+    });
+});
+
+// 触发模板分析
+router.post('/analyze-templates', (req, res) => {
+    const { exec } = require('child_process');
+
+    logger.info('[Template Definitions] 开始重新分析模板...');
+
+    exec('node scripts/auto_analyze_templates.js', (error, stdout, stderr) => {
+        if (error) {
+            logger.error('[Template Definitions] 模板分析失败:', error);
+            return res.status(500).json({
+                status: 500,
+                msg: '模板分析失败',
+                error: stderr || error.message
+            });
+        }
+
+        logger.info('[Template Definitions] 模板分析完成:', stdout);
+        res.json({
+            status: 0,
+            msg: '模板分析完成，已更新数据库',
+            data: { output: stdout }
+        });
     });
 });
 

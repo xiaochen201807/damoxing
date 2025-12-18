@@ -6,11 +6,11 @@ const express = require('express');
 const router = express.Router();
 const nunjucks = require('nunjucks');
 const path = require('path');
-const db = require('../db');
-const logger = require('../utils/logger');
+const db = require('../../db');
+const logger = require('../../utils/logger');
 
 // 配置 Nunjucks 模板引擎
-const env = nunjucks.configure(path.join(__dirname, '../templates'), {
+const env = nunjucks.configure(path.join(__dirname, '../../templates'), {
     autoescape: false,
     throwOnUndefined: false
 });
@@ -242,6 +242,327 @@ router.post('/preview', (req, res) => {
             }
         }
     );
+});
+
+// GET /api/schema/load-config/:pageKey - 加载页面历史配置（用于编辑）
+router.get('/load-config/:pageKey', (req, res) => {
+    const { pageKey } = req.params;
+
+    logger.info(`[Schema API] Loading config for page: ${pageKey}`);
+
+    db.get(
+        'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1',
+        [pageKey],
+        (err, page) => {
+            if (err) {
+                logger.error('[Schema API] Failed to load config:', err);
+                return res.status(500).json({
+                    status: 500,
+                    msg: '加载配置失败',
+                    error: err.message
+                });
+            }
+
+            if (!page) {
+                return res.status(404).json({
+                    status: 404,
+                    msg: '页面不存在'
+                });
+            }
+
+            // 检查是否有源数据（source_template_id 和 source_params）
+            if (!page.source_template_id || !page.source_params) {
+                return res.status(404).json({
+                    status: 404,
+                    msg: '该页面没有保存源配置信息，无法重新编辑',
+                    data: {
+                        page_key: pageKey,
+                        title: page.title,
+                        version: page.version
+                    }
+                });
+            }
+
+            try {
+                const params = JSON.parse(page.source_params);
+
+                logger.info(`[Schema API] Config loaded successfully for ${pageKey}`);
+                res.json({
+                    status: 0,
+                    msg: '配置加载成功',
+                    data: {
+                        template_id: page.source_template_id,
+                        params: params,
+                        page_key: pageKey,
+                        page_title: page.title,
+                        version: page.version
+                    }
+                });
+            } catch (error) {
+                logger.error('[Schema API] Failed to parse source_params:', error);
+                res.status(500).json({
+                    status: 500,
+                    msg: '配置数据格式错误',
+                    error: error.message
+                });
+            }
+        }
+    );
+});
+
+// GET /api/schema/wizard - 返回配置向导的完整 Schema (用于 Drawer 嵌入)
+// 提取 Wizard 处理函数，同时支持 GET 和 POST
+const handleWizardRequest = async (req, res) => {
+    // 兼容 POST 请求体和 GET 查询参数
+    const mode = req.query.mode || req.body.mode;
+    const page_key = req.query.page_key || req.body.page_key;
+
+    try {
+        // 获取所有模板
+        const templates = await new Promise((resolve, reject) => {
+            db.all('SELECT * FROM sys_page_templates_config WHERE is_active = 1', (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        // 如果是编辑模式，加载历史配置
+        let initData = null;
+        if (mode === 'edit' && page_key) {
+            const pageData = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [page_key], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+
+            if (pageData && pageData.source_template_id && pageData.source_params) {
+                initData = {
+                    template_id: pageData.source_template_id,
+                    target_page_key: page_key,
+                    page_title: pageData.title,
+                    ...JSON.parse(pageData.source_params)
+                };
+            } else if (mode === 'edit') {
+                // If it's edit mode but source config is missing, return an alert schema
+                return res.json({
+                    type: "alert",
+                    level: "warning",
+                    title: "无法编辑配置",
+                    body: "该页面可能是在配置向导功能上线前创建的，或者缺少元数据，无法通过向导重新编辑。您仍然可以查看页面预览或使用AI工作流。",
+                    showIcon: true,
+                    actions: [
+                        {
+                            type: "button",
+                            label: "关闭",
+                            actionType: "close"
+                        }
+                    ]
+                });
+            }
+        }
+
+        // 构建 Wizard Schema
+        const wizardSchema = {
+            type: "wizard",
+            mode: "horizontal",
+            initApi: initData ? {
+                method: "post",
+                url: "/api/schema/echo",  // 使用 echo 接口返回数据
+                data: initData
+            } : null,
+            steps: [
+                {
+                    title: "选择模板",
+                    body: [
+                        {
+                            type: "select",
+                            name: "template_id",
+                            label: "选择页面模板",
+                            options: templates.map(t => ({
+                                label: t.template_name,
+                                value: t.template_id,
+                                description: t.description
+                            })),
+                            required: true,
+                            searchable: true,
+                            menuTpl: "<div><strong>${label}</strong><br/><small class='text-muted'>${description}</small></div>"
+                        },
+                        { type: "divider" },
+                        {
+                            type: "select",
+                            name: "target_page_key",
+                            label: "绑定已有页面 (可选)",
+                            description: "如果不选择，则创建新页面。如果选择，将覆盖该页面的配置。",
+                            searchable: true,
+                            clearable: true,
+                            source: {
+                                "method": "get",
+                                "url": "/api/system/template",
+                                "adaptor": "return { status: 0, msg: '', options: payload.data.map(item => ({ label: item.title + ' (' + item.page_key + ')', value: item.page_key })) }"
+                            }
+                        },
+                        {
+                            type: "select",
+                            name: "app_theme",
+                            label: "页面主题风格",
+                            options: [
+                                { label: "🔵 默认主题 (商务蓝)", value: "default" },
+                                { label: "🌑 深色科技 (Dark Mode)", value: "dark" },
+                                { label: "🟠 品牌定制 (活力橙)", value: "brand" }
+                            ],
+                            value: "default",
+                            required: true,
+                            description: "选择页面的整体配色风格"
+                        },
+                        {
+                            type: "input-text",
+                            name: "manual_page_key",
+                            label: "新页面标识 (Page Key)",
+                            required: true,
+                            visibleOn: "${!target_page_key}",
+                            validations: { isAlphanumeric: true, maxLength: 50 },
+                            placeholder: "例如: detection_dashboard",
+                            description: "只能包含字母、数字和下划线"
+                        },
+                        {
+                            type: "input-text",
+                            name: "page_title",
+                            label: "页面标题",
+                            required: true,
+                            placeholder: "例如: 风险监测看板"
+                        }
+                    ]
+                },
+                {
+                    title: "配置参数",
+                    initApi: {
+                        method: "get",
+                        url: "/api/schema/template-form/${template_id}",
+                        adaptor: "return { ...payload.data, __debug: 'adaptor executed' };"
+                    },
+                    body: [
+                        {
+                            type: "alert",
+                            level: "info",
+                            body: "💡 填写参数后可点击右下角【预览】按钮查看实时效果",
+                            className: "m-b"
+                        },
+                        {
+                            type: "service",
+                            schemaApi: {
+                                method: "get",
+                                url: "/api/schema/template-form/${template_id}",
+                                adaptor: `
+                                    if (!payload || !payload.data) {
+                                        return {
+                                            type: 'alert',
+                                            level: 'warning',
+                                            body: '⚠️ 无法获取表单配置: ' + (payload?.msg || '未知错误')
+                                        };
+                                    }
+                                    return {
+                                        type: 'container',
+                                        body: payload.data.formFields || [{ type: 'alert', level: 'info', body: '此模板没有配置参数' }]
+                                    };
+                                `
+                            }
+                        }
+                    ],
+                    actions: [
+                        {
+                            label: "上一步",
+                            type: "button",
+                            actionType: "prev"
+                        },
+                        {
+                            label: "预览",
+                            type: "button",
+                            level: "default",
+                            icon: "fa fa-eye",
+                            actionType: "dialog",
+                            dialog: {
+                                title: "🔍 配置预览",
+                                size: "full",
+                                closeOnEsc: true,
+                                actions: [
+                                    {
+                                        type: "button",
+                                        label: "关闭",
+                                        actionType: "close"
+                                    }
+                                ],
+                                body: {
+                                    type: "service",
+                                    schemaApi: {
+                                        method: "post",
+                                        url: "/api/schema/preview",
+                                        data: {
+                                            template_id: "${template_id}",
+                                            params: "$$"
+                                        },
+                                        adaptor: "return payload.data || { type: 'alert', level: 'danger', body: '预览失败: ' + payload.msg };"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            label: "下一步",
+                            type: "button",
+                            level: "primary",
+                            actionType: "next"
+                        }
+                    ]
+                },
+                {
+                    title: "确认保存",
+                    body: [
+                        {
+                            type: "alert",
+                            level: "info",
+                            body: "## 确认配置\\n\\n- **模板ID**: ${template_id}\\n- **主题风格**: ${app_theme}\\n- **操作模式**: ${target_page_key ? '更新页面' : '创建新页面'}\\n- **页面标识**: ${target_page_key || manual_page_key}\\n- **页面标题**: ${page_title}"
+                        }
+                    ]
+                }
+            ],
+            api: {
+                method: "post",
+                url: "/api/schema/save",
+                data: {
+                    template_id: "${template_id}",
+                    target_page_key: "${target_page_key}",
+                    manual_page_key: "${manual_page_key}",
+                    page_title: "${page_title}",
+                    app_theme: "${app_theme}",
+                    params: "$$"
+                }
+            }
+        };
+
+        res.json(wizardSchema);
+    } catch (error) {
+        logger.error('[Schema API] Failed to generate wizard schema:', error);
+        res.status(500).json({
+            status: 500,
+            msg: '生成向导失败',
+            error: error.message
+        });
+    }
+};
+
+// GET /api/schema/wizard - 返回配置向导的完整 Schema (用于 Drawer 嵌入)
+// 同时支持 GET 和 POST
+router.get('/wizard', handleWizardRequest);
+router.post('/wizard', handleWizardRequest);
+
+
+// POST /api/schema/echo - 简单的回显接口，用于 Wizard 初始化数据
+router.post('/echo', (req, res) => {
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: req.body
+    });
 });
 
 // POST /api/schema/save - 保存页面到数据库 (支持新建和更新绑定)

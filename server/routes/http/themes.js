@@ -4,8 +4,8 @@
  */
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const logger = require('../utils/logger');
+const db = require('../../db');
+const logger = require('../../utils/logger');
 
 // GET /api/themes - 获取主题列表
 router.get('/', (req, res) => {

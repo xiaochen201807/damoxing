@@ -5,9 +5,9 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const cache = require('../utils/cache');
-const logger = require('../utils/logger');
+const db = require('../../db');
+const cache = require('../../utils/cache');
+const logger = require('../../utils/logger');
 
 /**
  * 简单健康检查

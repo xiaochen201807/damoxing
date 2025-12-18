@@ -18,6 +18,8 @@ export interface ApiResponse<T = any> {
 export interface MenuItem {
     id: number;
     label: string;
+    page_key: string;      // 新增
+    route_key: string;     // 新增
     path: string;
     icon: string;
     subtitle?: string;

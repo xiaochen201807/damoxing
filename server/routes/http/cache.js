@@ -5,8 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const cache = require('../utils/cache');
-const logger = require('../utils/logger');
+const cache = require('../../utils/cache');
+const logger = require('../../utils/logger');
 
 // 获取缓存统计信息
 router.get('/cache/stats', (req, res) => {

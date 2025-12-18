@@ -5,16 +5,22 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const logger = require('../utils/logger');
-const { validate, schemas } = require('../middleware/validator');
+const db = require('../../db');
+const logger = require('../../utils/logger');
+const { validate, schemas } = require('../../middleware/validator');
 
 
-// 获取所有配置
+// 获取所有配置 (支持按 page_key 过滤)
 router.get('/config', (req, res) => {
-    const sql = 'SELECT * FROM sys_dify_config ORDER BY created_at DESC';
+    const { page_key } = req.query;
 
-    db.all(sql, [], (err, rows) => {
+    const sql = page_key
+        ? 'SELECT * FROM sys_dify_config WHERE page_key = ? ORDER BY created_at DESC'
+        : 'SELECT * FROM sys_dify_config ORDER BY created_at DESC';
+
+    const params = page_key ? [page_key] : [];
+
+    db.all(sql, params, (err, rows) => {
         if (err) {
             logger.error('[Dify Config] 查询失败:', err);
             return res.status(500).json({
@@ -32,12 +38,12 @@ router.get('/config', (req, res) => {
     });
 });
 
-// 根据 pageKey 获取配置
-router.get('/config/:pageKey', (req, res) => {
-    const { pageKey } = req.params;
-    const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ?';
+// 根据 id 获取单个配置
+router.get('/config/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = 'SELECT * FROM sys_dify_config WHERE id = ?';
 
-    db.get(sql, [pageKey], (err, row) => {
+    db.get(sql, [id], (err, row) => {
         if (err) {
             logger.error('[Dify Config] 查询失败:', err);
             return res.status(500).json({
@@ -62,9 +68,9 @@ router.get('/config/:pageKey', (req, res) => {
     });
 });
 
-// 创建配置
+// 创建配置 (支持 workflow_type)
 router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
-    const { page_key, workflow_name, api_url, api_key, enabled, description } = req.body;
+    const { page_key, workflow_name, workflow_type, api_url, api_key, enabled, description } = req.body;
 
     // 参数验证
     if (!page_key || !workflow_name || !api_url || !api_key) {
@@ -76,13 +82,14 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
 
     const sql = `
     INSERT INTO sys_dify_config 
-    (page_key, workflow_name, api_url, api_key, enabled, description)
-    VALUES (?, ?, ?, ?, ?, ?)
+    (page_key, workflow_name, workflow_type, api_url, api_key, enabled, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
     const params = [
         page_key,
         workflow_name,
+        workflow_type || 'ai_analysis',
         api_url,
         api_key,
         enabled !== undefined ? enabled : 1,
@@ -96,7 +103,7 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
             if (err.message.includes('UNIQUE constraint failed')) {
                 return res.status(409).json({
                     status: 409,
-                    msg: '该页面已存在配置，请使用更新接口'
+                    msg: '该页面已存在同名工作流'
                 });
             }
 
@@ -122,20 +129,13 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
     });
 });
 
-// 删除配置 (物理删除) - 从 body 中获取 page_key
-router.post('/config/delete', (req, res) => {
-    const { page_key } = req.body;
+// 删除配置 (物理删除) - 根据 id
+router.delete('/config/:id', (req, res) => {
+    const { id } = req.params;
 
-    if (!page_key) {
-        return res.status(400).json({
-            status: 400,
-            msg: '缺少必填参数: page_key'
-        });
-    }
+    const sql = 'DELETE FROM sys_dify_config WHERE id = ?';
 
-    const sql = 'DELETE FROM sys_dify_config WHERE page_key = ?';
-
-    db.run(sql, [page_key], function (err) {
+    db.run(sql, [id], function (err) {
         if (err) {
             logger.error('[Dify Config] 删除失败:', err);
             return res.status(500).json({
@@ -152,27 +152,26 @@ router.post('/config/delete', (req, res) => {
             });
         }
 
-        logger.info(`[Dify Config] 删除配置成功: ${page_key}`);
+        logger.info(`[Dify Config] 删除配置成功: ID ${id}`);
 
         res.json({
             status: 0,
             msg: 'success',
-            data: { page_key, deleted: true }
+            data: { id, deleted: true }
         });
     });
 });
 
-// 更新配置
-// 更新配置 (PUT)
-router.put('/config/:pageKey', validate(schemas.difyConfigUpdate), validate(schemas.pageKey, 'params'), updateDifyConfig);
+// 更新配置 (PUT) - 根据 id
+router.put('/config/:id', validate(schemas.difyConfigUpdate), updateDifyConfig);
 
 // 更新配置 (POST) - AMIS form uses POST
-router.post('/config/:pageKey', validate(schemas.difyConfigUpdate), validate(schemas.pageKey, 'params'), updateDifyConfig);
+router.post('/config/:id', validate(schemas.difyConfigUpdate), updateDifyConfig);
 
 // 更新配置的实际处理函数
 function updateDifyConfig(req, res) {
-    const { pageKey } = req.params;
-    const { workflow_name, api_url, api_key, enabled, description } = req.body;
+    const { id } = req.params;
+    const { workflow_name, workflow_type, api_url, api_key, enabled, description } = req.body;
 
     // 构建动态更新 SQL
     const updates = [];
@@ -181,6 +180,10 @@ function updateDifyConfig(req, res) {
     if (workflow_name !== undefined) {
         updates.push('workflow_name = ?');
         params.push(workflow_name);
+    }
+    if (workflow_type !== undefined) {
+        updates.push('workflow_type = ?');
+        params.push(workflow_type);
     }
     if (api_url !== undefined) {
         updates.push('api_url = ?');
@@ -207,9 +210,9 @@ function updateDifyConfig(req, res) {
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
-    params.push(pageKey);
+    params.push(id);
 
-    const sql = `UPDATE sys_dify_config SET ${updates.join(', ')} WHERE page_key = ?`;
+    const sql = `UPDATE sys_dify_config SET ${updates.join(', ')} WHERE id = ?`;
 
     db.run(sql, params, function (err) {
         if (err) {
@@ -231,7 +234,7 @@ function updateDifyConfig(req, res) {
         res.json({
             status: 0,
             msg: 'success',
-            data: { page_key: pageKey, updated: true }
+            data: { id, updated: true }
         });
     });
 }

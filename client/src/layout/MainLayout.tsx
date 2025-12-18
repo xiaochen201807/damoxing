@@ -1,105 +1,88 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
 import type { MenuItem, ApiResponse } from '../types/api';
+import './MainLayout.css';
 
 const MainLayout: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [routeTitle, setRouteTitle] = useState('管理系统'); // 默认标题
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
+  // 从路径中提取 route_key
+  const routeKey = location.pathname.split('/')[1] || 'dashboard';
+
   useEffect(() => {
-    // 请求后端菜单接口
-    fetcher<ApiResponse<MenuItem[]>>({
-      url: '/api/system/menu',
-      method: 'get'
-    }).then((res) => {
-      // fetcher 封装层返回了 { data: 后端原始响应 }
-      // 后端原始响应结构: { status: 0, msg: 'success', data: [...] }
-      if (res.data && res.data.status === 0) {
-        setMenus(res.data.data || []);
-      } else {
-        console.error('Failed to load menus', res);
+    setLoading(true);
+
+    // 同时获取路由信息和菜单数据
+    Promise.all([
+      // 获取路由信息（包含标题）
+      fetcher<ApiResponse<any>>({
+        url: `/api/routes/${routeKey}`,
+        method: 'get'
+      }),
+      // 获取菜单数据
+      fetcher<ApiResponse<MenuItem[]>>({
+        url: `/api/system/menu?route_key=${routeKey}`,
+        method: 'get'
+      })
+    ]).then(([routeRes, menuRes]) => {
+      // 设置路由标题
+      if (routeRes.data && routeRes.data.status === 0 && routeRes.data.data) {
+        setRouteTitle(routeRes.data.data.route_name || '管理系统');
       }
+
+      // 设置菜单
+      if (menuRes.data && menuRes.data.status === 0) {
+        setMenus(menuRes.data.data || []);
+      }
+
+      setLoading(false);
+    }).catch(err => {
+      console.error('Failed to load:', err);
+      setLoading(false);
     });
-  }, []);
+  }, [routeKey]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-      {/* Sidebar Area */}
-      <aside style={{
-        width: '240px',
-        backgroundColor: '#1a3c6e', // 政务蓝
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '2px 0 6px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <span>{import.meta.env.VITE_APP_SIDEBAR_TITLE || '系统控制台'}</span>
+    <div className="main-layout">
+      {/* 侧边栏 */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h2>{routeTitle}</h2>
         </div>
 
-        <nav style={{ flex: 1, overflowY: 'auto', paddingTop: '10px' }}>
-          {menus.map((menu) => {
-            const isActive = menu.path && location.pathname.startsWith(menu.path);
-            const hasPath = menu.path && menu.path.trim() !== '';
-
-            const linkStyle = {
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              color: '#fff',
-              textDecoration: 'none',
-              backgroundColor: isActive ? '#254e8a' : 'transparent',
-              borderLeft: isActive ? '4px solid #61dafb' : '4px solid transparent',
-              transition: 'all 0.3s',
-              cursor: hasPath ? 'pointer' : 'default',
-              opacity: hasPath ? 1 : 0.7
-            };
-
-            const content = (
-              <>
-                {menu.icon && <i className={menu.icon} style={{ width: '24px', marginRight: '8px', flexShrink: 0 }}></i>}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span>{menu.label}</span>
-                  {menu.subtitle && (
-                    <span style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>
-                      {menu.subtitle}
-                    </span>
-                  )}
-                </div>
-              </>
-            );
-
-            return hasPath ? (
-              <Link
-                key={menu.id}
-                to={menu.path}
-                style={linkStyle}
-              >
-                {content}
-              </Link>
-            ) : (
-              <div
-                key={menu.id}
-                style={linkStyle}
-              >
-                {content}
-              </div>
-            );
-          })}
+        <nav className="sidebar-nav">
+          {loading ? (
+            <div className="menu-loading">加载菜单中...</div>
+          ) : menus.length === 0 ? (
+            <div className="menu-empty">暂无菜单</div>
+          ) : (
+            <ul className="menu-list">
+              {menus.map((menu) => (
+                <li key={menu.id} className="menu-item">
+                  <Link
+                    to={`/${routeKey}/${menu.page_key}`}
+                    className={
+                      location.pathname === `/${routeKey}/${menu.page_key}`
+                        ? 'menu-link active'
+                        : 'menu-link'
+                    }
+                  >
+                    {menu.icon && <i className={menu.icon}></i>}
+                    <span>{menu.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </nav>
       </aside>
 
-      {/* Main Content Area */}
-      <main style={{ flex: 1, overflow: 'auto', backgroundColor: '#f0f2f5', position: 'relative' }}>
+      {/* 主内容区域 */}
+      <main className="main-content">
         <Outlet />
       </main>
     </div>

@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
-const db = require("../db");
-const logger = require("../utils/logger");
-const cache = require("../utils/cache");
-const { aiLimiter } = require("../middleware/security");
-const { validate, schemas } = require("../middleware/validator");
+const db = require("../../db");
+const logger = require("../../utils/logger");
+const cache = require("../../utils/cache");
+const { aiLimiter } = require("../../middleware/security");
+const { validate, schemas } = require("../../middleware/validator");
 
 
 

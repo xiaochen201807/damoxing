@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
     build: {
       // 生产环境优化 - 改用 esbuild (更安全且更快)
       minify: 'esbuild',
-      
+
       // 代码分割优化 - 简化策略以避免依赖循环
       rollupOptions: {
         output: {
@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
       // 优化配置
       reportCompressedSize: false, // 关闭压缩大小报告以加快构建
       chunkSizeWarningLimit: 2000,
-      sourcemap: !isProd, 
+      sourcemap: !isProd,
 
       // CSS 代码分割
       cssCodeSplit: true,

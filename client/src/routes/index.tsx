@@ -1,3 +1,8 @@
+/**
+ * 应用路由配置
+ * 暂时使用静态路由，动态路由待优化后启用
+ */
+
 import React from 'react';
 import { useRoutes, Navigate } from 'react-router-dom';
 import MainLayout from '../layout/MainLayout';
@@ -10,16 +15,17 @@ const AppRoutes: React.FC = () => {
       path: '/',
       element: <MainLayout />,
       children: [
-        // 默认重定向到第一个菜单页面 (假设是 dashboard/loan)
+        // 默认重定向到第一个菜单页面
         { index: true, element: <Navigate to="/dashboard/loan_risk" replace /> },
 
-        // 动态路由：匹配 /dashboard/xxx
+        // 通用动态路由：匹配 /:routeKey/:pageId
+        // 例如 /dashboard/loan_risk, /zcfx/gdlfx
         {
-          path: 'dashboard/:pageId',
+          path: ':routeKey/:pageId',
           element: <AutoDashboard />
         },
 
-        // 404 页面 (这里简单处理，重定向回首页)
+        // 404 页面 (重定向回首页)
         { path: '*', element: <Navigate to="/" replace /> }
       ]
     },

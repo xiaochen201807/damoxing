@@ -229,23 +229,6 @@
                             "type": "crud",
                             "syncLocation": false,
                             "api": "/api/system/menu",
-                            "filter": {
-                                "title": "筛选",
-                                "body": [
-                                    {
-                                        "type": "select",
-                                        "name": "route_key",
-                                        "label": "所属路由",
-                                        "placeholder": "全部路由",
-                                        "clearable": true,
-                                        "source": {
-                                            "method": "get",
-                                            "url": "/api/routes",
-                                            "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                        }
-                                    }
-                                ]
-                            },
                             "headerToolbar": [
                                 "bulkActions",
                                 {
@@ -284,19 +267,6 @@
                                                     "name": "order",
                                                     "label": "\u6392\u5e8f",
                                                     "value": 0
-                                                },
-                                                {
-                                                    "type": "select",
-                                                    "name": "route_key",
-                                                    "label": "\u6240\u5c5e\u8def\u7531",
-                                                    "required": true,
-                                                    "value": "dashboard",
-                                                    "source": {
-                                                        "method": "get",
-                                                        "url": "/api/routes",
-                                                        "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                                    },
-                                                    "description": "\u9009\u62e9\u83dc\u5355\u6240\u5c5e\u7684\u4e3b\u8def\u6a21\u5757"
                                                 }
                                             ]
                                         }
@@ -321,91 +291,6 @@
                                     "name": "order",
                                     "label": "\u6392\u5e8f",
                                     "width": 80
-                                },
-                                {
-                                    "name": "route_key",
-                                    "label": "\u6240\u5c5e\u8def\u7531",
-                                    "type": "mapping",
-                                    "map": {
-                                        "dashboard": "<span class='label label-info'>\u4eea\u8868\u677f</span>",
-                                        "system": "<span class='label label-default'>\u7cfb\u7edf\u7ba1\u7406</span>",
-                                        "xingyong": "<span class='label label-success'>\u4fe1\u7528\u7ba1\u7406</span>",
-                                        "zufw": "<span class='label label-primary'>\u4e3b\u52a8\u670d\u52a1</span>",
-                                        "zcfx": "<span class='label label-warning'>\u653f\u7b56\u5206\u6790</span>",
-                                        "znjh": "<span class='label label-danger'>\u667a\u80fd\u7a3d\u6838</span>"
-                                    },
-                                    "width": 120
-                                },
-                                {
-                                    "type": "operation",
-                                    "label": "操作",
-                                    "width": 120,
-                                    "buttons": [
-                                        {
-                                            "type": "button",
-                                            "label": "编辑",
-                                            "icon": "fa fa-pencil",
-                                            "level": "link",
-                                            "actionType": "dialog",
-                                            "dialog": {
-                                                "title": "编辑菜单",
-                                                "size": "md",
-                                                "body": {
-                                                    "type": "form",
-                                                    "api": "post:/api/system/menu/${page_key}",
-                                                    "body": [
-                                                        {
-                                                            "type": "input-text",
-                                                            "name": "label",
-                                                            "label": "菜单名称",
-                                                            "required": true
-                                                        },
-                                                        {
-                                                            "type": "static",
-                                                            "name": "page_key",
-                                                            "label": "Page Key",
-                                                            "description": "Page Key 不可修改"
-                                                        },
-                                                        {
-                                                            "type": "input-text",
-                                                            "name": "icon",
-                                                            "label": "图标",
-                                                            "placeholder": "fa fa-home"
-                                                        },
-                                                        {
-                                                            "type": "input-number",
-                                                            "name": "order",
-                                                            "label": "排序"
-                                                        },
-                                                        {
-                                                            "type": "select",
-                                                            "name": "route_key",
-                                                            "label": "所属路由",
-                                                            "required": true,
-                                                            "source": {
-                                                                "method": "get",
-                                                                "url": "/api/routes",
-                                                                "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "button",
-                                            "label": "删除",
-                                            "icon": "fa fa-trash",
-                                            "level": "link",
-                                            "className": "text-danger",
-                                            "actionType": "ajax",
-                                            "confirmText": "确认删除菜单【${label}】？",
-                                            "api": "post:/api/system/menu/delete",
-                                            "data": {
-                                                "page_key": "${page_key}"
-                                            }
-                                        }
-                                    ]
                                 }
                             ]
                         }
@@ -452,33 +337,6 @@
                             "type": "crud",
                             "syncLocation": false,
                             "api": "/api/system/template",
-                            "filter": {
-                                "title": "筛选",
-                                "body": [
-                                    {
-                                        "type": "select",
-                                        "name": "route_key",
-                                        "label": "所属路由",
-                                        "placeholder": "全部路由",
-                                        "clearable": true,
-                                        "source": {
-                                            "method": "get",
-                                            "url": "/api/routes",
-                                            "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                        }
-                                    },
-                                    {
-                                        "type": "select",
-                                        "name": "menu_id",
-                                        "label": "所属菜单",
-                                        "placeholder": "全部菜单",
-                                        "clearable": true,
-                                        "source": "/api/system/menu?route_key=${route_key}",
-                                        "labelField": "label",
-                                        "valueField": "id"
-                                    }
-                                ]
-                            },
                             "headerToolbar": [
                                 "bulkActions",
                                 "pagination"

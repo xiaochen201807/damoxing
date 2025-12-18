@@ -2,8 +2,8 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const logger = require("./utils/logger");
 
-// 从环境变量读取数据库路径
-const dbPath = process.env.DB_PATH || path.join(__dirname, "database.sqlite");
+// 从环境变量读取数据库路径（新位置：data/ 目录）
+const dbPath = process.env.DB_PATH || path.join(__dirname, "data/database.sqlite");
 
 // 检查是否为只读模式
 const isReadOnly = process.env.SQLITE_READONLY === 'true';
