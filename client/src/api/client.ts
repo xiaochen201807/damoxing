@@ -2,7 +2,8 @@
  * Axios 客户端配置
  */
 
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { env } from '@/config';
 import type { ApiResponse } from '@/types/response';
 
