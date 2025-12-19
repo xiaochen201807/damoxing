@@ -277,17 +277,19 @@ function registerTools(server) {
         throw new Error(`Unknown tool: ${name}`);
     });
 
+    logger.info("   ✓ MCP Tools registered");
+}
 
-    /**
-     * 注册所有 MCP 处理器
-     */
-    function setupMcpHandlers(server) {
-        logger.info("📋 Registering MCP handlers...");
+/**
+ * 注册所有 MCP 处理器
+ */
+function setupMcpHandlers(server) {
+    logger.info("📋 Registering MCP handlers...");
 
-        registerResources(server);
-        registerTools(server);
+    registerResources(server);
+    registerTools(server);
 
-        logger.info("✅ All MCP handlers registered");
-    }
+    logger.info("✅ All MCP handlers registered");
+}
 
-    module.exports = setupMcpHandlers;
+module.exports = setupMcpHandlers;
