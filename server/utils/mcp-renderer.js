@@ -18,6 +18,11 @@ env.addFilter('tojson', function (obj) {
     return JSON.stringify(obj);
 });
 
+// 添加 replace 过滤器（用于字符串替换）
+env.addFilter('replace', function (str, pattern, replacement) {
+    return str.replace(new RegExp(pattern, 'g'), replacement);
+});
+
 /**
  * 渲染单个组件
  * @param {string} templatePath - 模板相对路径 (如 components/bar_chart_panel.j2)

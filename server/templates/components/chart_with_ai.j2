@@ -68,7 +68,7 @@
                             "type": "service",
                             "api": {
                                 "method": "get",
-                                "url": "{{ (drilldown_api | default('/api/demo/risk-list') ~ '/${selectedId}') | replace('//', '/') }}"
+                                "url": "{{ (drilldown_api | default('/api/demo/risk-list') + '/${selectedId}') | replace('//', '/') }}"
                             },
                             "body": {
                                 "type": "{% if chart_type == 'line' %}table{% else %}crud{% endif %}",
