@@ -44,7 +44,7 @@ function registerResources(server) {
         const { uri } = request.params;
 
         if (uri === "component://library") {
-            const components = await new Promise((resolve, reject) => {
+            const rawComponents = await new Promise((resolve, reject) => {
                 db.all(
                     "SELECT * FROM sys_component_library WHERE is_active = 1",
                     [],
@@ -54,6 +54,13 @@ function registerResources(server) {
                     }
                 );
             });
+
+            // Parse JSON fields so LLM sees structured data
+            const components = rawComponents.map(row => ({
+                ...row,
+                params_schema: row.params_schema ? JSON.parse(row.params_schema) : {},
+                default_params: row.default_params ? JSON.parse(row.default_params) : {}
+            }));
 
             return {
                 contents: [
@@ -105,16 +112,55 @@ function registerTools(server) {
             tools: [
                 {
                     name: "query_page_config",
-                    description: "Query page configuration by page_key",
+                    description: "查询指定页面的配置 (AMIS Schema)",
                     inputSchema: {
                         type: "object",
                         properties: {
                             page_key: {
                                 type: "string",
-                                description: "The page key to query"
+                                description: "页面唯一标识 (page_key)"
                             }
                         },
                         required: ["page_key"]
+                    }
+                },
+                {
+                    name: "generate_page_schema",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            title: {
+                                type: "string",
+                                description: "页面标题",
+                                default: "AI生成页面"
+                            },
+                            layout: {
+                                type: "string",
+                                description: "布局模式",
+                                enum: ["simple", "dashboard"],
+                                default: "simple"
+                            },
+                            components: {
+                                type: "array",
+                                description: "组件列表",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        component_id: {
+                                            type: "string",
+                                            description: "组件ID (来自 component://library)"
+                                        },
+                                        params: {
+                                            type: "object",
+                                            description: "组件参数 (对应组件的 params_schema)"
+                                        }
+                                    },
+                                    required: ["component_id"]
+                                }
+                            }
+                        },
+                        required: ["components"]
                     }
                 }
             ]
@@ -123,6 +169,7 @@ function registerTools(server) {
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name, arguments: args } = request.params;
+        const mcpRenderer = require("../../utils/mcp-renderer");
 
         if (name === "query_page_config") {
             const { page_key } = args;
@@ -145,7 +192,8 @@ function registerTools(server) {
                             type: "text",
                             text: `Page not found: ${page_key}`
                         }
-                    ]
+                    ],
+                    isError: true
                 };
             }
 
@@ -159,22 +207,87 @@ function registerTools(server) {
             };
         }
 
+        if (name === "generate_page_schema") {
+            const { title, layout, components } = args;
+            const renderedComponents = [];
+            const errors = [];
+
+            // 1. 获取所有需要的组件模板路径
+            const componentIds = components.map(c => c.component_id);
+            if (componentIds.length === 0) {
+                return {
+                    content: [{ type: "text", text: "No components specified" }],
+                    isError: true
+                };
+            }
+
+            // 从数据库查询组件信息
+            const componentDefs = await new Promise((resolve, reject) => {
+                const placeholders = componentIds.map(() => '?').join(',');
+                db.all(
+                    `SELECT component_id, template_path FROM sys_component_library WHERE component_id IN (${placeholders})`,
+                    componentIds,
+                    (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    }
+                );
+            });
+
+            // 建立映射
+            const defMap = new Map();
+            componentDefs.forEach(row => defMap.set(row.component_id, row.template_path));
+
+            // 2. 逐个渲染
+            for (const comp of components) {
+                const templatePath = defMap.get(comp.component_id);
+                if (!templatePath) {
+                    errors.push(`Component not found: ${comp.component_id}`);
+                    continue;
+                }
+
+                try {
+                    const schema = mcpRenderer.renderComponent(templatePath, comp.params || {});
+                    renderedComponents.push(schema);
+                } catch (e) {
+                    errors.push(`Failed to render ${comp.component_id}: ${e.message}`);
+                }
+            }
+
+            if (errors.length > 0) {
+                return {
+                    content: [{ type: "text", text: `Errors:\n${errors.join('\n')}` }],
+                    isError: true
+                };
+            }
+
+            // 3. 组装页面
+            const pageSchema = mcpRenderer.assemblePage(layout, title, renderedComponents);
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(pageSchema, null, 2)
+                    }
+                ]
+            };
+        }
+
         throw new Error(`Unknown tool: ${name}`);
     });
 
-    logger.info("   ✓ MCP Tools registered");
-}
 
-/**
- * 注册所有 MCP 处理器
- */
-function setupMcpHandlers(server) {
-    logger.info("📋 Registering MCP handlers...");
+    /**
+     * 注册所有 MCP 处理器
+     */
+    function setupMcpHandlers(server) {
+        logger.info("📋 Registering MCP handlers...");
 
-    registerResources(server);
-    registerTools(server);
+        registerResources(server);
+        registerTools(server);
 
-    logger.info("✅ All MCP handlers registered");
-}
+        logger.info("✅ All MCP handlers registered");
+    }
 
-module.exports = setupMcpHandlers;
+    module.exports = setupMcpHandlers;
