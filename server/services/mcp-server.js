@@ -3,6 +3,9 @@
  * 基于 Model Context Protocol SDK
  */
 
+// 设置 stdio 模式标志，防止 logger 输出到 stdout
+process.env.MCP_STDIO_MODE = "true";
+
 require("dotenv").config();
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");

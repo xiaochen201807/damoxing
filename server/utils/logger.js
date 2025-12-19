@@ -48,13 +48,20 @@ const consoleFormat = winston.format.combine(
 const logDir = process.env.LOG_DIR || path.join(__dirname, '../logs');
 
 // 创建日志传输器
-const transports = [
-    // 控制台输出
-    new winston.transports.Console({
-        format: consoleFormat,
-    }),
+const transports = [];
 
-    // 错误日志文件（每天轮转）
+// 只在非 stdio 模式下输出到控制台
+// MCP stdio 模式要求 stdout 只能用于 JSON-RPC 消息
+if (!process.env.MCP_STDIO_MODE) {
+    transports.push(
+        new winston.transports.Console({
+            format: consoleFormat,
+        })
+    );
+}
+
+// 错误日志文件（每天轮转）
+transports.push(
     new DailyRotateFile({
         filename: path.join(logDir, 'error-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
@@ -62,17 +69,19 @@ const transports = [
         maxSize: '20m',
         maxFiles: '14d',
         format: format,
-    }),
+    })
+);
 
-    // 组合日志文件（每天轮转）
+// 组合日志文件（每天轮转）
+transports.push(
     new DailyRotateFile({
         filename: path.join(logDir, 'combined-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
         maxSize: '20m',
         maxFiles: '14d',
         format: format,
-    }),
-];
+    })
+);
 
 // 创建 logger 实例
 const logger = winston.createLogger({

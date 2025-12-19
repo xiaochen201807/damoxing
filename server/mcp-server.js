@@ -12,6 +12,7 @@ startMcpServer()
         // 所有日志通过 logger 输出到文件
     })
     .catch(err => {
-        console.error('❌ Failed to start MCP server:', err);
+        // 不能使用 console.error，会破坏 stdio 协议
+        // 错误已在 mcp-server.js 中通过 logger 记录
         process.exit(1);
     });
