@@ -35,7 +35,7 @@
                 "clickAction": {
                     "actionType": "dialog",
                     "dialog": {
-                        "title": "{% if chart_type == 'pie' or chart_type == 'bar' or chart_type == 'funnel' %}${event.name} - 详细数据{% elif chart_type == 'line' %}${event.seriesName} - ${event.name}{% else %}详细数据{% endif %}",
+                        "title": "{% if chart_type == 'pie' or chart_type == 'bar' or chart_type == 'funnel' %}${selectedName} - 详细数据{% elif chart_type == 'line' %}${selectedSeries} - ${selectedDate}{% else %}详细数据{% endif %}",
                         "size": "xl",
                         {% if chart_type != 'radar' and chart_type != 'gauge' %}
                         "actions": [
@@ -44,7 +44,7 @@
                                 "label": "导出",
                                 "level": "primary",
                                 "actionType": "download",
-                                "api": "{{ export_api | default('/api/export/data') }}?{% if chart_type == 'line' %}series=${event.seriesName}&date=${event.name}{% else %}category=${event.name}{% endif %}"
+                                "api": "{{ export_api | default('/api/export/data') }}?{% if chart_type == 'line' %}series=${selectedSeries}&date=${selectedDate}{% else %}category=${selectedName}{% endif %}"
                             },
                             {
                                 "type": "button",
@@ -55,20 +55,20 @@
                         {% endif %}
                         "data": {
                             {% if chart_type == 'line' %}
-                            "selectedSeries": "${event.seriesName}",
-                            "selectedDate": "${event.name}",
-                            "selectedValue": "${event.value}"
+                            "selectedSeries": "${data.seriesName}",
+                            "selectedDate": "${data.name}",
+                            "selectedValue": "${data.value}"
                             {% else %}
-                            "selectedName": "${event.name}",
-                            "selectedValue": "${event.value}"
+                            "selectedId": "${data.itemId}",
+                            "selectedName": "${data.name}",
+                            "selectedValue": "${data.value}"
                             {% endif %}
                         },
                         "body": {
                             "type": "service",
                             "api": {
                                 "method": "get",
-                                "url": "{{ drilldown_api | default('/api/demo/detail') }}",
-                                "requestAdaptor": "{% if drilldown_params %}const params = {{ drilldown_params | tojson | replace('\"', '\\\"') }}; const queryStr = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&'); return { ...api, url: api.url + '?' + queryStr };{% else %}{% if chart_type == 'line' %}const series = api.data.selectedSeries || ''; const date = api.data.selectedDate || ''; return { ...api, url: api.url + '?series=' + encodeURIComponent(series) + '&date=' + encodeURIComponent(date) };{% else %}return { ...api, url: api.url + '?category=' + encodeURIComponent(api.data?.selectedName || '') };{% endif %}{% endif %}"
+                                "url": "{{ drilldown_api | default('/api/demo/risk-list') }}/${selectedId}"
                             },
                             "body": {
                                 "type": "{% if chart_type == 'line' %}table{% else %}crud{% endif %}",
@@ -97,30 +97,25 @@
         },
         {
             "md": 4,
-            "body": {
-                "type": "card",
-                "header": {
-                    "title": "🤖 AI 智能分析",
-                    "subTitle": "基于数据的风险评估"
+            "style": {
+                "borderLeft": "1px dashed #e8e8e8",
+                "paddingLeft": "40px",
+                "height": "80%",
+                "margin": "auto 0",
+                "display": "flex",
+                "flexDirection": "column",
+                "justifyContent": "center"
+            },
+            "body": [
+                {
+                    "type": "tpl",
+                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #0050b3; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>风险分析</span></div><div style='margin-bottom: 25px; font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_analysis_text | default('暂无AI分析数据。') | replace('\n', '<br/>') }}</div>"
                 },
-                "body": [
-                    {
-                        "type": "alert",
-                        "level": "info",
-                        "showIcon": true,
-                        "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') | replace('\n', '<br/>') }}"
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "alert",
-                        "level": "warning",
-                        "showIcon": true,
-                        "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}"
-                    }
-                ]
-            }
+                {
+                    "type": "tpl",
+                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #006d75; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>规避建议</span></div><div style='font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}</div>"
+                }
+            ]
         }
     ]
 }
