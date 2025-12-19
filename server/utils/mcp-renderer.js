@@ -53,8 +53,7 @@ function renderComponent(templatePath, params) {
  */
 function assemblePage(layout, title, componentSchemas) {
     const pageSchema = {
-        type: "page",
-        title: title || "AI Generated Page",
+        type: "container",
         body: []
     };
 

@@ -74,7 +74,7 @@
                                 "type": "{% if chart_type == 'line' %}table{% else %}crud{% endif %}",
                                 {% if chart_type != 'line' %}"syncLocation": false,{% endif %}
                                 "api": "${api}",
-                                "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson | replace('"', '\\\\"') }}{% else %}[
+                                "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson }}{% else %}[
                                     {"name": "id", "label": "ID", "width": 60},
                                     {% if chart_type == 'line' %}
                                     {"name": "date", "label": "日期", "type": "date"},
@@ -108,7 +108,7 @@
                         "type": "alert",
                         "level": "info",
                         "showIcon": true,
-                        "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') }}"
+                        "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') | replace('\n', '<br/>') }}"
                     },
                     {
                         "type": "divider"
@@ -117,7 +117,7 @@
                         "type": "alert",
                         "level": "warning",
                         "showIcon": true,
-                        "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') }}"
+                        "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}"
                     }
                 ]
             }
