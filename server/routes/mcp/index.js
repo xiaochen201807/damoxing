@@ -6,12 +6,21 @@
 const db = require("../../db");
 const logger = require("../../utils/logger");
 
+const {
+    ListResourcesRequestSchema,
+    ReadResourceRequestSchema,
+    ListToolsRequestSchema,
+    CallToolRequestSchema,
+    ListPromptsRequestSchema,
+    GetPromptRequestSchema
+} = require("@modelcontextprotocol/sdk/types.js");
+
 /**
  * 注册 MCP Resources
  */
 function registerResources(server) {
     // Resource: 组件库列表
-    server.setRequestHandler("resources/list", async () => {
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
         return {
             resources: [
                 {
@@ -31,7 +40,7 @@ function registerResources(server) {
     });
 
     // Resource: 读取组件库
-    server.setRequestHandler("resources/read", async (request) => {
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         const { uri } = request.params;
 
         if (uri === "component://library") {
@@ -91,7 +100,7 @@ function registerResources(server) {
  */
 function registerTools(server) {
     // Tool: 查询页面配置
-    server.setRequestHandler("tools/list", async () => {
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
                 {
@@ -112,7 +121,7 @@ function registerTools(server) {
         };
     });
 
-    server.setRequestHandler("tools/call", async (request) => {
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name, arguments: args } = request.params;
 
         if (name === "query_page_config") {
