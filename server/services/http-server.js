@@ -61,6 +61,8 @@ function setupMiddleware(app) {
         level: 6,
         filter: (req, res) => {
             if (req.headers['x-no-compression']) return false;
+            // 排除 SSE 流式传输
+            if (req.headers['accept'] === 'text/event-stream' || req.path.includes('/sse')) return false;
             return compression.filter(req, res);
         }
     }));

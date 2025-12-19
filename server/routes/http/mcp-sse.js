@@ -34,11 +34,40 @@ function createMcpServer() {
         }
     );
 
+
+
     setupMcpHandlers(server);
     return server;
 }
 
-// GET /sse - Establish SSE connection
+/**
+ * Middleware: Verify MCP API Key
+ * Expects: Authorization: Bearer <MCP_API_KEY>
+ */
+const verifyMcpAuth = (req, res, next) => {
+    const mcpApiKey = process.env.MCP_API_KEY;
+
+    // If no key is configured, allow access (or could fail secure by default?)
+    // For ease of use, if not set, we assume dev mode/open access.
+    if (!mcpApiKey) {
+        return next();
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ error: "Missing Authorization header" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (token !== mcpApiKey) {
+        return res.status(403).json({ error: "Invalid API Key" });
+    }
+
+    next();
+};
+
+// Apply auth to all routes in this router
+router.use(verifyMcpAuth);
 router.get("/sse", async (req, res) => {
     logger.info("[MCP SSE] New connection attempt");
 
