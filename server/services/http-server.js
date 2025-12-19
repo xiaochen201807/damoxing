@@ -53,7 +53,15 @@ function setupMiddleware(app) {
     logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
 
     app.use(cors(corsOptions));
-    app.use(express.json());
+    app.use(cors(corsOptions));
+
+    // JSON Body Parser (排除 MCP 消息路由，因为 SDK 需要读取原始流)
+    app.use((req, res, next) => {
+        if (req.path.includes('/api/mcp/messages')) {
+            return next();
+        }
+        express.json()(req, res, next);
+    });
 
     // Gzip 压缩
     app.use(compression({

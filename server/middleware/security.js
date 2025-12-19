@@ -9,11 +9,11 @@ const logger = require('../utils/logger');
 
 /**
  * 全局限流配置
- * 15 分钟内最多 100 次请求
+ * 15 分钟内最多 1000 次请求 (可通过环境变量速率限制)
  */
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 分钟
-    max: 100, // 最多 100 次请求
+    max: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '1000'), // 默认 1000 次
     message: {
         status: 429,
         msg: '请求过于频繁，请稍后再试',
@@ -31,11 +31,11 @@ const globalLimiter = rateLimit({
 
 /**
  * AI 接口限流配置
- * 1 分钟内最多 10 次请求
+ * 1 分钟内最多 60 次请求
  */
 const aiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 分钟
-    max: 10, // 最多 10 次请求
+    max: parseInt(process.env.RATE_LIMIT_AI_MAX || '60'), // 默认 60 次
     message: {
         status: 429,
         msg: 'AI 请求过于频繁，请稍后再试',
