@@ -1,0 +1,56 @@
+{# 柱状图组件 - 带 AI 分析面板 #}
+{
+    "type": "grid",
+    "columns": [
+        {
+            "md": 8,
+            "body": {
+                "type": "chart",
+                "api": {
+                    "url": "{{ api_url }}",
+                    "method": "get",
+                    "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].type = 'bar'; option.series[0].itemStyle = { borderRadius: [4, 4, 0, 0] }; } option.grid = { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true }; option.tooltip = { trigger: 'axis', axisPointer: { type: 'shadow' } }; return { ...payload, data: option };"
+                },
+                "height": {{ height | default(350) }},
+                {% if enable_drilldown | default(true) %}
+                "clickAction": {
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "${event.name} - 详细数据",
+                        "size": "xl",
+                        "body": {
+                            "type": "service",
+                            "api": {
+                                "method": "get",
+                                "url": "{{ drilldown_api | default('/api/demo/bar-detail') }}",
+                                "requestAdaptor": "{% if drilldown_params %}const params = {{ drilldown_params | tojson | replace('\"', '\\\"') }}; const queryStr = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&'); return { ...api, url: api.url + '?' + queryStr };{% else %}return { ...api, url: api.url + '?category=' + encodeURIComponent(api.data?.selectedCategory || '') };{% endif %}"
+                            },
+                            "body": {
+                                "type": "crud",
+                                "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson | replace('"', '\\"') }}{% else %}[
+                                    {"name": "id", "label": "ID", "width": 60},
+                                    {"name": "name", "label": "名称"},
+                                    {"name": "value", "label": "数值", "type": "number"}
+                                ]{% endif %}
+                            }
+                        },
+                        "data": {"selectedCategory": "${event.name}"}
+                    }
+                }
+                {% endif %}
+            }
+        },
+        {
+            "md": 4,
+            "body": {
+                "type": "card",
+                "header": {"title": "🤖 AI 智能分析"},
+                "body": [
+                    {"type": "alert", "level": "info", "showIcon": true, "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') }}"},
+                    {"type": "divider"},
+                    {"type": "alert", "level": "warning", "showIcon": true, "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') }}"}
+                ]
+            }
+        }
+    ]
+}

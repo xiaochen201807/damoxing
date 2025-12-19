@@ -1,0 +1,105 @@
+{# 饼图组件 - 带 AI 分析面板 #}
+{# 
+  Parameters:
+  - title: 图表标题
+  - api_url: 数据API地址  
+  - height: 图表高度 (default: 400)
+  - drilldown_api: 钻取详情API地址 (optional)
+  - drilldown_params: 钻取API参数对象 (optional) 例如: {"risk_level": "${event.name}", "page_key": "xxx"}
+  - export_api: 导出数据API地址 (optional)
+  - ai_analysis_text: AI生成的风险分析文本 (optional)
+  - ai_suggestions: AI生成的规避建议文本 (optional)
+  - enable_drilldown: 是否启用钻取 (default: true)
+#}
+{
+    "type": "grid",
+    "columns": [
+        {
+            "md": 8,
+            "body": {
+                "type": "chart",
+                "api": {
+                    "url": "{{ api_url }}",
+                    "method": "get",
+                    "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].radius = ['50%', '70%']; option.series[0].emphasis = { scale: true, scaleSize: 10 }; option.series[0].itemStyle = { borderRadius: 8, borderColor: '#fff', borderWidth: 2 }; } option.legend = { orient: 'horizontal', bottom: '0', left: 'center', icon: 'circle', itemWidth: 14, itemHeight: 14, textStyle: { fontSize: 13, color: '#666' } }; option.tooltip = { trigger: 'item', formatter: '{b}: {c} ({d}%)' }; return { ...payload, data: option };"
+                },
+                "height": {{ height | default(400) }},
+                {% if enable_drilldown | default(true) %}
+                "clickAction": {
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "${event.name} - 详细数据",
+                        "size": "xl",
+                        "actions": [
+                            {
+                                "type": "button",
+                                "label": "导出",
+                                "level": "primary",
+                                "actionType": "download",
+                                "api": "{{ export_api | default('/api/export/pie-data') }}?category=${event.name}"
+                            },
+                            {
+                                "type": "button",
+                                "label": "关闭",
+                                "actionType": "close"
+                            }
+                        ],
+                        "data": {
+                            "selectedName": "${event.name}",
+                            "selectedValue": "${event.value}"
+                        },
+                        "body": {
+                            "type": "service",
+                            "api": {
+                                "method": "get",
+                                "url": "{{ drilldown_api | default('/api/demo/pie-detail') }}",
+                                "requestAdaptor": "{% if drilldown_params %}const params = {{ drilldown_params | tojson | replace('\"', '\\\"') }}; const queryStr = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&'); return { ...api, url: api.url + '?' + queryStr };{% else %}return { ...api, url: api.url + '?category=' + encodeURIComponent(api.data?.selectedName || '') };{% endif %}"
+                            },
+                            "body": {
+                                "type": "crud",
+                                "syncLocation": false,
+                                "api": "${api}",
+                                "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson | replace('"', '\\"') }}{% else %}[
+                                    {"name": "id", "label": "ID", "width": 60},
+                                    {"name": "name", "label": "名称"},
+                                    {"name": "category", "label": "类别"},
+                                    {"name": "value", "label": "数值", "type": "number"},
+                                    {"name": "percentage", "label": "占比", "type": "tpl", "tpl": "${percentage}%"},
+                                    {"name": "status", "label": "状态", "type": "mapping", "map": {"normal": "<span class='label label-success'>正常</span>", "warning": "<span class='label label-warning'>警告</span>", "danger": "<span class='label label-danger'>危险</span>"}}
+                                ]{% endif %}
+                            }
+                        }
+                    }
+                }
+                {% endif %}
+            }
+        },
+        {
+            "md": 4,
+            "body": {
+                "type": "card",
+                "header": {
+                    "title": "🤖 AI 智能分析",
+                    "subTitle": "基于数据的风险评估"
+                },
+                "body": [
+                    {
+                        "type": "alert",
+                        "level": "info",
+                        "showIcon": true,
+                        "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。请在生成页面时提供 ai_analysis_text 参数。') }}"
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "alert",
+                        "level": "warning",
+                        "showIcon": true,
+                        "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。请在生成页面时提供 ai_suggestions 参数。') }}"
+                    }
+                ]
+            }
+        }
+    ]
+}

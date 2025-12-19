@@ -373,8 +373,16 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
         data: finalJsonObj, // 这里的结构应该是 { type: "page", body: [...] }
       });
     } else {
-      logger.error("[AI Workflow] 运行状态非成功:", workflowData);
-      res.status(500).json({ status: 1, msg: "Workflow 运行未完成或失败" });
+      logger.error("[AI Workflow] 运行状态非成功:");
+      logger.error("[AI Workflow] Status:", workflowData.data?.status);
+      logger.error("[AI Workflow] Full Response:", JSON.stringify(workflowData, null, 2));
+
+      res.status(500).json({
+        status: 1,
+        msg: "Workflow 运行未完成或失败",
+        difyStatus: workflowData.data?.status,
+        difyError: workflowData.data?.error || workflowData.data?.outputs
+      });
     }
   } catch (error) {
     logger.error("[AI Workflow] API 调用出错详情:");

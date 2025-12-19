@@ -1,0 +1,30 @@
+{# 仪表盘组件 - 带 AI 分析面板 #}
+{
+    "type": "grid",
+    "columns": [
+        {
+            "md": 8,
+            "body": {
+                "type": "chart",
+                "api": {
+                    "url": "{{ api_url }}",
+                    "method": "get",
+                    "adaptor": "const option = payload.data || {}; if (option.series && option.series[0]) { option.series[0].type = 'gauge'; option.series[0].radius = '80%'; } return { ...payload, data: option };"
+                },
+                "height": {{ height | default(300) }}
+            }
+        },
+        {
+            "md": 4,
+            "body": {
+                "type": "card",
+                "header": {"title": "🤖 AI 智能分析"},
+                "body": [
+                    {"type": "alert", "level": "info", "showIcon": true, "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') }}"},
+                    {"type": "divider"},
+                    {"type": "alert", "level": "warning", "showIcon": true, "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') }}"}
+                ]
+            }
+        }
+    ]
+}

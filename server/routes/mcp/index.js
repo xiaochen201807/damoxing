@@ -112,7 +112,7 @@ function registerTools(server) {
             tools: [
                 {
                     name: "list_components",
-                    description: "获取所有可用的组件列表及其参数定义。返回所有组件的 component_id、名称、描述和 params_schema，用于了解有哪些组件可用以及它们需要哪些参数。",
+                    description: "获取所有可用的组件列表及其参数定义。重点：chart_with_ai 通用图表组件支持6种图表类型(pie/bar/line/funnel/radar/gauge)，通过 chart_type 参数控制。支持钻取配置：drilldown_api(钻取API)、drilldown_params(参数对象)、drilldown_columns(表格列定义数组)。",
                     inputSchema: {
                         type: "object",
                         properties: {},
@@ -135,7 +135,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。使用前建议先调用 list_components 工具获取可用的组件列表及其参数要求。",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。chart_with_ai 示例：{component_id:'chart_with_ai',params:{chart_type:'pie',api_url:'/api/data',drilldown_api:'/api/detail',drilldown_params:{level:'event.name变量',page_key:'固定值'}}}。",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -184,7 +184,7 @@ function registerTools(server) {
             // 获取所有活跃的组件
             const rawComponents = await new Promise((resolve, reject) => {
                 db.all(
-                    "SELECT component_id, name, description, params_schema, default_params FROM sys_component_library WHERE is_active = 1",
+                    "SELECT component_id, component_name, description, params_schema, default_params FROM sys_component_library WHERE is_active = 1",
                     [],
                     (err, rows) => {
                         if (err) reject(err);
@@ -196,7 +196,7 @@ function registerTools(server) {
             // 解析 JSON 字段
             const components = rawComponents.map(row => ({
                 component_id: row.component_id,
-                name: row.name,
+                name: row.component_name,  // 映射为 name 便于 AI 理解
                 description: row.description,
                 params_schema: row.params_schema ? JSON.parse(row.params_schema) : {},
                 default_params: row.default_params ? JSON.parse(row.default_params) : {}

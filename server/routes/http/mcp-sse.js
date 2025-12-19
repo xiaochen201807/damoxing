@@ -90,16 +90,14 @@ router.get("/sse", async (req, res) => {
     try {
         await server.connect(transport);
 
-        // The transport.sessionId is available after construction or start?
-        // We need to know the session ID to route POST messages. 
-        // SSEServerTransport in SDK writes the 'endpoint' event which includes the session ID?
-
-        // In SDK 0.6.0+, SSEServerTransport manages life cycle.
-        // We need to store it to handle the subsequent POST.
-
         transports.set(transport.sessionId, transport);
 
         logger.info(`[MCP SSE] Connection established. Session: ${transport.sessionId}`);
+
+        // 监听服务器错误
+        server.onerror = (error) => {
+            logger.error(`[MCP SSE] Server error for session ${transport.sessionId}:`, error);
+        };
 
         // Cleanup on close
         res.on("close", () => {
@@ -107,8 +105,15 @@ router.get("/sse", async (req, res) => {
             transports.delete(transport.sessionId);
             server.close();
         });
+
+        // 监听错误事件
+        res.on("error", (error) => {
+            logger.error(`[MCP SSE] Response error for session ${transport.sessionId}:`, error);
+        });
+
     } catch (error) {
         logger.error("[MCP SSE] Connection error:", error);
+        logger.error("[MCP SSE] Error stack:", error.stack);
         if (!res.headersSent) res.sendStatus(500);
     }
 });

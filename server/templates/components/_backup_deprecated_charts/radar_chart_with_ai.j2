@@ -1,0 +1,30 @@
+{# 雷达图组件 - 带 AI 分析面板 #}
+{
+    "type": "grid",
+    "columns": [
+        {
+            "md": 8,
+            "body": {
+                "type": "chart",
+                "api": {
+                    "url": "{{ api_url }}",
+                    "method": "get",
+                    "adaptor": "const option = payload.data || {}; if (option.series) { option.series.forEach(s => { s.type = 'radar'; s.areaStyle = { opacity: 0.3 }; }); } option.tooltip = { trigger: 'item' }; option.legend = { bottom: 0 }; return { ...payload, data: option };"
+                },
+                "height": {{ height | default(400) }}
+            }
+        },
+        {
+            "md": 4,
+            "body": {
+                "type": "card",
+                "header": {"title": "🤖 AI 智能分析"},
+                "body": [
+                    {"type": "alert", "level": "info", "showIcon": true, "body": "<strong>📊 风险分析</strong><br/><br/>{{ ai_analysis_text | default('暂无AI分析数据。') }}"},
+                    {"type": "divider"},
+                    {"type": "alert", "level": "warning", "showIcon": true, "body": "<strong>💡 规避建议</strong><br/><br/>{{ ai_suggestions | default('暂无规避建议。') }}"}
+                ]
+            }
+        }
+    ]
+}
