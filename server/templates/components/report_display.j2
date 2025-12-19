@@ -1,0 +1,193 @@
+{#
+  报告生成与预览组件 - 独立组件
+  参考 import_Ai.j2 的加载逻辑
+  
+  @param page_key 页面唯一标识
+  @param report_workflow_type 报告工作流类型（默认：report_generation）
+  @param report_query AI报告生成查询参数
+  @param ai_generate_api AI生成页面API地址
+#}
+
+{
+    "type": "service",
+    "id": "report_display_root",
+    "className": "p-none",
+    
+    "body": [
+        {# ================== 0. 动态加载 CSS (只在首次使用时加载) ================== #}
+        {
+            "type": "custom",
+            "name": "report-css-loader",
+            "html": "",
+            "onMount": "if (!window.reportCssLoaded) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = '/styles/report.css'; document.head.appendChild(link); window.reportCssLoaded = true; }"
+        },
+        
+        {# ================== 1. Loading 遮罩 (与 import_Ai 完全一致) ================== #}
+        {
+            "type": "container",
+            "visibleOn": "${report_loading}",
+            "style": {
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "width": "100vw",
+                "height": "100vh",
+                "backgroundColor": "rgba(255, 255, 255, 0.6)",
+                "zIndex": "9999",
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "backdropFilter": "blur(8px)"
+            },
+            "body": [
+                {
+                    "type": "container",
+                    "style": {
+                        "backgroundColor": "transparent",
+                        "boxShadow": "none",
+                        "border": "none",
+                        "padding": "0",
+                        "width": "auto",
+                        "textAlign": "center"
+                    },
+                    "body": [
+                        {
+                            "type": "custom",
+                            "name": "report-modal-timer",
+                            "html": "<div style='font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial; color: #333;'><div style='position: relative; width: 80px; height: 80px; margin: 0 auto 24px auto;'><svg viewBox='0 0 50 50' style='width: 100%; height: 100%; animation: spin 2s linear infinite;'><circle cx='25' cy='25' r='20' fill='none' stroke='#e6f7ff' stroke-width='4'></circle><circle cx='25' cy='25' r='20' fill='none' stroke='#1890ff' stroke-width='4' stroke-dasharray='80' stroke-dashoffset='60' stroke-linecap='round'></circle></svg><div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #1890ff; font-feature-settings: \"tnum\";'><span id='report-timer-sec'>0</span><span style='font-size: 12px; margin-left: 2px; font-weight: 400;'>s</span></div></div><div style='font-size: 18px; font-weight: 600; color: #333; margin-bottom: 12px; letter-spacing: 0.5px; text-shadow: 0 2px 10px rgba(255,255,255,0.8);'>正在生成报告</div><div id='report-timer-text' style='font-size: 14px; color: #666; height: 20px; font-weight: 500;'>正在加载数据...</div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></div>",
+                            "onMount": "const startTime = Date.now(); const secDom = document.getElementById('report-timer-sec'); const textDom = document.getElementById('report-timer-text'); const texts = ['正在加载业务数据...', '正在构建分析模型...', 'AI 正在生成报告...', '正在渲染报告内容...']; window.reportTimer = setInterval(() => { const elapsed = ((Date.now() - startTime) / 1000).toFixed(1); if(secDom) secDom.innerText = elapsed; const step = Math.floor(elapsed / 3) % texts.length; if(textDom) textDom.innerText = texts[step]; }, 100);",
+                            "onUnmount": "clearInterval(window.reportTimer);"
+                        }
+                    ]
+                }
+            ]
+        },
+        
+        {# ================== 2. 报告展示区 (Service) ================== #}
+        {
+            "type": "container",
+            "visibleOn": "${show_report_result}",
+            "style": {
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "width": "100vw",
+                "height": "100vh",
+                "backgroundColor": "#525659",
+                "zIndex": "9998",
+                "overflow": "hidden"
+            },
+            "body": [
+                {# 报告头部工具栏 #}
+                {
+                    "type": "container",
+                    "style": {
+                        "backgroundColor": "#1a3c6e",
+                        "color": "white",
+                        "padding": "15px 20px",
+                        "display": "flex",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    },
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "tpl": "<span style='font-size: 18px; font-weight: bold;'>📄 风险分析报告预览</span>"
+                        },
+                        {
+                            "type": "container",
+                            "style": {
+                                "display": "flex",
+                                "gap": "15px"
+                            },
+                            "body": [
+                                {
+                                    "type": "button",
+                                    "label": "🖨️ 打印报告",
+                                    "level": "default",
+                                    "onEvent": {
+                                        "click": {
+                                            "actions": [{
+                                                "actionType": "custom",
+                                                "script": "window.print();"
+                                            }]
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "button",
+                                    "label": "✖ 关闭",
+                                    "level": "danger",
+                                    "onEvent": {
+                                        "click": {
+                                            "actions": [{
+                                                "actionType": "setValue",
+                                                "componentId": "global_page_root",
+                                                "args": {
+                                                    "value": {
+                                                        "show_report_result": false,
+                                                        "report_loading": false
+                                                    }
+                                                }
+                                            }]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                
+                {# Service 内容区 #}
+                {
+                    "type": "service",
+                    "id": "report_service_inner",
+                    "style": {
+                        "height": "calc(100vh - 60px)",
+                        "overflowY": "auto",
+                        "padding": "30px"
+                    },
+                    
+                    "schemaApi": {
+                        "method": "post",
+                        "url": "{{ ai_generate_api | default('/api/ai/generate-page') }}",
+                        "sendOn": "${report_loading === true}",
+                        "data": {
+                            "pageId": "{{ page_key }}",
+                            "workflowType": "{{ report_workflow_type | default('report_generation') }}",
+                            "query": "{{ report_query | default('请生成风险分析报告') }}",
+                            "timestamp": "${date(now(), 'x')}"
+                        }
+                    },
+                    
+                    "onEvent": {
+                        {# API 成功后关闭 Loading #}
+                        "fetchSchemaInited": {
+                            "actions": [{
+                                "actionType": "setValue",
+                                "componentId": "global_page_root",
+                                "args": {
+                                    "value": {
+                                        "report_loading": false
+                                    }
+                                }
+                            }]
+                        },
+                        {# API 失败后也关闭 Loading #}
+                        "fetchFailed": {
+                            "actions": [{
+                                "actionType": "setValue",
+                                "componentId": "global_page_root",
+                                "args": {
+                                    "value": {
+                                        "report_loading": false
+                                    }
+                                }
+                            }]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -26,7 +26,7 @@ function registerResources(server) {
                 {
                     uri: "component://library",
                     name: "Component Library",
-                    description: "Available AMIS components",
+                    description: "Available AMIS components with their component_id, params_schema and descriptions. Read this before using generate_page_schema tool.",
                     mimeType: "application/json"
                 },
                 {
@@ -126,7 +126,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。使用前必须先读取 component://library Resource 获取可用的组件列表及其参数要求。",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -143,17 +143,17 @@ function registerTools(server) {
                             },
                             components: {
                                 type: "array",
-                                description: "组件列表",
+                                description: "组件列表。每个组件的 component_id 和 params 必须严格匹配 component://library 中定义的值。",
                                 items: {
                                     type: "object",
                                     properties: {
                                         component_id: {
                                             type: "string",
-                                            description: "组件ID (来自 component://library)"
+                                            description: "组件ID，必须使用 component://library Resource 中返回的 component_id 字段的精确值（如 line_chart, bar_chart, funnel_chart）"
                                         },
                                         params: {
                                             type: "object",
-                                            description: "组件参数 (对应组件的 params_schema)"
+                                            description: "组件参数，必须符合该组件在 component://library 中的 params_schema 定义"
                                         }
                                     },
                                     required: ["component_id"]

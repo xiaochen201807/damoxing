@@ -1,0 +1,206 @@
+/* ========== 报告样式 - 模拟 A4 纸张的公文样式 ========== */
+
+/* 报告容器 - 阅读器背景 */
+.report-container {
+    background-color: #525659;
+    padding: 30px;
+    min-height: 100vh;
+}
+
+/* A4 纸张模拟 */
+.report-paper {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 25mm 20mm;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    font-family: "SimSun", "Songti SC", serif;
+    /* 宋体公文风格 */
+    line-height: 1.8;
+    color: #333;
+}
+
+/* 报告头部 */
+.report-header {
+    text-align: center;
+    border-bottom: 2px solid #b71c1c;
+    /* 红色下边框 */
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.report-title-main {
+    font-size: 24px;
+    font-weight: bold;
+    color: #b71c1c;
+    /* 红头文件色 */
+    margin-bottom: 10px;
+    font-family: "SimHei", sans-serif;
+}
+
+.report-meta {
+    font-size: 14px;
+    color: #666;
+    font-family: sans-serif;
+}
+
+/* 报告章节 */
+.report-section {
+    margin-bottom: 30px;
+    page-break-inside: avoid;
+}
+
+/* 一级标题 */
+.report-h1 {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1a3c6e;
+    display: flex;
+    align-items: center;
+    font-family: "SimHei", sans-serif;
+    page-break-after: avoid;
+}
+
+.report-h1::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 18px;
+    background: #1a3c6e;
+    /* 蓝色竖线装饰 */
+    margin-right: 8px;
+    border-radius: 2px;
+}
+
+/* 二级标题 */
+.report-h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 15px 0 8px 0;
+    color: #444;
+    font-family: "SimHei", sans-serif;
+    page-break-after: avoid;
+}
+
+/* 正文段落 */
+.report-p {
+    text-indent: 2em;
+    /* 首行缩进2字符 */
+    margin-bottom: 10px;
+    text-align: justify;
+    /* 两端对齐 */
+    font-size: 15px;
+    page-break-inside: avoid;
+}
+
+/* 报告表格 */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 14px;
+    font-family: sans-serif;
+    page-break-inside: avoid;
+}
+
+.report-table th,
+.report-table td {
+    border: 1px solid #333;
+    padding: 8px;
+    text-align: center;
+}
+
+.report-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+/* 列表样式 */
+.report-ul {
+    margin-left: 2em;
+    margin-bottom: 10px;
+}
+
+.report-ul li {
+    margin-bottom: 5px;
+    list-style-type: disc;
+}
+
+/* 强调文本 */
+.report-strong {
+    font-weight: bold;
+    color: #1a3c6e;
+}
+
+/* 日期/签名区域 */
+.report-footer {
+    margin-top: 50px;
+    text-align: right;
+}
+
+.report-footer p {
+    margin-bottom: 5px;
+}
+
+/* 打印样式 */
+@media print {
+    .report-container {
+        background: white;
+        padding: 0;
+    }
+
+    .report-paper {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        min-height: auto;
+        padding: 0;
+    }
+
+    /* 隐藏打印时不需要的元素 */
+    .cxd-Dialog-header,
+    .cxd-Dialog-footer,
+    button {
+        display: none !important;
+    }
+
+    /* 确保分页正确 */
+    .report-section {
+        page-break-inside: avoid;
+    }
+
+    .report-h1,
+    .report-h2 {
+        page-break-after: avoid;
+    }
+
+    .report-table {
+        page-break-inside: avoid;
+    }
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 900px) {
+    .report-paper {
+        width: 100%;
+        padding: 15mm 10mm;
+    }
+
+    .report-title-main {
+        font-size: 20px;
+    }
+
+    .report-h1 {
+        font-size: 16px;
+    }
+
+    .report-h2 {
+        font-size: 14px;
+    }
+
+    .report-p {
+        font-size: 14px;
+    }
+}

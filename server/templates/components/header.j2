@@ -11,7 +11,9 @@
   @param subtitle_color 副标题颜色  
   @param enable_report_button 是否显示报告生成按钮
   @param report_button_label 报告按钮文字
-  @param report_api 报告生成API地址
+  @param page_key 页面唯一标识（用于报告生成）
+  @param report_workflow_type 报告工作流类型（默认：report_generation）
+  @param report_query AI报告生成查询参数
 #}
 {% import 'base/colors.j2' as theme %}
 
@@ -38,34 +40,24 @@
             "transform": "translateY(-50%)", {# 修正垂直居中偏移 #}
             "zIndex": "10"
         },
-        "actionType": "dialog",
-        "dialog": {
-            "title": "{{ report_button_label | default('生成风险分析报告') }}",
-            "size": "lg",
-            "body": {
-                "type": "form",
-                "api": "{{ report_api | default('post:/api/report/generate') }}",
-                "body": [
+        "onEvent": {
+            "click": {
+                "actions": [
+                    {# 1. 设置全局变量：开启 loading #}
                     {
-                        "type": "select",
-                        "name": "report_type",
-                        "label": "报告类型",
-                        "options": [
-                            { "label": "月度分析报告", "value": "month" },
-                            { "label": "季度分析报告", "value": "quarter" }
-                        ],
-                        "required": true
+                        "actionType": "setValue",
+                        "componentId": "global_page_root",
+                        "args": {
+                            "value": {
+                                "show_report_result": true,
+                                "report_loading": true
+                            }
+                        }
                     },
+                    {# 2. 触发 Service 重新加载 #}
                     {
-                        "type": "input-date-range",
-                        "name": "date_range",
-                        "label": "时间范围",
-                        "required": true
-                    },
-                    {
-                        "type": "textarea",
-                        "name": "remark",
-                        "label": "备注说明"
+                        "actionType": "reload",
+                        "componentId": "report_service_inner"
                     }
                 ]
             }

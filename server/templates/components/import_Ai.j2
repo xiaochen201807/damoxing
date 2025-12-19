@@ -6,6 +6,7 @@
   @param import_api 数据导入API地址
   @param ai_generate_api AI生成页面API地址
   @param page_key 页面唯一标识
+  @param workflow_type AI 工作流类型标识（默认：ai_analysis）
   @param query AI分析查询参数
 #}
 {# 定义默认的导入项配置 #}
@@ -195,6 +196,7 @@
                 
                 "data": {
                     "pageId": "{{ page_key }}",
+                    "workflowType": "{{ workflow_type | default('ai_analysis') }}",  {# 🆕 智能分析按钮的工作流类型 #}
                     "query": "{{ query | default('{}') }}",
                     "timestamp": "${date(now(), 'x')}"
                 }

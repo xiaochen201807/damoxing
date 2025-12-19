@@ -72,7 +72,10 @@ const MainLayout: React.FC = () => {
                     }
                   >
                     {menu.icon && <i className={menu.icon}></i>}
-                    <span>{menu.label}</span>
+                    <div className="menu-text">
+                      <span className="menu-label">{menu.label}</span>
+                      {menu.subtitle && <span className="menu-subtitle">{menu.subtitle}</span>}
+                    </div>
                   </Link>
                 </li>
               ))}

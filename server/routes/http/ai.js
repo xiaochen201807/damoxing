@@ -257,7 +257,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 
 // POST /api/ai/generate-page
 router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
-  const { query, pageId } = req.body;
+  const { query, pageId, workflowType } = req.body;  // 🆕 新增 workflowType 参数
 
   if (!query) {
     return res.status(400).json({ error: "缺少 prompt 参数" });
@@ -266,8 +266,20 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
   // 1. 从数据库获取 Dify 配置
   const getConfig = () => {
     return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1';
-      db.get(sql, [pageId], (err, row) => {
+      // 🆕 如果传递了 workflowType，则精确查询；否则返回第一个匹配的配置
+      let sql, params;
+
+      if (workflowType) {
+        sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1';
+        params = [pageId, workflowType];
+        logger.info(`[AI Workflow] 查询配置: page_key=${pageId}, workflow_type=${workflowType}`);
+      } else {
+        sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1 LIMIT 1';
+        params = [pageId];
+        logger.info(`[AI Workflow] 查询配置: page_key=${pageId} (未指定工作流类型，使用第一个)`);
+      }
+
+      db.get(sql, params, (err, row) => {
         if (err) {
           logger.error('[AI Workflow] 查询配置失败:', err);
           return reject(err);
@@ -278,7 +290,10 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
           const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
           if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-            return reject(new Error(`页面 ${pageId} 未配置工作流`));
+            const errorMsg = workflowType
+              ? `页面 ${pageId} 的工作流类型 ${workflowType} 未配置`
+              : `页面 ${pageId} 未配置工作流`;
+            return reject(new Error(errorMsg));
           }
 
           logger.warn(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
