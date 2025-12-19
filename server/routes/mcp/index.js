@@ -111,6 +111,15 @@ function registerTools(server) {
         return {
             tools: [
                 {
+                    name: "list_components",
+                    description: "获取所有可用的组件列表及其参数定义。返回所有组件的 component_id、名称、描述和 params_schema，用于了解有哪些组件可用以及它们需要哪些参数。",
+                    inputSchema: {
+                        type: "object",
+                        properties: {},
+                        required: []
+                    }
+                },
+                {
                     name: "query_page_config",
                     description: "查询指定页面的配置 (AMIS Schema)",
                     inputSchema: {
@@ -126,7 +135,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。使用前必须先读取 component://library Resource 获取可用的组件列表及其参数要求。",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。使用前建议先调用 list_components 工具获取可用的组件列表及其参数要求。",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -143,17 +152,17 @@ function registerTools(server) {
                             },
                             components: {
                                 type: "array",
-                                description: "组件列表。每个组件的 component_id 和 params 必须严格匹配 component://library 中定义的值。",
+                                description: "组件列表。每个组件的 component_id 和 params 必须严格匹配 list_components 返回的定义。",
                                 items: {
                                     type: "object",
                                     properties: {
                                         component_id: {
                                             type: "string",
-                                            description: "组件ID，必须使用 component://library Resource 中返回的 component_id 字段的精确值（如 line_chart, bar_chart, funnel_chart）"
+                                            description: "组件ID，必须使用 list_components 工具返回的 component_id 字段的精确值（如 line_chart, bar_chart, funnel_chart）"
                                         },
                                         params: {
                                             type: "object",
-                                            description: "组件参数，必须符合该组件在 component://library 中的 params_schema 定义"
+                                            description: "组件参数，必须符合该组件在 list_components 中的 params_schema 定义"
                                         }
                                     },
                                     required: ["component_id"]
@@ -170,6 +179,38 @@ function registerTools(server) {
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name, arguments: args } = request.params;
         const mcpRenderer = require("../../utils/mcp-renderer");
+
+        if (name === "list_components") {
+            // 获取所有活跃的组件
+            const rawComponents = await new Promise((resolve, reject) => {
+                db.all(
+                    "SELECT component_id, name, description, params_schema, default_params FROM sys_component_library WHERE is_active = 1",
+                    [],
+                    (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    }
+                );
+            });
+
+            // 解析 JSON 字段
+            const components = rawComponents.map(row => ({
+                component_id: row.component_id,
+                name: row.name,
+                description: row.description,
+                params_schema: row.params_schema ? JSON.parse(row.params_schema) : {},
+                default_params: row.default_params ? JSON.parse(row.default_params) : {}
+            }));
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(components, null, 2)
+                    }
+                ]
+            };
+        }
 
         if (name === "query_page_config") {
             const { page_key } = args;
