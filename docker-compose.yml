@@ -18,6 +18,8 @@ services:
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
       - CORS_ORIGIN=*
+      # MCP 鉴权密钥 (用于 CherryStudio/Dify 连接)
+      - MCP_API_KEY=SY-1234567890
       # 只读模式 (生产环境推荐)
       # - SQLITE_READONLY=true
     volumes:
