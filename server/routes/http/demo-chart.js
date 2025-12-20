@@ -655,5 +655,194 @@ router.post('/bar-risk-list-post', (req, res) => {
     });
 });
 
+/**
+ * POST 版本 - 获取折线图数据
+ */
+router.post('/chart/risk-line-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 折线图数据请求:', { chart_id, time_range });
+
+    const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#ff4d4f', '#faad14', '#52c41a'],
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['高风险', '中风险', '低风险']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: months
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name: '高风险',
+                    type: 'line',
+                    data: [4, 5, 3, 6, 4, 5],
+                    smooth: true
+                },
+                {
+                    name: '中风险',
+                    type: 'line',
+                    data: [8, 7, 9, 8, 10, 9],
+                    smooth: true
+                },
+                {
+                    name: '低风险',
+                    type: 'line',
+                    data: [12, 13, 11, 14, 13, 15],
+                    smooth: true
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取漏斗图数据
+ */
+router.post('/chart/risk-funnel-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 漏斗图数据请求:', { chart_id, time_range });
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de'],
+            tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {c}'
+            },
+            legend: {
+                data: ['申请', '初审', '复审', '审批', '放款']
+            },
+            series: [
+                {
+                    name: '贷款流程',
+                    type: 'funnel',
+                    left: '10%',
+                    width: '80%',
+                    label: {
+                        formatter: '{b}: {c}'
+                    },
+                    data: [
+                        { value: 100, name: '申请', itemId: 'apply' },
+                        { value: 80, name: '初审', itemId: 'review1' },
+                        { value: 60, name: '复审', itemId: 'review2' },
+                        { value: 40, name: '审批', itemId: 'approve' },
+                        { value: 30, name: '放款', itemId: 'loan' }
+                    ]
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取雷达图数据
+ */
+router.post('/chart/risk-radar-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 雷达图数据请求:', { chart_id, time_range });
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#ff4d4f', '#1890ff'],
+            tooltip: {},
+            legend: {
+                data: ['实际风险', '预期风险']
+            },
+            radar: {
+                indicator: [
+                    { name: '信用评分', max: 100 },
+                    { name: '资产状况', max: 100 },
+                    { name: '还款能力', max: 100 },
+                    { name: '负债比率', max: 100 },
+                    { name: '历史记录', max: 100 }
+                ]
+            },
+            series: [
+                {
+                    name: '风险评估',
+                    type: 'radar',
+                    data: [
+                        {
+                            value: [85, 70, 90, 60, 95],
+                            name: '实际风险'
+                        },
+                        {
+                            value: [75, 80, 85, 70, 90],
+                            name: '预期风险'
+                        }
+                    ]
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取仪表盘数据
+ */
+router.post('/chart/risk-gauge-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 仪表盘数据请求:', { chart_id, time_range });
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: {
+                formatter: '{a} <br/>{b} : {c}%'
+            },
+            series: [
+                {
+                    name: '风险指数',
+                    type: 'gauge',
+                    detail: {
+                        formatter: '{value}%',
+                        fontSize: 20
+                    },
+                    data: [
+                        { value: 68, name: '综合风险评分' }
+                    ],
+                    axisLine: {
+                        lineStyle: {
+                            width: 20,
+                            color: [
+                                [0.3, '#52c41a'],
+                                [0.7, '#faad14'],
+                                [1, '#ff4d4f']
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    });
+});
+
 module.exports = router;
 
