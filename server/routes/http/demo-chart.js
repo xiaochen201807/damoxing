@@ -379,4 +379,240 @@ router.get('/header-info', (req, res) => {
     });
 });
 
+// ==================== POST 格式的测试 API ====================
+
+/**
+ * POST 版本 - 获取饼图数据
+ * 接收参数：chart_id, time_range 等
+ */
+router.post('/chart/risk-pie-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    // 记录请求参数（用于调试）
+    console.log('[POST] 饼图数据请求:', { chart_id, time_range });
+
+    // 返回相同的数据结构
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#3aa1ff', '#36cfc9', '#9254de'],
+            tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [
+                {
+                    name: '风险分类',
+                    type: 'pie',
+                    radius: '60%',
+                    center: ['50%', '50%'],
+                    data: [
+                        { value: mockData.high.length, name: '高风险', itemId: 'high' },
+                        { value: mockData.medium.length, name: '中风险', itemId: 'medium' },
+                        { value: mockData.low.length, name: '低风险', itemId: 'low' }
+                    ],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取柱形图数据
+ */
+router.post('/chart/risk-bar-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 柱形图数据请求:', { chart_id, time_range });
+
+    const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
+    const highRisk = [2, 3, 2, 4, 3, 3];
+    const mediumRisk = [3, 2, 4, 3, 3, 3];
+    const lowRisk = [3, 3, 2, 2, 3, 3];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#ff4d4f', '#faad14', '#52c41a'],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: {
+                data: ['高风险', '中风险', '低风险'],
+                bottom: 0
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                top: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: months,
+                axisLabel: {
+                    rotate: 0
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '客户数量',
+                nameTextStyle: {
+                    padding: [0, 0, 0, 50]
+                }
+            },
+            series: [
+                {
+                    name: '高风险',
+                    type: 'bar',
+                    stack: 'total',
+                    data: highRisk.map((val, idx) => ({
+                        value: val,
+                        itemId: 'high',
+                        month: months[idx]
+                    })),
+                    emphasis: {
+                        focus: 'series'
+                    }
+                },
+                {
+                    name: '中风险',
+                    type: 'bar',
+                    stack: 'total',
+                    data: mediumRisk.map((val, idx) => ({
+                        value: val,
+                        itemId: 'medium',
+                        month: months[idx]
+                    })),
+                    emphasis: {
+                        focus: 'series'
+                    }
+                },
+                {
+                    name: '低风险',
+                    type: 'bar',
+                    stack: 'total',
+                    data: lowRisk.map((val, idx) => ({
+                        value: val,
+                        itemId: 'low',
+                        month: months[idx]
+                    })),
+                    emphasis: {
+                        focus: 'series'
+                    }
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取风险清册列表
+ * 接收参数：selectedId (必需), chart_id, month 等
+ */
+router.post('/risk-list-post', (req, res) => {
+    const { selectedId, chart_id, month } = req.body;
+
+    console.log('[POST] 风险清册请求:', { selectedId, chart_id, month });
+
+    // selectedId 是必需的
+    if (!selectedId) {
+        return res.status(400).json({
+            status: 400,
+            msg: 'selectedId is required'
+        });
+    }
+
+    const category = selectedId;
+    let items = mockData[category] || [];
+
+    // 如果提供了月份参数，根据月份返回不同的数据子集
+    if (month) {
+        const monthIndex = parseInt(month.split('-')[1]) - 7;
+        const startIdx = monthIndex % items.length;
+        const itemsForMonth = items.slice(startIdx, startIdx + Math.min(2, items.length - startIdx));
+
+        if (itemsForMonth.length < 2 && items.length >= 2) {
+            itemsForMonth.push(...items.slice(0, 2 - itemsForMonth.length));
+        }
+
+        items = itemsForMonth.map(item => ({
+            ...item,
+            month: month
+        }));
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: items,
+            total: items.length
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取柱形图的风险清册列表
+ */
+router.post('/bar-risk-list-post', (req, res) => {
+    const { selectedId, chart_id, month } = req.body;
+
+    console.log('[POST] 柱形图风险清册请求:', { selectedId, chart_id, month });
+
+    if (!selectedId) {
+        return res.status(400).json({
+            status: 400,
+            msg: 'selectedId is required'
+        });
+    }
+
+    const category = selectedId;
+    let items = barChartMockData[category] || [];
+
+    if (month) {
+        const monthIndex = parseInt(month.split('-')[1]) - 7;
+        const startIdx = monthIndex % items.length;
+        const count = category === 'high' ? 2 : category === 'medium' ? 3 : 2;
+
+        let itemsForMonth = items.slice(startIdx, startIdx + count);
+
+        if (itemsForMonth.length < count && items.length >= count) {
+            itemsForMonth = [...itemsForMonth, ...items.slice(0, count - itemsForMonth.length)];
+        }
+
+        items = itemsForMonth.map(item => ({
+            ...item,
+            month: month
+        }));
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: items,
+            total: items.length
+        }
+    });
+});
+
 module.exports = router;
+

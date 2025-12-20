@@ -6,12 +6,17 @@
   - chart_type: 图表类型 (pie/bar/line/funnel/radar/gauge) - 必需
   - title: 图表标题
   - api_url: 图表数据API地址 - 必需
+  - api_method: 图表数据API请求方法 (default: 'get', optional: 'post')
+  - api_data: API POST请求时的请求体参数 (optional, 对象)
   - height: 图表高度 (default: 400)
   - chart_options: 图表特定配置 (optional)
   - drilldown_api: 钻取详情API地址 (optional)
-  - drilldown_params: 钻取API参数对象 (optional)
+  - drilldown_method: 钻取API请求方法 (default: 'get', optional: 'post')
+  - drilldown_data: 钻取API POST请求时的基础参数 (optional, 对象, 会自动合并 selectedId)
+  - drilldown_params: 钻取API参数对象 (optional, 已废弃，建议用 drilldown_data)
   - drilldown_columns: 钻取表格列定义 (optional)
   - export_api: 导出API地址 (optional)
+  - export_method: 导出API请求方法 (default: 'get', optional: 'post')
   - ai_analysis_text: AI生成的风险分析 (optional)
   - ai_suggestions: AI生成的规避建议 (optional)
   - enable_drilldown: 是否启用钻取 (default: true)
@@ -27,7 +32,10 @@
                 "type": "chart",
                 "api": {
                     "url": "{{ api_url }}",
-                    "method": "get",
+                    "method": "{{ api_method | default('get') | lower }}",
+                    {% if api_data %}
+                    "data": {{ api_data | tojson }},
+                    {% endif %}
                     "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() }}{% else %}return payload;{% endif %}"
                 },
                 "height": {{ height | default(400) }},
@@ -68,12 +76,12 @@
                             "type": "{% if chart_type == 'line' %}service{% else %}crud{% endif %}",
                             {% if chart_type == 'line' %}
                             "api": {
-                                "method": "get",
+                                "method": "{{ drilldown_method | default('get') | lower }}",
                                 "url": "{{ drilldown_api | default('/api/demo/risk-list') }}",
                                 "data": {
                                     "&": "$$"
                                 },
-                                "requestAdaptor": "const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
+                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
                             },
                             "body": {
                                 "type": "table",
@@ -87,12 +95,12 @@
                             {% else %}
                             "syncLocation": false,
                             "api": {
-                                "method": "get",
+                                "method": "{{ drilldown_method | default('get') | lower }}",
                                 "url": "{{ drilldown_api | default('/api/demo/risk-list') }}",
                                 "data": {
                                     "&": "$$"
                                 },
-                                "requestAdaptor": "const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
+                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
                             },
                             "perPageAvailable": [10, 20, 50],
                             "perPage": 10,
