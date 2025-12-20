@@ -47,8 +47,7 @@
                     {% endif %}
                     "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() }}{% else %}return payload;{% endif %}"
                 },
-                "height": {{ height | default(400) }},
-                {% if enable_drilldown | default(true) %}
+                "height": {{ height | default(400) }}{% if enable_drilldown | default(true) %},
                 "clickAction": {
                     "actionType": "dialog",
                     "dialog": {
@@ -118,23 +117,47 @@
                             },
                             "perPageAvailable": [10, 20, 50],
                             "perPage": 10,
-                            "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson }}{% else %}[
-                                {"name": "id", "label": "ID", "width": 60},
-                                {% if chart_type == 'funnel' %}
-                                {"name": "user_name", "label": "用户"},
-                                {"name": "status", "label": "状态"}
-                                {% else %}
-                                {"name": "customer_name", "label": "客户名称"},
-                                {"name": "risk_score", "label": "风险评分", "type": "number"},
-                                {"name": "status", "label": "状态", "type": "mapping", "map": {
-                                    "pending": "<span class='label label-warning'>待处理</span>",
-                                    "processing": "<span class='label label-info'>处理中</span>",
-                                    "completed": "<span class='label label-success'>已完成</span>"
-                                }},
-                                {"name": "amount", "label": "金额", "type": "number"},
-                                {"name": "overdue_days", "label": "逾期天数"}
+                            "footerToolbar": {% if drilldown_pagination | default(true) %}["statistics", "switch-per-page", "pagination"]{% else %}["statistics"]{% endif %},
+                            {% if drilldown_batch %}
+                            "keepItemSelectionOnPageChange": true,
+                            "bulkActions": [
+                                {
+                                    "label": "批量处理",
+                                    "actionType": "button",
+                                    "level": "primary",
+                                    "onClick": "alert('批量处理选中项ID：' + this.selectedItems.map(item => item.id).join(', '))"
+                                }
+                            ],
+                            {% endif %}
+                            {% set default_cols = [] %}
+                            {% if chart_type == 'funnel' %}
+                                {% set default_cols = [
+                                    {"name": "id", "label": "ID", "width": 60},
+                                    {"name": "user_name", "label": "用户"},
+                                    {"name": "status", "label": "状态"}
+                                ] %}
+                            {% else %}
+                                {% set default_cols = [
+                                    {"name": "id", "label": "ID", "width": 60},
+                                    {"name": "customer_name", "label": "客户名称"},
+                                    {"name": "risk_score", "label": "风险评分", "type": "number"},
+                                    {"name": "status", "label": "状态"},
+                                    {"name": "amount", "label": "金额", "type": "number"},
+                                    {"name": "overdue_days", "label": "逾期天数"}
+                                ] %}
+                            {% endif %}
+                            
+                            {% set final_cols = drilldown_columns | default(default_cols) %}
+                            
+                            "columns": [
+                                {% if drilldown_sequence %}
+                                {"name": "__index", "label": "序号", "type": "tpl", "tpl": "${index + 1}", "width": 50 }
+                                {% if final_cols | length > 0 %},{% endif %}
                                 {% endif %}
-                            ]{% endif %}
+                                {% for col in final_cols %}
+                                    {{ col | tojson }}{% if not loop.last %},{% endif %}
+                                {% endfor %}
+                            ]
                             {% endif %}
                         }
                     }
