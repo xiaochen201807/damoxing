@@ -52,7 +52,7 @@
                 "clickAction": {
                     "actionType": "dialog",
                     "dialog": {
-                        "title": "{% if chart_type == 'pie' or chart_type == 'bar' or chart_type == 'funnel' %}${selectedName} - 详细数据{% elif chart_type == 'line' %}${selectedSeries} - ${selectedDate}{% else %}详细数据{% endif %}",
+                        "title": "{% if chart_type == 'pie' %}${selectedName} - 详细数据{% elif chart_type == 'bar' %}${selectedMonth} - 详细数据{% elif chart_type == 'funnel' %}${selectedName} - 详细数据{% elif chart_type == 'line' %}${selectedSeries} - ${selectedDate}{% else %}详细数据{% endif %}",
                         "size": "xl",
                         {% if chart_type != 'radar' and chart_type != 'gauge' %}
                         "actions": [
@@ -61,7 +61,7 @@
                                 "label": "导出",
                                 "level": "primary",
                                 "actionType": "download",
-                                "api": "{{ export_api | default('/api/export/data') }}?{% if chart_type == 'line' %}series=${selectedSeries}&date=${selectedDate}{% else %}category=${selectedName}{% endif %}"
+                                "api": "{{ export_api | default('/api/export/data') }}?{% if chart_type == 'line' %}series=${selectedSeries}&date=${selectedDate}{% elif chart_type == 'bar' %}month=${selectedMonth}{% else %}category=${selectedName}{% endif %}"
                             },
                             {
                                 "type": "button",
@@ -74,6 +74,11 @@
                             {% if chart_type == 'line' %}
                             "selectedSeries": "${data.seriesName}",
                             "selectedDate": "${data.name}",
+                            "selectedValue": "${data.value}"
+                            {% elif chart_type == 'bar' %}
+                            "selectedId": "${data.itemId}",
+                            "selectedMonth": "${data.itemId}",
+                            "selectedName": "${data.name}",
                             "selectedValue": "${data.value}"
                             {% else %}
                             "selectedId": "${data.itemId}",

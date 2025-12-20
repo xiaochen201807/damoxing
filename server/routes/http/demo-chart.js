@@ -616,33 +616,33 @@ router.post('/risk-list-post', (req, res) => {
 router.post('/bar-risk-list-post', (req, res) => {
     const { selectedId, chart_id, month } = req.body;
 
-    console.log('[POST] 柱形图风险清册请求:', { selectedId, chart_id, month });
+    // selectedId 现在是月份，如 "2024-10"
+    const targetMonth = selectedId || month;
 
-    if (!selectedId) {
-        return res.status(400).json({
-            status: 400,
-            msg: 'selectedId is required'
-        });
-    }
+    console.log('[POST] 柱状图钻取请求:', { selectedId, targetMonth, chart_id });
 
-    const category = selectedId;
-    let items = barChartMockData[category] || [];
+    let items = [];
 
-    if (month) {
-        const monthIndex = parseInt(month.split('-')[1]) - 7;
-        const startIdx = monthIndex % items.length;
-        const count = category === 'high' ? 2 : category === 'medium' ? 3 : 2;
+    if (targetMonth) {
+        // 从所有风险等级中获取数据
+        const allData = [
+            ...barChartMockData.high,
+            ...barChartMockData.medium,
+            ...barChartMockData.low
+        ];
 
-        let itemsForMonth = items.slice(startIdx, startIdx + count);
-
-        if (itemsForMonth.length < count && items.length >= count) {
-            itemsForMonth = [...itemsForMonth, ...items.slice(0, count - itemsForMonth.length)];
-        }
-
-        items = itemsForMonth.map(item => ({
+        // 为每条数据添加 month 字段
+        items = allData.map(item => ({
             ...item,
-            month: month
-        }));
+            month: targetMonth
+        })).slice(0, 10); // 模拟该月的10条数据
+    } else {
+        // 没有指定月份，返回所有数据的前10条
+        items = [
+            ...barChartMockData.high,
+            ...barChartMockData.medium,
+            ...barChartMockData.low
+        ].slice(0, 10);
     }
 
     res.json({
