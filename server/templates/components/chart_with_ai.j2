@@ -70,7 +70,10 @@
                             "api": {
                                 "method": "get",
                                 "url": "{{ drilldown_api | default('/api/demo/risk-list') }}",
-                                "requestAdaptor": "const baseUrl = api.url; const selectedId = context.selectedId ||''; if (!selectedId) return api; const fullUrl = (baseUrl + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
+                                "data": {
+                                    "&": "$$"
+                                },
+                                "requestAdaptor": "const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
                             },
                             "body": {
                                 "type": "table",
@@ -86,7 +89,10 @@
                             "api": {
                                 "method": "get",
                                 "url": "{{ drilldown_api | default('/api/demo/risk-list') }}",
-                                "requestAdaptor": "const baseUrl = api.url; const selectedId = context.selectedId || ''; if (!selectedId) return api; const fullUrl = (baseUrl + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
+                                "data": {
+                                    "&": "$$"
+                                },
+                                "requestAdaptor": "const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl};"
                             },
                             "perPageAvailable": [10, 20, 50],
                             "perPage": 10,
