@@ -65,30 +65,49 @@
                             {% endif %}
                         },
                         "body": {
-                            "type": "service",
+                            "type": "{% if chart_type == 'line' %}service{% else %}crud{% endif %}",
+                            {% if chart_type == 'line' %}
                             "api": {
                                 "method": "get",
-                                "url": "{{ (drilldown_api | default('/api/demo/risk-list') + '/${selectedId}') | replace('//', '/') }}"
+                                "url": "{{ drilldown_api | default('/api/demo/risk-list') }}/${selectedId}",
+                                "requestAdaptor": "const url = api.url.replace(/\\/\\//g, '/'); return {...api, url};"
                             },
                             "body": {
-                                "type": "{% if chart_type == 'line' %}table{% else %}crud{% endif %}",
-                                {% if chart_type != 'line' %}"syncLocation": false,{% endif %}
-                                "api": "${api}",
+                                "type": "table",
                                 "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson }}{% else %}[
                                     {"name": "id", "label": "ID", "width": 60},
-                                    {% if chart_type == 'line' %}
                                     {"name": "date", "label": "日期", "type": "date"},
                                     {"name": "value", "label": "数值", "type": "number"},
                                     {"name": "trend", "label": "趋势"}
-                                    {% elif chart_type == 'funnel' %}
-                                    {"name": "user_name", "label": "用户"},
-                                    {"name": "status", "label": "状态"}
-                                    {% else %}
-                                    {"name": "name", "label": "名称"},
-                                    {"name": "value", "label": "数值", "type": "number"}
-                                    {% endif %}
                                 ]{% endif %}
                             }
+                            {% else %}
+                            "syncLocation": false,
+                            "api": {
+                                "method": "get",
+                                "url": "{{ drilldown_api | default('/api/demo/risk-list') }}/${selectedId}",
+                                "requestAdaptor": "const url = api.url.replace(/\\/\\//g, '/'); return {...api, url};"
+                            },
+                            "perPageAvailable": [10, 20, 50],
+                            "perPage": 10,
+                            "columns": {% if drilldown_columns %}{{ drilldown_columns | tojson }}{% else %}[
+                                {"name": "id", "label": "ID", "width": 60},
+                                {% if chart_type == 'funnel' %}
+                                {"name": "user_name", "label": "用户"},
+                                {"name": "status", "label": "状态"}
+                                {% else %}
+                                {"name": "customer_name", "label": "客户名称"},
+                                {"name": "risk_score", "label": "风险评分", "type": "number"},
+                                {"name": "status", "label": "状态", "type": "mapping", "map": {
+                                    "pending": "<span class='label label-warning'>待处理</span>",
+                                    "processing": "<span class='label label-info'>处理中</span>",
+                                    "completed": "<span class='label label-success'>已完成</span>"
+                                }},
+                                {"name": "amount", "label": "金额", "type": "number"},
+                                {"name": "overdue_days", "label": "逾期天数"}
+                                {% endif %}
+                            ]{% endif %}
+                            {% endif %}
                         }
                     }
                 }
