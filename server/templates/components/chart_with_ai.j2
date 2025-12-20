@@ -81,7 +81,7 @@
                                 "data": {
                                     "&": "$$"
                                 },
-                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
+                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson | replace('"', "'") }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
                             },
                             "body": {
                                 "type": "table",
@@ -100,7 +100,7 @@
                                 "data": {
                                     "&": "$$"
                                 },
-                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
+                                "requestAdaptor": "const method = '{{ drilldown_method | default('get') | lower }}'; const selectedId = context?.selectedId || ''; if (!selectedId) { return api; } if (method === 'get') { const fullUrl = ('{{ drilldown_api | default('/api/demo/risk-list') }}' + '/' + selectedId).replace(/\\/\\//g, '/'); return {...api, url: fullUrl}; } else { const baseData = {% if drilldown_data %}{{ drilldown_data | tojson | replace('"', "'") }}{% else %}{}{% endif %}; return {...api, data: {...baseData, selectedId}}; }"
                             },
                             "perPageAvailable": [10, 20, 50],
                             "perPage": 10,
