@@ -129,31 +129,25 @@ router.get('/chart/risk-pie', (req, res) => {
 
 // 获取柱形图数据 (按月统计)
 router.get('/chart/risk-bar', (req, res) => {
-    // 模拟最近6个月的数据
     const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
-    const highRisk = [2, 3, 2, 4, 3, 3];
-    const mediumRisk = [3, 2, 4, 3, 3, 3];
-    const lowRisk = [3, 3, 2, 2, 3, 3];
+    const customerCounts = [8, 8, 8, 9, 9, 9];
 
     res.json({
         status: 0,
         msg: 'success',
         data: {
-            color: ['#ff4d4f', '#faad14', '#52c41a'],
+            color: ['#1890ff'],
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
                     type: 'shadow'
-                }
-            },
-            legend: {
-                data: ['高风险', '中风险', '低风险'],
-                bottom: 0
+                },
+                formatter: '{b}<br/>客户数量: {c}'
             },
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '15%',
+                bottom: '10%',
                 top: '10%',
                 containLabel: true
             },
@@ -173,42 +167,21 @@ router.get('/chart/risk-bar', (req, res) => {
             },
             series: [
                 {
-                    name: '高风险',
+                    name: '客户数量',
                     type: 'bar',
-                    stack: 'total',
-                    data: highRisk.map((val, idx) => ({
+                    data: customerCounts.map((val, idx) => ({
                         value: val,
-                        itemId: 'high',
+                        itemId: months[idx],
                         month: months[idx]
                     })),
+                    barWidth: '50%',
+                    itemStyle: {
+                        borderRadius: [4, 4, 0, 0]
+                    },
                     emphasis: {
-                        focus: 'series'
-                    }
-                },
-                {
-                    name: '中风险',
-                    type: 'bar',
-                    stack: 'total',
-                    data: mediumRisk.map((val, idx) => ({
-                        value: val,
-                        itemId: 'medium',
-                        month: months[idx]
-                    })),
-                    emphasis: {
-                        focus: 'series'
-                    }
-                },
-                {
-                    name: '低风险',
-                    type: 'bar',
-                    stack: 'total',
-                    data: lowRisk.map((val, idx) => ({
-                        value: val,
-                        itemId: 'low',
-                        month: months[idx]
-                    })),
-                    emphasis: {
-                        focus: 'series'
+                        itemStyle: {
+                            color: '#40a9ff'
+                        }
                     }
                 }
             ]
@@ -476,32 +449,27 @@ router.post('/chart/risk-pie-post', (req, res) => {
 router.post('/chart/risk-bar-post', (req, res) => {
     const { chart_id, time_range } = req.body;
 
-    console.log('[POST] 柱形图数据请求:', { chart_id, time_range });
+    console.log('[POST] 柱状图数据请求:', { chart_id, time_range });
 
     const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
-    const highRisk = [2, 3, 2, 4, 3, 3];
-    const mediumRisk = [3, 2, 4, 3, 3, 3];
-    const lowRisk = [3, 3, 2, 2, 3, 3];
+    const customerCounts = [8, 8, 8, 9, 9, 9];
 
     res.json({
         status: 0,
         msg: 'success',
         data: {
-            color: ['#ff4d4f', '#faad14', '#52c41a'],
+            color: ['#1890ff'],
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
                     type: 'shadow'
-                }
-            },
-            legend: {
-                data: ['高风险', '中风险', '低风险'],
-                bottom: 0
+                },
+                formatter: '{b}<br/>客户数量: {c}'
             },
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '15%',
+                bottom: '10%',
                 top: '10%',
                 containLabel: true
             },
@@ -521,42 +489,91 @@ router.post('/chart/risk-bar-post', (req, res) => {
             },
             series: [
                 {
-                    name: '高风险',
+                    name: '客户数量',
                     type: 'bar',
-                    stack: 'total',
-                    data: highRisk.map((val, idx) => ({
+                    data: customerCounts.map((val, idx) => ({
                         value: val,
-                        itemId: 'high',
+                        itemId: months[idx],
                         month: months[idx]
                     })),
+                    barWidth: '50%',
+                    itemStyle: {
+                        borderRadius: [4, 4, 0, 0]
+                    },
                     emphasis: {
-                        focus: 'series'
+                        itemStyle: {
+                            color: '#40a9ff'
+                        }
                     }
+                }
+            ]
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取横向柱状图数据（地区分布）
+ */
+router.post('/chart/region-bar-post', (req, res) => {
+    const { chart_id, time_range } = req.body;
+
+    console.log('[POST] 横向柱状图数据请求:', { chart_id, time_range });
+
+    const regions = ['华东地区', '华南地区', '华北地区', '西南地区', '华中地区'];
+    const customerCounts = [15, 12, 10, 8, 6];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            color: ['#5470c6'],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
                 },
+                formatter: '{b}: {c}个客户'
+            },
+            grid: {
+                left: '15%',
+                right: '10%',
+                bottom: '3%',
+                top: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: '客户数量'
+            },
+            yAxis: {
+                type: 'category',
+                data: regions,
+                axisLabel: {
+                    interval: 0
+                }
+            },
+            series: [
                 {
-                    name: '中风险',
+                    name: '客户数量',
                     type: 'bar',
-                    stack: 'total',
-                    data: mediumRisk.map((val, idx) => ({
+                    data: customerCounts.map((val, idx) => ({
                         value: val,
-                        itemId: 'medium',
-                        month: months[idx]
+                        itemId: regions[idx],
+                        region: regions[idx]
                     })),
+                    barWidth: '60%',
+                    itemStyle: {
+                        borderRadius: [0, 4, 4, 0]
+                    },
                     emphasis: {
-                        focus: 'series'
-                    }
-                },
-                {
-                    name: '低风险',
-                    type: 'bar',
-                    stack: 'total',
-                    data: lowRisk.map((val, idx) => ({
-                        value: val,
-                        itemId: 'low',
-                        month: months[idx]
-                    })),
-                    emphasis: {
-                        focus: 'series'
+                        itemStyle: {
+                            color: '#748ffc'
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{c}'
                     }
                 }
             ]
@@ -643,6 +660,48 @@ router.post('/bar-risk-list-post', (req, res) => {
             ...barChartMockData.medium,
             ...barChartMockData.low
         ].slice(0, 10);
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: items,
+            total: items.length
+        }
+    });
+});
+
+/**
+ * POST 版本 - 获取横向柱状图钻取清册（按地区）
+ */
+router.post('/region-list-post', (req, res) => {
+    const { selectedId, chart_id } = req.body;
+
+    const region = selectedId;
+
+    console.log('[POST] 横向柱状图钻取请求:', { selectedId, region, chart_id });
+
+    let items = [];
+
+    if (region) {
+        const allData = [
+            ...barChartMockData.high,
+            ...barChartMockData.medium,
+            ...barChartMockData.low
+        ];
+
+        items = allData.map((item, idx) => ({
+            ...item,
+            region: region,
+            city: ['上海', '杭州', '南京', '苏州', '宁波'][idx % 5]
+        })).slice(0, 12);
+    } else {
+        items = [
+            ...barChartMockData.high,
+            ...barChartMockData.medium,
+            ...barChartMockData.low
+        ].slice(0, 12);
     }
 
     res.json({
