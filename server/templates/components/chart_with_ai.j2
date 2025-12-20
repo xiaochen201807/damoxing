@@ -157,6 +157,14 @@
                                 {% for col in final_cols %}
                                     {{ col | tojson }}{% if not loop.last %},{% endif %}
                                 {% endfor %}
+                                {% if drilldown_actions %}
+                                ,{
+                                    "type": "operation",
+                                    "label": "操作",
+                                    "width": {{ drilldown_actions_width | default(100) }},
+                                    "buttons": {{ drilldown_actions | tojson }}
+                                }
+                                {% endif %}
                             ]
                             {% endif %}
                         }
