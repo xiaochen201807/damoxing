@@ -193,6 +193,12 @@
                     "type": "tpl",
                     "tpl": "<div style='margin-bottom: 5px;'><span style='background: #006d75; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>规避建议</span></div><div style='font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}</div>"
                 }
+                },
+                {
+                    "type": "tpl",
+                    "tpl": "<script>console.log('[Debug] Chart Params:', { drilldown_actions: {{ drilldown_actions | tojson | default('null') }}, drilldown_sequence: {{ drilldown_sequence | default('false') }} });</script>",
+                    "visible": false
+                }
             ]
         }
     ]
