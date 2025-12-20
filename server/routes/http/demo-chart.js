@@ -5,22 +5,53 @@
 const express = require('express');
 const router = express.Router();
 
-// 饼图的模拟数据库
+// 饼图的模拟数据库 - 8 个风险等级
 const mockData = {
-    high: [
-        { id: 1, customer_name: '张三', risk_score: 95, status: 'pending', amount: 500000, overdue_days: 90 },
-        { id: 2, customer_name: '李四', risk_score: 88, status: 'processing', amount: 300000, overdue_days: 60 },
-        { id: 3, customer_name: '王五', risk_score: 92, status: 'pending', amount: 800000, overdue_days: 120 }
+    critical: [ // 极高风险
+        { id: 1, customer_name: '张三', risk_score: 98, status: 'pending', amount: 800000, overdue_days: 150 },
+        { id: 2, customer_name: '李四', risk_score: 96, status: 'processing', amount: 750000, overdue_days: 135 },
+        { id: 3, customer_name: '王五', risk_score: 97, status: 'pending', amount: 900000, overdue_days: 160 }
     ],
-    medium: [
-        { id: 4, customer_name: '赵六', risk_score: 65, status: 'pending', amount: 200000, overdue_days: 30 },
-        { id: 5, customer_name: '钱七', risk_score: 58, status: 'completed', amount: 150000, overdue_days: 15 },
-        { id: 6, customer_name: '孙八', risk_score: 72, status: 'processing', amount: 250000, overdue_days: 45 }
+    high: [ // 高风险
+        { id: 4, customer_name: '赵六', risk_score: 88, status: 'pending', amount: 500000, overdue_days: 90 },
+        { id: 5, customer_name: '钱七', risk_score: 85, status: 'processing', amount: 450000, overdue_days: 75 },
+        { id: 6, customer_name: '孙八', risk_score: 92, status: 'pending', amount: 600000, overdue_days: 110 },
+        { id: 7, customer_name: '周九', risk_score: 87, status: 'processing', amount: 480000, overdue_days: 85 }
     ],
-    low: [
-        { id: 7, customer_name: '周九', risk_score: 35, status: 'completed', amount: 100000, overdue_days: 5 },
-        { id: 8, customer_name: '吴十', risk_score: 28, status: 'completed', amount: 80000, overdue_days: 3 },
-        { id: 9, customer_name: '郑十一', risk_score: 42, status: 'pending', amount: 120000, overdue_days: 10 }
+    'medium-high': [ // 中高风险
+        { id: 8, customer_name: '吴十', risk_score: 72, status: 'processing', amount: 350000, overdue_days: 55 },
+        { id: 9, customer_name: '郑十一', risk_score: 75, status: 'pending', amount: 380000, overdue_days: 60 },
+        { id: 10, customer_name: '冯十二', risk_score: 70, status: 'processing', amount: 320000, overdue_days: 50 },
+        { id: 11, customer_name: '陈十三', risk_score: 78, status: 'completed', amount: 400000, overdue_days: 45 }
+    ],
+    medium: [ // 中风险
+        { id: 12, customer_name: '褚十四', risk_score: 62, status: 'pending', amount: 280000, overdue_days: 35 },
+        { id: 13, customer_name: '卫十五', risk_score: 58, status: 'completed', amount: 250000, overdue_days: 28 },
+        { id: 14, customer_name: '蒋十六', risk_score: 65, status: 'processing', amount: 300000, overdue_days: 40 },
+        { id: 15, customer_name: '沈十七', risk_score: 60, status: 'processing', amount: 270000, overdue_days: 32 }
+    ],
+    'medium-low': [ // 中低风险
+        { id: 16, customer_name: '韩十八', risk_score: 48, status: 'completed', amount: 200000, overdue_days: 22 },
+        { id: 17, customer_name: '杨十九', risk_score: 52, status: 'processing', amount: 220000, overdue_days: 25 },
+        { id: 18, customer_name: '朱二十', risk_score: 45, status: 'completed', amount: 180000, overdue_days: 18 },
+        { id: 19, customer_name: '秦廿一', risk_score: 50, status: 'completed', amount: 210000, overdue_days: 20 }
+    ],
+    low: [ // 低风险
+        { id: 20, customer_name: '尤廿二', risk_score: 35, status: 'completed', amount: 150000, overdue_days: 12 },
+        { id: 21, customer_name: '许廿三', risk_score: 38, status: 'completed', amount: 160000, overdue_days: 14 },
+        { id: 22, customer_name: '何廿四', risk_score: 32, status: 'completed', amount: 140000, overdue_days: 10 },
+        { id: 23, customer_name: '吕廿五', risk_score: 40, status: 'pending', amount: 170000, overdue_days: 15 }
+    ],
+    minimal: [ // 极低风险
+        { id: 24, customer_name: '施廿六', risk_score: 22, status: 'completed', amount: 100000, overdue_days: 5 },
+        { id: 25, customer_name: '张廿七', risk_score: 25, status: 'completed', amount: 110000, overdue_days: 6 },
+        { id: 26, customer_name: '孔廿八', risk_score: 20, status: 'completed', amount: 95000, overdue_days: 4 }
+    ],
+    safe: [ // 安全
+        { id: 27, customer_name: '曹廿九', risk_score: 10, status: 'completed', amount: 80000, overdue_days: 2 },
+        { id: 28, customer_name: '严三十', risk_score: 12, status: 'completed', amount: 85000, overdue_days: 3 },
+        { id: 29, customer_name: '华卅一', risk_score: 8, status: 'completed', amount: 75000, overdue_days: 1 },
+        { id: 30, customer_name: '金卅二', risk_score: 15, status: 'completed', amount: 90000, overdue_days: 3 }
     ]
 };
 
@@ -58,7 +89,7 @@ router.get('/chart/risk-pie', (req, res) => {
         status: 0,
         msg: 'success',
         data: {
-            color: ['#3aa1ff', '#36cfc9', '#9254de'],
+            color: ['#d32029', '#ff4d4f', '#ff7a45', '#ffa940', '#ffc53d', '#fadb14', '#a0d911', '#52c41a'],
             tooltip: {
                 trigger: 'item',
                 formatter: '{b}: {c} ({d}%)'
@@ -74,9 +105,14 @@ router.get('/chart/risk-pie', (req, res) => {
                     radius: '60%',
                     center: ['50%', '50%'],
                     data: [
+                        { value: mockData.critical.length, name: '极高风险', itemId: 'critical' },
                         { value: mockData.high.length, name: '高风险', itemId: 'high' },
+                        { value: mockData['medium-high'].length, name: '中高风险', itemId: 'medium-high' },
                         { value: mockData.medium.length, name: '中风险', itemId: 'medium' },
-                        { value: mockData.low.length, name: '低风险', itemId: 'low' }
+                        { value: mockData['medium-low'].length, name: '中低风险', itemId: 'medium-low' },
+                        { value: mockData.low.length, name: '低风险', itemId: 'low' },
+                        { value: mockData.minimal.length, name: '极低风险', itemId: 'minimal' },
+                        { value: mockData.safe.length, name: '安全', itemId: 'safe' }
                     ],
                     emphasis: {
                         itemStyle: {
@@ -396,7 +432,7 @@ router.post('/chart/risk-pie-post', (req, res) => {
         status: 0,
         msg: 'success',
         data: {
-            color: ['#3aa1ff', '#36cfc9', '#9254de'],
+            color: ['#d32029', '#ff4d4f', '#ff7a45', '#ffa940', '#ffc53d', '#fadb14', '#a0d911', '#52c41a'],
             tooltip: {
                 trigger: 'item',
                 formatter: '{b}: {c} ({d}%)'
@@ -412,9 +448,14 @@ router.post('/chart/risk-pie-post', (req, res) => {
                     radius: '60%',
                     center: ['50%', '50%'],
                     data: [
+                        { value: mockData.critical.length, name: '极高风险', itemId: 'critical' },
                         { value: mockData.high.length, name: '高风险', itemId: 'high' },
+                        { value: mockData['medium-high'].length, name: '中高风险', itemId: 'medium-high' },
                         { value: mockData.medium.length, name: '中风险', itemId: 'medium' },
-                        { value: mockData.low.length, name: '低风险', itemId: 'low' }
+                        { value: mockData['medium-low'].length, name: '中低风险', itemId: 'medium-low' },
+                        { value: mockData.low.length, name: '低风险', itemId: 'low' },
+                        { value: mockData.minimal.length, name: '极低风险', itemId: 'minimal' },
+                        { value: mockData.safe.length, name: '安全', itemId: 'safe' }
                     ],
                     emphasis: {
                         itemStyle: {
