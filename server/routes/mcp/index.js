@@ -250,6 +250,25 @@ function registerTools(server) {
 
         if (name === "generate_page_schema") {
             const { title, layout, components } = args;
+
+            // 验证 components 参数
+            if (!components) {
+                return {
+                    content: [{ type: "text", text: "Missing 'components' parameter" }],
+                    isError: true
+                };
+            }
+
+            if (!Array.isArray(components)) {
+                return {
+                    content: [{
+                        type: "text",
+                        text: `Invalid 'components' parameter: expected array, got ${typeof components}. Please ensure components is an array of objects with component_id and params.`
+                    }],
+                    isError: true
+                };
+            }
+
             const renderedComponents = [];
             const errors = [];
 
