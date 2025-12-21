@@ -359,19 +359,46 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
         // 只有把字符串还原成对象，AMIS 才能直接读取 body 里的数组
         finalJsonObj =
           typeof rawResult === "string" ? JSON.parse(rawResult) : rawResult;
-      } catch (e) {
-        logger.error("解析 Dify 返回的 JSON 字符串失败", e);
-        // 兜底：如果解析失败，至少发个报错给前端，别崩
-        finalJsonObj = { type: "page", body: "后端解析数据格式错误" };
-      }
 
-      logger.info("[AI Workflow] 解析成功，准备返回给前端");
-      // 直接返回 JSON 对象给前端 AMIS 渲染
-      res.json({
-        status: 0,
-        msg: "success",
-        data: finalJsonObj, // 这里的结构应该是 { type: "page", body: [...] }
-      });
+        // 🆕 处理 MCP Tool 返回的包装结构 (如果 Dify 直接返回了 tool output)
+        if (finalJsonObj && finalJsonObj.content && Array.isArray(finalJsonObj.content)) {
+          logger.info("[AI Workflow] 检测到 MCP Tool 包装结构，正在解包...");
+          try {
+            // 提取第一个 content 块的 text
+            const innerText = finalJsonObj.content[0]?.text;
+            if (innerText) {
+              finalJsonObj = JSON.parse(innerText);
+              logger.info("[AI Workflow] MCP 解包成功");
+            }
+          } catch (unwrapError) {
+            logger.warn("[AI Workflow] MCP 解包失败，保留原始结构:", unwrapError.message);
+          }
+        } else if (finalJsonObj && finalJsonObj.data && Array.isArray(finalJsonObj.data) && !finalJsonObj.type) {
+          // 🆕 处理可能出现的 {"data": []} 异常结构 (可能是特定错误返回)
+          logger.warn("[AI Workflow] 检测到异常 data 包装结构，尝试提取...");
+          // 这里无法确定具体逻辑，但作为防御性编程，避免前端白屏
+          // 如果 data 是空数组，可能是没有生成组件
+          if (finalJsonObj.data.length === 0) {
+            finalJsonObj = { type: "tpl", tpl: "生成的页面内容为空 (Empty Data Received)" };
+          }
+        }
+
+        logger.info("[AI Workflow] 解析成功，准备返回给前端");
+        // 直接返回 JSON 对象给前端 AMIS 渲染
+        res.json({
+          status: 0,
+          msg: "success",
+          data: finalJsonObj,
+        });
+      } catch (parseError) {
+        logger.error("[AI] JSON Parse Error:", parseError);
+        logger.error("[AI] Raw Content:", rawAnswer);
+        res.json({
+          status: 1,
+          msg: "LLM 返回的内容不是有效的 JSON 格式",
+          data: { raw_content: rawAnswer }
+        });
+      }
     } else {
       logger.error("[AI Workflow] 运行状态非成功:");
       logger.error("[AI Workflow] Status:", workflowData.data?.status);
