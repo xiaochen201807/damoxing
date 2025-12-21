@@ -39,8 +39,7 @@ function renderComponent(templatePath, params) {
             // 如果解析失败，可能是因为模板包含注释或格式问题，尝试简单的清理
             // 或者仅仅返回原始字符串（但在页面生成场景通常期望是 JSON）
             logger.warn(`[MCP Renderer] Failed to parse component JSON for ${templatePath}: ${e.message}`);
-            // 对于非 JSON 模板（如纯文本片段），直接返回字符串可能不是预期的，
-            // 但我们的组件库大多数是 JSON 模板。
+            logger.debug(`[MCP Renderer] Invalid JSON Content:\n${jsonStr}`);
             throw new Error(`Template output is not valid JSON: ${e.message}`);
         }
     } catch (error) {

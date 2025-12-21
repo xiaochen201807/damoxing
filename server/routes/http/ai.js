@@ -383,7 +383,9 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
           }
         }
 
-        logger.info("[AI Workflow] 解析成功，准备返回给前端");
+        // 🔍 DEBUG: 打印最终返回给前端的 JSON
+        logger.info("[AI Workflow] Final Response Data:", JSON.stringify(finalJsonObj, null, 2));
+
         // 直接返回 JSON 对象给前端 AMIS 渲染
         res.json({
           status: 0,
