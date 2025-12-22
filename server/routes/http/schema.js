@@ -15,6 +15,11 @@ const env = nunjucks.configure(path.join(__dirname, '../../templates'), {
     throwOnUndefined: false
 });
 
+// 添加 tojson 过滤器（用于安全地将字符串转换为 JSON 格式）
+env.addFilter('tojson', function (value) {
+    return JSON.stringify(value);
+});
+
 // GET /api/schema/templates - 获取所有模板
 router.get('/templates', (req, res) => {
     logger.info('[Schema API] Fetching templates');

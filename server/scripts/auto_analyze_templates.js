@@ -74,7 +74,16 @@ function extractVariables(content) {
         vars.add(match[1]);
     }
 
-    const builtins = new Set(['loop', 'item', 'items', 'row', 'index', 'default_items', 'theme', 'now', 'date']);
+    const builtins = new Set([
+        // Jinja2 内置变量
+        'loop', 'item', 'items', 'row', 'index', 'default_items', 'theme', 'now', 'date',
+        // Joiner 临时变量（用于生成逗号分隔）
+        'comma', 'inner_comma', 'btn_comma', 'footer_comma',
+        // 模板内部临时变量
+        'subtitle_tpl', 'report_button_json', 'not',
+        // AMIS 表达式变量（以 $ 开头的运行时变量）
+        'ai_loading', 'show_analysis_result', 'user_query'
+    ]);
     const filtered = Array.from(vars).filter(v => !builtins.has(v));
 
     return { variables: filtered, defaults };

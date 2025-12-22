@@ -15,6 +15,11 @@ const env = nunjucks.configure(path.join(__dirname, '../templates'), {
     throwOnUndefined: false
 });
 
+// 添加 tojson 过滤器
+env.addFilter('tojson', function (value) {
+    return JSON.stringify(value);
+});
+
 // MCP 工具列表（符合 MCP 规范）
 const MCP_TOOLS = [
     {

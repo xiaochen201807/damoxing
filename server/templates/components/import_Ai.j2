@@ -1,9 +1,12 @@
 {#
   AI分析与数据导入组件
   @param enable_data_import 是否启用数据导入功能
-  @param enable_ai_analysis 是否启用AI分析功能
   @param import_dialog_title 数据导入对话框标题
   @param import_api 数据导入API地址
+  @param enable_ai_analysis 是否启用AI分析功能
+  @param enable_query_input 是否启用分析需求输入框
+  @param query_label 分析需求输入框标签
+  @param query_placeholder 分析需求输入框占位符 
   @param ai_generate_api AI生成页面API地址
   @param page_key 页面唯一标识
   @param workflow_type AI 工作流类型标识（默认：ai_analysis）
@@ -23,7 +26,40 @@
     "className": "p-none",
     
     "body": [
-        {# ================== 1. 按钮操作区 ================== #}
+        {# ================== 1. 分析需求输入区 ================== #}
+        {% if enable_ai_analysis | default(true) and enable_query_input | default(false) %}
+        {
+            "type": "container",
+            "className": "m-t-lg m-b-md",
+            "style": {
+                "backgroundColor": "#fff",
+                "borderRadius": "8px",
+                "padding": "20px"
+            },
+            "body": [
+                {
+                    "type": "tpl",
+                    "tpl": "<div style='font-size: 14px; color: #333; margin-bottom: 10px; font-weight: 500;'><span style='color: #ff4d4f;'>*</span>{{ query_label | default('请输入分析需求') }}</div>"
+                },
+                {
+                    "type": "textarea",
+                    "name": "user_query",
+                    "id": "user_query_input",
+                    "placeholder": "{{ query_placeholder | default('例如：生成贷款逾期分析图表') }}",
+                    "minRows": 2,
+                    "maxRows": 5,
+                    "showCounter": false,
+                    "className": "w-full",
+                    "style": {
+                        "border": "1px solid #d9d9d9",
+                        "borderRadius": "6px"
+                    }
+                }
+            ]
+        },
+        {% endif %}
+
+        {# ================== 2. 按钮操作区 ================== #}
         {
             "type": "container",
             "className": "m-t-lg",
@@ -197,7 +233,11 @@
                 "data": {
                     "pageId": "{{ page_key }}",
                     "workflowType": "{{ workflow_type | default('ai_analysis') }}",  {# 🆕 智能分析按钮的工作流类型 #}
+                    {% if enable_query_input | default(false) %}
+                    "query": "${user_query}",
+                    {% else %}
                     "query": "{{ query | default('{}') }}",
+                    {% endif %}
                     "timestamp": "${date(now(), 'x')}"
                 }
             },
