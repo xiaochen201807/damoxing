@@ -11,6 +11,7 @@
   - api_url: AI 分析 API 地址 (required)
   - api_method: API 请求方法 (default: 'post')
   - page_id: 页面ID参数 (optional)
+  - workflow_type: 工作流类型 (optional)
 #}
 {
     "type": "container",
@@ -49,6 +50,7 @@
                 "url": {{ api_url | tojson }},
                 "data": {
                     {% if page_id %}"pageId": {{ page_id | tojson }},{% endif %}
+                    {% if workflow_type %}"workflow_type": {{ workflow_type | tojson }},{% endif %}
                     "query": "${userPrompt}"
                 },
                 "sendOn": "this.userPrompt"
