@@ -1,0 +1,58 @@
+{#
+  AI 提问表单组件
+  用于向 AI 发送分析请求并动态加载返回的页面 Schema
+
+  Parameters:
+  - title: 表单标题 (default: '向 AI 提问')
+  - label: 输入框标签 (default: '请输入分析需求')
+  - placeholder: 输入框占位符 (default: '')
+  - default_value: 输入框默认值 (default: '')
+  - button_text: 按钮文字 (default: '开始分析')
+  - api_url: AI 分析 API 地址 (required)
+  - api_method: API 请求方法 (default: 'post')
+  - page_id: 页面ID参数 (optional)
+#}
+{
+    "type": "container",
+    "body": [
+        {
+            "type": "form",
+            "title": {{ (title | default('向 AI 提问')) | tojson }},
+            "target": "ai-result-service",
+            "mode": "horizontal",
+            "body": [
+                {
+                    "type": "textarea",
+                    "name": "userPrompt",
+                    "label": {{ (label | default('请输入分析需求')) | tojson }},
+                    "placeholder": {{ (placeholder | default('')) | tojson }},
+                    "value": {{ (default_value | default('')) | tojson }},
+                    "required": true,
+                    "minRows": 3,
+                    "maxRows": 6
+                },
+                {
+                    "type": "submit",
+                    "label": {{ (button_text | default('开始分析')) | tojson }},
+                    "level": "primary"
+                }
+            ]
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "service",
+            "name": "ai-result-service",
+            "schemaApi": {
+                "method": {{ (api_method | default('post')) | tojson }},
+                "url": {{ api_url | tojson }},
+                "data": {
+                    {% if page_id %}"pageId": {{ page_id | tojson }},{% endif %}
+                    "query": "${userPrompt}"
+                },
+                "sendOn": "this.userPrompt"
+            }
+        }
+    ]
+}

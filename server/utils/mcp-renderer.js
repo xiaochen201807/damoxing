@@ -79,7 +79,44 @@ function assemblePage(layout, title, componentSchemas) {
     return pageSchema;
 }
 
+/**
+ * 组装带标签页的页面 Schema
+ * @param {string} layout - 布局模式 ('simple', 'dashboard')
+ * @param {string} title - 页面标题
+ * @param {array} tabs - 标签页配置数组，每个元素包含 { title, renderedComponents }
+ * @returns {object} - 完整的 AMIS Page Schema
+ */
+function assemblePageWithTabs(layout, title, tabs) {
+    // 如果只有一个标签，不使用 tabs 组件，直接展示内容
+    if (tabs.length === 1) {
+        return assemblePage(layout, title, tabs[0].renderedComponents);
+    }
+
+    // 多个标签，生成 AMIS tabs 组件
+    const pageSchema = {
+        type: "container",
+        body: {
+            type: "tabs",
+            tabs: tabs.map(tab => ({
+                title: tab.title,
+                body: layout === 'dashboard' || layout === 'grid'
+                    ? {
+                        type: "grid",
+                        columns: tab.renderedComponents.map(comp => ({
+                            body: [comp],
+                            md: 6
+                        }))
+                    }
+                    : tab.renderedComponents
+            }))
+        }
+    };
+
+    return pageSchema;
+}
+
 module.exports = {
     renderComponent,
-    assemblePage
+    assemblePage,
+    assemblePageWithTabs
 };

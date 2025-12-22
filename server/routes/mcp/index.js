@@ -135,7 +135,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。示例：chart_with_ai:{component_id:'chart_with_ai',params:{chart_type:'pie',api_url:'/api/data'}}；alert:{component_id:'alert',params:{alert_html:'<div class=alert alert-info>提示消息</div>'}}。",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。支持两种模式：1) 单页模式：使用 components 数组；2) 标签页模式：使用 tabs 数组分组显示组件。",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -152,24 +152,40 @@ function registerTools(server) {
                             },
                             components: {
                                 type: "array",
-                                description: "组件列表。每个组件的 component_id 和 params 必须严格匹配 list_components 返回的定义。",
+                                description: "单页模式：组件列表（与 tabs 二选一）",
                                 items: {
                                     type: "object",
                                     properties: {
-                                        component_id: {
-                                            type: "string",
-                                            description: "组件ID，必须使用 list_components 工具返回的 component_id 字段的精确值（如 line_chart, bar_chart, funnel_chart）"
-                                        },
-                                        params: {
-                                            type: "object",
-                                            description: "组件参数，必须符合该组件在 list_components 中的 params_schema 定义"
-                                        }
+                                        component_id: { type: "string", description: "组件ID" },
+                                        params: { type: "object", description: "组件参数" }
                                     },
                                     required: ["component_id"]
                                 }
+                            },
+                            tabs: {
+                                type: "array",
+                                description: "标签页模式：多个标签页配置（与 components 二选一）。如果只有1个tab则自动降级为单页模式。",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        title: { type: "string", description: "标签页标题" },
+                                        components: {
+                                            type: "array",
+                                            description: "该标签页下的组件列表",
+                                            items: {
+                                                type: "object",
+                                                properties: {
+                                                    component_id: { type: "string" },
+                                                    params: { type: "object" }
+                                                },
+                                                required: ["component_id"]
+                                            }
+                                        }
+                                    },
+                                    required: ["title", "components"]
+                                }
                             }
-                        },
-                        required: ["components"]
+                        }
                     }
                 }
             ]
@@ -249,32 +265,50 @@ function registerTools(server) {
         }
 
         if (name === "generate_page_schema") {
-            const { title, layout, components } = args;
+            const { title, layout, components, tabs } = args;
 
-            // 验证 components 参数
-            if (!components) {
+            // 验证参数：components 或 tabs 二选一
+            if (!components && !tabs) {
                 return {
-                    content: [{ type: "text", text: "Missing 'components' parameter" }],
+                    content: [{ type: "text", text: "Missing 'components' or 'tabs' parameter. Please provide one of them." }],
                     isError: true
                 };
             }
 
-            if (!Array.isArray(components)) {
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Invalid 'components' parameter: expected array, got ${typeof components}. Please ensure components is an array of objects with component_id and params.`
-                    }],
-                    isError: true
-                };
-            }
-
-            const renderedComponents = [];
             const errors = [];
 
-            // 1. 获取所有需要的组件模板路径
-            const componentIds = components.map(c => c.component_id);
-            if (componentIds.length === 0) {
+            // 辅助函数：渲染组件列表
+            async function renderComponentList(compList, defMap) {
+                const rendered = [];
+                for (const comp of compList) {
+                    const templatePath = defMap.get(comp.component_id);
+                    if (!templatePath) {
+                        errors.push(`Component not found: ${comp.component_id}`);
+                        continue;
+                    }
+                    try {
+                        const schema = mcpRenderer.renderComponent(templatePath, comp.params || {});
+                        rendered.push(schema);
+                    } catch (e) {
+                        errors.push(`Failed to render ${comp.component_id}: ${e.message}`);
+                    }
+                }
+                return rendered;
+            }
+
+            // 收集所有组件ID
+            let allComponentIds = [];
+            if (tabs && Array.isArray(tabs)) {
+                tabs.forEach(tab => {
+                    if (tab.components && Array.isArray(tab.components)) {
+                        allComponentIds.push(...tab.components.map(c => c.component_id));
+                    }
+                });
+            } else if (components && Array.isArray(components)) {
+                allComponentIds = components.map(c => c.component_id);
+            }
+
+            if (allComponentIds.length === 0) {
                 return {
                     content: [{ type: "text", text: "No components specified" }],
                     isError: true
@@ -282,11 +316,12 @@ function registerTools(server) {
             }
 
             // 从数据库查询组件信息
+            const uniqueIds = [...new Set(allComponentIds)];
             const componentDefs = await new Promise((resolve, reject) => {
-                const placeholders = componentIds.map(() => '?').join(',');
+                const placeholders = uniqueIds.map(() => '?').join(',');
                 db.all(
                     `SELECT component_id, template_path FROM sys_component_library WHERE component_id IN (${placeholders})`,
-                    componentIds,
+                    uniqueIds,
                     (err, rows) => {
                         if (err) reject(err);
                         else resolve(rows);
@@ -298,31 +333,40 @@ function registerTools(server) {
             const defMap = new Map();
             componentDefs.forEach(row => defMap.set(row.component_id, row.template_path));
 
-            // 2. 逐个渲染
-            for (const comp of components) {
-                const templatePath = defMap.get(comp.component_id);
-                if (!templatePath) {
-                    errors.push(`Component not found: ${comp.component_id}`);
-                    continue;
+            let pageSchema;
+
+            if (tabs && Array.isArray(tabs) && tabs.length > 0) {
+                // 标签页模式
+                const tabsData = [];
+                for (const tab of tabs) {
+                    const renderedComponents = await renderComponentList(tab.components || [], defMap);
+                    tabsData.push({
+                        title: tab.title || '未命名标签',
+                        renderedComponents
+                    });
                 }
 
-                try {
-                    const schema = mcpRenderer.renderComponent(templatePath, comp.params || {});
-                    renderedComponents.push(schema);
-                } catch (e) {
-                    errors.push(`Failed to render ${comp.component_id}: ${e.message}`);
+                if (errors.length > 0) {
+                    return {
+                        content: [{ type: "text", text: `Errors:\n${errors.join('\n')}` }],
+                        isError: true
+                    };
                 }
-            }
 
-            if (errors.length > 0) {
-                return {
-                    content: [{ type: "text", text: `Errors:\n${errors.join('\n')}` }],
-                    isError: true
-                };
-            }
+                pageSchema = mcpRenderer.assemblePageWithTabs(layout, title, tabsData);
+            } else {
+                // 单页模式（兼容旧逻辑）
+                const renderedComponents = await renderComponentList(components, defMap);
 
-            // 3. 组装页面
-            const pageSchema = mcpRenderer.assemblePage(layout, title, renderedComponents);
+                if (errors.length > 0) {
+                    return {
+                        content: [{ type: "text", text: `Errors:\n${errors.join('\n')}` }],
+                        isError: true
+                    };
+                }
+
+                pageSchema = mcpRenderer.assemblePage(layout, title, renderedComponents);
+            }
 
             return {
                 content: [
