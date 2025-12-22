@@ -112,7 +112,7 @@ function registerTools(server) {
             tools: [
                 {
                     name: "list_components",
-                    description: "获取所有可用的组件列表及其参数定义。重点：chart_with_ai 通用图表组件支持6种图表类型(pie/bar/line/funnel/radar/gauge)，通过 chart_type 参数控制。支持钻取配置：drilldown_api(钻取API)、drilldown_params(参数对象)、drilldown_columns(表格列定义数组)。",
+                    description: "获取所有可用的组件列表及其参数定义。可用组件：1) chart_with_ai 通用图表组件，支持6种图表类型(pie/bar/line/funnel/radar/gauge)，通过 chart_type 参数控制，支持钻取配置；2) alert 提示框组件，使用 alert_html 参数传入完整HTML内容。",
                     inputSchema: {
                         type: "object",
                         properties: {},
@@ -135,7 +135,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。chart_with_ai 示例：{component_id:'chart_with_ai',params:{chart_type:'pie',api_url:'/api/data',drilldown_api:'/api/detail',drilldown_params:{level:'event.name变量',page_key:'固定值'}}}。",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。示例：chart_with_ai:{component_id:'chart_with_ai',params:{chart_type:'pie',api_url:'/api/data'}}；alert:{component_id:'alert',params:{alert_html:'<div class=alert alert-info>提示消息</div>'}}。",
                     inputSchema: {
                         type: "object",
                         properties: {
