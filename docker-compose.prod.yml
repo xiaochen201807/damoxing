@@ -22,13 +22,36 @@ services:
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
-      - CORS_ORIGIN=*
+      # CORS 配置（允许 jbysoft.com 子域名访问）
+      - CORS_ORIGIN=https://appcs.jbysoft.com,https://appsy.jbysoft.com,https://app.jbysoft.com
       # AI 接口超时时间 (毫秒)，默认 5分钟
       - DIFY_API_TIMEOUT=300000
       # MCP 鉴权密钥 (用于 CherryStudio/Dify 连接)
       - MCP_API_KEY=SY-1234567890
       # 只读模式 (生产环境推荐)
       # - SQLITE_READONLY=true
+
+      # ============================================
+      # API 路由前缀配置
+      # ============================================
+      - API_ROUTE_PREFIX=/gjjrgzn/api
+
+      # ============================================
+      # JWT 配置
+      # ============================================
+      - JWT_SECRET=4671d0ca-6bc0-41e2-95f0-ade07b6eef0c
+      - JWT_EXPIRES_IN=24h
+
+      # ============================================
+      # 第三方网关配置
+      # ============================================
+      - GATEWAY_VALIDATE_URL=https://appsy.jbysoft.com/tyrz/cheque/validate.service
+      # 网关集成开关（true=启用真实调用，false=使用模拟数据）
+      - GATEWAY_ENABLED=true
+      # 以下参数作为兜底配置，优先使用前端URL传入的参数
+      # - GATEWAY_TICKET=your-ticket-here
+      # - GATEWAY_LOGIN_TOKEN=your-login-token-here
+
 
     volumes:
       # 统一数据目录挂载（包含数据库、日志、备份）
