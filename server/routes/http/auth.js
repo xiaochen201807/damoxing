@@ -166,26 +166,96 @@ async function callGatewayValidate(ticket, tyLoginToken) {
 router.post('/login', async (req, res) => {
     try {
         const { username, password, ticket, tyLoginToken, qycode } = req.body;
+        const skipLocalAuth = process.env.SKIP_LOCAL_AUTH === 'true';
 
-        // 参数校验
-        if (!username || !password) {
-            return res.status(400).json({
-                status: 400,
-                msg: '用户名和密码不能为空'
-            });
-        }
+        let user = null;
+        let gatewayInfo = null;
 
-        // 查询用户
-        const sql = 'SELECT * FROM sys_user WHERE username = ? AND is_active = 1';
-
-        db.get(sql, [username], async (err, user) => {
-            if (err) {
-                logger.error('登录查询失败:', err);
-                return res.status(500).json({
-                    status: 500,
-                    msg: '服务器错误'
+        // ==========================================
+        // 模式 1: 网关单点登录 (SKIP_LOCAL_AUTH=true)
+        // ==========================================
+        if (skipLocalAuth) {
+            if (!ticket || !tyLoginToken) {
+                return res.status(400).json({
+                    status: 400,
+                    msg: '网关参数(ticket/tyLoginToken)不能为空'
                 });
             }
+
+            // 1. 调用网关验证
+            gatewayInfo = await callGatewayValidate(ticket, tyLoginToken);
+
+            if (!gatewayInfo.success) {
+                return res.status(401).json({
+                    status: 401,
+                    msg: '网关验证失败: ' + (gatewayInfo.error || '未知错误')
+                });
+            }
+
+            // 2. 根据 grbh (个人编号) 查找或自动创建用户
+            // 注意：网关返回的 grbh 作为系统用户的 username 使用
+            const userIdentity = gatewayInfo.grbh;
+            if (!userIdentity) {
+                return res.status(401).json({
+                    status: 401,
+                    msg: '网关返回用户信息不完整(缺少个人编号)'
+                });
+            }
+
+            // 直接使用 grbh 作为用户名查找
+            user = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+
+            if (!user) {
+                logger.info(`[SSO] 用户不存在，自动创建: ${userIdentity}`);
+                const newUsername = userIdentity; // 使用个人编号作为用户名
+                const newNickname = gatewayInfo.xingming || userIdentity;
+                const newPassword = 'sso_auto_' + Math.random().toString(36).slice(-8);
+
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO sys_user (username, password, nickname, role, is_active) 
+                         VALUES (?, ?, ?, 'user', 1)`,
+                        [newUsername, newPassword, newNickname],
+                        function (err) {
+                            if (err) reject(err);
+                            else resolve(this.lastID);
+                        }
+                    );
+                });
+
+                // 重新查询新创建的用户
+                user = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+            }
+        }
+        // ==========================================
+        // 模式 2: 本地双重验证 (SKIP_LOCAL_AUTH=false)
+        // ==========================================
+        else {
+            // 1. 参数校验
+            if (!username || !password) {
+                return res.status(400).json({
+                    status: 400,
+                    msg: '用户名和密码不能为空'
+                });
+            }
+
+            // 2. 查询用户
+            user = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM sys_user WHERE username = ? AND is_active = 1', [username], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
 
             if (!user) {
                 logger.warn(`登录失败 - 用户不存在: ${username}`);
@@ -195,7 +265,7 @@ router.post('/login', async (req, res) => {
                 });
             }
 
-            // 验证密码（注意：这里使用明文比对，生产环境应使用 bcrypt）
+            // 3. 验证密码
             if (user.password !== password) {
                 logger.warn(`登录失败 - 密码错误: ${username}`);
                 return res.status(401).json({
@@ -204,57 +274,73 @@ router.post('/login', async (req, res) => {
                 });
             }
 
-            // 生成 JWT Token
-            const token = generateToken({
+            // 4. (可选) 网关验证
+            // 哪怕本地验证通过，如果有网关参数，也进行网关验证以获取扩展信息
+            if (ticket && tyLoginToken) {
+                gatewayInfo = await callGatewayValidate(ticket, tyLoginToken);
+                // 注意：默认模式下，网关验证失败通常不阻止登录，仅记录日志或降级
+                // 但如果业务要求必须双重验证，这里应该检查 success
+                if (!gatewayInfo.success) {
+                    logger.warn('[Gateway] 双重验证模式下网关验证失败，但允许本地登录');
+                }
+            } else {
+                // 没有网关参数，尝试使用模拟数据或置空
+                if (process.env.GATEWAY_ENABLED === 'true') {
+                    // 仅记录，不报错
+                }
+            }
+        }
+
+        // ==========================================
+        // 公共逻辑: 生成 Token 并返回
+        // ==========================================
+
+        // 生成 JWT Token
+        const token = generateToken({
+            id: user.id,
+            username: user.username,
+            role: user.role
+        });
+
+        // 更新最后登录时间
+        db.run('UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+
+        logger.info(`用户登录成功: ${user.username} (${user.role}) [SSO:${skipLocalAuth}]`);
+
+        // 构建返回数据
+        const responseData = {
+            token,
+            user: {
                 id: user.id,
                 username: user.username,
+                nickname: user.nickname,
                 role: user.role
-            });
+            }
+        };
 
-            // 更新最后登录时间
-            db.run(
-                'UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
-                [user.id],
-                (err) => {
-                    if (err) {
-                        logger.error('更新登录时间失败:', err);
-                    }
-                }
-            );
+        // 如果有网关信息，附加到返回数据中
+        if (gatewayInfo && gatewayInfo.success) {
+            responseData.gateway_info = {
+                gateway_token: gatewayInfo.gateway_token,
+                tenant_id: gatewayInfo.tenant_id,
+                user_id: gatewayInfo.user_id,
+                qycode: qycode || gatewayInfo.tenant_id,
+                jgbh: gatewayInfo.jgbh,
+                jgmc: gatewayInfo.jgmc,
+                grbh: gatewayInfo.grbh,
+                xingming: gatewayInfo.xingming,
+                zzbs: gatewayInfo.zzbs,
+                zzjgdmz: qycode,
+                login_token: gatewayInfo.login_token
+            };
+        }
 
-            logger.info(`用户登录成功: ${username} (${user.role})`);
-
-            // 调用第三方网关（传递从前端获取的参数）
-            const gatewayInfo = await callGatewayValidate(ticket, tyLoginToken);
-
-            // 返回 token、用户信息、网关信息（包含 qycode 和 jgbh）
-            res.json({
-                status: 0,
-                msg: '登录成功',
-                data: {
-                    token,
-                    user: {
-                        id: user.id,
-                        username: user.username,
-                        nickname: user.nickname,
-                        role: user.role
-                    },
-                    gateway_info: {
-                        gateway_token: gatewayInfo.gateway_token,
-                        tenant_id: gatewayInfo.tenant_id,
-                        user_id: gatewayInfo.user_id,
-                        qycode: qycode || gatewayInfo.tenant_id,  // 企业代码
-                        jgbh: gatewayInfo.jgbh,                     // 机构编号
-                        jgmc: gatewayInfo.jgmc,                     // 机构名称
-                        grbh: gatewayInfo.grbh,                     // 个人编号
-                        xingming: gatewayInfo.xingming,             // 姓名
-                        zzbs: gatewayInfo.zzbs,                     // 组织标识
-                        zzjgdmz: qycode,                            // 组织机构代码证（使用前端传入的 qycode）
-                        login_token: gatewayInfo.login_token        // login-token
-                    }
-                }
-            });
+        res.json({
+            status: 0,
+            msg: '登录成功',
+            data: responseData
         });
+
     } catch (error) {
         logger.error('登录接口异常:', error);
         res.status(500).json({
