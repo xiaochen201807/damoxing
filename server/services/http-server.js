@@ -3,7 +3,8 @@
  * 负责配置和启动 Express HTTP 服务器
  */
 
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
 const express = require("express");
 const cors = require("cors");

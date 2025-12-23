@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
+import { API_ENDPOINTS } from '../config/constants';
 import type { MenuItem, ApiResponse } from '../types/api';
 import './MainLayout.css';
 
@@ -20,12 +21,12 @@ const MainLayout: React.FC = () => {
     Promise.all([
       // 获取路由信息（包含标题）
       fetcher<ApiResponse<any>>({
-        url: `/api/routes/${routeKey}`,
+        url: API_ENDPOINTS.ROUTES_BY_KEY(routeKey),
         method: 'get'
       }),
       // 获取菜单数据
       fetcher<ApiResponse<MenuItem[]>>({
-        url: `/api/system/menu?route_key=${routeKey}`,
+        url: `${API_ENDPOINTS.MENU}?route_key=${routeKey}`,
         method: 'get'
       })
     ]).then(([routeRes, menuRes]) => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AmisRenderer from '../components/AmisRenderer';
 import { fetcher } from '../utils/fetcher';
+import { API_ENDPOINTS } from '../config/constants';
 import type { AmisSchema } from '../types/amis';
 import type { ApiResponse } from '../types/api';
 
@@ -12,7 +13,7 @@ const SystemConfig: React.FC = () => {
     useEffect(() => {
         // 直接获取config页面的schema
         fetcher<ApiResponse<AmisSchema>>({
-            url: '/api/page/config',
+            url: API_ENDPOINTS.PAGE_BY_KEY('config'),
             method: 'get'
         })
             .then((res) => {

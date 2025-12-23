@@ -8,12 +8,21 @@ import { useRoutes, Navigate } from 'react-router-dom';
 import MainLayout from '../layout/MainLayout';
 import AutoDashboard from '../pages/AutoDashboard';
 import SystemConfig from '../pages/SystemConfig';
+import Login from '../pages/Login';
+import AuthGuard from '../components/AuthGuard';
 
 const AppRoutes: React.FC = () => {
   const routes = useRoutes([
+    // 登录路由（独立路由，不在 MainLayout 中）
+    {
+      path: '/login',
+      element: <Login />
+    },
+
+    // 主路由（需要登录）
     {
       path: '/',
-      element: <MainLayout />,
+      element: <AuthGuard><MainLayout /></AuthGuard>,
       children: [
         // 默认重定向到第一个菜单页面
         { index: true, element: <Navigate to="/dashboard/loan_risk" replace /> },
@@ -30,10 +39,10 @@ const AppRoutes: React.FC = () => {
       ]
     },
 
-    // 系统配置路由 (独立路由，不在MainLayout中)
+    // 系统配置路由 (独立路由，需要登录)
     {
       path: '/system/config',
-      element: <SystemConfig />
+      element: <AuthGuard><SystemConfig /></AuthGuard>
     }
   ]);
 

@@ -21,6 +21,7 @@
         "express-rate-limit": "^7.5.0",
         "helmet": "^8.0.0",
         "joi": "^18.0.2",
+        "jsonwebtoken": "^9.0.3",
         "node-cache": "^5.1.2",
         "nunjucks": "^3.2.4",
         "sqlite3": "^5.1.7",

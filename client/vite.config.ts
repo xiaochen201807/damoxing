@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const isAnalyze = process.env.ANALYZE === 'true'
 
   return {
+    // 应用基础路径（用于部署到子路径）
+    base: env.VITE_BASE_PATH || '/',
+
     plugins: [
       react(),
       isAnalyze && visualizer({ open: true, filename: 'bundle-analysis.html' }),
@@ -29,7 +32,8 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3000,
       proxy: {
-        '/api': {
+        // 支持自定义 API 前缀（从环境变量读取，默认 /api）
+        [env.VITE_API_ROUTE_PREFIX || '/api']: {
           target: 'http://localhost:3001',
           changeOrigin: true,
         }

@@ -106,6 +106,39 @@ class DatabaseInitializer {
             )
         `);
         console.log('   ✓ sys_page_template');
+
+        // 用户表
+        await this.run(`
+            CREATE TABLE IF NOT EXISTS sys_user (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                nickname TEXT,
+                email TEXT,
+                role TEXT DEFAULT 'user',
+                is_active INTEGER DEFAULT 1,
+                last_login DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('   ✓ sys_user');
+
+        // 检查是否存在默认管理员
+        const adminExists = await this.get(
+            'SELECT id FROM sys_user WHERE username = ?',
+            ['admin']
+        );
+
+        if (!adminExists) {
+            // 创建默认管理员账号 (密码: admin123)
+            // 注意：密码使用明文存储仅用于演示，生产环境应使用 bcrypt 等哈希算法
+            await this.run(`
+                INSERT INTO sys_user (username, password, nickname, role)
+                VALUES ('admin', 'admin123', '系统管理员', 'admin')
+            `);
+            console.log('   ✓ Created default admin user (admin/admin123)');
+        }
     }
 
     // 002 - Dify 配置表

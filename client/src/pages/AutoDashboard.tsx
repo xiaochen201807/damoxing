@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AmisRenderer from '../components/AmisRenderer'; // 引入上一环节封装的渲染器
 import { fetcher } from '../utils/fetcher';
+import { API_ENDPOINTS } from '../config/constants';
 import { Spinner } from 'amis-ui';
 import type { AmisSchema } from '../types/amis';
 import type { ApiResponse } from '../types/api';
@@ -31,7 +32,7 @@ const AutoDashboard: React.FC = () => {
 
     // 第一步：先检查菜单权限
     fetcher<ApiResponse<MenuItem[]>>({
-      url: '/api/system/menu',
+      url: API_ENDPOINTS.MENU,
       method: 'get'
     })
       .then((menuRes) => {
@@ -51,7 +52,7 @@ const AutoDashboard: React.FC = () => {
 
           // 第二步：有权限，加载页面配置
           return fetcher<ApiResponse<AmisSchema>>({
-            url: `/api/page/${pageId}`,
+            url: API_ENDPOINTS.PAGE_BY_KEY(pageId),
             method: 'get'
           });
         } else {

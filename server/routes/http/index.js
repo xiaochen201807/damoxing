@@ -4,8 +4,10 @@
  */
 
 const db = require("../../db");
+const { authenticateToken } = require("../../middleware/auth");
 
 // 导入所有路由模块（已经在routes/http/目录下）
+const authRoutes = require("./auth");
 const aiRoutes = require("./ai");
 const difyConfigRoutes = require("./dify-config");
 const menuRoutes = require("./menu");
@@ -19,6 +21,9 @@ const themesRoutes = require("./themes");
 const routesApi = require("./routes");
 const mcpSseRoutes = require("./mcp-sse");
 
+// API 路由前缀（从环境变量读取，默认 /api）
+const API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+
 /**
  * 注册所有 HTTP 路由
  */
@@ -28,10 +33,8 @@ function setupHttpRoutes(app) {
 
     // === 遗留的内联路由（TODO: 重构到独立文件） ===
 
-
-
     // 根据 pageKey 获取页面模板
-    app.get("/api/page/:pageKey", (req, res) => {
+    app.get(`${API_PREFIX}/page/:pageKey`, authenticateToken, (req, res) => {
         const pageKey = req.params.pageKey;
         const sql = "SELECT * FROM sys_page_template WHERE page_key = ? and is_active = 1";
 
@@ -55,19 +58,26 @@ function setupHttpRoutes(app) {
 
     // === 模块化路由 ===
 
-    app.use("/api/dify", difyConfigRoutes);
-    app.use("/api/ai", aiRoutes);
-    app.use("/api", routesApi);
-    app.use("/api/system", menuRoutes);
-    app.use("/api/system", pageTemplateRoutes);
-    app.use("/api/system", backendConfigRoutes);
-    app.use("/api/system", cacheRoutes);
-    app.use("/api/demo", demoChartRoutes);
-    app.use("/api/schema", schemaRoutes);
-    app.use("/api/themes", themesRoutes);
+    // 认证相关路由（无需认证）
+    app.use(`${API_PREFIX}/auth`, authRoutes);
 
-    // MCP SSE Endpoints (for Dify)
-    app.use("/api/mcp", mcpSseRoutes);
+    // 以下路由需要 JWT 认证
+    app.use(`${API_PREFIX}/dify`, authenticateToken, difyConfigRoutes);
+    app.use(`${API_PREFIX}/ai`, authenticateToken, aiRoutes);
+    app.use(API_PREFIX, authenticateToken, routesApi);
+    app.use(`${API_PREFIX}/system`, authenticateToken, menuRoutes);
+    app.use(`${API_PREFIX}/system`, authenticateToken, pageTemplateRoutes);
+    app.use(`${API_PREFIX}/system`, authenticateToken, backendConfigRoutes);
+    app.use(`${API_PREFIX}/system`, authenticateToken, cacheRoutes);
+    app.use(`${API_PREFIX}/demo`, authenticateToken, demoChartRoutes);
+    app.use(`${API_PREFIX}/schema`, authenticateToken, schemaRoutes);
+    app.use(`${API_PREFIX}/themes`, authenticateToken, themesRoutes);
+
+    // MCP SSE Endpoints (for Dify) - 需要认证
+    app.use(`${API_PREFIX}/mcp`, authenticateToken, mcpSseRoutes);
+
+    console.log(`✅ API routes mounted on prefix: ${API_PREFIX}`);
+    console.log(`🔒 JWT authentication enabled for protected routes`);
 }
 
 module.exports = setupHttpRoutes;
