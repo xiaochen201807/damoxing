@@ -9,7 +9,6 @@ const db = require('../../db');
 const { generateToken } = require('../../middleware/auth');
 const logger = require('../../utils/logger');
 const axios = require('axios');
-const FormData = require('form-data');
 
 /**
  * 调用第三方网关验证接口
@@ -59,12 +58,14 @@ async function callGatewayValidate(ticket, tyLoginToken) {
         logger.info(`[Gateway] 调用网关验证接口: ${gatewayUrl}`);
         logger.info(`[Gateway] 参数: ticket=${finalTicket.substring(0, 10)}..., tyLoginToken=${finalLoginToken.substring(0, 10)}...`);
 
-        const formData = new FormData();
-        formData.append('ticket', finalTicket);
-        formData.append('loginToken', finalLoginToken);
-
-        const response = await axios.post(gatewayUrl, formData, {
-            headers: formData.getHeaders(),
+        // 使用 JSON 格式发送（更简单可靠）
+        const response = await axios.post(gatewayUrl, {
+            ticket: finalTicket,
+            loginToken: finalLoginToken
+        }, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
             timeout: 10000
         });
 
@@ -124,7 +125,22 @@ async function callGatewayValidate(ticket, tyLoginToken) {
             }
         };
     } catch (error) {
-        logger.error('[Gateway] 网关调用失败:', error.message);
+        // 打印完整的错误信息便于调试
+        logger.error('[Gateway] 网关调用失败:');
+        logger.error('[Gateway] Error message:', error.message || 'No message');
+        logger.error('[Gateway] Error stack:', error.stack);
+
+        // 如果是 axios 错误，打印更多细节
+        if (error.response) {
+            logger.error('[Gateway] Response status:', error.response.status);
+            logger.error('[Gateway] Response data:', JSON.stringify(error.response.data));
+        } else if (error.request) {
+            logger.error('[Gateway] No response received');
+            logger.error('[Gateway] Request:', error.request);
+        } else {
+            logger.error('[Gateway] Error config:', error.config);
+        }
+
         // 网关调用失败时返回模拟数据，不阻塞登录
         return {
             success: false,
