@@ -73,8 +73,8 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/schema`, authenticateToken, schemaRoutes);
     app.use(`${API_PREFIX}/themes`, authenticateToken, themesRoutes);
 
-    // MCP SSE Endpoints (for Dify) - 需要认证
-    app.use(`${API_PREFIX}/mcp`, authenticateToken, mcpSseRoutes);
+    // MCP SSE Endpoints (for Dify) - 使用专门的 MCP_API_KEY 认证，不需要 JWT
+    app.use(`${API_PREFIX}/mcp`, mcpSseRoutes);
 
     console.log(`✅ API routes mounted on prefix: ${API_PREFIX}`);
     console.log(`🔒 JWT authentication enabled for protected routes`);
