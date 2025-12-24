@@ -78,6 +78,50 @@
             "drilldown_actions_width": 220,
             "primary_field": "value1",
             "label_tpl": "${value2}",
+            "drilldown_batch_actions": [
+                {
+                    "label": "批量处理",
+                    "type": "button",
+                    "level": "primary",
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "批量处理选中项",
+                        "body": {
+                            "type": "form",
+                            "api": {
+                                "method": "post",
+                                "url": "/api/risk/handle-batch",
+                                "data": {
+                                    "ids": "${selectedItems|pick:value1|join}",
+                                    "count": "${selectedItems.length}"
+                                }
+                            },
+                            "body": [
+                                {
+                                    "type": "tpl",
+                                    "tpl": "已选中 ${selectedItems.length} 条数据，ID列表：${selectedItems|pick:value1|join}"
+                                },
+                                {
+                                    "type": "select",
+                                    "name": "action_code",
+                                    "label": "批量措施",
+                                    "required": true,
+                                    "options": [
+                                        {
+                                            "label": "标记已读",
+                                            "value": "mark_read"
+                                        },
+                                        {
+                                            "label": "移除风险",
+                                            "value": "remove_risk"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            ],
             "drilldown_actions": [
                 {
                     "label": "处理",

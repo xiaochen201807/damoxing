@@ -123,14 +123,14 @@
                             {% if label_tpl %}"labelTpl": "{{ label_tpl }}",{% endif %}
                             {% if drilldown_batch %}
                             "keepItemSelectionOnPageChange": true,
-                            "bulkActions": [
+                            "bulkActions": {% if drilldown_batch_actions %}{{ drilldown_batch_actions | tojson }}{% else %}[
                                 {
                                     "label": "批量处理",
                                     "actionType": "button",
                                     "level": "primary",
                                     "onClick": "alert('批量处理选中项ID：' + this.selectedItems.map(item => item.id).join(', '))"
                                 }
-                            ],
+                            ]{% endif %},
                             {% endif %}
                             {% set default_cols = [] %}
                             {% if chart_type == 'funnel' %}
