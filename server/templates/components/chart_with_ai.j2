@@ -125,10 +125,14 @@
                             "keepItemSelectionOnPageChange": true,
                             "bulkActions": {% if drilldown_batch_actions or drilldownBatchActions %}{{ (drilldown_batch_actions or drilldownBatchActions) | tojson }}{% else %}[
                                 {
-                                    "label": "批量处理",
+                                    "label": "默认批量",
                                     "actionType": "button",
                                     "level": "primary",
-                                    "onClick": "if (this.selectedItems && this.selectedItems.length > 0) { alert('批量处理选中项ID：' + this.selectedItems.map(item => item.id).join(', ')); } else { alert('请先选择数据'); }"
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "批量处理",
+                                        "body": "已选中 ${selectedItems.length} 条数据"
+                                    }
                                 }
                             ]{% endif %},
                             {% endif %}
