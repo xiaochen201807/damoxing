@@ -172,27 +172,36 @@ function registerTools(server) {
                                 description: "单页模式：组件列表（与 tabs 二选一），支持数组或JSON字符串格式"
                             },
                             tabs: {
-                                type: "array",
-                                description: "标签页模式：多个标签页配置（与 components 二选一）。如果只有1个tab则自动降级为单页模式。",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        title: { type: "string", description: "标签页标题" },
-                                        components: {
-                                            type: "array",
-                                            description: "该标签页下的组件列表",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    component_id: { type: "string" },
-                                                    params: { type: "object" }
-                                                },
-                                                required: ["component_id"]
-                                            }
+                                oneOf: [
+                                    {
+                                        type: "array",
+                                        description: "标签页列表（数组格式）",
+                                        items: {
+                                            type: "object",
+                                            properties: {
+                                                title: { type: "string", description: "标签页标题" },
+                                                components: {
+                                                    type: "array",
+                                                    description: "该标签页下的组件列表",
+                                                    items: {
+                                                        type: "object",
+                                                        properties: {
+                                                            component_id: { type: "string" },
+                                                            params: { type: "object" }
+                                                        },
+                                                        required: ["component_id"]
+                                                    }
+                                                }
+                                            },
+                                            required: ["title", "components"]
                                         }
                                     },
-                                    required: ["title", "components"]
-                                }
+                                    {
+                                        type: "string",
+                                        description: "标签页列表（JSON字符串格式，需符合数组结构）"
+                                    }
+                                ],
+                                description: "标签页模式：多个标签页配置（与 components 二选一），支持数组或JSON字符串格式。如果只有1个tab则自动降级为单页模式。"
                             }
                         }
                     }
@@ -296,6 +305,32 @@ function registerTools(server) {
                         content: [{
                             type: "text",
                             text: `Failed to parse 'components' string as JSON: ${e.message}. Please provide a valid JSON array.`
+                        }],
+                        isError: true
+                    };
+                }
+            }
+
+            // 字符串转数组：如果 tabs 是字符串，解析为数组
+            if (typeof tabs === 'string') {
+                try {
+                    const parsed = JSON.parse(tabs);
+                    if (!Array.isArray(parsed)) {
+                        return {
+                            content: [{
+                                type: "text",
+                                text: "Invalid 'tabs' string: must be a JSON array format. Example: '[{\"title\":\"Tab 1\",\"components\":[...]}]'"
+                            }],
+                            isError: true
+                        };
+                    }
+                    tabs = parsed;
+                    logger.info(`[MCP] Converted tabs string to array (${parsed.length} tabs)`);
+                } catch (e) {
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Failed to parse 'tabs' string as JSON: ${e.message}. Please provide a valid JSON array.`
                         }],
                         isError: true
                     };
