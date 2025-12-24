@@ -18,12 +18,15 @@ export interface ApiResponse<T = any> {
 export interface MenuItem {
     id: number;
     label: string;
-    page_key: string;      // 新增
-    route_key: string;     // 新增
-    path: string;
-    icon: string;
-    subtitle?: string;
-    created_at?: string;
+    page_key: string;      // 页面标识
+    route_key: string;     // 路由组标识
+    path: string;          // 路由路径
+    icon?: string;         // 图标（可选）
+    subtitle?: string;     // 副标题（可选）
+    order: number;         // 排序
+    parent_id: number | null;  // 父菜单ID（null表示根级菜单）
+    created_at?: string;   // 创建时间
+    children?: MenuItem[]; // 子菜单（前端构建树形结构时使用）
 }
 
 // 页面模板

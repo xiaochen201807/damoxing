@@ -39,7 +39,8 @@ router.get('/menu', (req, res) => {
         params.push(route_key);
     }
 
-    sql += ' ORDER BY route_key ASC, `order` ASC, id ASC';
+    // 支持层级结构：先按 parent_id 排序（NULL 在前），再按 order 和 id
+    sql += ' ORDER BY route_key ASC, CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END ASC, parent_id ASC, `order` ASC, id ASC';
 
     db.all(sql, params, (err, rows) => {
         if (err) {
@@ -66,7 +67,7 @@ router.get('/menu', (req, res) => {
 
 // 创建菜单
 router.post('/menu', (req, res) => {
-    const { label, subtitle, page_key, icon, order, route_key } = req.body;
+    const { label, subtitle, page_key, icon, order, route_key, parent_id } = req.body;
 
     if (!label) {
         return res.status(400).json({
@@ -116,11 +117,11 @@ router.post('/menu', (req, res) => {
         const path = `/${menuRouteKey}/${page_key}`;
 
         const sql = `
-            INSERT INTO sys_menu (label, subtitle, page_key, path, icon, \`order\`, route_key) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sys_menu (label, subtitle, page_key, path, icon, \`order\`, route_key, parent_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        db.run(sql, [label, subtitle || '', page_key, path, icon || '', menuOrder, menuRouteKey], function (err) {
+        db.run(sql, [label, subtitle || '', page_key, path, icon || '', menuOrder, menuRouteKey, parent_id || null], function (err) {
             if (err) {
                 logger.error('[Menu] 创建失败:', err);
                 if (err.message.includes('UNIQUE constraint failed')) {
@@ -210,7 +211,7 @@ router.post('/menu/:pageKey', updateMenu);
 // 更新菜单的实际处理函数
 function updateMenu(req, res) {
     const { pageKey } = req.params;
-    const { label, subtitle, icon, page_key: newPageKey, order, route_key } = req.body;
+    const { label, subtitle, icon, page_key: newPageKey, order, route_key, parent_id } = req.body;
 
     // 1. 如果要修改 page_key，需要检查新 key 是否已存在
     if (newPageKey !== undefined && newPageKey !== pageKey) {
@@ -267,6 +268,10 @@ function updateMenu(req, res) {
         if (route_key !== undefined) {
             updates.push('route_key = ?');
             params.push(route_key);
+        }
+        if (parent_id !== undefined) {
+            updates.push('parent_id = ?');
+            params.push(parent_id || null);
         }
 
         if (updates.length === 0) {

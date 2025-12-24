@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
 import { API_ENDPOINTS } from '../config/constants';
+import { buildMenuTree } from '../utils/menuTree';
 import type { MenuItem, ApiResponse } from '../types/api';
+import MenuList from '../components/Menu/MenuList';
 import './MainLayout.css';
 
 const MainLayout: React.FC = () => {
@@ -35,9 +37,11 @@ const MainLayout: React.FC = () => {
         setRouteTitle(routeRes.data.data.route_name || '管理系统');
       }
 
-      // 设置菜单
+      // 设置菜单 - 构建树形结构
       if (menuRes.data && menuRes.data.status === 0) {
-        setMenus(menuRes.data.data || []);
+        const flatMenus = menuRes.data.data || [];
+        const treeMenus = buildMenuTree(flatMenus);
+        setMenus(treeMenus);
       }
 
       setLoading(false);
@@ -58,29 +62,8 @@ const MainLayout: React.FC = () => {
         <nav className="sidebar-nav">
           {loading ? (
             <div className="menu-loading">加载菜单中...</div>
-          ) : menus.length === 0 ? (
-            <div className="menu-empty">暂无菜单</div>
           ) : (
-            <ul className="menu-list">
-              {menus.map((menu) => (
-                <li key={menu.id} className="menu-item">
-                  <Link
-                    to={`/${routeKey}/${menu.page_key}`}
-                    className={
-                      location.pathname === `/${routeKey}/${menu.page_key}`
-                        ? 'menu-link active'
-                        : 'menu-link'
-                    }
-                  >
-                    {menu.icon && <i className={menu.icon}></i>}
-                    <div className="menu-text">
-                      <span className="menu-label">{menu.label}</span>
-                      {menu.subtitle && <span className="menu-subtitle">{menu.subtitle}</span>}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <MenuList items={menus} routeKey={routeKey} />
           )}
         </nav>
       </aside>
