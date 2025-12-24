@@ -151,16 +151,25 @@ function registerTools(server) {
                                 default: "simple"
                             },
                             components: {
-                                type: "array",
-                                description: "单页模式：组件列表（与 tabs 二选一）",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        component_id: { type: "string", description: "组件ID" },
-                                        params: { type: "object", description: "组件参数" }
+                                oneOf: [
+                                    {
+                                        type: "array",
+                                        description: "组件列表（数组格式）",
+                                        items: {
+                                            type: "object",
+                                            properties: {
+                                                component_id: { type: "string", description: "组件ID" },
+                                                params: { type: "object", description: "组件参数" }
+                                            },
+                                            required: ["component_id"]
+                                        }
                                     },
-                                    required: ["component_id"]
-                                }
+                                    {
+                                        type: "string",
+                                        description: "组件列表（JSON字符串格式，需符合数组结构）"
+                                    }
+                                ],
+                                description: "单页模式：组件列表（与 tabs 二选一），支持数组或JSON字符串格式"
                             },
                             tabs: {
                                 type: "array",
@@ -265,7 +274,33 @@ function registerTools(server) {
         }
 
         if (name === "generate_page_schema") {
-            const { title, layout, components, tabs } = args;
+            let { title, layout, components, tabs } = args;
+
+            // 字符串转数组：如果 components 是字符串，解析为数组
+            if (typeof components === 'string') {
+                try {
+                    const parsed = JSON.parse(components);
+                    if (!Array.isArray(parsed)) {
+                        return {
+                            content: [{
+                                type: "text",
+                                text: "Invalid 'components' string: must be a JSON array format. Example: '[{\"component_id\":\"chart_with_ai\",\"params\":{...}}]'"
+                            }],
+                            isError: true
+                        };
+                    }
+                    components = parsed;
+                    logger.info(`[MCP] Converted components string to array (${parsed.length} components)`);
+                } catch (e) {
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Failed to parse 'components' string as JSON: ${e.message}. Please provide a valid JSON array.`
+                        }],
+                        isError: true
+                    };
+                }
+            }
 
             // 验证参数：components 或 tabs 二选一
             if (!components && !tabs) {
