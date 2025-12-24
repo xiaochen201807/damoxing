@@ -7,21 +7,16 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/client
 
-# 配置 npm 使用淘宝镜像源 (加速下载)
-# 同时增加超时时间和重试次数，解决网络不稳定问题
+# 复制前端 package 文件（先复制依赖文件，利用 Docker 缓存）
+COPY client/package*.json ./
+
+# 配置 npm 并安装依赖 (合并为单层以减少镜像大小)
 RUN npm config set registry https://registry.npmmirror.com && \
     npm config set fetch-timeout 600000 && \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000
-
-# 复制前端 package 文件
-COPY client/package*.json ./
-
-# 安装前端依赖 (包含 devDependencies,因为构建需要)
-# 移除 --only=production 以确保安装可选依赖 (如 @rollup/rollup-linux-x64-musl)
-# 使用 --prefer-offline 优先使用缓存，减少网络请求
-RUN npm ci --prefer-offline || npm ci || npm ci
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm ci --prefer-offline || npm ci || npm ci
 
 # 复制前端源代码
 COPY client/ ./
@@ -40,18 +35,18 @@ RUN apk add --no-cache nginx sqlite supervisor dcron
 
 WORKDIR /app
 
-# 配置 npm 使用淘宝镜像源 (加速下载)
-# 同时增加超时时间和重试次数
+# 复制后端 package 文件（先复制依赖文件，利用 Docker 缓存）
+COPY server/package*.json ./
+
+# 配置 npm 并安装后端依赖 (合并为单层)
 RUN npm config set registry https://registry.npmmirror.com && \
     npm config set fetch-timeout 600000 && \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000
+    npm config set fetch-retry-maxtimeout 120000 && \
+    if [ -f package-lock.json ]; then npm ci --only=production --prefer-offline; else npm install --only=production; fi
 
 # 复制后端代码
-COPY server/package*.json ./
-# 若 package-lock.json 不存在，fallback 到 npm install
-RUN if [ -f package-lock.json ]; then npm ci --only=production --prefer-offline; else npm install --only=production; fi
 COPY server/ ./
 
 # 复制数据库模板（用于首次启动时初始化）

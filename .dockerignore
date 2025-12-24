@@ -2,13 +2,19 @@
 node_modules/
 **/node_modules/
 
-# Git
+# Git 和 CI/CD
 .git
 .gitignore
+.github
+.gitlab-ci.yml
+.travis.yml
 
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
@@ -24,6 +30,7 @@ Thumbs.db
 client/node_modules/
 client/dist/
 client/.vite/
+client/.cache/
 
 # 后端
 server/node_modules/
@@ -46,10 +53,43 @@ DEPLOYMENT.md
 DEPLOYMENT_MULTI_REPLICA.md
 DEPLOYMENT_SIMPLE.md
 
-# 其他
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# 测试和覆盖率
+test/
+tests/
+__tests__/
+coverage/
+.nyc_output/
+
+# Docker 相关（不需要在镜像中）
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# 临时和缓存文件
+*.tmp
+*.cache
+.cache/
+tmp/
+temp/
+*.bak
+*.backup
+
+# 其他 Markdown 文件
 *.md
 !package*.json
 
-# 重要：允许必需的 shell 脚本
+# 重要：允许必需的 shell 脚本和配置
 !docker-entrypoint.sh
 !backup-db.sh
+!nginx-single.conf
+!supervisord.conf
+!crontab

@@ -7,11 +7,14 @@ on:
       - master
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
-      - master
+  # 移除 pull_request 自动触发，仅手动触发多架构构建
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      skip_arm:
+        description: '跳过 ARM64 构建 (仅构建 x86)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -73,6 +76,8 @@ jobs:
 
       - name: Build and push by digest
         id: build
+        # 跳过 ARM64 如果手动触发时选择了 skip_arm
+        if: ${{ matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -83,14 +88,14 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
 
       - name: Export digest
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' && steps.build.conclusion == 'success' }}
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' && steps.build.conclusion == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ steps.platform.outputs.tag }}
