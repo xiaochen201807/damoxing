@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import type { MenuItem } from '../../utils/menuTree';
+import type { MenuItem } from '../../types/api';
 import './Menu.css';
 
 interface SubMenuProps {
@@ -71,7 +71,7 @@ const SubMenu: React.FC<SubMenuProps> = ({ item, routeKey, level = 1 }) => {
                 <span className="submenu-arrow">▶</span>
             </div>
             <ul className="submenu-list">
-                {item.children!.map(child => (
+                {item.children!.map((child: MenuItem) => (
                     <SubMenu
                         key={child.id}
                         item={child}
@@ -96,7 +96,7 @@ const MenuList: React.FC<MenuListProps> = ({ items, routeKey }) => {
 
     return (
         <ul className="menu-list">
-            {items.map(item => (
+            {items.map((item: MenuItem) => (
                 <SubMenu
                     key={item.id}
                     item={item}
