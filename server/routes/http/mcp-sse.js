@@ -71,7 +71,9 @@ router.use(verifyMcpAuth);
 router.get("/sse", async (req, res) => {
     logger.info("[MCP SSE] New connection attempt");
 
-    const transport = new SSEServerTransport("/api/mcp/messages", res);
+    // 使用正确的 messages 端点路径（包含 API 前缀）
+    const apiPrefix = process.env.API_ROUTE_PREFIX || '/api';
+    const transport = new SSEServerTransport(`${apiPrefix}/mcp/messages`, res);
     const server = createMcpServer();
 
     // Store transport/server if needed, but SDK handles the limit of `server.connect`?

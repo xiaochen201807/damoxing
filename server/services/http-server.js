@@ -36,7 +36,10 @@ function setupMiddleware(app) {
             if (!origin) return callback(null, true);
             if (allowedOrigins.includes('*')) return callback(null, true);
 
-            if (allowedOrigins.includes(origin) ||
+            // Allow localhost on any port (for MCP Inspector, dev tools)
+            if (origin.startsWith("http://localhost:") ||
+                origin.startsWith("http://127.0.0.1:") ||
+                allowedOrigins.includes(origin) ||
                 origin.startsWith("http://192.168.") ||
                 origin.startsWith("http://10.") ||
                 origin.startsWith("http://172.")) {
