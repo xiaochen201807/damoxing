@@ -1,0 +1,149 @@
+[
+    {
+        "component_id": "chart_with_ai",
+        "params": {
+            "title": "各行业缴存断缴风险",
+            "chart_type": "pie",
+            "api_url": "/HFB/common/dmx_risk/management=detail_chart.service",
+            "api_method": "post",
+            "api_data": {
+                "cxlx": {
+                    "mxKey": "fxgl_jcdjfx_wd_dwsshy"
+                },
+                "jgbh": "1305282025",
+                "page": 1,
+                "size": 20
+            },
+            "height": 400,
+            "enable_drilldown": true,
+            "drilldown_api": "/HFB/common/dmx_risk/management=detail_query.service",
+            "drilldown_method": "post",
+            "drilldown_data": {
+                "cxlx": {
+                    "mxKey": "fxgl_jcdjfx_mx_dwsshy"
+                },
+                "jgbh": "1305282025",
+                "page": 1,
+                "size": 20
+            },
+            "drilldown_columns": [
+                {
+                    "name": "value1",
+                    "label": "ID",
+                    "width": 160
+                },
+                {
+                    "name": "value2",
+                    "label": "单位名称"
+                },
+                {
+                    "name": "value3",
+                    "label": "统一社会信用代码"
+                },
+                {
+                    "name": "value4",
+                    "label": "开户日期"
+                },
+                {
+                    "name": "value5",
+                    "label": "职工人数"
+                },
+                {
+                    "name": "value6",
+                    "label": "欠缴月数"
+                },
+                {
+                    "name": "value7",
+                    "label": "欠缴金额"
+                },
+                {
+                    "name": "value8",
+                    "label": "风险类型"
+                },
+                {
+                    "name": "value9",
+                    "label": "所属区域"
+                },
+                {
+                    "name": "clcs",
+                    "label": "处理措施"
+                },
+                {
+                    "name": "clsj",
+                    "label": "处理时间"
+                }
+            ],
+            "drilldown_batch": true,
+            "drilldown_sequence": true,
+            "drilldown_actions_width": 220,
+            "primary_field": "value1",
+            "label_tpl": "${value2}",
+            "drilldown_actions": [
+                {
+                    "label": "处理",
+                    "type": "button",
+                    "icon": "fa fa-shield",
+                    "level": "primary",
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "处理措施",
+                        "body": {
+                            "type": "form",
+                            "api": {
+                                "method": "post",
+                                "url": "/api/risk/handle",
+                                "data": {
+                                    "ids": "${value1}",
+                                    "rows": [
+                                        "${&}"
+                                    ]
+                                }
+                            },
+                            "body": [
+                                {
+                                    "type": "hidden",
+                                    "name": "customer_id",
+                                    "value": "${value1}"
+                                },
+                                {
+                                    "type": "select",
+                                    "name": "action_code",
+                                    "label": "处理措施",
+                                    "required": true,
+                                    "options": [
+                                        {
+                                            "label": "责令限期补缴",
+                                            "value": "phone_verify"
+                                        },
+                                        {
+                                            "label": "办理缓缴/降低缴存比例",
+                                            "value": "send_warning"
+                                        },
+                                        {
+                                            "label": "行政处罚",
+                                            "value": "send_warning"
+                                        },
+                                        {
+                                            "label": "申请法院强制执行",
+                                            "value": "send_warning"
+                                        },
+                                        {
+                                            "label": "明确主体变更后补缴责任",
+                                            "value": "send_warning"
+                                        },
+                                        {
+                                            "label": "破产/解散时清偿欠缴公积金",
+                                            "value": "on_site_collect"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            ],
+            "ai_analysis_text": "当前高风险客户占比较高，需要重点关注。极高风险和高风险客户合计占比约23%，建议加强风控措施。",
+            "ai_suggestions": "1. 对极高、高风险客户实施每日监控\n2. 启动专项催收计划\n3. 优化审批流程，降低新增风险"
+        }
+    }
+]

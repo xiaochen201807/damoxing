@@ -117,7 +117,10 @@
                             },
                             "perPageAvailable": [10, 20, 50],
                             "perPage": 10,
+                            "perPage": 10,
                             "footerToolbar": {% if drilldown_pagination | default(true) %}["statistics", "switch-per-page", "pagination"]{% else %}["statistics"]{% endif %},
+                            {% if primary_field %}"primaryField": "{{ primary_field }}",{% endif %}
+                            {% if label_tpl %}"labelTpl": "{{ label_tpl }}",{% endif %}
                             {% if drilldown_batch %}
                             "keepItemSelectionOnPageChange": true,
                             "bulkActions": [
