@@ -5,6 +5,7 @@
   @param title_font_size 标题字体大小
   @param subtitle_api 副标题数据API地址（配置后，副标题将动态显示API返回的数据;不配置则使用静态副标题或不使用副标题）
   @param subtitle_api_method 副标题API请求方法
+  @param subtitle_api_data 副标题API的固定请求参数（JSON对象或字符串）
   @param subtitle_api_adaptor 副标题API数据适配器（副标题API返回的数据不满足 amis 格式时可设置）
   @param subtitle 页面副标题(副标题静态文字)  
   @param subtitle_font_size 副标题字体大小
@@ -14,6 +15,7 @@
   @param page_key 页面唯一标识（用于报告生成）
   @param report_workflow_type 报告工作流类型（默认：report_generation）
   @param report_query AI报告生成查询参数
+  @param report_api_data 报告生成API的固定请求参数（JSON对象或字符串）
 #}
 {% import 'base/colors.j2' as theme %}
 
@@ -58,6 +60,9 @@
                     {
                         "actionType": "reload",
                         "componentId": "report_service_inner"
+                        {% if report_api_data %},
+                        "data": {{ report_api_data | tojson }}
+                        {% endif %}
                     }
                 ]
             }
@@ -79,6 +84,9 @@
             "api": {
                 "method": "{{ subtitle_api_method | default('get') }}",
                 "url": "{{ subtitle_api }}"
+                {% if subtitle_api_data %},
+                "data": {{ subtitle_api_data | tojson }}
+                {% endif %}
                 {% if subtitle_api_adaptor %},
                 "adaptor": "{{ subtitle_api_adaptor }}"
                 {% endif %}
