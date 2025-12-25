@@ -175,10 +175,10 @@
                 "onUnmount": "clearInterval(window.reportTimer);"
             }]
         },
-        {# 报告显示弹窗 - 改为居中弹窗样式 #}
+        {# 报告显示弹窗 - 只在加载完成后显示 #}
         {
             "type": "container",
-            "visibleOn": "${show_report_result}",
+            "visibleOn": "${show_report_result && !report_loading}",
             "style": {
                 "position": "fixed",
                 "top": "0",
@@ -199,59 +199,61 @@
                     "borderRadius": "8px",
                     "width": "90%",
                     "maxWidth": "1200px",
-                    "maxHeight": "75vh",
+                    "maxHeight": "70vh",
                     "display": "flex",
                     "flexDirection": "column",
-                    "boxShadow": "0 4px 20px rgba(0,0,0,0.3)"
+                    "boxShadow": "0 4px 20px rgba(0,0,0,0.3)",
+                    "position": "relative"
                 },
                 "body": [
+                    {# X 关闭按钮 - 绝对定位在右上角 #}
+                    {
+                        "type": "button",
+                        "label": "✕",
+                        "level": "link",
+                        "style": {
+                            "position": "absolute",
+                            "top": "12px",
+                            "right": "16px",
+                            "color": "white",
+                            "fontSize": "20px",
+                            "padding": "0",
+                            "width": "28px",
+                            "height": "28px",
+                            "minWidth": "28px",
+                            "zIndex": "10",
+                            "lineHeight": "28px",
+                            "textAlign": "center"
+                        },
+                        "onEvent": {
+                            "click": {
+                                "actions": [{
+                                    "actionType": "setValue",
+                                    "componentId": "global_page_root",
+                                    "args": {
+                                        "value": {
+                                            "show_report_result": false,
+                                            "report_loading": false
+                                        }
+                                    }
+                                }]
+                            }
+                        }
+                    },
                     {# 标题栏 #}
                     {
                         "type": "container",
                         "style": {
                             "backgroundColor": "#1a3c6e",
                             "color": "white",
-                            "padding": "16px 24px",
-                            "display": "flex",
-                            "justifyContent": "space-between",
-                            "alignItems": "center",
+                            "padding": "14px 50px 14px 24px",
                             "borderRadius": "8px 8px 0 0",
                             "flexShrink": "0"
                         },
-                        "body": [
-                            {
-                                "type": "tpl",
-                                "tpl": "<span style='font-size: 18px; font-weight: bold;'>📄 风险分析报告预览</span>"
-                            },
-                            {
-                                "type": "button",
-                                "label": "✕",
-                                "level": "link",
-                                "className": "text-white",
-                                "style": {
-                                    "color": "white",
-                                    "fontSize": "24px",
-                                    "padding": "0",
-                                    "width": "32px",
-                                    "height": "32px",
-                                    "minWidth": "32px"
-                                },
-                                "onEvent": {
-                                    "click": {
-                                        "actions": [{
-                                            "actionType": "setValue",
-                                            "componentId": "global_page_root",
-                                            "args": {
-                                                "value": {
-                                                    "show_report_result": false,
-                                                    "report_loading": false
-                                                }
-                                            }
-                                        }]
-                                    }
-                                }
-                            }
-                        ]
+                        "body": [{
+                            "type": "tpl",
+                            "tpl": "<span style='font-size: 16px; font-weight: bold;'>📄 风险分析报告预览</span>"
+                        }]
                     },
                     {# 内容区域 #}
                     {
@@ -342,14 +344,14 @@
                             },
                             {
                                 "type": "button",
-                                "label": "📥 导出 PDF (准备中)",
+                                "label": "📥 导出 PDF",
                                 "level": "primary",
                                 "id": "export-pdf-btn",
                                 "onEvent": {
                                     "click": {
                                         "actions": [{
                                             "actionType": "custom",
-                                            "script": "const btn = event.context.nativeEvent.target.closest('button'); const originalText = btn.textContent; btn.disabled = true; btn.textContent = '正在生成 PDF...'; const loadScript = (src) => new Promise((resolve, reject) => { if (document.querySelector(`script[src='${src}']`)) return resolve(); const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(() => { const { jsPDF } = window.jspdf; const reportContent = document.getElementById('report_service_inner'); if (!reportContent) { alert('未找到报告内容'); btn.disabled = false; btn.textContent = originalText; return; } html2canvas(reportContent, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' }).then(canvas => { const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const imgWidth = 210; const pageHeight = 297; const imgHeight = (canvas.height * imgWidth) / canvas.width; let heightLeft = imgHeight; let position = 0; pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight; while (heightLeft >= 0) { position = heightLeft - imgHeight; pdf.addPage(); pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight; } pdf.save('风险分析报告_' + new Date().toISOString().split('T')[0] + '.pdf'); btn.disabled = false; btn.textContent = originalText; }).catch(err => { console.error('PDF生成失败:', err); alert('PDF生成失败，请重试'); btn.disabled = false; btn.textContent = originalText; }); }).catch(err => { console.error('加载PDF库失败:', err); alert('加载PDF生成库失败，请检查网络'); btn.disabled = false; btn.textContent = originalText; });"
+                                            "script": "const btn = event.context.nativeEvent.target.closest('button'); const originalText = btn.textContent; btn.disabled = true; btn.textContent = '正在生成 PDF...'; const loadScript = (src) => new Promise((resolve, reject) => { if (document.querySelector(`script[src='${src}']`)) return resolve(); const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(() => { const { jsPDF } = window.jspdf; const reportContent = document.querySelector('[data-component-id=\"report_service_inner\"]') || document.querySelector('.report-content-area') || document.querySelector('[id*=\"report_service_inner\"]'); if (!reportContent) { alert('未找到报告内容区域'); btn.disabled = false; btn.textContent = originalText; return; } html2canvas(reportContent, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 1200 }).then(canvas => { const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const pdfWidth = 210; const pdfHeight = 297; const imgWidth = pdfWidth - 20; const imgHeight = (canvas.height * imgWidth) / canvas.width; let heightLeft = imgHeight; let position = 10; pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { pdf.addPage(); position = 10 - (imgHeight - heightLeft); pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - 20); } pdf.save('风险分析报告_' + new Date().toISOString().split('T')[0] + '.pdf'); btn.disabled = false; btn.textContent = originalText; }).catch(err => { console.error('PDF生成失败:', err); alert('PDF生成失败: ' + err.message); btn.disabled = false; btn.textContent = originalText; }); }).catch(err => { console.error('加载PDF库失败:', err); alert('加载PDF生成库失败，请检查网络'); btn.disabled = false; btn.textContent = originalText; });"
                                         }]
                                     }
                                 }
@@ -362,7 +364,7 @@
                                     "click": {
                                         "actions": [{
                                             "actionType": "custom",
-                                            "script": "window.print();"
+                                            "script": "const printStyle = document.createElement('style'); printStyle.id = 'report-print-style'; printStyle.textContent = '@media print { @page { size: A4 portrait; margin: 15mm; } body * { visibility: hidden !important; } [data-component-id=\"report_service_inner\"], [data-component-id=\"report_service_inner\"] * { visibility: visible !important; } [data-component-id=\"report_service_inner\"] { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; } }'; if (!document.getElementById('report-print-style')) { document.head.appendChild(printStyle); } window.print();"
                                         }]
                                     }
                                 }
