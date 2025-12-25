@@ -45,7 +45,8 @@
         "onEvent": {
             "click": {
                 "actions": [
-                    {# 1. 设置全局变量：开启 loading #}
+                    {# 设置全局变量：开启 loading 和显示报告区域 #}
+                    {# sendOn 条件会自动触发 service 请求，无需 reload action #}
                     {
                         "actionType": "setValue",
                         "componentId": "global_page_root",
@@ -55,14 +56,6 @@
                                 "report_loading": true
                             }
                         }
-                    },
-                    {# 2. 触发 Service 重新加载 #}
-                    {
-                        "actionType": "reload",
-                        "componentId": "report_service_inner"
-                        {% if report_api_data %},
-                        "data": {{ report_api_data | tojson }}
-                        {% endif %}
                     }
                 ]
             }
