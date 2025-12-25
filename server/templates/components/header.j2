@@ -76,7 +76,8 @@
             },
             "api": {
                 "method": "{{ subtitle_api_method | default('get') }}",
-                "url": "{{ subtitle_api }}"
+                "url": "{{ subtitle_api }}",
+                "dataType": "json"
                 {% if subtitle_api_data %},
                 "data": {{ subtitle_api_data | tojson }}
                 {% endif %}
