@@ -150,6 +150,11 @@
     "id": "report_display_root",
     "className": "p-none",
     "body": [
+        {# 添加内部样式修复滚动问题 #}
+        {
+            "type": "tpl",
+            "tpl": "<style>.report-content-area { display: flex; flex-direction: column; } .report-content-area > .cxd-Service { flex: 1 1 0; min-height: 0; overflow-y: auto !important; } .report-content-area .cxd-Service-body { height: 100%; overflow-y: auto; }</style>"
+        },
         {# Loading 动画 - 带倒计时 #}
         {
             "type": "container",
