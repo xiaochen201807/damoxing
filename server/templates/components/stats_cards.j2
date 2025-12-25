@@ -1,0 +1,96 @@
+{# 统计指标卡片组件 - 使用 Flex 布局 #}
+{% if title %}
+{
+  "type": "container",
+  "className": "m-b-sm",
+  "body": [
+    {
+      "type": "html",
+      "html": "<h4 style='margin-bottom: 10px;'>{{ title }}</h4>"
+    },
+    {
+      "type": "container",
+      "className": "stats-cards-grid {% if border_color %}border-{{ border_color }}{% endif %}",
+      "style": {
+        "display": "flex",
+        "flexWrap": "wrap",
+        "gap": "16px"
+      },
+      {% if api_url %}
+      "api": {
+        "method": "{{ api_method or 'get' }}",
+        "url": "{{ api_url }}"
+        {% if api_data %}
+        ,"data": {{ api_data | tojson }}
+        {% endif %}
+        {% if api_headers %}
+        ,"headers": {{ api_headers | tojson }}
+        {% endif %}
+      },
+      {% endif %}
+      "body": [
+        {% if items %}
+          {% for item in items %}
+          {
+            "type": "container",
+            "className": "stat-card",
+            "style": {
+              "flex": "1 1 calc({{ 100 / (columns or 5) }}% - 16px)",
+              "minWidth": "160px"
+            },
+            "body": [
+              {
+                "type": "html",
+                "html": "<div class='stat-label'>{{ item.label }}</div><div class='stat-value'>{{ item.value }}{% if item.unit %}<span class='stat-unit'>{{ item.unit }}</span>{% endif %}</div>{% if item.trend %}<div class='stat-trend {% if item.trend_color and item.trend_color != 'auto' %}trend-{{ item.trend_color }}{% else %}trend-{{ item.trend }}{% endif %}'>{% if item.trend == 'up' %}↑{% else %}↓{% endif %} {{ item.trend_value }}</div>{% endif %}{% if item.sub_label %}<div class='stat-sublabel'>{{ item.sub_label }}</div>{% endif %}"
+              }
+            ]
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+      ]
+    }
+  ]
+}
+{% else %}
+{
+  "type": "container",
+  "className": "stats-cards-grid {% if border_color %}border-{{ border_color }}{% endif %}",
+  "style": {
+    "display": "flex",
+    "flexWrap": "wrap",
+    "gap": "16px"
+  },
+  {% if api_url %}
+  "api": {
+    "method": "{{ api_method or 'get' }}",
+    "url": "{{ api_url }}"
+    {% if api_data %}
+    ,"data": {{ api_data | tojson }}
+    {% endif %}
+    {% if api_headers %}
+    ,"headers": {{ api_headers | tojson }}
+    {% endif %}
+  },
+  {% endif %}
+  "body": [
+    {% if items %}
+      {% for item in items %}
+      {
+        "type": "container",
+        "className": "stat-card",
+        "style": {
+          "flex": "1 1 calc({{ 100 / (columns or 5) }}% - 16px)",
+          "minWidth": "160px"
+        },
+        "body": [
+          {
+            "type": "html",
+            "html": "<div class='stat-label'>{{ item.label }}</div><div class='stat-value'>{{ item.value }}{% if item.unit %}<span class='stat-unit'>{{ item.unit }}</span>{% endif %}</div>{% if item.trend %}<div class='stat-trend {% if item.trend_color and item.trend_color != 'auto' %}trend-{{ item.trend_color }}{% else %}trend-{{ item.trend }}{% endif %}'>{% if item.trend == 'up' %}↑{% else %}↓{% endif %} {{ item.trend_value }}</div>{% endif %}{% if item.sub_label %}<div class='stat-sublabel'>{{ item.sub_label }}</div>{% endif %}"
+          }
+        ]
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    {% endif %}
+  ]
+}
+{% endif %}

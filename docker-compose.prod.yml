@@ -17,6 +17,9 @@ services:
     ports:
       - "80:80"
 
+    networks:
+      - damoxing-net
+
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -80,3 +83,16 @@ services:
 #
 # 注意: 多副本需要外部负载均衡器 (如 Nginx)
 # 或者使用 Docker Swarm mode
+
+# ============================================
+# 自定义网络配置
+# ============================================
+# 明确指定网络范围，避免与物理网络 192.168.x.x 冲突
+networks:
+  damoxing-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1

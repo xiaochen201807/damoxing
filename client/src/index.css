@@ -18,16 +18,18 @@ a {
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  /* 移除 display: flex 和 place-items: center */
+  /* 因为我们使用的是侧边栏布局，不是单页居中布局 */
 }
 
 h1 {
@@ -46,9 +48,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -59,10 +63,117 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* ==================== 统计指标卡片组件样式 ==================== */
+.stats-cards-grid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.stats-cards-grid.border-red {
+  border: 2px solid #dc3545;
+  background: #fff5f5;
+}
+
+.stats-cards-grid.border-blue {
+  border: 2px solid #007bff;
+  background: #f0f8ff;
+}
+
+.stats-cards-grid.border-orange {
+  border: 2px solid #fd7e14;
+}
+
+.stats-cards-grid.border-green {
+  border: 2px solid #28a745;
+}
+
+/* 修复 AMIS Container 包装层干扰 flex 布局 */
+.stats-cards-grid>div[class*="Container"] {
+  display: contents !important;
+}
+
+.stat-card {
+  padding: 20px 16px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.2s ease;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007bff;
+  line-height: 1.2;
+}
+
+.stat-unit {
+  font-size: 14px;
+  font-weight: normal;
+  margin-left: 4px;
+}
+
+.stat-sublabel {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.stat-trend {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.stat-trend.trend-up {
+  color: #dc3545;
+  /* 上升=红色（风险警示） */
+}
+
+.stat-trend.trend-down {
+  color: #28a745;
+  /* 下降=绿色（改善） */
+}
+
+.stat-trend.trend-red {
+  color: #dc3545;
+}
+
+.stat-trend.trend-green {
+  color: #28a745;
 }

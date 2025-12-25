@@ -10,6 +10,7 @@ import 'amis/lib/helper.css';
 import 'amis/sdk/iconfont.css';
 import 'font-awesome/css/font-awesome.css';
 import './style.css'
+import './index.css'
 
 // React 17 的挂载方式
 // 注意：BrowserRouter 已在 App.tsx 中配置
