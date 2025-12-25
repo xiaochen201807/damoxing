@@ -200,11 +200,12 @@
                     "borderRadius": "8px",
                     "width": "90%",
                     "maxWidth": "1200px",
-                    "maxHeight": "70vh",
+                    "height": "70vh",
                     "display": "flex",
                     "flexDirection": "column",
                     "boxShadow": "0 4px 20px rgba(0,0,0,0.3)",
-                    "position": "relative"
+                    "position": "relative",
+                    "overflow": "hidden"
                 },
                 "body": [
                     {# X 关闭按钮 - 绝对定位在右上角 #}
@@ -262,7 +263,8 @@
                         "id": "report_service_inner",
                         "className": "report-content-area",
                         "style": {
-                            "flex": "1",
+                            "flex": "1 1 0",
+                            "minHeight": "0",
                             "overflowY": "auto",
                             "padding": "24px",
                             "backgroundColor": "#ffffff"
@@ -353,7 +355,7 @@
                                     "click": {
                                         "actions": [{
                                             "actionType": "custom",
-                                            "script": "const btn = event.context.nativeEvent.target.closest('button'); const originalText = btn.textContent; btn.disabled = true; btn.textContent = '正在生成...'; const loadScript = (src) => new Promise((resolve, reject) => { if (document.querySelector(`script[src='${src}']`)) return resolve(); const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(() => { const { jsPDF } = window.jspdf; const reportContent = document.querySelector('.report-content-area'); if (!reportContent) { alert('未找到报告内容'); btn.disabled = false; btn.textContent = originalText; return; } html2canvas(reportContent, { scale: 2, useCORS: true, logging: true, backgroundColor: '#ffffff', scrollY: -window.scrollY, windowWidth: reportContent.scrollWidth, windowHeight: reportContent.scrollHeight }).then(canvas => { const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const pdfWidth = 210; const pdfHeight = 297; const margin = 10; const imgWidth = pdfWidth - margin * 2; const imgHeight = (canvas.height * imgWidth) / canvas.width; let heightLeft = imgHeight; let position = margin; pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); while (heightLeft > 0) { pdf.addPage(); position = margin - (imgHeight - heightLeft); pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); } pdf.save('风险分析报告_' + new Date().toISOString().split('T')[0] + '.pdf'); btn.disabled = false; btn.textContent = originalText; }).catch(err => { console.error('PDF error:', err); alert('PDF生成失败'); btn.disabled = false; btn.textContent = originalText; }); }).catch(err => { alert('加载库失败'); btn.disabled = false; btn.textContent = originalText; });"
+                                            "script": "const btn = event.context.nativeEvent.target.closest('button'); const originalText = btn.textContent; btn.disabled = true; btn.textContent = '正在生成...'; const loadScript = (src) => new Promise((resolve, reject) => { if (document.querySelector(`script[src='${src}']`)) return resolve(); const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(() => { const { jsPDF } = window.jspdf; const reportContent = document.querySelector('.report-content-area .cxd-Service') || document.querySelector('.report-content-area'); if (!reportContent) { alert('未找到报告内容'); btn.disabled = false; btn.textContent = originalText; return; } html2canvas(reportContent, { scale: 2, useCORS: true, logging: true, backgroundColor: '#ffffff', scrollY: 0, windowWidth: reportContent.scrollWidth || 1200 }).then(canvas => { const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const pdfWidth = 210; const pdfHeight = 297; const margin = 10; const imgWidth = pdfWidth - margin * 2; const imgHeight = (canvas.height * imgWidth) / canvas.width; let heightLeft = imgHeight; let position = margin; pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); while (heightLeft > 0) { pdf.addPage(); position = margin - (imgHeight - heightLeft); pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); } pdf.save('风险分析报告_' + new Date().toISOString().split('T')[0] + '.pdf'); btn.disabled = false; btn.textContent = originalText; }).catch(err => { console.error('PDF error:', err); alert('PDF生成失败'); btn.disabled = false; btn.textContent = originalText; }); }).catch(err => { alert('加载库失败'); btn.disabled = false; btn.textContent = originalText; });"
                                         }]
                                     }
                                 }
@@ -367,7 +369,7 @@
                                     "click": {
                                         "actions": [{
                                             "actionType": "custom",
-                                            "script": "const oldStyle = document.getElementById('report-print-style'); if(oldStyle) oldStyle.remove(); const printStyle = document.createElement('style'); printStyle.id = 'report-print-style'; printStyle.textContent = '@media print { @page { size: A4 portrait; margin: 10mm; } body * { visibility: hidden !important; } .report-content-area, .report-content-area * { visibility: visible !important; } .report-content-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-height: none !important; overflow: visible !important; } }'; document.head.appendChild(printStyle); window.print();"
+                                            "script": "const oldStyle = document.getElementById('report-print-style'); if(oldStyle) oldStyle.remove(); const printStyle = document.createElement('style'); printStyle.id = 'report-print-style'; printStyle.textContent = '@media print { @page { size: A4 portrait; margin: 10mm; } body * { visibility: hidden !important; } .report-content-area, .report-content-area *, .report-content-area .cxd-Service, .report-content-area .cxd-Service * { visibility: visible !important; } .report-content-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-height: none !important; overflow: visible !important; } }'; document.head.appendChild(printStyle); window.print();"
                                         }]
                                     }
                                 }
