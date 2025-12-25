@@ -146,3 +146,136 @@
         {% endif %}
     ]
 }
+
+{# =====================================================
+   Report Display Component (融合到 Header 组件中)
+   当 enable_report_button 为 true 时，自动包含报告显示功能
+   ===================================================== #}
+{% if enable_report_button %}
+,{
+    "type": "service",
+    "id": "report_display_root",
+    "className": "p-none",
+    "body": [
+        {
+            "type": "container",
+            "visibleOn": "${report_loading}",
+            "style": {
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "width": "100vw",
+                "height": "100vh",
+                "backgroundColor": "rgba(255, 255, 255, 0.6)",
+                "zIndex": "9999",
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "backdropFilter": "blur(8px)"
+            },
+            "body": [{
+                "type": "tpl",
+                "tpl": "<div style='font-size: 18px; color: #1890ff; font-weight: 600;'>🔄 正在生成报告...</div>"
+            }]
+        },
+        {
+            "type": "container",
+            "visibleOn": "${show_report_result}",
+            "style": {
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "width": "100vw",
+                "height": "100vh",
+                "backgroundColor": "#525659",
+                "zIndex": "9998"
+            },
+            "body": [
+                {
+                    "type": "container",
+                    "style": {
+                        "backgroundColor": "#1a3c6e",
+                        "color": "white",
+                        "padding": "15px 20px",
+                        "display": "flex",
+                        "justifyContent": "space-between",
+                        "alignItems": "center"
+                    },
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "tpl": "<span style='font-size: 18px; font-weight: bold;'>📄 风险分析报告预览</span>"
+                        },
+                        {
+                            "type": "button",
+                            "label": "✖ 关闭",
+                            "level": "danger",
+                            "onEvent": {
+                                "click": {
+                                    "actions": [{
+                                        "actionType": "setValue",
+                                        "componentId": "global_page_root",
+                                        "args": {
+                                            "value": {
+                                                "show_report_result": false,
+                                                "report_loading": false
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "service",
+                    "id": "report_service_inner",
+                    "style": {
+                        "height": "calc(100vh - 60px)",
+                        "overflowY": "auto",
+                        "padding": "30px"
+                    },
+                    "schemaApi": {
+                        "method": "post",
+                        "url": "/api/ai/generate-page",
+                        "sendOn": "${report_loading === true}",
+                        "data": {
+                            "pageId": "{{ page_key }}",
+                            "workflowType": "{{ report_workflow_type | default('report_generation') }}",
+                            "query": "{{ report_query | default('生成 ' + page_key + ' 分析报告') }}",
+                            "timestamp": "${date(now(), 'x')}"
+                            {% if report_api_data %},
+                            {{ report_api_data | tojson }}
+                            {% endif %}
+                        }
+                    },
+                    "onEvent": {
+                        "fetchSchemaInited": {
+                            "actions": [{
+                                "actionType": "setValue",
+                                "componentId": "global_page_root",
+                                "args": {
+                                    "value": {
+                                        "report_loading": false
+                                    }
+                                }
+                            }]
+                        },
+                        "fetchFailed": {
+                            "actions": [{
+                                "actionType": "setValue",
+                                "componentId": "global_page_root",
+                                "args": {
+                                    "value": {
+                                        "report_loading": false
+                                    }
+                                }
+                            }]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
+{% endif %}
