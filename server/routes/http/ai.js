@@ -257,7 +257,7 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 
 // POST /api/ai/generate-page
 router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
-  const { query, pageId, workflowType } = req.body;  // 🆕 新增 workflowType 参数
+  const { query, pageId, workflow_type } = req.body;
 
   if (!query) {
     return res.status(400).json({ error: "缺少 prompt 参数" });
@@ -266,13 +266,13 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
   // 1. 从数据库获取 Dify 配置
   const getConfig = () => {
     return new Promise((resolve, reject) => {
-      // 🆕 如果传递了 workflowType，则精确查询；否则返回第一个匹配的配置
+      // 🆕 如果传递了 workflow_type，则精确查询；否则返回第一个匹配的配置
       let sql, params;
 
-      if (workflowType) {
+      if (workflow_type) {
         sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1';
-        params = [pageId, workflowType];
-        logger.info(`[AI Workflow] 查询配置: page_key=${pageId}, workflow_type=${workflowType}`);
+        params = [pageId, workflow_type];
+        logger.info(`[AI Workflow] 查询配置: page_key=${pageId}, workflow_type=${workflow_type}`);
       } else {
         sql = 'SELECT * FROM sys_dify_config WHERE page_key = ? AND enabled = 1 LIMIT 1';
         params = [pageId];
@@ -290,8 +290,8 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
           const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
           if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-            const errorMsg = workflowType
-              ? `页面 ${pageId} 的工作流类型 ${workflowType} 未配置`
+            const errorMsg = workflow_type
+              ? `页面 ${pageId} 的工作流类型 ${workflow_type} 未配置`
               : `页面 ${pageId} 未配置工作流`;
             return reject(new Error(errorMsg));
           }

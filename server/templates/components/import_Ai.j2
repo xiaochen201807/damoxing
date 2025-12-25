@@ -232,7 +232,7 @@
                 
                 "data": {
                     "pageId": "{{ page_key }}",
-                    "workflowType": "{{ workflow_type | default('ai_analysis') }}",  {# 🆕 智能分析按钮的工作流类型 #}
+                    "workflow_type": "{{ workflow_type | default('ai_analysis') }}",  {# 🆕 智能分析按钮的工作流类型 #}
                     {% if enable_query_input | default(false) %}
                     "query": "${user_query}",
                     {% else %}

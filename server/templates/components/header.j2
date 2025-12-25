@@ -241,7 +241,7 @@
                         "sendOn": "${report_loading === true}",
                         "data": {
                             "pageId": "{{ page_key }}",
-                            "workflowType": "{{ report_workflow_type | default('report_generation') }}",
+                            "workflow_type": "{{ report_workflow_type | default('report_generation') }}",
                             "query": "{{ report_query | default('生成 ' + page_key + ' 分析报告') }}",
                             "timestamp": "${date(now(), 'x')}"
                             {% if report_api_data %},
