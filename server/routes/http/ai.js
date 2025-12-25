@@ -259,6 +259,9 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
   const { query, pageId, workflow_type } = req.body;
 
+  // 🔍 调试日志：输出接收到的 workflow_type
+  logger.info(`[AI Workflow] 接收到的参数 - pageId: ${pageId}, workflow_type: ${workflow_type}, query: ${query}`);
+
   if (!query) {
     return res.status(400).json({ error: "缺少 prompt 参数" });
   }
