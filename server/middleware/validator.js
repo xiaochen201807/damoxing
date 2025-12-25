@@ -57,6 +57,10 @@ const schemas = {
                 'string.max': 'workflow_name 长度不能超过 100',
                 'any.required': 'workflow_name 是必填项',
             }),
+        workflow_type: Joi.string().max(50).default('ai_analysis')
+            .messages({
+                'string.max': 'workflow_type 长度不能超过 50',
+            }),
         api_url: Joi.string().uri().required()
             .messages({
                 'string.uri': 'api_url 必须是有效的 URL',
@@ -75,6 +79,7 @@ const schemas = {
     // Dify 配置更新
     difyConfigUpdate: Joi.object({
         workflow_name: Joi.string().min(1).max(100),
+        workflow_type: Joi.string().max(50),
         api_url: Joi.string().uri(),
         api_key: Joi.string().min(1).max(500),
         enabled: Joi.number().integer().min(0).max(1),
@@ -90,6 +95,7 @@ const schemas = {
                 'any.required': 'query 是必填项',
             }),
         pageId: Joi.string().alphanum().max(50).allow(''),
+        workflow_type: Joi.string().max(50).allow(''),  // 🆕 添加 workflow_type 支持
     }),
 
     // 页面 Key 参数
