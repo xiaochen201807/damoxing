@@ -175,10 +175,10 @@
                 "onUnmount": "clearInterval(window.reportTimer);"
             }]
         },
-        {# 报告显示弹窗 - 只在加载完成后显示 #}
+        {# 报告显示弹窗 - 始终渲染以确保service能触发请求 #}
         {
             "type": "container",
-            "visibleOn": "${show_report_result && !report_loading}",
+            "visibleOn": "${show_report_result}",
             "style": {
                 "position": "fixed",
                 "top": "0",
