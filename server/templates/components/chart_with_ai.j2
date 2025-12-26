@@ -45,13 +45,13 @@
                     {% if api_data %}
                     "data": {{ api_data | tojson }},
                     {% endif %}
-                    "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) | safe }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() | safe }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) | safe }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() | safe }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() | safe }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() | safe }}{% else %}return payload;{% endif %}"
+                    "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) | safe }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() | safe }}{% elif chart_type == 'horizontal-bar' %}{{ adaptors.get_horizontal_bar_adaptor() | safe }}{% elif chart_type == 'grouped-bar' %}{{ adaptors.get_grouped_bar_adaptor() | safe }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) | safe }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() | safe }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() | safe }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() | safe }}{% else %}return payload;{% endif %}"
                 },
                 "height": {{ height | default(400) }}{% if enable_drilldown | default(true) %},
                 "clickAction": {
                     "actionType": "dialog",
                     "dialog": {
-                        "title": "{% if chart_type == 'pie' %}${selectedName} - 详细数据{% elif chart_type == 'bar' %}${selectedMonth} - 详细数据{% elif chart_type == 'funnel' %}${selectedName} - 详细数据{% elif chart_type == 'line' %}${selectedSeries} - ${selectedDate}{% else %}详细数据{% endif %}",
+                        "title": "{% if chart_type == 'pie' %}${selectedName} - 详细数据{% elif chart_type == 'bar' or chart_type == 'horizontal-bar' or chart_type == 'grouped-bar' %}${selectedName} - 详细数据{% elif chart_type == 'funnel' %}${selectedName} - 详细数据{% elif chart_type == 'line' %}${selectedSeries} - ${selectedDate}{% else %}详细数据{% endif %}",
                         "size": "xl",
                         {% if chart_type != 'radar' and chart_type != 'gauge' %}
                         "actions": [

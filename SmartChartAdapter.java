@@ -50,14 +50,44 @@ public class SmartChartAdapter {
             "总计: " + analysis.totalValue + " | 风险占比: " + String.format("%.1f", analysis.riskRatio * 100) + "%"
         ));*/
         
-        // 应用调色板
-        option.setColor(palette.getColors());
+        // 应用调色板（带智能偏移，避免多图表颜色重复）
+        List<String> colors = applyColorRotation(palette.getColors(), businessData);
+        option.setColor(colors);
 
         // 根据类型构建 Series 和坐标轴
         configureSeries(option, seriesData, type, businessData);
 
         // 5. 包装响应
         return ChartResponse.success(option);
+    }
+    
+    /**
+     * 智能颜色轮转 - 基于数据特征计算偏移量
+     * 使不同的图表自动使用不同的颜色组合
+     */
+    private List<String> applyColorRotation(List<String> originalColors, List<BusinessMetric> data) {
+        if (data == null || data.isEmpty()) {
+            return originalColors;
+        }
+        
+        // 计算数据特征哈希值（基于所有 itemId）
+        StringBuilder hashSource = new StringBuilder();
+        for (BusinessMetric metric : data) {
+            if (metric.getItemId() != null) {
+                hashSource.append(metric.getItemId());
+            }
+        }
+        
+        // 计算偏移量（0 到颜色数组长度-1）
+        int offset = Math.abs(hashSource.toString().hashCode()) % originalColors.size();
+        
+        // 轮转颜色数组
+        List<String> rotatedColors = new ArrayList<>(originalColors.size());
+        for (int i = 0; i < originalColors.size(); i++) {
+            rotatedColors.add(originalColors.get((i + offset) % originalColors.size()));
+        }
+        
+        return rotatedColors;
     }
     
     /**
@@ -121,6 +151,9 @@ public class SmartChartAdapter {
             case "horizontal-bar": // 条形图（横向柱状图）
                 configureBarSeries(series, option, businessData, true);
                 break;
+            case "grouped-bar": // 分组柱状图（多系列）
+                configureGroupedBarSeries(option, businessData);
+                return; // 分组图表直接设置多个 series，提前返回
             case "line":
                 configureLineSeries(series, option, businessData);
                 break;
@@ -227,6 +260,68 @@ public class SmartChartAdapter {
         grid.put("containLabel", true);
         option.setGrid(grid);
     }
+    
+    /**
+     * 配置分组柱状图（多系列）
+     * 注意：此方法期望 businessData 包含多个维度的数据
+     * 实际使用中，通常直接由后端 API 返回完整的多 series 配置
+     */
+    private void configureGroupedBarSeries(EchartsOption option, List<BusinessMetric> businessData) {
+        // 提取类目
+        List<String> categories = businessData.stream()
+                .map(BusinessMetric::getLabel)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        // 为演示目的，创建3个系列（实际应用中应根据业务需求调整）
+        // 注：真实场景建议直接由 API 返回完整的多 series 数据
+        List<Series> seriesList = new ArrayList<>();
+        
+        // 示例：创建单个系列（实际使用时应由 API 提供多系列数据）
+        Series series1 = new Series();
+        series1.setType("bar");
+        series1.setName("系列1"); // 应从业务数据中获取
+        
+        List<Object> valueData = buildValueArray(businessData, "bar");
+        series1.setDataAsObjects(valueData);
+        
+        Map<String, Object> itemStyle = new HashMap<>();
+        itemStyle.put("borderRadius", Arrays.asList(4, 4, 0, 0));
+        series1.setItemStyle(itemStyle);
+        
+        seriesList.add(series1);
+        
+        // 如果有多个系列，继续添加...
+        // Series series2 = new Series();
+        // series2.setType("bar");
+        // series2.setName("系列2");
+        // ...
+        
+        option.setSeries(seriesList);
+        
+        // 配置坐标轴
+        option.setXAxis(new Axis("category", categories));
+        option.setYAxis(new Axis("value", null));
+        
+        // 配置图例
+        Legend legend = new Legend();
+        legend.setBottom("0");
+        legend.setLeft("center");
+        option.setLegend(legend);
+        
+        // 配置网格
+        Map<String, Object> grid = new HashMap<>();
+        grid.put("left", "3%");
+        grid.put("right", "4%");
+        grid.put("bottom", "12%");
+        grid.put("top", "10%");
+        grid.put("containLabel", true);
+        option.setGrid(grid);
+        
+        // 配置提示框
+        option.setTooltip(new Tooltip("axis", null));
+    }
+
     
     private void configureFunnelSeries(Series series, EchartsOption option) {
         series.setType("funnel");
@@ -408,6 +503,7 @@ public class SmartChartAdapter {
         }
     }
 
+
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class EchartsOption {
@@ -415,8 +511,13 @@ public class SmartChartAdapter {
         private Tooltip tooltip = new Tooltip("item"); // 默认开启
         private Legend legend = new Legend();   // 默认开启
         private List<String> color;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("xAxis")
         private Axis xAxis;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("yAxis")
         private Axis yAxis;
+        
         private Map<String, Object> radar; // 雷达图专用配置
         private Map<String, Object> grid;  // 网格配置
         private List<Series> series;

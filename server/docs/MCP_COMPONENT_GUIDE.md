@@ -65,6 +65,8 @@
 |------------|----------|----------|
 | `pie` | 饼图 | 占比分布、分类统计 |
 | `bar` | 柱状图 | 类别对比、月度统计 |
+| `horizontal-bar` | 条形图（横向柱状图） | 类目名称较长、排名展示 |
+| `grouped-bar` | 分组柱状图 | 多维度对比、多系列数据 |
 | `line` | 折线图 | 趋势变化、时间序列 |
 | `funnel` | 漏斗图 | 流程转化、销售漏斗 |
 | `radar` | 雷达图 | 多维对比、能力评估 |
@@ -76,7 +78,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `chart_type` | string | ✅ | 图表类型：pie/bar/line/funnel/radar/gauge |
+| `chart_type` | string | ✅ | 图表类型：pie/bar/horizontal-bar/grouped-bar/line/funnel/radar/gauge |
 | `api_url` | string | ✅ | 图表数据 API 地址 |
 
 #### 基础参数（可选）
@@ -150,6 +152,182 @@
   }
 }
 ```
+
+---
+
+### 条形图示例 (bar - 横向)
+
+条形图是横向显示的柱状图，适用于类目名称较长或需要强调排名的场景。
+
+**配置示例：**
+
+```json
+{
+  "component_id": "chart_with_ai",
+  "params": {
+    "chart_type": "horizontal-bar",
+    "title": "服务质量评分排名",
+    "api_url": "/api/demo/chart/horizontal-bar-post",
+    "api_method": "post",
+    "height": 400,
+    "api_data": {
+      "chart_id": "service_rank",
+      "orientation": "horizontal"
+    },
+    "drilldown_api": "/api/demo/service-detail-post",
+    "drilldown_method": "post"
+  }
+}
+```
+
+**后端 API 返回数据格式：**
+
+```json
+{
+  "status": 0,
+  "msg": "success",
+  "data": {
+    "grid": {
+      "left": "15%",
+      "right": "10%",
+      "bottom": "3%",
+      "containLabel": true
+    },
+    "xAxis": {
+      "type": "value",
+      "name": "评分"
+    },
+    "yAxis": {
+      "type": "category",
+      "data": ["服务态度", "办事效率", "业务熟练", "热线响应", "一次办成"]
+    },
+    "series": [{
+      "type": "bar",
+      "data": [
+        { "value": 78, "itemId": "service1", "name": "服务态度" },
+        { "value": 65, "itemId": "service2", "name": "办事效率" },
+        { "value": 43, "itemId": "service3", "name": "业务熟练" },
+        { "value": 35, "itemId": "service4", "name": "热线响应" },
+        { "value": 29, "itemId": "service5", "name": "一次办成" }
+      ],
+      "itemStyle": {
+        "borderRadius": [0, 4, 4, 0]
+      }
+    }]
+  }
+}
+```
+
+**关键配置说明：**
+- `xAxis.type = "value"` - X轴为数值轴
+- `yAxis.type = "category"` - Y轴为类目轴（与普通柱状图相反）
+- `grid.left = "15%"` - 为Y轴类目名称留足空间
+- `itemStyle.borderRadius = [0, 4, 4, 0]` - 右侧圆角（横向）
+
+---
+
+### 分组柱状图示例 (bar - 多系列)
+
+分组柱状图用于对比多个维度的数据，每个类目下有多个并排的柱子。
+
+**配置示例：**
+
+```json
+{
+  "component_id": "chart_with_ai",
+  "params": {
+    "chart_type": "grouped-bar",
+    "title": "月度多维度分析",
+    "api_url": "/api/demo/chart/grouped-bar-post",
+    "api_method": "post",
+    "height": 420,
+    "api_data": {
+      "chart_id": "multi_series_bar",
+      "time_range": "2024"
+    },
+    "drilldown_api": "/api/demo/grouped-detail-post",
+    "drilldown_method": "post",
+    "ai_analysis_text": "浏览量呈TOP1为"公积金贷款"（28万次/月），到账率单次66%，长助贷落地率40%，旅游预订未完成并呈个别下滑趋势。",
+    "ai_suggestions": "1. 电子面签深圳/线金线上化，作什"贷款管理"等关键高频\n2. 长助贷浏览和搜索贷款，涉税纵向检陈已倒挂40%"
+  }
+}
+```
+
+**后端 API 返回数据格式：**
+
+```json
+{
+  "status": 0,
+  "msg": "success",
+  "data": {
+    "legend": {
+      "data": ["浏览次数（万次/月）", "咨询次数（万次/月）", "启劳次数（万次/月）"],
+      "bottom": "0"
+    },
+    "grid": {
+      "left": "3%",
+      "right": "4%",
+      "bottom": "10%",
+      "top": "10%",
+      "containLabel": true
+    },
+    "xAxis": {
+      "type": "category",
+      "data": ["贷款业务", "英政业务", "地产业务", "领取业务", "界他业务"]
+    },
+    "yAxis": {
+      "type": "value",
+      "name": "次数（万次）"
+    },
+    "series": [
+      {
+        "name": "浏览次数（万次/月）",
+        "type": "bar",
+        "data": [
+          { "value": 28, "itemId": "loan_view", "name": "贷款业务" },
+          { "value": 25, "itemId": "govt_view", "name": "英政业务" },
+          { "value": 18, "itemId": "estate_view", "name": "地产业务" },
+          { "value": 12, "itemId": "claim_view", "name": "领取业务" },
+          { "value": 8, "itemId": "other_view", "name": "界他业务" }
+        ]
+      },
+      {
+        "name": "咨询次数（万次/月）",
+        "type": "bar",
+        "data": [
+          { "value": 32, "itemId": "loan_consult", "name": "贷款业务" },
+          { "value": 28, "itemId": "govt_consult", "name": "英政业务" },
+          { "value": 14, "itemId": "estate_consult", "name": "地产业务" },
+          { "value": 10, "itemId": "claim_consult", "name": "领取业务" },
+          { "value": 6, "itemId": "other_consult", "name": "界他业务" }
+        ]
+      },
+      {
+        "name": "启劳次数（万次/月）",
+        "type": "bar",
+        "data": [
+          { "value": 30, "itemId": "loan_process", "name": "贷款业务" },
+          { "value": 30, "itemId": "govt_process", "name": "英政业务" },
+          { "value": 8, "itemId": "estate_process", "name": "地产业务" },
+          { "value": 5, "itemId": "claim_process", "name": "领取业务" },
+          { "value": 3, "itemId": "other_process", "name": "界他业务" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**关键配置说明：**
+- `series` 为数组，包含多个系列（每个系列一种颜色）
+- `legend.data` 定义图例名称，与 `series[].name` 对应
+- 每个系列的 `data` 数组长度必须与 `xAxis.data` 长度一致
+- 相同类目下的柱子会自动并排显示
+
+**视觉效果：**
+- 每个类目下有 3 个并排的柱子（蓝色、绿色、橙色）
+- 图例显示在底部，可点击切换显示/隐藏某个系列
+- 鼠标悬停显示详细数值
 
 ---
 
