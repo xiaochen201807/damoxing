@@ -45,7 +45,7 @@
                     {% if api_data %}
                     "data": {{ api_data | tojson }},
                     {% endif %}
-                    "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() }}{% else %}return payload;{% endif %}"
+                    "adaptor": "{% if chart_type == 'pie' %}{{ adaptors.get_pie_adaptor(chart_opts) | safe }}{% elif chart_type == 'bar' %}{{ adaptors.get_bar_adaptor() | safe }}{% elif chart_type == 'line' %}{{ adaptors.get_line_adaptor(chart_opts) | safe }}{% elif chart_type == 'funnel' %}{{ adaptors.get_funnel_adaptor() | safe }}{% elif chart_type == 'radar' %}{{ adaptors.get_radar_adaptor() | safe }}{% elif chart_type == 'gauge' %}{{ adaptors.get_gauge_adaptor() | safe }}{% else %}return payload;{% endif %}"
                 },
                 "height": {{ height | default(400) }}{% if enable_drilldown | default(true) %},
                 "clickAction": {
