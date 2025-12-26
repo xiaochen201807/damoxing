@@ -309,34 +309,32 @@
                     },
                     {# 底部操作栏 #}
                     {
-                        "type": "container",
+                        "type": "flex",
+                        "justify": "space-between",
+                        "alignItems": "center",
                         "style": {
-                            "borderTop": "1px solid #e8e8e8",
-                            "padding": "12px 24px",
+                            "padding": "16px 24px",
                             "backgroundColor": "#fafafa",
-                            "display": "flex",
-                            "justifyContent": "space-between",
-                            "alignItems": "center",
-                            "borderRadius": "0 0 8px 8px",
-                            "flexShrink": "0"
+                            "borderTop": "1px solid #f0f0f0",
+                            "margin": 0
                         },
-                        "body": [
+                        "items": [
                             {
                                 "type": "tpl",
-                                "tpl": "<div style='font-size: 12px; color: #999;'>* 本报告由AI系统生成，仅供参考使用。</div>"
+                                "tpl": "<div style='display: flex; align-items: center; color: #888; font-size: 13px;'><i class='fa fa-info-circle' style='margin-right: 6px; color: #1890ff;'></i><span>本报告由 AI 系统生成，仅供参考</span></div>",
+                                "style": { "flex": "0 0 auto" }
                             },
                             {
-                                "type": "container",
-                                "style": {
-                                    "display": "flex",
-                                    "gap": "12px",
-                                    "alignItems": "center"
-                                },
-                                "body": [
+                                "type": "flex",
+                                "justify": "flex-end",
+                                "alignItems": "center",
+                                "style": { "gap": "24px" },
+                                "items": [
                                     {
                                         "type": "button",
-                                        "label": "✕ 关闭窗口",
-                                        "level": "default",
+                                        "label": "取消",
+                                        "level": "link",
+                                        "className": "text-gray-500 no-underline",
                                         "onEvent": {
                                             "click": {
                                                 "actions": [{
@@ -354,6 +352,19 @@
                                     },
                                     {
                                         "type": "button",
+                                        "label": "🖨️ 打印报告",
+                                        "level": "default",
+                                        "onEvent": {
+                                            "click": {
+                                                "actions": [{
+                                                    "actionType": "custom",
+                                                    "script": "const oldStyle = document.getElementById('report-print-style'); if(oldStyle) oldStyle.remove(); const printStyle = document.createElement('style'); printStyle.id = 'report-print-style'; printStyle.textContent = '@media print { @page { size: A4 portrait; margin: 10mm; } body * { visibility: hidden !important; } .report-content-area, .report-content-area *, .report-content-area .cxd-Service, .report-content-area .cxd-Service * { visibility: visible !important; } .report-content-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-height: none !important; overflow: visible !important; } }'; document.head.appendChild(printStyle); window.print();"
+                                                }]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "button",
                                         "label": "📥 导出 PDF",
                                         "level": "primary",
                                         "onEvent": {
@@ -361,19 +372,6 @@
                                                 "actions": [{
                                                     "actionType": "custom",
                                                     "script": "const btn = event.context.nativeEvent.target.closest('button'); const originalText = btn.textContent; btn.disabled = true; btn.textContent = '正在生成...'; const loadScript = (src) => new Promise((resolve, reject) => { if (document.querySelector(`script[src='${src}']`)) return resolve(); const script = document.createElement('script'); script.src = src; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); }); Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(() => { const { jsPDF } = window.jspdf; const reportContent = document.querySelector('.report-content-area .cxd-Service') || document.querySelector('.report-content-area'); if (!reportContent) { alert('未找到报告内容'); btn.disabled = false; btn.textContent = originalText; return; } html2canvas(reportContent, { scale: 2, useCORS: true, logging: true, backgroundColor: '#ffffff', scrollY: 0, windowWidth: reportContent.scrollWidth || 1200 }).then(canvas => { const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const pdfWidth = 210; const pdfHeight = 297; const margin = 10; const imgWidth = pdfWidth - margin * 2; const imgHeight = (canvas.height * imgWidth) / canvas.width; let heightLeft = imgHeight; let position = margin; pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); while (heightLeft > 0) { pdf.addPage(); position = margin - (imgHeight - heightLeft); pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - margin * 2); } pdf.save('风险分析报告_' + new Date().toISOString().split('T')[0] + '.pdf'); btn.disabled = false; btn.textContent = originalText; }).catch(err => { console.error('PDF error:', err); alert('PDF生成失败'); btn.disabled = false; btn.textContent = originalText; }); }).catch(err => { alert('加载库失败'); btn.disabled = false; btn.textContent = originalText; });"
-                                                }]
-                                            }
-                                        }
-                                    },
-                                    {
-                                        "type": "button",
-                                        "label": "🖨️ 打印报告",
-                                        "level": "info",
-                                        "onEvent": {
-                                            "click": {
-                                                "actions": [{
-                                                    "actionType": "custom",
-                                                    "script": "const oldStyle = document.getElementById('report-print-style'); if(oldStyle) oldStyle.remove(); const printStyle = document.createElement('style'); printStyle.id = 'report-print-style'; printStyle.textContent = '@media print { @page { size: A4 portrait; margin: 10mm; } body * { visibility: hidden !important; } .report-content-area, .report-content-area *, .report-content-area .cxd-Service, .report-content-area .cxd-Service * { visibility: visible !important; } .report-content-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-height: none !important; overflow: visible !important; } }'; document.head.appendChild(printStyle); window.print();"
                                                 }]
                                             }
                                         }
