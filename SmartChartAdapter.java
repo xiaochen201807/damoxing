@@ -89,6 +89,7 @@ public class SmartChartAdapter {
             // 但是要保持 ECharts 兼容性
             Map<String, Object> dataPoint = new HashMap<>();
             dataPoint.put("value", item.getValue());
+            dataPoint.put("name", item.getLabel());     // 添加 name 字段，用于钻取弹窗标题
             dataPoint.put("itemId", item.getItemId());
             
             // 针对高风险数据标红
