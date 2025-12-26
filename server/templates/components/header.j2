@@ -75,11 +75,11 @@
                 "width": "100%" {# 确保 Service 占满宽度 #}
             },
             "api": {
-                "method": "{{ subtitle_api_method | default('get') }}",
+                "method": "{{ subtitle_api_method | default('post') }}",
                 "url": "{{ subtitle_api }}",
                 "dataType": "json"
                 {% if subtitle_api_data %},
-                "data": {{ subtitle_api_data | tojson }}
+                "data": {% if subtitle_api_data is mapping %}{{ subtitle_api_data | tojson }}{% else %}{{ subtitle_api_data }}{% endif %}
                 {% endif %}
                 {% if subtitle_api_adaptor %},
                 "adaptor": "{{ subtitle_api_adaptor }}"
