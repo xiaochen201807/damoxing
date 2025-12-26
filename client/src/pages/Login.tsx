@@ -17,12 +17,65 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [ssoMode, setSsoMode] = useState(false); // 是否为 SSO 模式
     const navigate = useNavigate();
 
-    // 组件加载时保存 URL 参数到 sessionStorage
+    // 组件加载时保存 URL 参数到 sessionStorage，并尝试 SSO 自动登录
     useEffect(() => {
         saveUrlParamsToSession();
+
+        // 检查是否有网关参数，如果有则尝试 SSO 登录
+        const gatewayParams = getGatewayParamsWithFallback();
+
+        if (gatewayParams.ticket && gatewayParams.tyLoginToken) {
+            console.log('[SSO] 检测到网关参数，尝试自动登录');
+            setSsoMode(true);
+            performSsoLogin(gatewayParams);
+        }
     }, []);
+
+    // SSO 自动登录
+    const performSsoLogin = async (gatewayParams: any) => {
+        setLoading(true);
+        setError('正在通过网关验证登录...');
+
+        try {
+            const response = await axios.post(`${API_PREFIX}/auth/login`, {
+                // SSO 模式下不需要 username/password
+                ticket: gatewayParams.ticket,
+                tyLoginToken: gatewayParams.tyLoginToken,
+                qycode: gatewayParams.qycode
+            });
+
+            if (response.data.status === 0) {
+                // 存储 token 和用户信息
+                localStorage.setItem('auth_token', response.data.data.token);
+                localStorage.setItem('user_info', JSON.stringify(response.data.data.user));
+
+                // 存储网关信息（包含 qycode）
+                if (response.data.data.gateway_info) {
+                    localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
+                }
+
+                console.log('[SSO] 登录成功，跳转到首页');
+                // 跳转到首页
+                navigate('/');
+            } else {
+                setError(response.data.msg || 'SSO 登录失败');
+                setSsoMode(false); // 失败后显示表单
+            }
+        } catch (err: any) {
+            console.error('[SSO] 自动登录失败:', err);
+            if (err.response) {
+                setError(err.response.data?.msg || 'SSO 登录失败，请联系管理员');
+            } else {
+                setError('网络错误，请稍后重试');
+            }
+            setSsoMode(false); // 失败后显示表单
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,51 +126,63 @@ const Login: React.FC = () => {
             <div className="login-box">
                 <div className="login-header">
                     <h1>大模型智能系统</h1>
-                    <p>登录以继续</p>
+                    <p>{ssoMode && loading ? '正在验证网关登录...' : '登录以继续'}</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    {error && (
-                        <div className="login-error">
-                            {error}
+                {ssoMode && loading ? (
+                    // SSO 登录中，显示加载状态
+                    <div className="login-form">
+                        <div className="login-loading">
+                            <div className="spinner"></div>
+                            <p>正在通过网关验证登录...</p>
+                            {error && <div className="login-error">{error}</div>}
                         </div>
-                    )}
-
-                    <div className="form-group">
-                        <label htmlFor="username">用户名</label>
-                        <input
-                            id="username"
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="请输入用户名"
-                            required
-                            autoFocus
-                            disabled={loading}
-                        />
                     </div>
+                ) : (
+                    // 正常登录表单
+                    <form onSubmit={handleSubmit} className="login-form">
+                        {error && (
+                            <div className="login-error">
+                                {error}
+                            </div>
+                        )}
 
-                    <div className="form-group">
-                        <label htmlFor="password">密码</label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="请输入密码"
-                            required
+                        <div className="form-group">
+                            <label htmlFor="username">用户名</label>
+                            <input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="请输入用户名"
+                                required
+                                autoFocus
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="password">密码</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="请输入密码"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="login-button"
                             disabled={loading}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="login-button"
-                        disabled={loading}
-                    >
-                        {loading ? '登录中...' : '登录'}
-                    </button>
-                </form>
+                        >
+                            {loading ? '登录中...' : '登录'}
+                        </button>
+                    </form>
+                )}
 
                 <div className="login-footer">
                     <p className="hint">默认账号：admin / admin123</p>

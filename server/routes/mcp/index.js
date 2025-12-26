@@ -112,7 +112,7 @@ function registerTools(server) {
             tools: [
                 {
                     name: "list_components",
-                    description: "获取所有可用的组件列表及其参数定义。可用组件：1) chart_with_ai 通用图表组件，支持6种图表类型(pie/bar/line/funnel/radar/gauge)，通过 chart_type 参数控制，支持钻取配置；2) alert 提示框组件，使用 alert_html 参数传入完整HTML内容。",
+                    description: "获取所有可用的组件列表及其参数定义。可用组件：1) chart_with_ai 通用图表组件，支持8种图表类型(pie/bar/horizontal-bar/grouped-bar/line/funnel/radar/gauge)，通过 chart_type 参数控制，支持钻取配置；2) alert 提示框组件，使用 alert_html 参数传入完整HTML内容。",
                     inputSchema: {
                         type: "object",
                         properties: {},
