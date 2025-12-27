@@ -127,64 +127,78 @@ router.get('/chart/risk-pie', (req, res) => {
     });
 });
 
-// 获取柱形图数据 (按月统计)
+// 获取柱形图数据 (使用真实的 Java 适配器返回格式)
 router.get('/chart/risk-bar', (req, res) => {
-    const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
-    const customerCounts = [8, 8, 8, 9, 9, 9];
-
     res.json({
         status: 0,
         msg: 'success',
         data: {
-            color: ['#1890ff'],
             tooltip: {
                 trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                },
-                formatter: '{b}<br/>客户数量: {c}'
+                formatter: null
             },
+            legend: {
+                bottom: '0',
+                orient: 'vertical',
+                left: null,
+                top: null
+            },
+            color: ['#c23531', '#d9534f', '#e74c3c', '#ff5252', '#ff6b6b', '#ff7043', '#ff8a65', '#ffa726', '#ffb74d', '#ffc947', '#ffd54f', '#ffe082', '#ffeb3b', '#fff176', '#fff59d', '#cddc39', '#d4e157', '#dce775', '#aed581', '#9ccc65', '#66bb6a', '#4caf50', '#43a047', '#388e3c', '#2e7d32', '#1b5e20', '#1b5e20', '#1b5e20', '#1b5e20', '#1b5e20'],
             grid: {
                 left: '3%',
-                right: '4%',
                 bottom: '10%',
-                top: '10%',
+                right: '4%',
                 containLabel: true
             },
+            series: [{
+                type: 'bar',
+                data: [
+                    {
+                        itemId: 'dwkhyc',
+                        name: '开户异常',
+                        itemStyle: { color: '#ff4d4f' },
+                        value: 3399.0
+                    },
+                    {
+                        itemId: 'dwrsxbyc',
+                        name: '人数虚报',
+                        itemStyle: { color: '#ff4d4f' },
+                        value: 86.0
+                    },
+                    {
+                        itemId: 'dwyjceyc',
+                        name: '月缴存额异常',
+                        value: 0.0
+                    },
+                    {
+                        itemId: 'dwgfxbjyc',
+                        name: '高风险补缴',
+                        value: 0.0
+                    },
+                    {
+                        itemId: 'dwdhjsyc',
+                        name: '贷后基数下降',
+                        value: 0.0
+                    },
+                    {
+                        itemId: 'dwdhdjyc',
+                        name: '贷后断缴',
+                        value: 0.0
+                    }
+                ],
+                itemStyle: {
+                    borderRadius: [4, 4, 0, 0]
+                }
+            }],
+            // 注意：修正字段名大小写，ECharts 需要 xAxis/yAxis（驼峰式）
             xAxis: {
                 type: 'category',
-                data: months,
-                axisLabel: {
-                    rotate: 0
-                }
+                data: ['开户异常', '人数虚报', '月缴存额异常', '高风险补缴', '贷后基数下降', '贷后断缴']
             },
             yAxis: {
                 type: 'value',
-                name: '客户数量',
-                nameTextStyle: {
-                    padding: [0, 0, 0, 50]
-                }
-            },
-            series: [
-                {
-                    name: '客户数量',
-                    type: 'bar',
-                    data: customerCounts.map((val, idx) => ({
-                        value: val,
-                        itemId: months[idx],
-                        month: months[idx]
-                    })),
-                    barWidth: '50%',
-                    itemStyle: {
-                        borderRadius: [4, 4, 0, 0]
-                    },
-                    emphasis: {
-                        itemStyle: {
-                            color: '#40a9ff'
-                        }
-                    }
-                }
-            ]
+                data: null
+            }
         }
     });
 });
@@ -633,34 +647,46 @@ router.post('/risk-list-post', (req, res) => {
 router.post('/bar-risk-list-post', (req, res) => {
     const { selectedId, chart_id, month } = req.body;
 
-    // selectedId 现在是月份，如 "2024-10"
+    // selectedId 现在是月份，如 "2024-07"
     const targetMonth = selectedId || month;
 
     console.log('[POST] 柱状图钻取请求:', { selectedId, targetMonth, chart_id });
 
-    let items = [];
+    // 模拟不同月份的客户数据
+    const monthlyCustomers = {
+        '2024-07': [
+            { id: 'C001', customer_name: '张三公司', risk_score: 85, risk_level: 'high', month: '2024-07' },
+            { id: 'C002', customer_name: '李四企业', risk_score: 65, risk_level: 'medium', month: '2024-07' },
+            { id: 'C003', customer_name: '王五集团', risk_score: 45, risk_level: 'low', month: '2024-07' }
+        ],
+        '2024-08': [
+            { id: 'C004', customer_name: '赵六实业', risk_score: 78, risk_level: 'high', month: '2024-08' },
+            { id: 'C005', customer_name: '钱七商贸', risk_score: 58, risk_level: 'medium', month: '2024-08' },
+            { id: 'C003', customer_name: '王五集团', risk_score: 42, risk_level: 'low', month: '2024-08' }
+        ],
+        '2024-09': [
+            { id: 'C001', customer_name: '张三公司', risk_score: 88, risk_level: 'high', month: '2024-09' },
+            { id: 'C006', customer_name: '孙八科技', risk_score: 52, risk_level: 'medium', month: '2024-09' }
+        ],
+        '2024-10': [
+            { id: 'C007', customer_name: '周九贸易', risk_score: 92, risk_level: 'high', month: '2024-10' },
+            { id: 'C002', customer_name: '李四企业', risk_score: 68, risk_level: 'medium', month: '2024-10' },
+            { id: 'C008', customer_name: '吴十建筑', risk_score: 48, risk_level: 'low', month: '2024-10' }
+        ],
+        '2024-11': [
+            { id: 'C001', customer_name: '张三公司', risk_score: 90, risk_level: 'high', month: '2024-11' },
+            { id: 'C009', customer_name: '郑十一物流', risk_score: 72, risk_level: 'medium', month: '2024-11' }
+        ],
+        '2024-12': [
+            { id: 'C010', customer_name: '王十二投资', risk_score: 95, risk_level: 'high', month: '2024-12' },
+            { id: 'C001', customer_name: '张三公司', risk_score: 82, risk_level: 'high', month: '2024-12' },
+            { id: 'C002', customer_name: '李四企业', risk_score: 62, risk_level: 'medium', month: '2024-12' }
+        ]
+    };
 
-    if (targetMonth) {
-        // 从所有风险等级中获取数据
-        const allData = [
-            ...barChartMockData.high,
-            ...barChartMockData.medium,
-            ...barChartMockData.low
-        ];
-
-        // 为每条数据添加 month 字段
-        items = allData.map(item => ({
-            ...item,
-            month: targetMonth
-        })).slice(0, 10); // 模拟该月的10条数据
-    } else {
-        // 没有指定月份，返回所有数据的前10条
-        items = [
-            ...barChartMockData.high,
-            ...barChartMockData.medium,
-            ...barChartMockData.low
-        ].slice(0, 10);
-    }
+    let items = monthlyCustomers[targetMonth] || [
+        { id: 'C999', customer_name: '暂无数据', risk_score: 0, risk_level: 'low', month: targetMonth }
+    ];
 
     res.json({
         status: 0,
@@ -900,6 +926,320 @@ router.post('/chart/risk-gauge-post', (req, res) => {
                 }
             ]
         }
+    });
+});
+
+// 条形图（横向柱状图）数据
+router.post('/chart/horizontal-bar-post', (req, res) => {
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '15%',
+                right: '10%',
+                bottom: '3%',
+                top: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: '评分'
+            },
+            yAxis: {
+                type: 'category',
+                data: ['服务态度', '办事效率', '业务熟练', '热线响应', '一次办成']
+            },
+            series: [{
+                type: 'bar',
+                data: [
+                    { value: 78, itemId: 'service1', name: '服务态度' },
+                    { value: 65, itemId: 'service2', name: '办事效率' },
+                    { value: 43, itemId: 'service3', name: '业务熟练' },
+                    { value: 35, itemId: 'service4', name: '热线响应' },
+                    { value: 29, itemId: 'service5', name: '一次办成' }
+                ],
+                itemStyle: {
+                    borderRadius: [0, 4, 4, 0],
+                    color: '#1890ff'
+                }
+            }]
+        }
+    });
+});
+
+// 分组柱状图（多系列）数据
+router.post('/chart/grouped-bar-post', (req, res) => {
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            legend: {
+                data: ['浏览次数（万次/月）', '咨询次数（万次/月）', '办理次数（万次/月）'],
+                bottom: '0',
+                left: 'center'
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '12%',
+                top: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ['贷款业务', '缴存业务', '提取业务', '查询业务', '其他业务']
+            },
+            yAxis: {
+                type: 'value',
+                name: '次数（万次/月）'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            series: [
+                {
+                    name: '浏览次数（万次/月）',
+                    type: 'bar',
+                    data: [
+                        { value: 28, itemId: 'loan_view', name: '贷款业务' },
+                        { value: 25, itemId: 'deposit_view', name: '缴存业务' },
+                        { value: 18, itemId: 'withdraw_view', name: '提取业务' },
+                        { value: 12, itemId: 'query_view', name: '查询业务' },
+                        { value: 8, itemId: 'other_view', name: '其他业务' }
+                    ],
+                    itemStyle: {
+                        color: '#1890ff'
+                    }
+                },
+                {
+                    name: '咨询次数（万次/月）',
+                    type: 'bar',
+                    data: [
+                        { value: 32, itemId: 'loan_consult', name: '贷款业务' },
+                        { value: 28, itemId: 'deposit_consult', name: '缴存业务' },
+                        { value: 14, itemId: 'withdraw_consult', name: '提取业务' },
+                        { value: 10, itemId: 'query_consult', name: '查询业务' },
+                        { value: 6, itemId: 'other_consult', name: '其他业务' }
+                    ],
+                    itemStyle: {
+                        color: '#52c41a'
+                    }
+                },
+                {
+                    name: '办理次数（万次/月）',
+                    type: 'bar',
+                    data: [
+                        { value: 30, itemId: 'loan_process', name: '贷款业务' },
+                        { value: 30, itemId: 'deposit_process', name: '缴存业务' },
+                        { value: 8, itemId: 'withdraw_process', name: '提取业务' },
+                        { value: 5, itemId: 'query_process', name: '查询业务' },
+                        { value: 3, itemId: 'other_process', name: '其他业务' }
+                    ],
+                    itemStyle: {
+                        color: '#faad14'
+                    }
+                }
+            ]
+        }
+    });
+});
+
+// ==========================================
+// 二级钻取 API（第二层清册）
+// ==========================================
+
+// 客户风险明细（第二层清册）
+router.post('/customer-risk-detail-post', (req, res) => {
+    const { customerId, customerName } = req.body;
+
+    console.log(`[二级钻取] 查询客户风险明细: customerId=${customerId}, customerName=${customerName}`);
+
+    // 模拟不同客户的风险明细数据
+    const riskDetailsData = {
+        'C001': [
+            {
+                id: 'R001',
+                risk_type: '逾期未缴存',
+                risk_description: '连续3个月未按时缴存公积金，可能存在经营困难',
+                occur_date: '2024-01-15',
+                severity: 3,
+                status: 'pending'
+            },
+            {
+                id: 'R002',
+                risk_type: '缴存基数异常',
+                risk_description: '缴存基数突然下降50%，需核实企业经营状况',
+                occur_date: '2024-02-10',
+                severity: 2,
+                status: 'processing'
+            },
+            {
+                id: 'R003',
+                risk_type: '贷后断缴',
+                risk_description: '贷款发放后次月立即停缴，存在骗贷风险',
+                occur_date: '2024-03-05',
+                severity: 3,
+                status: 'resolved'
+            },
+            {
+                id: 'R004',
+                risk_type: '人员异动',
+                risk_description: '核心员工大量流失，缴存人数从50降至15人',
+                occur_date: '2024-03-20',
+                severity: 2,
+                status: 'pending'
+            }
+        ],
+        'C002': [
+            {
+                id: 'R005',
+                risk_type: '补缴异常',
+                risk_description: '大额补缴后立即申请贷款，疑似虚构缴存记录',
+                occur_date: '2024-01-20',
+                severity: 2,
+                status: 'processing'
+            },
+            {
+                id: 'R006',
+                risk_type: '贷款逾期',
+                risk_description: '公积金贷款已逾期3个月未还',
+                occur_date: '2024-04-01',
+                severity: 3,
+                status: 'pending'
+            }
+        ],
+        'C003': [
+            {
+                id: 'R007',
+                risk_type: '缴存波动',
+                risk_description: '缴存金额波动较大，建议关注经营稳定性',
+                occur_date: '2024-02-15',
+                severity: 1,
+                status: 'resolved'
+            }
+        ]
+    };
+
+    const riskDetails = riskDetailsData[customerId] || [
+        {
+            id: 'R999',
+            risk_type: '暂无风险',
+            risk_description: '该客户暂无风险记录',
+            occur_date: new Date().toISOString().split('T')[0],
+            severity: 1,
+            status: 'resolved'
+        }
+    ];
+
+    res.json({
+        status: 0,
+        data: {
+            items: riskDetails,
+            total: riskDetails.length
+        }
+    });
+});
+
+// 客户风险报告（第二层 - 展示型）
+router.post('/customer-risk-report-post', (req, res) => {
+    const { customerId } = req.body;
+
+    console.log(`[二级钻取] 生成客户风险报告: customerId=${customerId}`);
+
+    const reports = {
+        'C001': {
+            report_content: `
+<div style="padding: 20px;">
+    <h4>风险综合评估</h4>
+    <p><strong>客户编号：</strong>C001</p>
+    <p><strong>风险等级：</strong><span style="color: #d9534f; font-weight: bold;">高风险</span></p>
+    <p><strong>风险评分：</strong>85分</p>
+    
+    <h5 style="margin-top: 20px;">主要风险点：</h5>
+    <ul>
+        <li>连续3个月逾期缴存，缴存合规性差</li>
+        <li>贷后立即断缴，存在骗贷嫌疑</li>
+        <li>缴存基数大幅下降，经营状况堪忧</li>
+        <li>核心员工流失严重，企业稳定性不足</li>
+    </ul>
+    
+    <h5 style="margin-top: 20px;">处理建议：</h5>
+    <ol>
+        <li>立即联系客户核实经营情况</li>
+        <li>暂停新增贷款审批</li>
+        <li>启动风险应急处置流程</li>
+        <li>加强贷后跟踪监控</li>
+    </ol>
+    
+    <p style="margin-top: 20px; color: #666;">
+        <small>报告生成时间：${new Date().toLocaleString('zh-CN')}</small>
+    </p>
+</div>
+            `
+        },
+        'C002': {
+            report_content: `
+<div style="padding: 20px;">
+    <h4>风险综合评估</h4>
+    <p><strong>客户编号：</strong>C002</p>
+    <p><strong>风险等级：</strong><span style="color: #f0ad4e; font-weight: bold;">中风险</span></p>
+    <p><strong>风险评分：</strong>65分</p>
+    
+    <h5 style="margin-top: 20px;">主要风险点：</h5>
+    <ul>
+        <li>存在贷款逾期记录</li>
+        <li>补缴行为异常，需进一步核实</li>
+    </ul>
+    
+    <h5 style="margin-top: 20px;">处理建议：</h5>
+    <ol>
+        <li>加强催收力度</li>
+        <li>核实补缴记录真实性</li>
+        <li>限制新增贷款额度</li>
+    </ol>
+</div>
+            `
+        },
+        'C003': {
+            report_content: `
+<div style="padding: 20px;">
+    <h4>风险综合评估</h4>
+    <p><strong>客户编号：</strong>C003</p>
+    <p><strong>风险等级：</strong><span style="color: #5cb85c; font-weight: bold;">低风险</span></p>
+    <p><strong>风险评分：</strong>45分</p>
+    
+    <h5 style="margin-top: 20px;">主要风险点：</h5>
+    <ul>
+        <li>缴存金额轻微波动</li>
+    </ul>
+    
+    <h5 style="margin-top: 20px;">处理建议：</h5>
+    <ol>
+        <li>保持常规监控</li>
+        <li>可正常开展业务合作</li>
+    </ol>
+</div>
+            `
+        }
+    };
+
+    const report = reports[customerId] || {
+        report_content: '<div style="padding: 20px;"><p>暂无报告数据</p></div>'
+    };
+
+    res.json({
+        status: 0,
+        data: report
     });
 });
 
