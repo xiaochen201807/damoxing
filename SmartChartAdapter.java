@@ -41,8 +41,8 @@ public class SmartChartAdapter {
         // 3. 构建 ECharts Series 数据
         List<Map<String, Object>> seriesData = buildSeriesData(businessData, type);
 
-        // 4. 组装最终 ECharts Option 结构
-        EchartsOption option = new EchartsOption();
+        // 4. 组装最终 ECharts Option 结构（使用工厂方法确保线程安全）
+        EchartsOption option = EchartsOption.createDefault();
         
         // 自动生成标题
        /* option.setTitle(new Title(
@@ -504,12 +504,14 @@ public class SmartChartAdapter {
     }
 
 
+
+
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class EchartsOption {
         private Title title;
-        private Tooltip tooltip = new Tooltip("item"); // 默认开启
-        private Legend legend = new Legend();   // 默认开启
+        private Tooltip tooltip;  // 移除默认初始化，避免并发问题
+        private Legend legend;    // 移除默认初始化，避免并发问题
         private List<String> color;
         
         @com.fasterxml.jackson.annotation.JsonProperty("xAxis")
@@ -521,6 +523,17 @@ public class SmartChartAdapter {
         private Map<String, Object> radar; // 雷达图专用配置
         private Map<String, Object> grid;  // 网格配置
         private List<Series> series;
+        
+        /**
+         * 工厂方法：创建带默认配置的 EchartsOption
+         * 确保每个请求都有独立的对象实例，避免并发安全问题
+         */
+        public static EchartsOption createDefault() {
+            EchartsOption option = new EchartsOption();
+            option.setTooltip(new Tooltip("item"));
+            option.setLegend(new Legend());
+            return option;
+        }
     }
 
     @Data
