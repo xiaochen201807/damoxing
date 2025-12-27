@@ -32,14 +32,24 @@ public class SmartChartAdapter {
      * @return 包含样式和数据的完整响应对象
      */
     public ChartResponse adapt(List<BusinessMetric> businessData, String type) {
+        long startTime = System.currentTimeMillis();
+        String threadName = Thread.currentThread().getName();
+        
+        System.out.println("[" + threadName + "] ===== 开始处理图表请求 =====");
+        System.out.println("[" + threadName + "] 输入数据: " + (businessData != null ? businessData.size() : "null") + " 条");
+        System.out.println("[" + threadName + "] 图表类型: " + type);
+        
         // 1. 数据预处理与分析
         DataAnalysis analysis = analyzeData(businessData);
+        System.out.println("[" + threadName + "] 分析完成: totalValue=" + analysis.totalValue + ", riskRatio=" + analysis.riskRatio);
         
         // 2. 智能选择主题/颜色策略
         ColorPalette palette = selectPaletteInternal(analysis);
+        System.out.println("[" + threadName + "] 选择调色板: " + palette.name());
 
         // 3. 构建 ECharts Series 数据
         List<Map<String, Object>> seriesData = buildSeriesData(businessData, type);
+        System.out.println("[" + threadName + "] 构建 seriesData: " + (seriesData != null ? seriesData.size() : "null") + " 条");
 
         // 4. 组装最终 ECharts Option 结构（使用工厂方法确保线程安全）
         EchartsOption option = EchartsOption.createDefault();
@@ -56,9 +66,32 @@ public class SmartChartAdapter {
 
         // 根据类型构建 Series 和坐标轴
         configureSeries(option, seriesData, type, businessData);
+        
+        // 检查 series 数据
+        if (option.getSeries() != null && !option.getSeries().isEmpty()) {
+            Series firstSeries = option.getSeries().get(0);
+            Object data = firstSeries.getData();
+            System.out.println("[" + threadName + "] ✅ Series构建完成: " + option.getSeries().size() + " 个系列");
+            System.out.println("[" + threadName + "] ✅ 第一个series.data: " + (data != null ? data.getClass().getSimpleName() + " size=" + getDataSize(data) : "null"));
+        } else {
+            System.out.println("[" + threadName + "] ❌ 警告: Series为空!");
+        }
 
+        long duration = System.currentTimeMillis() - startTime;
+        System.out.println("[" + threadName + "] ===== 处理完成，耗时: " + duration + "ms =====\n");
+        
         // 5. 包装响应
         return ChartResponse.success(option);
+    }
+    
+    // 辅助方法：获取data的大小
+    private int getDataSize(Object data) {
+        if (data instanceof List) {
+            return ((List<?>) data).size();
+        } else if (data instanceof Map) {
+            return ((Map<?, ?>) data).size();
+        }
+        return 0;
     }
     
     /**
@@ -138,8 +171,15 @@ public class SmartChartAdapter {
      */
     private void configureSeries(EchartsOption option, List<Map<String, Object>> seriesData, 
                                   String type, List<BusinessMetric> businessData) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[" + threadName + "] 进入 configureSeries: type=" + type + ", seriesData=" + 
+                          (seriesData != null ? seriesData.size() : "null") + " 条");
+        
         Series series = new Series();
         series.setData(seriesData);
+        System.out.println("[" + threadName + "] series.setData 完成，data=" + 
+                          (series.getData() != null ? series.getData().getClass().getSimpleName() + " size=" + 
+                          ((List<?>)series.getData()).size() : "null"));
         
         switch (type.toLowerCase()) {
             case "pie":
@@ -263,53 +303,89 @@ public class SmartChartAdapter {
     
     /**
      * 配置分组柱状图（多系列）
-     * 注意：此方法期望 businessData 包含多个维度的数据
-     * 实际使用中，通常直接由后端 API 返回完整的多 series 配置
+     * 
+     * 工作原理：
+     * 1. 从 businessData 中提取所有 itemId（作为系列名称）
+     * 2. 按 itemId 分组数据
+     * 3. 为每个 itemId 创建一个 series
+     * 
+     * 数据格式要求：
+     * - itemId: 系列名称（如"浏览频次"、"搜索频次"）
+     * - label: X轴类别（如"密码重置"、"贷款申请"）
+     * - value: 数值
      */
     private void configureGroupedBarSeries(EchartsOption option, List<BusinessMetric> businessData) {
-        // 提取类目
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[" + threadName + "] 开始配置分组柱状图，输入数据: " + businessData.size() + " 条");
+        
+        // 1. 提取所有类别（X轴）
         List<String> categories = businessData.stream()
                 .map(BusinessMetric::getLabel)
                 .distinct()
                 .collect(Collectors.toList());
         
-        // 为演示目的，创建3个系列（实际应用中应根据业务需求调整）
-        // 注：真实场景建议直接由 API 返回完整的多 series 数据
+        System.out.println("[" + threadName + "] X轴类别: " + categories.size() + " 个 - " + categories);
+        
+        // 2. 按 itemId 分组（itemId 就是系列名称）
+        Map<String, List<BusinessMetric>> groupedByItemId = businessData.stream()
+                .collect(Collectors.groupingBy(BusinessMetric::getItemId));
+        
+        System.out.println("[" + threadName + "] 检测到 " + groupedByItemId.size() + " 个系列: " + groupedByItemId.keySet());
+        
+        // 3. 为每个分组创建一个 series
         List<Series> seriesList = new ArrayList<>();
         
-        // 示例：创建单个系列（实际使用时应由 API 提供多系列数据）
-        Series series1 = new Series();
-        series1.setType("bar");
-        series1.setName("系列1"); // 应从业务数据中获取
-        
-        List<Object> valueData = buildValueArray(businessData, "bar");
-        series1.setDataAsObjects(valueData);
-        
-        Map<String, Object> itemStyle = new HashMap<>();
-        itemStyle.put("borderRadius", Arrays.asList(4, 4, 0, 0));
-        series1.setItemStyle(itemStyle);
-        
-        seriesList.add(series1);
-        
-        // 如果有多个系列，继续添加...
-        // Series series2 = new Series();
-        // series2.setType("bar");
-        // series2.setName("系列2");
-        // ...
+        for (Map.Entry<String, List<BusinessMetric>> entry : groupedByItemId.entrySet()) {
+            String seriesName = entry.getKey();  // 如"浏览频次"
+            List<BusinessMetric> seriesData = entry.getValue();
+            
+            System.out.println("[" + threadName + "] 处理系列: " + seriesName + "，数据点: " + seriesData.size() + " 个");
+            
+            // 创建 series
+            Series series = new Series();
+            series.setType("bar");
+            series.setName(seriesName);
+            
+            // 构建数据点（带 itemId 用于钻取）
+            List<Map<String, Object>> dataPoints = new ArrayList<>();
+            for (BusinessMetric metric : seriesData) {
+                Map<String, Object> point = new HashMap<>();
+                point.put("value", metric.getValue());
+                point.put("itemId", seriesName + "_" + metric.getLabel());
+                point.put("name", metric.getLabel());
+                
+                // ⚠️ 分组柱状图不使用高风险标红
+                // 因为需要通过颜色区分不同系列（浏览频次、搜索频次、咨询频次）
+                // 让 ECharts 自动为每个 series 分配不同的颜色
+                
+                dataPoints.add(point);
+            }
+            
+            series.setData(dataPoints);
+            
+            // 设置圆角
+            Map<String, Object> itemStyle = new HashMap<>();
+            itemStyle.put("borderRadius", Arrays.asList(4, 4, 0, 0));
+            series.setItemStyle(itemStyle);
+            
+            seriesList.add(series);
+        }
         
         option.setSeries(seriesList);
+        System.out.println("[" + threadName + "] ✅ 创建了 " + seriesList.size() + " 个系列");
         
-        // 配置坐标轴
+        // 4. 配置坐标轴
         option.setXAxis(new Axis("category", categories));
         option.setYAxis(new Axis("value", null));
         
-        // 配置图例
+        // 5. 配置图例（横向显示）
         Legend legend = new Legend();
+        legend.setOrient("horizontal");  // 横向显示
         legend.setBottom("0");
         legend.setLeft("center");
         option.setLegend(legend);
         
-        // 配置网格
+        // 6. 配置网格
         Map<String, Object> grid = new HashMap<>();
         grid.put("left", "3%");
         grid.put("right", "4%");
@@ -318,8 +394,9 @@ public class SmartChartAdapter {
         grid.put("containLabel", true);
         option.setGrid(grid);
         
-        // 配置提示框
-        option.setTooltip(new Tooltip("axis", null));
+        // 7. 配置提示框
+        Tooltip tooltip = new Tooltip("axis", null);
+        option.setTooltip(tooltip);
     }
 
     
