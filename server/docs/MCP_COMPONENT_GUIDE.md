@@ -687,3 +687,199 @@
   }
 }
 ```
+
+---
+
+## 高级功能：二级钻取（多层钻取）
+
+### 概述
+
+二级钻取允许在第一层清册中添加操作列，点击后弹出第二层清册或详情。
+
+**典型场景**：
+```
+图表 → 第一层清册 → 第二层清册/详情
+```
+
+### 配置方式
+
+在 `drilldown_columns` 中添加 `operation` 类型的列：
+
+```json
+{
+  "component_id": "chart_with_ai",
+  "params": {
+    "chart_type": "bar",
+    "drilldown_api": "/api/demo/customers",
+    "drilldown_columns": [
+      { "name": "id", "label": "客户ID" },
+      { "name": "name", "label": "客户名称" },
+      {
+        "type": "operation",
+        "label": "操作",
+        "width": 200,
+        "buttons": [
+          {
+            "type": "button",
+            "label": "查看详情",
+            "level": "link",
+            "actionType": "dialog",
+            "dialog": {
+              "title": "${name} - 详细信息",
+              "size": "xl",
+              "body": {
+                "type": "service",
+                "api": {
+                  "method": "post",
+                  "url": "/api/demo/customer-details",
+                  "data": {
+                    "customerId": "${id}"
+                  }
+                },
+                "body": {
+                  "type": "crud",
+                  "syncLocation": false,
+                  "api": {
+                    "method": "post",
+                    "url": "/api/demo/customer-details",
+                    "data": { "&": "$$" }
+                  },
+                  "columns": [
+                    { "name": "record_id", "label": "记录ID" },
+                    { "name": "detail", "label": "详情" }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 关键配置说明
+
+#### 1. Operation列配置
+```json
+{
+  "type": "operation",
+  "label": "操作",
+  "width": 200,
+  "buttons": [...]
+}
+```
+
+#### 2. 按钮配置
+```json
+{
+  "type": "button",
+  "label": "查看详情",
+  "level": "link",           // 样式：link, primary, default
+  "actionType": "dialog"     // 动作类型
+}
+```
+
+#### 3. 数据传递
+使用 `${}` 语法引用当前行数据：
+- `${id}` - 当前行的id字段
+- `${name}` - 当前行的name字段
+
+#### 4. API配置注意事项
+
+**✅ 正确配置**：
+```json
+{
+  "type": "crud",
+  "api": {
+    "method": "post",
+    "url": "/api/details",
+    "data": { "&": "$$" }  // 继承上层数据
+  }
+}
+```
+
+**❌ 错误配置**（会丢失headers）：
+```json
+{
+  "type": "crud",
+  "api": "$api"  // 不要使用变量引用
+}
+```
+
+#### 5. 字段类型参考
+
+**mapping类型**（带样式的映射）：
+```json
+{
+  "name": "status",
+  "type": "mapping",
+  "map": {
+    "pending": "<span class='label label-warning'>待处理</span>",
+    "done": "<span class='label label-success'>已完成</span>"
+  }
+}
+```
+
+**⚠️ 不要使用status类型**（会导致React渲染错误）：
+```json
+{
+  "type": "status",  // ❌ 错误
+  "map": {
+    "pending": { "label": "待处理", "status": "pending" }  // 对象无法渲染
+  }
+}
+```
+
+### 完整示例：客户风险分析
+
+详见 [`DRILLDOWN_GUIDE.md`](./DRILLDOWN_GUIDE.md) 获取包含三层钻取的完整示例。
+
+---
+
+## 最佳实践
+
+### 1. 性能优化
+- ✅ 使用分页（`perPage: 10`）
+- ✅ 限制同时打开的弹窗数量
+- ✅ 避免在循环中调用API
+
+### 2. 用户体验
+- ✅ 提供明确的操作按钮文字
+- ✅ 使用 `closeOnEsc: true` 允许ESC关闭
+- ✅ 添加加载状态提示
+
+### 3. 数据安全
+- ✅ 在操作列中传递最少必要的数据
+- ✅ 后端验证所有传入参数
+- ✅ 使用JWT token认证
+
+---
+
+## 常见问题
+
+### Q: 为什么第二层清册显示"暂无数据"？
+**A**: 检查以下几点：
+1. API是否正确返回 `{status: 0, data: {items: [...]}}`
+2. 是否使用了 `"api": "$api"` 导致headers丢失
+3. 浏览器F12 Network查看实际请求和响应
+
+### Q: 为什么HTML内容显示为原始代码？
+**A**: 使用 `html` 组件而不是 `tpl`：
+```json
+{
+  "type": "html",
+  "html": "${content | raw}"  // 使用raw过滤器
+}
+```
+
+### Q: 如何实现三级钻取？
+**A**: 在第二层清册的columns中再添加operation列，配置方式相同。
+
+---
+
+## 相关文档
+
+- [`DRILLDOWN_GUIDE.md`](./DRILLDOWN_GUIDE.md) - 二级钻取完整配置指南
+- [AMIS官方文档](https://aisuda.bce.baidu.com/amis) - AMIS组件库文档
