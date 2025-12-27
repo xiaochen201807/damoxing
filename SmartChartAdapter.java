@@ -374,6 +374,20 @@ public class SmartChartAdapter {
         option.setSeries(seriesList);
         System.out.println("[" + threadName + "] ✅ 创建了 " + seriesList.size() + " 个系列");
         
+        // 为分组柱状图设置高对比度颜色（覆盖默认调色板）
+        // 使用蓝、橙、绿、紫、青等色系差异明显的颜色
+        List<String> groupedBarColors = Arrays.asList(
+            "#5470c6",  // 蓝色 - 第1个系列
+            "#ee6666",  // 橙红色 - 第2个系列
+            "#91cc75",  // 绿色 - 第3个系列
+            "#fac858",  // 黄色 - 第4个系列
+            "#73c0de",  // 青色 - 第5个系列
+            "#9a60b4",  // 紫色 - 第6个系列
+            "#ea7ccc"   // 粉色 - 第7个系列
+        );
+        option.setColor(groupedBarColors);
+        System.out.println("[" + threadName + "] 应用分组柱状图专用色板: " + groupedBarColors.size() + " 种颜色");
+        
         // 4. 配置坐标轴
         option.setXAxis(new Axis("category", categories));
         option.setYAxis(new Axis("value", null));
