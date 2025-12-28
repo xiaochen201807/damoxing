@@ -4,6 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { paginate } = require('../../utils/pagination');
 
 // 饼图的模拟数据库 - 8 个风险等级
 const mockData = {
@@ -12,11 +13,39 @@ const mockData = {
         { id: 2, customer_name: '李四', risk_score: 96, status: 'processing', amount: 750000, overdue_days: 135 },
         { id: 3, customer_name: '王五', risk_score: 97, status: 'pending', amount: 900000, overdue_days: 160 }
     ],
-    high: [ // 高风险
+    high: [ // 高风险 - 35条数据用于测试分页
         { id: 4, customer_name: '赵六', risk_score: 88, status: 'pending', amount: 500000, overdue_days: 90 },
         { id: 5, customer_name: '钱七', risk_score: 85, status: 'processing', amount: 450000, overdue_days: 75 },
         { id: 6, customer_name: '孙八', risk_score: 92, status: 'pending', amount: 600000, overdue_days: 110 },
-        { id: 7, customer_name: '周九', risk_score: 87, status: 'processing', amount: 480000, overdue_days: 85 }
+        { id: 7, customer_name: '周九', risk_score: 87, status: 'processing', amount: 480000, overdue_days: 85 },
+        { id: 31, customer_name: '郑强', risk_score: 89, status: 'pending', amount: 520000, overdue_days: 92 },
+        { id: 32, customer_name: '王磊', risk_score: 86, status: 'processing', amount: 470000, overdue_days: 78 },
+        { id: 33, customer_name: '李娜', risk_score: 91, status: 'pending', amount: 580000, overdue_days: 105 },
+        { id: 34, customer_name: '张伟', risk_score: 84, status: 'completed', amount: 430000, overdue_days: 70 },
+        { id: 35, customer_name: '刘洋', risk_score: 90, status: 'pending', amount: 560000, overdue_days: 98 },
+        { id: 36, customer_name: '陈明', risk_score: 88, status: 'processing', amount: 510000, overdue_days: 88 },
+        { id: 37, customer_name: '杨静', risk_score: 87, status: 'pending', amount: 490000, overdue_days: 82 },
+        { id: 38, customer_name: '赵丽', risk_score: 93, status: 'processing', amount: 620000, overdue_days: 115 },
+        { id: 39, customer_name: '黄涛', risk_score: 85, status: 'pending', amount: 460000, overdue_days: 76 },
+        { id: 40, customer_name: '周芳', risk_score: 89, status: 'completed', amount: 530000, overdue_days: 94 },
+        { id: 41, customer_name: '吴刚', risk_score: 86, status: 'pending', amount: 480000, overdue_days: 80 },
+        { id: 42, customer_name: '徐敏', risk_score: 91, status: 'processing', amount: 570000, overdue_days: 102 },
+        { id: 43, customer_name: '孙勇', risk_score: 88, status: 'pending', amount: 505000, overdue_days: 90 },
+        { id: 44, customer_name: '马超', risk_score: 87, status: 'completed', amount: 495000, overdue_days: 84 },
+        { id: 45, customer_name: '朱军', risk_score: 92, status: 'pending', amount: 590000, overdue_days: 108 },
+        { id: 46, customer_name: '胡斌', risk_score: 84, status: 'processing', amount: 440000, overdue_days: 72 },
+        { id: 47, customer_name: '郭华', risk_score: 90, status: 'pending', amount: 550000, overdue_days: 96 },
+        { id: 48, customer_name: '林峰', risk_score: 86, status: 'completed', amount: 475000, overdue_days: 79 },
+        { id: 49, customer_name: '何建', risk_score: 89, status: 'pending', amount: 525000, overdue_days: 93 },
+        { id: 50, customer_name: '高鹏', risk_score: 85, status: 'processing', amount: 455000, overdue_days: 74 },
+        { id: 51, customer_name: '梁杰', risk_score: 91, status: 'pending', amount: 575000, overdue_days: 104 },
+        { id: 52, customer_name: '宋涛', risk_score: 88, status: 'completed', amount: 515000, overdue_days: 91 },
+        { id: 53, customer_name: '唐丽', risk_score: 87, status: 'pending', amount: 485000, overdue_days: 81 },
+        { id: 54, customer_name: '韩梅', risk_score: 93, status: 'processing', amount: 610000, overdue_days: 112 },
+        { id: 55, customer_name: '冯强', risk_score: 84, status: 'pending', amount: 445000, overdue_days: 73 },
+        { id: 56, customer_name: '于洋', risk_score: 90, status: 'completed', amount: 545000, overdue_days: 97 },
+        { id: 57, customer_name: '董敏', risk_score: 86, status: 'pending', amount: 465000, overdue_days: 77 },
+        { id: 58, customer_name: '萧勇', risk_score: 89, status: 'processing', amount: 535000, overdue_days: 95 }
     ],
     'medium-high': [ // 中高风险
         { id: 8, customer_name: '吴十', risk_score: 72, status: 'processing', amount: 350000, overdue_days: 55 },
@@ -24,11 +53,28 @@ const mockData = {
         { id: 10, customer_name: '冯十二', risk_score: 70, status: 'processing', amount: 320000, overdue_days: 50 },
         { id: 11, customer_name: '陈十三', risk_score: 78, status: 'completed', amount: 400000, overdue_days: 45 }
     ],
-    medium: [ // 中风险
+    medium: [ // 中风险 - 25条数据
         { id: 12, customer_name: '褚十四', risk_score: 62, status: 'pending', amount: 280000, overdue_days: 35 },
         { id: 13, customer_name: '卫十五', risk_score: 58, status: 'completed', amount: 250000, overdue_days: 28 },
         { id: 14, customer_name: '蒋十六', risk_score: 65, status: 'processing', amount: 300000, overdue_days: 40 },
-        { id: 15, customer_name: '沈十七', risk_score: 60, status: 'processing', amount: 270000, overdue_days: 32 }
+        { id: 15, customer_name: '沈十七', risk_score: 60, status: 'processing', amount: 270000, overdue_days: 32 },
+        { id: 59, customer_name: '程浩', risk_score: 63, status: 'pending', amount: 285000, overdue_days: 36 },
+        { id: 60, customer_name: '曾丽', risk_score: 59, status: 'completed', amount: 255000, overdue_days: 29 },
+        { id: 61, customer_name: '彭军', risk_score: 66, status: 'processing', amount: 305000, overdue_days: 41 },
+        { id: 62, customer_name: '吕静', risk_score: 61, status: 'pending', amount: 275000, overdue_days: 33 },
+        { id: 63, customer_name: '苏伟', risk_score: 64, status: 'completed', amount: 290000, overdue_days: 37 },
+        { id: 64, customer_name: '卢涛', risk_score: 58, status: 'processing', amount: 260000, overdue_days: 30 },
+        { id: 65, customer_name: '蒋芳', risk_score: 67, status: 'pending', amount: 310000, overdue_days: 42 },
+        { id: 66, customer_name: '蔡明', risk_score: 62, status: 'completed', amount: 282000, overdue_days: 35 },
+        { id: 67, customer_name: '丁强', risk_score: 60, status: 'processing', amount: 272000, overdue_days: 33 },
+        { id: 68, customer_name: '余娜', risk_score: 65, status: 'pending', amount: 295000, overdue_days: 38 },
+        { id: 69, customer_name: '潘勇', risk_score: 59, status: 'completed', amount: 265000, overdue_days: 31 },
+        { id: 70, customer_name: '杜敏', risk_score: 63, status: 'processing', amount: 288000, overdue_days: 36 },
+        { id: 71, customer_name: '戴华', risk_score: 61, status: 'pending', amount: 278000, overdue_days: 34 },
+        { id: 72, customer_name: '夏峰', risk_score: 66, status: 'completed', amount: 302000, overdue_days: 40 },
+        { id: 73, customer_name: '钟建', risk_score: 58, status: 'processing', amount: 258000, overdue_days: 29 },
+        { id: 74, customer_name: '汪鹏', risk_score: 64, status: 'pending', amount: 292000, overdue_days: 37 },
+        { id: 75, customer_name: '田杰', risk_score: 60, status: 'completed', amount: 268000, overdue_days: 32 }
     ],
     'medium-low': [ // 中低风险
         { id: 16, customer_name: '韩十八', risk_score: 48, status: 'completed', amount: 200000, overdue_days: 22 },
@@ -206,47 +252,52 @@ router.get('/chart/risk-bar', (req, res) => {
 // 获取风险清册列表
 router.get('/risk-list/:category', (req, res) => {
     const { category } = req.params;
-    const { month } = req.query; // 支持按月份过滤
+    const { month, keyword, status, page, perPage } = req.query; // 支持搜索和分页
 
     let items = mockData[category] || [];
 
     // 如果提供了月份参数，根据月份返回不同的数据子集
-    // 在真实场景中，应该在数据库中存储 month 字段并查询
-    // 这里为了演示，我们基于月份索引返回数据的不同部分
     if (month) {
-        // 将月份映射到索引 (2024-07 -> 0, 2024-08 -> 1, etc.)
-        const monthIndex = parseInt(month.split('-')[1]) - 7; // 7月是索引0
-
-        // 根据月份和数据长度，返回该月特定的数据子集
-        // 使用取模确保每个月都有数据，但数据不同
+        const monthIndex = parseInt(month.split('-')[1]) - 7;
         const startIdx = monthIndex % items.length;
         const itemsForMonth = items.slice(startIdx, startIdx + Math.min(2, items.length - startIdx));
 
-        // 如果切片后数据不足，从头部补充
         if (itemsForMonth.length < 2 && items.length >= 2) {
             itemsForMonth.push(...items.slice(0, 2 - itemsForMonth.length));
         }
 
         items = itemsForMonth.map(item => ({
             ...item,
-            month: month // 添加月份标识
+            month: month
         }));
     }
+
+    // 关键词搜索（客户名称）
+    if (keyword) {
+        items = items.filter(item =>
+            item.customer_name && item.customer_name.includes(keyword)
+        );
+    }
+
+    // 状态过滤
+    if (status) {
+        items = items.filter(item => item.status === status);
+    }
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
 
     res.json({
         status: 0,
         msg: 'success',
-        data: {
-            items: items,
-            total: items.length
-        }
+        data: result
     });
 });
 
 // 获取柱形图的风险清册列表（独立数据源）
 router.get('/bar-risk-list/:category', (req, res) => {
     const { category } = req.params;
-    const { month } = req.query;
+    const { month, page, perPage } = req.query;
 
     let items = barChartMockData[category] || [];
 
@@ -268,13 +319,13 @@ router.get('/bar-risk-list/:category', (req, res) => {
         }));
     }
 
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
     res.json({
         status: 0,
         msg: 'success',
-        data: {
-            items: items,
-            total: items.length
-        }
+        data: result
     });
 });
 
@@ -597,12 +648,12 @@ router.post('/chart/region-bar-post', (req, res) => {
 
 /**
  * POST 版本 - 获取风险清册列表
- * 接收参数：selectedId (必需), chart_id, month 等
+ * 接收参数：selectedId (必需), chart_id, month, page, perPage 等
  */
 router.post('/risk-list-post', (req, res) => {
-    const { selectedId, chart_id, month } = req.body;
+    const { selectedId, chart_id, month, page, perPage } = req.body;
 
-    console.log('[POST] 风险清册请求:', { selectedId, chart_id, month });
+    console.log('[POST] 风险清册请求:', { selectedId, chart_id, month, page, perPage });
 
     // selectedId 是必需的
     if (!selectedId) {
@@ -631,13 +682,13 @@ router.post('/risk-list-post', (req, res) => {
         }));
     }
 
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
     res.json({
         status: 0,
         msg: 'success',
-        data: {
-            items: items,
-            total: items.length
-        }
+        data: result
     });
 });
 
@@ -645,56 +696,75 @@ router.post('/risk-list-post', (req, res) => {
  * POST 版本 - 获取柱形图的风险清册列表
  */
 router.post('/bar-risk-list-post', (req, res) => {
-    const { selectedId, chart_id, month } = req.body;
+    const { selectedId, chart_id, month, keyword, status, minAmount, page, perPage } = req.body;
 
     // selectedId 现在是月份，如 "2024-07"
     const targetMonth = selectedId || month;
 
-    console.log('[POST] 柱状图钻取请求:', { selectedId, targetMonth, chart_id });
+    console.log('[POST] 柱状图钻取请求:', { selectedId, targetMonth, chart_id, keyword, status, minAmount, page, perPage });
 
     // 模拟不同月份的客户数据
     const monthlyCustomers = {
         '2024-07': [
-            { id: 'C001', customer_name: '张三公司', risk_score: 85, risk_level: 'high', month: '2024-07' },
-            { id: 'C002', customer_name: '李四企业', risk_score: 65, risk_level: 'medium', month: '2024-07' },
-            { id: 'C003', customer_name: '王五集团', risk_score: 45, risk_level: 'low', month: '2024-07' }
+            { id: 'C001', customer_name: '张三公司', risk_score: 85, risk_level: 'high', month: '2024-07', status: 'pending', amount: 50000 },
+            { id: 'C002', customer_name: '李四企业', risk_score: 65, risk_level: 'medium', month: '2024-07', status: 'processing', amount: 30000 },
+            { id: 'C003', customer_name: '王五集团', risk_score: 45, risk_level: 'low', month: '2024-07', status: 'completed', amount: 20000 }
         ],
         '2024-08': [
-            { id: 'C004', customer_name: '赵六实业', risk_score: 78, risk_level: 'high', month: '2024-08' },
-            { id: 'C005', customer_name: '钱七商贸', risk_score: 58, risk_level: 'medium', month: '2024-08' },
-            { id: 'C003', customer_name: '王五集团', risk_score: 42, risk_level: 'low', month: '2024-08' }
+            { id: 'C004', customer_name: '赵六实业', risk_score: 78, risk_level: 'high', month: '2024-08', status: 'pending', amount: 45000 },
+            { id: 'C005', customer_name: '钱七商贸', risk_score: 58, risk_level: 'medium', month: '2024-08', status: 'processing', amount: 25000 },
+            { id: 'C003', customer_name: '王五集团', risk_score: 42, risk_level: 'low', month: '2024-08', status: 'completed', amount: 18000 }
         ],
         '2024-09': [
-            { id: 'C001', customer_name: '张三公司', risk_score: 88, risk_level: 'high', month: '2024-09' },
-            { id: 'C006', customer_name: '孙八科技', risk_score: 52, risk_level: 'medium', month: '2024-09' }
+            { id: 'C001', customer_name: '张三公司', risk_score: 88, risk_level: 'high', month: '2024-09', status: 'pending', amount: 55000 },
+            { id: 'C006', customer_name: '孙八科技', risk_score: 52, risk_level: 'medium', month: '2024-09', status: 'processing', amount: 22000 }
         ],
         '2024-10': [
-            { id: 'C007', customer_name: '周九贸易', risk_score: 92, risk_level: 'high', month: '2024-10' },
-            { id: 'C002', customer_name: '李四企业', risk_score: 68, risk_level: 'medium', month: '2024-10' },
-            { id: 'C008', customer_name: '吴十建筑', risk_score: 48, risk_level: 'low', month: '2024-10' }
+            { id: 'C007', customer_name: '周九贸易', risk_score: 92, risk_level: 'high', month: '2024-10', status: 'pending', amount: 60000 },
+            { id: 'C002', customer_name: '李四企业', risk_score: 68, risk_level: 'medium', month: '2024-10', status: 'processing', amount: 35000 },
+            { id: 'C008', customer_name: '吴十建筑', risk_score: 48, risk_level: 'low', month: '2024-10', status: 'completed', amount: 15000 }
         ],
         '2024-11': [
-            { id: 'C001', customer_name: '张三公司', risk_score: 90, risk_level: 'high', month: '2024-11' },
-            { id: 'C009', customer_name: '郑十一物流', risk_score: 72, risk_level: 'medium', month: '2024-11' }
+            { id: 'C001', customer_name: '张三公司', risk_score: 90, risk_level: 'high', month: '2024-11', status: 'pending', amount: 58000 },
+            { id: 'C009', customer_name: '郑十一物流', risk_score: 72, risk_level: 'medium', month: '2024-11', status: 'processing', amount: 28000 }
         ],
         '2024-12': [
-            { id: 'C010', customer_name: '王十二投资', risk_score: 95, risk_level: 'high', month: '2024-12' },
-            { id: 'C001', customer_name: '张三公司', risk_score: 82, risk_level: 'high', month: '2024-12' },
-            { id: 'C002', customer_name: '李四企业', risk_score: 62, risk_level: 'medium', month: '2024-12' }
+            { id: 'C010', customer_name: '王十二投资', risk_score: 95, risk_level: 'high', month: '2024-12', status: 'pending', amount: 65000 },
+            { id: 'C001', customer_name: '张三公司', risk_score: 82, risk_level: 'high', month: '2024-12', status: 'processing', amount: 52000 },
+            { id: 'C002', customer_name: '李四企业', risk_score: 62, risk_level: 'medium', month: '2024-12', status: 'completed', amount: 32000 }
         ]
     };
 
     let items = monthlyCustomers[targetMonth] || [
-        { id: 'C999', customer_name: '暂无数据', risk_score: 0, risk_level: 'low', month: targetMonth }
+        { id: 'C999', customer_name: '暂无数据', risk_score: 0, risk_level: 'low', month: targetMonth, status: 'pending', amount: 0 }
     ];
+
+    // 关键词搜索（客户名称）
+    if (keyword) {
+        items = items.filter(item =>
+            item.customer_name && item.customer_name.includes(keyword)
+        );
+    }
+
+    // 状态过滤
+    if (status) {
+        items = items.filter(item => item.status === status);
+    }
+
+    // 最小金额过滤
+    if (minAmount !== undefined && minAmount !== null && minAmount !== '') {
+        items = items.filter(item =>
+            item.amount && item.amount >= parseFloat(minAmount)
+        );
+    }
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
 
     res.json({
         status: 0,
         msg: 'success',
-        data: {
-            items: items,
-            total: items.length
-        }
+        data: result
     });
 });
 
@@ -702,15 +772,15 @@ router.post('/bar-risk-list-post', (req, res) => {
  * POST 版本 - 获取横向柱状图钻取清册（按地区）
  */
 router.post('/region-list-post', (req, res) => {
-    const { selectedId, chart_id } = req.body;
+    const { selectedId, chart_id, keyword, region, status, page, perPage } = req.body;
 
-    const region = selectedId;
+    const selectedRegion = selectedId;
 
-    console.log('[POST] 横向柱状图钻取请求:', { selectedId, region, chart_id });
+    console.log('[POST] 横向柱状图钻取请求:', { selectedId, selectedRegion, chart_id, keyword, region, status, page, perPage });
 
     let items = [];
 
-    if (region) {
+    if (selectedRegion) {
         const allData = [
             ...barChartMockData.high,
             ...barChartMockData.medium,
@@ -719,7 +789,7 @@ router.post('/region-list-post', (req, res) => {
 
         items = allData.map((item, idx) => ({
             ...item,
-            region: region,
+            region: selectedRegion,
             city: ['上海', '杭州', '南京', '苏州', '宁波'][idx % 5]
         })).slice(0, 12);
     } else {
@@ -730,13 +800,30 @@ router.post('/region-list-post', (req, res) => {
         ].slice(0, 12);
     }
 
+    // 关键词搜索（客户名称）
+    if (keyword) {
+        items = items.filter(item =>
+            item.customer_name && item.customer_name.includes(keyword)
+        );
+    }
+
+    // 地区过滤（如果提供了额外的 region 参数）
+    if (region && region !== selectedRegion) {
+        items = items.filter(item => item.region === region);
+    }
+
+    // 状态过滤
+    if (status) {
+        items = items.filter(item => item.status === status);
+    }
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
     res.json({
         status: 0,
         msg: 'success',
-        data: {
-            items: items,
-            total: items.length
-        }
+        data: result
     });
 });
 
@@ -1060,9 +1147,9 @@ router.post('/chart/grouped-bar-post', (req, res) => {
 
 // 客户风险明细（第二层清册）
 router.post('/customer-risk-detail-post', (req, res) => {
-    const { customerId, customerName } = req.body;
+    const { customerId, customerName, page, perPage } = req.body;
 
-    console.log(`[二级钻取] 查询客户风险明细: customerId=${customerId}, customerName=${customerName}`);
+    console.log(`[二级钻取] 查询客户风险明细: customerId=${customerId}, customerName=${customerName}, page=${page}, perPage=${perPage}`);
 
     // 模拟不同客户的风险明细数据
     const riskDetailsData = {
@@ -1141,12 +1228,12 @@ router.post('/customer-risk-detail-post', (req, res) => {
         }
     ];
 
+    // 应用分页
+    const result = paginate(riskDetails, page, perPage);
+
     res.json({
         status: 0,
-        data: {
-            items: riskDetails,
-            total: riskDetails.length
-        }
+        data: result
     });
 });
 

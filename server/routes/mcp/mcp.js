@@ -12,7 +12,8 @@ const logger = require('../../utils/logger');
 // 配置 Nunjucks
 const env = nunjucks.configure(path.join(__dirname, '../templates'), {
     autoescape: false,
-    throwOnUndefined: false
+    throwOnUndefined: false,
+    noCache: true  // 禁用缓存，确保每次都读取最新模板
 });
 
 // 添加 tojson 过滤器

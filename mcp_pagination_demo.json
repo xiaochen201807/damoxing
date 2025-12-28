@@ -1,0 +1,391 @@
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "generate_page_schema",
+        "arguments": {
+            "title": "分页功能测试 Demo",
+            "layout": "simple",
+            "tabs": [
+                {
+                    "title": "饼图 - 风险等级分布",
+                    "components": [
+                        {
+                            "component_id": "alert",
+                            "params": {
+                                "alert_html": "<i class=\"fa fa-info-circle\" style=\"margin-right: 8px;\"></i>点击图表扇区可查看详细清册，支持分页浏览（高风险分类有35条数据）"
+                            }
+                        },
+                        {
+                            "component_id": "chart_with_ai",
+                            "params": {
+                                "chart_type": "pie",
+                                "title": "风险等级分布（35条数据测试分页）",
+                                "api_url": "/api/demo/chart/risk-pie",
+                                "api_method": "get",
+                                "height": 400,
+                                "drilldown_api": "/api/demo/risk-list",
+                                "drilldown_method": "get",
+                                "drilldown_columns": [
+                                    {
+                                        "name": "id",
+                                        "label": "ID",
+                                        "width": 60
+                                    },
+                                    {
+                                        "name": "customer_name",
+                                        "label": "客户名称",
+                                        "width": 120
+                                    },
+                                    {
+                                        "name": "risk_score",
+                                        "label": "风险评分",
+                                        "type": "number",
+                                        "width": 100
+                                    },
+                                    {
+                                        "name": "status",
+                                        "label": "状态",
+                                        "width": 100,
+                                        "type": "mapping",
+                                        "map": {
+                                            "pending": "<span class='label label-warning'>待处理</span>",
+                                            "processing": "<span class='label label-info'>处理中</span>",
+                                            "completed": "<span class='label label-success'>已完成</span>"
+                                        }
+                                    },
+                                    {
+                                        "name": "amount",
+                                        "label": "金额",
+                                        "type": "number",
+                                        "width": 120
+                                    },
+                                    {
+                                        "name": "overdue_days",
+                                        "label": "逾期天数",
+                                        "type": "number",
+                                        "width": 100
+                                    }
+                                ],
+                                "drilldown_filter_form": [
+                                    {
+                                        "type": "input-text",
+                                        "name": "keyword",
+                                        "label": "客户名称",
+                                        "placeholder": "请输入客户名称",
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "status",
+                                        "label": "状态",
+                                        "placeholder": "请选择状态",
+                                        "options": [
+                                            {
+                                                "label": "全部",
+                                                "value": ""
+                                            },
+                                            {
+                                                "label": "待处理",
+                                                "value": "pending"
+                                            },
+                                            {
+                                                "label": "处理中",
+                                                "value": "processing"
+                                            },
+                                            {
+                                                "label": "已完成",
+                                                "value": "completed"
+                                            }
+                                        ],
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "查询",
+                                        "level": "primary",
+                                        "actionType": "submit",
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "重置",
+                                        "actionType": "reset",
+                                        "size": "sm"
+                                    }
+                                ],
+                                "ai_analysis_text": "当前系统共监测到 8 个风险等级分类。\n\n高风险客户占比较高，需要重点关注。建议优先处理极高风险和高风险客户。\n\n点击图表可查看详细清册，支持分页浏览。",
+                                "ai_suggestions": "1. 优先处理极高风险客户\n2. 加强高风险客户的监控\n3. 定期审查中风险客户\n4. 建立风险预警机制\n5. 完善客户信用评估体系"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "title": "柱状图 - 单位风险类型",
+                    "components": [
+                        {
+                            "component_id": "alert",
+                            "params": {
+                                "alert_html": "<i class=\"fa fa-warning\" style=\"margin-right: 8px; color: #faad14;\"></i>开户异常和人数虚报是主要风险点，需要加强监管"
+                            }
+                        },
+                        {
+                            "component_id": "chart_with_ai",
+                            "params": {
+                                "chart_type": "bar",
+                                "title": "单位风险类型分布（POST方式测试）",
+                                "api_url": "/api/demo/chart/risk-bar",
+                                "api_method": "get",
+                                "height": 400,
+                                "drilldown_api": "/api/demo/bar-risk-list-post",
+                                "drilldown_method": "post",
+                                "drilldown_columns": [
+                                    {
+                                        "name": "id",
+                                        "label": "ID",
+                                        "width": 60
+                                    },
+                                    {
+                                        "name": "customer_name",
+                                        "label": "客户名称",
+                                        "width": 120
+                                    },
+                                    {
+                                        "name": "risk_score",
+                                        "label": "风险评分",
+                                        "type": "number",
+                                        "width": 100
+                                    },
+                                    {
+                                        "name": "status",
+                                        "label": "状态",
+                                        "width": 100,
+                                        "type": "mapping",
+                                        "map": {
+                                            "pending": "<span class='label label-warning'>待处理</span>",
+                                            "processing": "<span class='label label-info'>处理中</span>",
+                                            "completed": "<span class='label label-success'>已完成</span>"
+                                        }
+                                    },
+                                    {
+                                        "name": "amount",
+                                        "label": "金额",
+                                        "type": "number",
+                                        "width": 120
+                                    },
+                                    {
+                                        "name": "overdue_days",
+                                        "label": "逾期天数",
+                                        "type": "number",
+                                        "width": 100
+                                    }
+                                ],
+                                "drilldown_filter_form": [
+                                    {
+                                        "type": "input-text",
+                                        "name": "keyword",
+                                        "label": "客户名称",
+                                        "placeholder": "请输入客户名称",
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "status",
+                                        "label": "状态",
+                                        "placeholder": "请选择状态",
+                                        "options": [
+                                            {
+                                                "label": "全部",
+                                                "value": ""
+                                            },
+                                            {
+                                                "label": "待处理",
+                                                "value": "pending"
+                                            },
+                                            {
+                                                "label": "处理中",
+                                                "value": "processing"
+                                            },
+                                            {
+                                                "label": "已完成",
+                                                "value": "completed"
+                                            }
+                                        ],
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "input-number",
+                                        "name": "minAmount",
+                                        "label": "最小金额",
+                                        "placeholder": "最小金额",
+                                        "min": 0,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "查询",
+                                        "level": "primary",
+                                        "actionType": "submit",
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "重置",
+                                        "actionType": "reset",
+                                        "size": "sm"
+                                    }
+                                ],
+                                "ai_analysis_text": "单位风险类型分析显示：\n\n开户异常和人数虚报是主要风险点，需要加强监管。\n\n其他风险类型数据为0，说明这些方面控制较好。",
+                                "ai_suggestions": "1. 重点排查开户异常单位\n2. 核实人数虚报情况\n3. 建立单位诚信档案\n4. 加强贷前审核\n5. 定期开展专项检查"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "title": "横向柱状图 - 服务评分",
+                    "components": [
+                        {
+                            "component_id": "alert",
+                            "params": {
+                                "alert_html": "<i class=\"fa fa-check-circle\" style=\"margin-right: 8px; color: #52c41a;\"></i>测试 POST 方式的钻取分页功能"
+                            }
+                        },
+                        {
+                            "component_id": "chart_with_ai",
+                            "params": {
+                                "chart_type": "horizontal-bar",
+                                "title": "服务评分分析（POST方式）",
+                                "api_url": "/api/demo/chart/horizontal-bar-post",
+                                "api_method": "post",
+                                "height": 400,
+                                "drilldown_api": "/api/demo/region-list-post",
+                                "drilldown_method": "post",
+                                "drilldown_columns": [
+                                    {
+                                        "name": "id",
+                                        "label": "ID",
+                                        "width": 60
+                                    },
+                                    {
+                                        "name": "customer_name",
+                                        "label": "客户名称",
+                                        "width": 120
+                                    },
+                                    {
+                                        "name": "region",
+                                        "label": "地区",
+                                        "width": 100
+                                    },
+                                    {
+                                        "name": "city",
+                                        "label": "城市",
+                                        "width": 100
+                                    },
+                                    {
+                                        "name": "risk_score",
+                                        "label": "风险评分",
+                                        "type": "number",
+                                        "width": 100
+                                    },
+                                    {
+                                        "name": "status",
+                                        "label": "状态",
+                                        "width": 100,
+                                        "type": "mapping",
+                                        "map": {
+                                            "pending": "<span class='label label-warning'>待处理</span>",
+                                            "processing": "<span class='label label-info'>处理中</span>",
+                                            "completed": "<span class='label label-success'>已完成</span>"
+                                        }
+                                    }
+                                ],
+                                "drilldown_filter_form": [
+                                    {
+                                        "type": "input-text",
+                                        "name": "keyword",
+                                        "label": "客户名称",
+                                        "placeholder": "请输入客户名称",
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "region",
+                                        "label": "地区",
+                                        "placeholder": "请选择地区",
+                                        "options": [
+                                            {
+                                                "label": "全部",
+                                                "value": ""
+                                            },
+                                            {
+                                                "label": "华东地区",
+                                                "value": "华东地区"
+                                            },
+                                            {
+                                                "label": "华北地区",
+                                                "value": "华北地区"
+                                            },
+                                            {
+                                                "label": "华南地区",
+                                                "value": "华南地区"
+                                            }
+                                        ],
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "status",
+                                        "label": "状态",
+                                        "placeholder": "请选择状态",
+                                        "options": [
+                                            {
+                                                "label": "全部",
+                                                "value": ""
+                                            },
+                                            {
+                                                "label": "待处理",
+                                                "value": "pending"
+                                            },
+                                            {
+                                                "label": "处理中",
+                                                "value": "processing"
+                                            },
+                                            {
+                                                "label": "已完成",
+                                                "value": "completed"
+                                            }
+                                        ],
+                                        "clearable": true,
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "查询",
+                                        "level": "primary",
+                                        "actionType": "submit",
+                                        "size": "sm"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "label": "重置",
+                                        "actionType": "reset",
+                                        "size": "sm"
+                                    }
+                                ],
+                                "ai_analysis_text": "服务评分整体情况：\n\n服务态度得分最高（78分），说明窗口服务质量较好。\n\n一次办成率较低（29分），需要优化业务流程。",
+                                "ai_suggestions": "1. 提升业务熟练度培训\n2. 优化办事流程\n3. 加强热线服务响应\n4. 推进一次办成改革\n5. 建立服务质量考核机制"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "id": 1
+}

@@ -10,7 +10,8 @@ const db = require('../db');
 // 配置独立于 HTTP Server 的 Nunjucks 环境
 const env = nunjucks.configure(path.join(__dirname, '../templates'), {
     autoescape: false,
-    throwOnUndefined: false
+    throwOnUndefined: false,
+    noCache: true  // 禁用缓存，确保每次都读取最新模板
 });
 
 // 添加自定义 tojson 过滤器（类似 Jinja2）
