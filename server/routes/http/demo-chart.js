@@ -1361,9 +1361,6 @@ router.post('/subtitle', (req, res) => {
  * 动态统计指标接口
  */
 router.post('/stats', (req, res) => {
-    // 模拟根据请求参数返回不同数据
-    // 实际场景中这里会根据 req.body 中的参数进行计算或查询
-
     res.json({
         status: 0,
         msg: 'success',
@@ -1372,7 +1369,7 @@ router.post('/stats', (req, res) => {
                 {
                     title: "风险预警指标",
                     border_color: "red",
-                    columns: 5,
+                    // columns 由前端配置控制，不在 API 中返回
                     items: [
                         { label: "公积金贷款逾期人数", value: "152", trend: "up", trend_value: "12%" },
                         { label: "异常提取频次", value: "89", trend: "up", trend_value: "5%" },
@@ -1384,7 +1381,6 @@ router.post('/stats', (req, res) => {
                 {
                     title: "标准预警指标",
                     border_color: "blue",
-                    columns: 5,
                     items: [
                         { label: "在职缴存人数", value: "125.4", unit: "万" },
                         { label: "本月新增缴存", value: "8.5", unit: "万" },
@@ -1396,7 +1392,6 @@ router.post('/stats', (req, res) => {
                 {
                     title: "租赁住房提取",
                     border_color: "blue",
-                    columns: 2,
                     items: [
                         { label: "本月租赁提取人次", value: "12,500" },
                         { label: "提取总额", value: "4,500", unit: "万" }

@@ -22,7 +22,7 @@
         {# 2. 顶部 Alert 提示 #}
         {% include 'components/alert.j2' %},
 
-        {# 3. 当前政策数据卡片区（复用 stats_cards）#}
+        {# 3. 当前政策数据卡片区 #}
         {
             "type": "container",
             "className": "m-t-md",
@@ -34,32 +34,8 @@
                 "marginBottom": "20px"
             },
             "body": [
-                {# 当前数据区 #}
-                {% set title = "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px;'><i style='font-size: 18px;'>📊</i> " + (current_data_title | default('当前政策数据')) + " <span style='font-size: 12px; color: #999; margin-left: auto;'>" + (current_data_quarter | default('2025Q4')) + "</span></div>" %}
-                {% set items = items | fromjson | default(current_data_items | fromjson) %}
-                {% set columns = columns | default(4) %}
-                {% set height = card_height | default('auto') %}
+                {# 统计卡片 - 支持静态 items 或 API 动态加载（groups）#}
                 {% include 'components/stats_cards.j2' %}
-                
-                {# 预测数据区（可选显示）#}
-                {% if enable_prediction | default(true) %},
-                {
-                    "type": "container",
-                    "visibleOn": "${show_prediction}",
-                    "className": "m-t-lg",
-                    "body": [
-                        {
-                            "type": "tpl",
-                            "tpl": "<div style='height: 1px; background: linear-gradient(to right, transparent, #e8e8e8, transparent); margin: 25px 0;'></div>"
-                        },
-                        {% set title = "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px;'><i style='font-size: 18px;'>🔮</i> " + (prediction_data_title | default('政策预测数据')) + "</div>" %}
-                        {% set items = prediction_data_items | fromjson %}
-                        {% set columns = prediction_columns | default(columns) | default(4) %}
-                        {% set height = card_height | default('auto') %}
-                        {% include 'components/stats_cards.j2' %}
-                    ]
-                }
-                {% endif %}
             ]
         },
 

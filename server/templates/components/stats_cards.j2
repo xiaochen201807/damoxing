@@ -41,7 +41,7 @@
                 "type": "container",
                 "className": "stat-card",
                 "style": {
-                  "flex": "1 1 calc({{ 100 / (columns or 5) }}% - 16px)",
+                  "flex": "0 0 calc({{ 100 / (columns or 5) }}% - 16px)",
                   "minWidth": "120px"
                 },
                 "body": [
@@ -91,7 +91,7 @@
                       "type": "container",
                       "className": "stat-card",
                       "style": {
-                        "flex": "1 1 calc(${100 / (columns || 5)}% - 16px)",
+                        "flex": "0 0 calc(${100 / (columns || {{ columns | default(5) }})}% - 16px)",
                         "minWidth": "120px"
                       },
                       "body": [
