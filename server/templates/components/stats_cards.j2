@@ -1,4 +1,15 @@
-{# 统计指标卡片组件 - 使用 Flex 布局 #}
+{#
+  统计指标卡片组件 - 使用 Flex 布局
+  
+  @param title 卡片组标题（可选）
+  @param items 数据项数组，格式：[{label: '指标名', value: '数值', trend: 'up'/'down', trend_value: '12%'}, ...]
+  @param columns 列数（默认5列）
+  @param border_color 边框颜色样式类
+  @param api_url 动态加载数据的API地址（可选）
+  @param api_method API请求方法（默认get）
+  @param api_data API请求数据（可选）
+  @param api_headers API请求头（可选）
+#}
 {% if title %}
 {
   "type": "container",

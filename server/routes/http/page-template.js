@@ -21,7 +21,9 @@ router.get('/template', (req, res) => {
             length(t.schema_json) as schema_size, 
             t.version, 
             t.updated_at,
-            (SELECT COUNT(*) FROM sys_page_template WHERE page_key = t.page_key AND is_active = 0) as backup_count
+            (SELECT COUNT(*) FROM sys_page_template WHERE page_key = t.page_key AND is_active = 0) as backup_count,
+            m.path as menu_path,
+            m.route_key
         FROM sys_page_template t
         LEFT JOIN sys_menu m ON t.page_key = m.page_key
         WHERE t.is_active = 1

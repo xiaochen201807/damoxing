@@ -12,10 +12,28 @@ const COMPONENT_GROUP_NAMES = {
     'bar_chart_panel.j2': '📊 柱状图配置',
     'line_chart_panel.j2': '📈 折线图配置',
     'pie_chart.j2': '🥧 饼图配置',
+    'stats_cards.j2': '📊 统计卡片配置',
+    'policy_form.j2': '✏️ 参数表单配置',
     'import_Ai.j2': '🤖 AI分析配置',
     'alert.j2': '💡 提示配置',
     // 页面级参数（在 pages/*.j2 中直接使用的）
     '__page__': '📄 页面参数'
+};
+
+// 模板元数据配置（用于自动创建记录时设置友好的名称和描述）
+const TEMPLATE_METADATA = {
+    'policy_demo': {
+        template_name: '政策分析模板',
+        description: '政策参数调整与影响预测分析',
+        preview_image: '/templates/policy_demo.png',
+        theme_id: 'antd'
+    },
+    'fx_demo': {
+        template_name: '风险分析模板',
+        description: '包含AI分析功能的动态演示页面',
+        preview_image: '/templates/fx_demo.png',
+        theme_id: 'antd'
+    }
 };
 
 // 提取 include 指令
@@ -169,6 +187,12 @@ function processFile(filePath, templatesDir, context) {
 
     // 如果这个文件有参数定义，创建对应的组
     if (annotations.length > 0) {
+        // 第一次遇到这个组时，分配组序号
+        if (!context.groupOrderMap[groupName]) {
+            context.currentGroupOrder++;
+            context.groupOrderMap[groupName] = context.currentGroupOrder;
+        }
+
         if (!context.componentParams[groupName]) {
             context.componentParams[groupName] = [];
         }
@@ -181,7 +205,8 @@ function processFile(filePath, templatesDir, context) {
                 context.componentParams[groupName].push({
                     name: annotation.name,
                     description: annotation.description,
-                    order: context.globalOrder
+                    order: context.globalOrder,
+                    groupOrder: context.groupOrderMap[groupName]
                 });
             }
         });
@@ -210,11 +235,13 @@ function analyzeTemplate(templateFile, templatesDir) {
     // 上下文对象
     const context = {
         visited: new Set(),
-        componentParams: {},       // Map<分组名, [ {name, description, order}, ... ]>
+        componentParams: {},       // Map<分组名, [ {name, description, order, groupOrder}, ... ]>
         allParamNames: new Set(),  // 已记录的参数名
         allVariables: new Set(),
         templateDefaults: {},      // 从模板 | default() 提取的默认值
-        globalOrder: 0
+        globalOrder: 0,
+        groupOrderMap: {},         // Map<分组名, 组序号>
+        currentGroupOrder: 0       // 当前组序号计数器
     };
 
     processFile(entryFile, templatesDir, context);
@@ -248,6 +275,7 @@ function analyzeTemplate(templateFile, templatesDir) {
                 type: inferred.type,
                 description: param.description,
                 'ui:group': groupName,
+                'ui:groupOrder': param.groupOrder,
                 'ui:order': param.order
             };
 
@@ -268,6 +296,7 @@ function analyzeTemplate(templateFile, templatesDir) {
             type: inferred.type,
             description: inferred.description + ' (自动推断)',
             'ui:group': '⚙️ 其他配置',
+            'ui:groupOrder': 999,
             'ui:order': context.globalOrder
         };
 
@@ -313,22 +342,63 @@ async function syncAllTemplates() {
                 console.log(`      - ${group}: ${params.length}个参数`);
             });
 
-            // 更新数据库
+            // 更新或插入数据库
             await new Promise((resolve) => {
-                db.get('SELECT template_name FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
+                db.get('SELECT * FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
                     if (row) {
+                        // 记录存在，只更新 params_schema 和 default_params，保留其他字段
                         db.run(
                             `UPDATE sys_page_templates_config 
                              SET params_schema = ?, default_params = ? 
                              WHERE template_id = ?`,
                             [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
                             (updateErr) => {
-                                if (!updateErr) updated++;
+                                if (!updateErr) {
+                                    console.log(`   ✅ 已更新: ${templateId}`);
+                                    updated++;
+                                }
                                 resolve();
                             }
                         );
                     } else {
-                        resolve();
+                        // 记录不存在，插入新记录
+                        // 优先使用配置的元数据，否则自动生成
+                        const metadata = TEMPLATE_METADATA[templateId] || {};
+
+                        const templateName = metadata.template_name || templateId
+                            .split('_')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+
+                        const description = metadata.description || `自动生成的 ${templateName} 模板`;
+                        const previewImage = metadata.preview_image || null;
+                        const themeId = metadata.theme_id || 'antd';
+
+                        db.run(
+                            `INSERT INTO sys_page_templates_config 
+                             (template_id, template_name, description, template_file, components, params_schema, default_params, preview_image, theme_id, is_active)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+                            [
+                                templateId,
+                                templateName,
+                                description,
+                                `pages/${file}`,
+                                JSON.stringify(Object.keys(componentParams)),
+                                JSON.stringify(paramsSchema),
+                                JSON.stringify(defaultParams),
+                                previewImage,
+                                themeId
+                            ],
+                            (insertErr) => {
+                                if (!insertErr) {
+                                    console.log(`   🆕 已创建: ${templateId} (${templateName})`);
+                                    updated++;
+                                } else {
+                                    console.error(`   ❌ 插入失败: ${templateId}`, insertErr.message);
+                                }
+                                resolve();
+                            }
+                        );
                     }
                 });
             });

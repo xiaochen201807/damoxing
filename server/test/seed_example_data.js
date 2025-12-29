@@ -75,32 +75,36 @@ const components = [
 // 页面模板示例数据
 const templates = [
     {
-        template_id: 'simple_chart_dashboard',
-        template_name: '简单图表仪表盘',
-        description: '包含一个柱状图的简单仪表盘页面',
-        template_file: 'pages/simple_dashboard.j2',
-        components: JSON.stringify(['bar_chart']),
+        template_id: 'policy_demo',
+        template_name: '政策分析模板',
+        description: '政策参数调整与影响预测分析',
+        template_file: 'pages/policy_demo.j2',
+        components: JSON.stringify(['header', 'stats_cards', 'policy_form', 'import_Ai']),
         params_schema: JSON.stringify({
             type: 'object',
             properties: {
-                title: { type: 'string', description: '页面标题' },
-                subtitle: { type: 'string', description: '页面副标题' },
-                bar_api_url: { type: 'string', description: '柱状图数据API' },
-                bar_height: { type: 'integer', default: 400, description: '图表高度' }
+                page_title: { type: 'string', description: '页面标题', default: '政策分析' },
+                page_subtitle: { type: 'string', description: '页面副标题', default: '基于 AI 的政策参数调整与影响预测' },
+                current_data_title: { type: 'string', description: '当前数据标题', default: '当前政策数据' },
+                prediction_data_title: { type: 'string', description: '预测数据标题', default: '政策预测数据' },
+                form_title: { type: 'string', description: '表单标题', default: '调整政策参数' },
+                enable_ai_analysis: { type: 'boolean', description: '是否启用AI分析', default: true }
             },
-            required: ['title', 'bar_api_url']
+            required: ['page_title']
         }),
         default_params: JSON.stringify({
-            title: '数据分析仪表盘',
-            subtitle: '实时数据展示',
-            bar_height: 400
+            page_title: '政策分析',
+            page_subtitle: '基于 AI 的政策参数调整与影响预测',
+            current_data_title: '当前政策数据',
+            current_data_quarter: '2025Q4',
+            enable_ai_analysis: true
         }),
         preview_image: '/templates/simple_dashboard.png',
         theme_id: 'cxd'
     },
     {
         template_id: 'dual_chart_dashboard',
-        template_name: '双图表仪表盘',
+        template_name: '稽核页面模板',
         description: '包含柱状图和折线图的仪表盘',
         template_file: 'pages/dual_chart_dashboard.j2',
         components: JSON.stringify(['bar_chart', 'line_chart']),

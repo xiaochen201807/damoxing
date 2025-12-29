@@ -84,28 +84,13 @@ const handleTemplateForm = (req, res) => {
 
                 // 2. 按分组聚合
                 const groups = {};
-                // 定义分组顺序（用于控制FieldSet的显示顺序）
-                const groupOrder = [
-                    '🎨 页面头部配置',
-                    '🤖 AI分析配置',
-                    '☁️ 数据导入配置',
-                    '📊 柱状图配置',
-                    '📈 折线图配置',
-                    '📉 图表配置',
-                    '📝 报告功能配置',
-                    '💡 提示配置',
-                    '📄 页面参数',
-                    '⚙️ 其他配置'
-                ];
 
                 sortedFields.forEach(schema => {
                     const key = schema.key;
-                    // 不再跳过任何字段，让所有字段都参与分组
 
                     const field = {
                         name: key,
                         label: schema.description || key,
-                        // 简化逻辑：只根据 default 判断，有默认值就非必填
                         required: schema.default === undefined
                     };
 
@@ -128,49 +113,34 @@ const handleTemplateForm = (req, res) => {
                         field.type = 'input-text';
                     }
 
-                    if (schema.description) {
-                        field.description = schema.description;
-                    }
-
-                    // 获取分组名，默认为"其他配置"
+                    // 获取分组名和组序号
                     const groupName = schema['ui:group'] || '⚙️ 其他配置';
+                    const groupOrder = schema['ui:groupOrder'] || 999;
 
                     if (!groups[groupName]) {
-                        groups[groupName] = [];
+                        groups[groupName] = {
+                            groupOrder: groupOrder,
+                            fields: []
+                        };
                     }
-                    groups[groupName].push(field);
+                    groups[groupName].fields.push(field);
                 });
 
-                // 3. 生成 FieldSet
-                // 先按预定义顺序添加已知分组
-                groupOrder.forEach(groupName => {
-                    if (groups[groupName] && groups[groupName].length > 0) {
-                        formFields.push({
-                            type: 'fieldSet',
-                            title: groupName,
-                            className: 'm-t',
-                            collapsable: true,
-                            // 默认展开“页面参数”，其他折叠
-                            collapsed: groupName !== '📄 页面参数',
-                            body: groups[groupName]
-                        });
-                        delete groups[groupName]; // 处理完移除
-                    }
-                });
-
-                // 处理剩下的未预定义顺序的分组
-                Object.entries(groups).forEach(([groupName, fields]) => {
-                    if (fields.length > 0) {
-                        formFields.push({
-                            type: 'fieldSet',
-                            title: groupName,
-                            className: 'm-t',
-                            collapsable: true,
-                            collapsed: true,
-                            body: fields
-                        });
-                    }
-                });
+                // 3. 生成 FieldSet，按 groupOrder 排序
+                Object.entries(groups)
+                    .sort((a, b) => a[1].groupOrder - b[1].groupOrder)
+                    .forEach(([groupName, groupData]) => {
+                        if (groupData.fields.length > 0) {
+                            formFields.push({
+                                type: 'fieldSet',
+                                title: groupName,
+                                className: 'm-t',
+                                collapsable: true,
+                                collapsed: groupName !== '📄 页面参数',
+                                body: groupData.fields
+                            });
+                        }
+                    });
             }
 
             logger.info(`[Schema API] Generated ${formFields.length} form fields for ${templateId}`);
@@ -608,6 +578,13 @@ router.post('/save', (req, res) => {
                 const app_theme = params.app_theme || 'default';
                 const renderContext = { ...params, page_key, title, app_theme };
                 const schema_json = env.render(template.template_file, renderContext);
+
+                // 调试：输出生成的JSON
+                console.log('=== 生成的JSON（前2000字符）===');
+                console.log(schema_json.substring(0, 2000));
+                console.log('=== 位置1950-2000附近 ===');
+                console.log(schema_json.substring(1950, 2000));
+
                 JSON.parse(schema_json); // 验证 JSON 格式
 
                 // 开始事务处理保存/更新逻辑

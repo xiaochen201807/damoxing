@@ -6,37 +6,38 @@ const db = require('./db');
 
 const missingTemplates = [
     {
-        template_id: 'chart_demo',
-        template_name: '图表演示页面',
-        description: '包含饼图和柱状图的风险分析演示页面',
-        template_file: 'pages/chart_demo.j2',
-        components: JSON.stringify(['chart_panel', 'bar_chart', 'header', 'alert']),
+        template_id: 'policy_demo',
+        template_name: '政策分析模板',
+        description: '政策参数调整与影响预测分析',
+        template_file: 'pages/policy_demo.j2',
+        components: JSON.stringify(['header', 'alert', 'stats_cards', 'policy_form', 'import_Ai']),
         params_schema: JSON.stringify({
             type: 'object',
             properties: {
-                title: { type: 'string', description: '页面标题', default: '风险分析演示' },
-                subtitle: { type: 'string', description: '页面副标题', default: '数据可视化展示' },
-                chart_api_url: { type: 'string', description: '饼图API地址', default: '/api/demo/chart-data' },
-                bar_api_url: { type: 'string', description: '柱状图API地址', default: '/api/demo/bar-data' },
-                footer_text: { type: 'string', description: '底部文本', default: '© 2025' }
+                page_title: { type: 'string', description: '页面标题', default: '政策分析' },
+                page_subtitle: { type: 'string', description: '页面副标题', default: '基于 AI 的政策参数调整与影响预测' },
+                current_data_title: { type: 'string', description: '当前数据标题', default: '当前政策数据' },
+                prediction_data_title: { type: 'string', description: '预测数据标题', default: '政策预测数据' },
+                form_title: { type: 'string', description: '表单标题', default: '调整政策参数' },
+                enable_ai_analysis: { type: 'boolean', description: '是否启用AI分析', default: true }
             },
-            required: ['title']
+            required: ['page_title']
         }),
         default_params: JSON.stringify({
-            title: '风险分析演示',
-            subtitle: '数据可视化展示',
-            chart_api_url: '/api/demo/chart-data',
-            bar_api_url: '/api/demo/bar-data',
-            chart_height: 350,
-            bar_height: 400,
-            footer_text: '© 2025'
+            page_title: '政策分析',
+            page_subtitle: '基于 AI 的政策参数调整与影响预测',
+            current_data_title: '当前政策数据',
+            current_data_quarter: '2025Q4',
+            enable_ai_analysis: true,
+            enable_prediction: true,
+            footer_text: '住房公积金管理中心 政策研究部 © 2025'
         }),
-        preview_image: '/templates/chart_demo.png',
-        theme_id: 'cxd'
+        preview_image: '/templates/policy_demo.png',
+        theme_id: 'antd'
     },
     {
         template_id: 'fx_demo',
-        template_name: 'AI分析演示页面',
+        template_name: '风险分析模板',
         description: '包含AI分析功能的动态演示页面',
         template_file: 'pages/fx_demo.j2',
         components: JSON.stringify(['header', 'alert', 'import_ai']),
@@ -56,27 +57,6 @@ const missingTemplates = [
         }),
         preview_image: '/templates/fx_demo.png',
         theme_id: 'antd'
-    },
-    {
-        template_id: 'risk_page_dynamic',
-        template_name: '动态风险页面',
-        description: '简单的风险分析页面，支持动态副标题',
-        template_file: 'pages/risk_page_dynamic.j2',
-        components: JSON.stringify(['header']),
-        params_schema: JSON.stringify({
-            type: 'object',
-            properties: {
-                title: { type: 'string', description: '页面标题', default: '风险分析' },
-                subtitle: { type: 'string', description: '页面副标题' }
-            },
-            required: ['title']
-        }),
-        default_params: JSON.stringify({
-            title: '风险分析',
-            subtitle: '实时监控数据'
-        }),
-        preview_image: '/templates/risk_page.png',
-        theme_id: 'dark'
     }
 ];
 
