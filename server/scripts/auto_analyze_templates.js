@@ -13,10 +13,9 @@ const COMPONENT_GROUP_NAMES = {
     'line_chart_panel.j2': '📈 折线图配置',
     'pie_chart.j2': '🥧 饼图配置',
     'stats_cards.j2': '📊 统计卡片配置',
-    'policy_form.j2': '✏️ 参数表单配置',
+    'unified_policy_component.j2': '⚙️ 政策分析组件配置',
     'import_Ai.j2': '🤖 AI分析配置',
     'alert.j2': '💡 提示配置',
-    // 页面级参数（在 pages/*.j2 中直接使用的）
     '__page__': '📄 页面参数'
 };
 
@@ -53,13 +52,11 @@ function extractVariables(content) {
     const defaults = {}; // 存储变量的默认值
 
     // 1. 匹配 {{ varName | default('value') }} 或 {{ var | default(123) }}
-    // 支持引号值、数字、布尔值、变量引用等 (非贪婪匹配到 ')')
     const varWithDefaultRegex = /{{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\|\s*default\((.*?)\)/g;
     let match;
     while ((match = varWithDefaultRegex.exec(content)) !== null) {
         const varName = match[1];
         let defaultValue = match[2].trim();
-        // 去除引号
         if ((defaultValue.startsWith('"') && defaultValue.endsWith('"')) ||
             (defaultValue.startsWith("'") && defaultValue.endsWith("'"))) {
             defaultValue = defaultValue.slice(1, -1);
@@ -68,41 +65,44 @@ function extractVariables(content) {
         defaults[varName] = defaultValue;
     }
 
-    // 2. 匹配 {% if varName %} - 条件判断说明该变量是可选的
-    // 注意：允许 %} 前有其他内容，如 {% if var %}, 或 {% if var %}xxx
-    const ifConditionRegex = /{%\s*if\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*[^}]*%}/g;
-    while ((match = ifConditionRegex.exec(content)) !== null) {
-        const varName = match[1];
-        vars.add(varName);
-        // 如果还没有默认值，给一个空字符串（表示可选）
-        if (!defaults[varName]) {
-            defaults[varName] = '';
+    // 2. 匹配所有 Nunjucks 标签中的潜在变量
+    const tagRegex = /(?:{{|{%)\s*([\s\S]*?)\s*(?:}}|%})/g;
+    const identifierRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+
+    while ((match = tagRegex.exec(content)) !== null) {
+        let tagBody = match[1];
+        // 抹除字符串，避免抓取字符串里的单词
+        tagBody = tagBody.replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
+
+        let idMatch;
+        while ((idMatch = identifierRegex.exec(tagBody)) !== null) {
+            const word = idMatch[1];
+            const keywords = ['if', 'else', 'elif', 'endif', 'for', 'in', 'endfor', 'set', 'include', 'with', 'import', 'as', 'default', 'fromjson', 'tojson', 'filter', 'endfilter', 'macro', 'endmacro', 'call', 'endcall', 'true', 'false', 'none', 'and', 'or', 'not', 'is', 'mapping', 'safe', 'item', 'items', 'loop', 'self', 'cycler', 'joiner', 'namespace', 'endset', 'block', 'endblock', 'extends', 'parent'];
+            if (!keywords.includes(word)) {
+                vars.add(word);
+            }
         }
     }
 
-    // 3. 匹配普通变量 {{ varName }}
-    const simpleVarRegex = /{{\s*([a-zA-Z_][a-zA-Z0-9_]*)/g;
-    while ((match = simpleVarRegex.exec(content)) !== null) {
-        vars.add(match[1]);
-    }
-
-    // 4. 匹配控制结构中的变量（for, set）
-    const controlVarRegex = /{%\s*(?:for|set)\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-    while ((match = controlVarRegex.exec(content)) !== null) {
-        vars.add(match[1]);
-    }
+    const junkWords = [
+        'if', 'else', 'elif', 'endif', 'for', 'in', 'endfor', 'set', 'include', 'with', 'import', 'as', 'default',
+        'fromjson', 'tojson', 'filter', 'endfilter', 'macro', 'endmacro', 'call', 'endcall', 'true', 'false', 'none',
+        'and', 'or', 'not', 'is', 'mapping', 'safe', 'item', 'items', 'loop', 'self', 'cycler', 'joiner', 'namespace',
+        'endset', 'block', 'endblock', 'extends', 'parent', 'group', 'field', 'action', 'colors', 'background',
+        'text_primary', 'text_secondary', 'last', 'index', 'px', 'rem', 'em', 'vh', 'vw', 'className', 'id', 'type', 'name'
+    ];
 
     const builtins = new Set([
-        // Jinja2 内置变量
-        'loop', 'item', 'items', 'row', 'index', 'default_items', 'theme', 'now', 'date',
-        // Joiner 临时变量（用于生成逗号分隔）
-        'comma', 'inner_comma', 'btn_comma', 'footer_comma',
-        // 模板内部临时变量
-        'subtitle_tpl', 'report_button_json', 'not',
-        // AMIS 表达式变量（以 $ 开头的运行时变量）
-        'ai_loading', 'show_analysis_result', 'user_query'
+        'theme', 'now', 'date', 'g', 'f', 'a', 'i', 'v', 'k', 'comma', 'btn_comma', 'inner_comma', 'footer_comma',
+        'subtitle_tpl', 'report_button_json', 'ai_loading', 'show_analysis_result', 'show_prediction'
     ]);
-    const filtered = Array.from(vars).filter(v => !builtins.has(v));
+
+    const filtered = Array.from(vars).filter(v => {
+        if (builtins.has(v)) return false;
+        if (junkWords.includes(v)) return false;
+        if (v.startsWith('_')) return false;
+        return true;
+    });
 
     return { variables: filtered, defaults };
 }
@@ -128,7 +128,7 @@ function extractParamAnnotations(content) {
 
 // 类型推断
 function inferType(varName) {
-    const result = { type: 'string', description: varName.replace(/_/g, ' ') };
+    const result = { type: 'string', description: varName.replace(/_/g, ' '), default: '' };
     if (varName.startsWith('enable_') || varName.startsWith('is_')) {
         result.type = 'boolean';
         result.default = true;
@@ -254,10 +254,12 @@ function analyzeTemplate(templateFile, templatesDir) {
     };
     const defaultParams = {};
 
-    // title 通常是必填的
+    // title 不再默认必填，改为可选以降低门槛
+    /*
     if (context.allVariables.has('title')) {
         paramsSchema.required.push('title');
     }
+    */
 
     // 按组件分组处理参数
     Object.entries(context.componentParams).forEach(([groupName, params]) => {
@@ -286,6 +288,7 @@ function analyzeTemplate(templateFile, templatesDir) {
         });
     });
 
+    // 针对 policy_demo 的精细化自动归类（确保即使没有 @param 也能归入正确组件组）
     // 处理未文档化的变量（那些在模板中使用但没有 @param 的）
     const undocumented = Array.from(context.allVariables).filter(v => !context.allParamNames.has(v));
     undocumented.forEach(varName => {
@@ -305,6 +308,35 @@ function analyzeTemplate(templateFile, templatesDir) {
             defaultParams[varName] = inferred.default;
         }
     });
+
+    // 针对 policy_demo 的精细化自动归类（确保即使没有 @param 也能归入正确组件组）
+    const policyDemoMapping = {
+        'current_data_title': { group: '📊 统计卡片配置', order: 21, desc: '🏷️ 当前数据区域标题', groupOrder: 20 },
+        'current_data_items': { group: '📊 统计卡片配置', order: 22, desc: '📑 当前数据项 (JSON)', groupOrder: 20 },
+        'current_data_quarter': { group: '📊 统计卡片配置', order: 23, desc: '📅 当前季度标签', groupOrder: 20 },
+        'columns': { group: '📊 统计卡片配置', order: 24, desc: '🔢 显示列数', groupOrder: 20 },
+        'card_height': { group: '📊 统计卡片配置', order: 25, desc: '📏 卡片高度', groupOrder: 20 },
+        'api_url': { group: '📊 统计卡片配置', order: 26, desc: '🌐 动态数据接口', groupOrder: 20 },
+        'enable_prediction': { group: '📊 统计卡片配置', order: 30, desc: '🔮 是否启用预测对比', groupOrder: 20 },
+        'prediction_data_title': { group: '📊 统计卡片配置', order: 31, desc: '🏷️ 预测数据区域标题', groupOrder: 20 },
+        'prediction_data_items': { group: '📊 统计卡片配置', order: 32, desc: '📑 预测数据项 (JSON)', groupOrder: 20 },
+        'prediction_columns': { group: '📊 统计卡片配置', order: 33, desc: '🔢 预测显示列数', groupOrder: 20 },
+        'policy_groups': { group: '⚙️ 政策分析组件配置', order: 41, desc: '📝 政策分组表单 (JSON)', groupOrder: 30 },
+        'policy_actions': { group: '⚙️ 政策分析组件配置', order: 42, desc: '🔘 动作按钮配置 (JSON)', groupOrder: 30 },
+        'enable_report_button': { group: '🎨 页面头部配置', order: 10, desc: '显示报告生成按钮', groupOrder: 10 }
+    };
+
+    // 统一应用特殊映射（覆盖归类）
+    if (templateFile.includes('policy_demo')) {
+        Object.entries(policyDemoMapping).forEach(([varName, map]) => {
+            if (paramsSchema.properties[varName]) {
+                paramsSchema.properties[varName]['ui:group'] = map.group;
+                paramsSchema.properties[varName]['ui:groupOrder'] = map.groupOrder || 999;
+                paramsSchema.properties[varName].description = map.desc || paramsSchema.properties[varName].description;
+                paramsSchema.properties[varName]['ui:order'] = map.order || paramsSchema.properties[varName]['ui:order'];
+            }
+        });
+    }
 
     return {
         paramsSchema,
@@ -337,9 +369,18 @@ async function syncAllTemplates() {
             const { paramsSchema, defaultParams, variables, componentParams } = analyzeTemplate(file, templatesDir);
 
             console.log(`   └─ 发现 ${variables.length} 个变量`);
-            console.log(`   └─ 分组数: ${Object.keys(componentParams).length}`);
-            Object.entries(componentParams).forEach(([group, params]) => {
-                console.log(`      - ${group}: ${params.length}个参数`);
+
+            // 计算最终的分组情况用于日志
+            const finalGroups = {};
+            Object.values(paramsSchema.properties).forEach(prop => {
+                const g = prop['ui:group'] || '⚙️ 其他配置';
+                if (!finalGroups[g]) finalGroups[g] = 0;
+                finalGroups[g]++;
+            });
+
+            console.log(`   └─ 分组数: ${Object.keys(finalGroups).length}`);
+            Object.entries(finalGroups).forEach(([group, count]) => {
+                console.log(`      - ${group}: ${count}个参数`);
             });
 
             // 更新或插入数据库

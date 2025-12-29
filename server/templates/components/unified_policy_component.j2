@@ -1,0 +1,213 @@
+{#
+  unified_policy_component.j2
+  整合型政策分析组件：支持分组表单配置、自定义动作按钮以及 AI 分析结果展示。
+  
+  配置说明：
+  - groups: 分组定义数组
+  - actions: 底部按钮定义数组
+  - ai_generate_api: AI 接口地址
+  - workflow_type: 工作流类型
+  - page_key: 页面标识
+#}
+
+{
+    "type": "container",
+    "className": "m-t-md",
+    "style": {
+        "backgroundColor": "#fff",
+        "borderRadius": "10px",
+        "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.05)",
+        "padding": "25px",
+        "marginBottom": "30px"
+    },
+    "body": [
+        {# 1. 标题与描述 #}
+        {
+            "type": "tpl",
+            "tpl": "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px; margin-bottom: {% if form_description %}10{% else %}20{% endif %}px;'><i style='font-size: 18px;'>✏️</i> {{ form_title | default('调整政策参数') }}</div>"
+        },
+        {% if form_description %}
+        {
+            "type": "tpl",
+            "tpl": "<div style='color: #666; font-size: 13px; margin-bottom: 20px; padding: 12px; background: #f0f7ff; border-left: 3px solid #1890ff; border-radius: 4px;'>{{ form_description }}</div>"
+        },
+        {% endif %}
+
+        {# 2. 动态表单主体 #}
+        {
+            "type": "form",
+            "mode": "normal",
+            "wrapWithPanel": true,
+            "panelClassName": "border-none shadow-none",
+            "actionsClassName": "border-none p-none m-t-md",
+            "body": [
+                {% set final_groups = groups if (groups | length > 0) else [] %}
+                {% if (final_groups | length == 0) and policy_groups %}
+                    {% set final_groups = policy_groups | fromjson %}
+                {% endif %}
+                {% for group in final_groups %}
+                {
+                    "type": "fieldset",
+                    "title": "{{ group.title }}",
+                    "body": [
+                        {
+                            "type": "grid",
+                            "columns": [
+                                {% for field in group.fields %}
+                                {
+                                    "body": [
+                                        {
+                                            "type": "{{ field.type | default('input-text') }}",
+                                            "name": "{{ field.name }}",
+                                            "label": "{{ field.label }}",
+                                            "value": {{ field.value | default('') | tojson }},
+                                            {% if field.placeholder %}"placeholder": "{{ field.placeholder }}",{% endif %}
+                                            {% if field.required %}"required": true,{% endif %}
+                                            {% if field.options %}"options": {{ field.options | tojson }},{% endif %}
+                                            "labelWidth": 150
+                                        }
+                                    ],
+                                    "md": {{ 12 / (group.columns | default(2)) | int }}
+                                }{% if not loop.last %},{% endif %}
+                                {% endfor %}
+                            ]
+                        }
+                    ]
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+
+                {# 如果没有分组，则直接渲染普通 fields (向下兼容) #}
+                {% if (final_groups | length == 0) and form_fields %}
+                {
+                    "type": "group",
+                    "body": [
+                        {% for field in form_fields %}
+                        {
+                            "type": "{{ field.type | default('input-text') }}",
+                            "name": "{{ field.name }}",
+                            "label": "{{ field.label }}",
+                            "value": {{ field.value | default('') | tojson }},
+                            "labelWidth": 150
+                        }{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ]
+                }
+                {% endif %}
+            ],
+            "actions": [
+                {% set final_actions = actions if (actions | length > 0) else [] %}
+                {% if (final_actions | length == 0) and policy_actions %}
+                    {% set final_actions = policy_actions | fromjson %}
+                {% endif %}
+                {% if final_actions | length == 0 %}
+                    {% set final_actions = [{"label": "📊 智能分析 (Dify)", "actionType": "ai_analysis", "level": "danger"}] %}
+                {% endif %}
+                
+                {% for action in final_actions %}
+                {
+                    "type": "button",
+                    "label": "{{ action.label }}",
+                    "level": "{{ action.level | default('primary') }}",
+                    {% if action.style %}
+                    "style": {{ action.style | tojson }},
+                    {% elif action.actionType == 'ai_analysis' %}
+                    "style": {
+                        "background": "linear-gradient(180deg, #ff4d4f 0%, #cf1322 100%)",
+                        "border": "none",
+                        "boxShadow": "0 4px 10px rgba(207, 19, 34, 0.3)",
+                        "fontWeight": "bold",
+                        "padding": "10px 24px"
+                    },
+                    {% endif %}
+                    "onEvent": {
+                        "click": {
+                            "actions": [
+                                {% if action.actionType == 'ai_analysis' %}
+                                {
+                                    "actionType": "setValue",
+                                    "componentId": "global_page_root",
+                                    "args": {
+                                        "value": {
+                                            "show_analysis_result": true,
+                                            "ai_loading": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "actionType": "reload",
+                                    "componentId": "unified_analysis_service",
+                                    "args": {
+                                        "data": {
+                                            "&": "$$"
+                                        }
+                                    }
+                                }
+                                {% elif action.actionType == 'dialog' %}
+                                {
+                                    "actionType": "dialog",
+                                    "dialog": {{ action.dialog | tojson }}
+                                }
+                                {% elif action.actionType == 'submit' or action.actionType == 'api' %}
+                                {
+                                    "actionType": "submit"
+                                }
+                                {% endif %}
+                            ]
+                        }
+                    }
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        },
+
+        {# 3. 内置结果展示区 (Service) #}
+        {
+            "type": "service",
+            "id": "unified_analysis_service",
+            "className": "${!show_analysis_result ? 'hidden' : 'm-t-md'}",
+            "initFetch": false,
+            "schemaApi": {
+                "method": "post",
+                "url": "{{ ai_generate_api | default('/api/ai/generate-page') }}",
+                "sendOn": "this.ai_loading === true",
+                "data": {
+                    "&": "$$",
+                    "pageId": "{{ page_key }}",
+                    "workflow_type": "{{ workflow_type | default('ai_analysis') }}",
+                    "timestamp": "${date(now(), 'x')}"
+                }
+            },
+            "onEvent": {
+                "fetchSchemaInited": {
+                    "actions": [
+                        { "actionType": "setValue", "componentId": "global_page_root", "args": { "value": { "ai_loading": false } } },
+                        { "actionType": "toast", "args": { "msgType": "success", "msg": "分析完成" } }
+                    ]
+                },
+                "fetchFailed": {
+                    "actions": [
+                        { "actionType": "setValue", "componentId": "global_page_root", "args": { "value": { "ai_loading": false } } },
+                        { "actionType": "toast", "args": { "msgType": "error", "msg": "生成失败，请稍后重试" } }
+                    ]
+                }
+            }
+        },
+
+        {# 4. Loading 遮罩 (复用 import_Ai.j2 逻辑，内联于此以保持组件独立) #}
+        {
+            "type": "container",
+            "visibleOn": "${ai_loading}",
+            "style": {
+                "position": "fixed", "top": "0", "left": "0", "width": "100vw", "height": "100vh",
+                "backgroundColor": "rgba(255, 255, 255, 0.6)", "zIndex": "9999",
+                "display": "flex", "alignItems": "center", "justifyContent": "center", "backdropFilter": "blur(8px)"
+            },
+            "body": [
+                {
+                    "type": "custom",
+                    "html": "<div style='text-align:center;'><svg viewBox='0 0 50 50' style='width:60px;height:60px;animation:spin 2s linear infinite;'><circle cx='25' cy='25' r='20' fill='none' stroke='#e6f7ff' stroke-width='4'></circle><circle cx='25' cy='25' r='20' fill='none' stroke='#1890ff' stroke-width='4' stroke-dasharray='80' stroke-dashoffset='60' stroke-linecap='round'></circle></svg><div style='margin-top:15px;font-weight:600;color:#1890ff;'>AI 智能生成报告中...</div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>"
+                }
+            ]
+        }
+    ]
+}

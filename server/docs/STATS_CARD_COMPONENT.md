@@ -29,6 +29,7 @@
     "title": "分组标题（可选）",
     "border_color": "red",
     "columns": 4,
+    "card_height": "120px",
     "items": [
       {
         "label": "预测增长率",
@@ -59,6 +60,7 @@
 | `title` | string | 否 | 组标题，显示在卡片上方 |
 | `border_color` | string | 否 | 边框颜色：red/blue/green/orange/gray |
 | `columns` | integer | 否 | 每行显示列数，默认 5 |
+| `card_height` | string | 否 | 卡片高度，如 120px, 150px 或 auto（默认） |
 | `items` | array | 条件必填 | 静态数据模式的指标列表 |
 | `api_url` | string | 条件必填 | API 动态加载地址 |
 | `api_method` | string | 否 | API 请求方法，默认 get |
@@ -108,6 +110,7 @@ INSERT INTO sys_component_library (
         "description": "边框颜色"
       },
       "columns": {"type": "integer", "default": 5},
+      "card_height": {"type": "string", "default": "auto", "description": "卡片高度"},
       "items": {
         "type": "array",
         "items": {

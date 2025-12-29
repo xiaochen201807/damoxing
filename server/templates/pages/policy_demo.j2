@@ -36,8 +36,9 @@
             "body": [
                 {# 当前数据区 #}
                 {% set title = "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px;'><i style='font-size: 18px;'>📊</i> " + (current_data_title | default('当前政策数据')) + " <span style='font-size: 12px; color: #999; margin-left: auto;'>" + (current_data_quarter | default('2025Q4')) + "</span></div>" %}
-                {% set items = current_data_items %}
-                {% set columns = 4 %}
+                {% set items = items | fromjson | default(current_data_items | fromjson) %}
+                {% set columns = columns | default(4) %}
+                {% set height = card_height | default('auto') %}
                 {% include 'components/stats_cards.j2' %}
                 
                 {# 预测数据区（可选显示）#}
@@ -52,8 +53,9 @@
                             "tpl": "<div style='height: 1px; background: linear-gradient(to right, transparent, #e8e8e8, transparent); margin: 25px 0;'></div>"
                         },
                         {% set title = "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px;'><i style='font-size: 18px;'>🔮</i> " + (prediction_data_title | default('政策预测数据')) + "</div>" %}
-                        {% set items = prediction_data_items %}
-                        {% set columns = 4 %}
+                        {% set items = prediction_data_items | fromjson %}
+                        {% set columns = prediction_columns | default(columns) | default(4) %}
+                        {% set height = card_height | default('auto') %}
                         {% include 'components/stats_cards.j2' %}
                     ]
                 }
@@ -61,11 +63,26 @@
             ]
         },
 
-        {# 4. 政策参数调整表单（新增）#}
-        {% include 'components/policy_form.j2' %},
-
-        {# 5. AI 分析按钮 + Loading + 结果区 #}
-        {% include 'components/import_Ai.j2' %},
+        {# 4. 统一政策分析组件（整合表单与 AI）#}
+        {% set groups = (policy_groups | fromjson) if policy_groups else [
+                {
+                    "title": "参数提取配置",
+                    "columns": 3,
+                    "fields": [
+                        { "name": "rent_limit", "label": "月租金上限", "type": "input-number", "value": 2500 },
+                        { "name": "deposit_months", "label": "缴存月数", "type": "input-number", "value": 6 },
+                        { "name": "region_code", "label": "适用区域", "type": "select", "options": [{"label":"全省","value":"all"}] }
+                    ]
+                }
+            ] %}
+        {% set actions = (policy_actions | fromjson) if policy_actions else [
+                {
+                    "label": "📊 智能分析 (Dify)",
+                    "actionType": "ai_analysis",
+                    "level": "danger"
+                }
+            ] %}
+        {% include 'components/unified_policy_component.j2' %},
 
         {# 6. 底部 Footer #}
         {

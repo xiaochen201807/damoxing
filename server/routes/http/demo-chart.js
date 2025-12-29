@@ -1330,5 +1330,82 @@ router.post('/customer-risk-report-post', (req, res) => {
     });
 });
 
+/**
+ * 动态副标题接口
+ * 供页面配置使用，返回动态生成的副标题
+ */
+router.post('/subtitle', (req, res) => {
+    const params = req.body;
+
+    // 获取当前时间
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+    // 根据请求参数生成不同的副标题
+    let subtitle = `基于大模型的政策模拟与预测平台 | 数据已更新至 ${dateStr}`;
+
+    if (params.page_title) {
+        subtitle = `${params.page_title} - ${subtitle}`;
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            displayText: subtitle // 适配 AMIS 默认取值
+        }
+    });
+});
+
+/**
+ * 动态统计指标接口
+ */
+router.post('/stats', (req, res) => {
+    // 模拟根据请求参数返回不同数据
+    // 实际场景中这里会根据 req.body 中的参数进行计算或查询
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            groups: [
+                {
+                    title: "风险预警指标",
+                    border_color: "red",
+                    columns: 5,
+                    items: [
+                        { label: "公积金贷款逾期人数", value: "152", trend: "up", trend_value: "12%" },
+                        { label: "异常提取频次", value: "89", trend: "up", trend_value: "5%" },
+                        { label: "黑名单增加人数", value: "24", trend: "up", trend_value: "8%" },
+                        { label: "封存账号占比", value: "15.2", unit: "%" },
+                        { label: "风控预警总数", value: "265", trend_color: "red" }
+                    ]
+                },
+                {
+                    title: "标准预警指标",
+                    border_color: "blue",
+                    columns: 5,
+                    items: [
+                        { label: "在职缴存人数", value: "125.4", unit: "万" },
+                        { label: "本月新增缴存", value: "8.5", unit: "万" },
+                        { label: "月平均缴存额", value: "1,250", unit: "元" },
+                        { label: "年度缴存目标进度", value: "85", unit: "%" },
+                        { label: "系统健康度", value: "99.9", unit: "%" }
+                    ]
+                },
+                {
+                    title: "租赁住房提取",
+                    border_color: "blue",
+                    columns: 2,
+                    items: [
+                        { label: "本月租赁提取人次", value: "12,500" },
+                        { label: "提取总额", value: "4,500", unit: "万" }
+                    ]
+                }
+            ]
+        }
+    });
+});
+
 module.exports = router;
 

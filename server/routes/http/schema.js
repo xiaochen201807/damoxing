@@ -12,12 +12,24 @@ const logger = require('../../utils/logger');
 // 配置 Nunjucks 模板引擎
 const env = nunjucks.configure(path.join(__dirname, '../../templates'), {
     autoescape: false,
-    throwOnUndefined: false
+    throwOnUndefined: false,
+    noCache: true // 禁用缓存以便模板修改即时生效
 });
 
 // 添加 tojson 过滤器（用于安全地将字符串转换为 JSON 格式）
 env.addFilter('tojson', function (value) {
     return JSON.stringify(value);
+});
+
+// 添加 fromjson 过滤器（用于将 JSON 字符串解析回对象）
+env.addFilter('fromjson', function (str) {
+    if (!str) return null;
+    try {
+        return typeof str === 'string' ? JSON.parse(str) : str;
+    } catch (e) {
+        console.error('Nunjucks fromjson error:', e);
+        return str;
+    }
 });
 
 // GET /api/schema/templates - 获取所有模板
@@ -91,7 +103,7 @@ const handleTemplateForm = (req, res) => {
                     const field = {
                         name: key,
                         label: schema.description || key,
-                        required: schema.default === undefined
+                        required: (paramsSchema.required && paramsSchema.required.includes(key)) || false
                     };
 
                     // 根据类型生成不同的表单控件
