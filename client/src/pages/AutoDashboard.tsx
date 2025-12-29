@@ -12,11 +12,12 @@ interface MenuItem {
   label: string;
   path: string;
   page_key: string;
+  route_key: string; // 所属路由标识
   icon?: string;
 }
 
 const AutoDashboard: React.FC = () => {
-  const { pageId } = useParams<{ pageId: string }>();
+  const { routeKey, pageId } = useParams<{ routeKey: string; pageId: string }>();
   const [schema, setSchema] = useState<AmisSchema | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,7 +31,7 @@ const AutoDashboard: React.FC = () => {
     setSchema(null);
     setHasPermission(null);
 
-    // 第一步：先检查菜单权限
+    // 第一步：先检查菜单权限（严格验证 routeKey + pageId）
     fetcher<ApiResponse<MenuItem[]>>({
       url: API_ENDPOINTS.MENU,
       method: 'get'
@@ -38,12 +39,15 @@ const AutoDashboard: React.FC = () => {
       .then((menuRes) => {
         if (menuRes.data && menuRes.data.status === 0) {
           const menuItems = menuRes.data.data || [];
-          const allowedPageKeys = menuItems.map(item => item.page_key);
 
-          // 检查当前 pageId 是否在菜单的 page_key 列表中
-          if (!allowedPageKeys.includes(pageId)) {
+          // 严格匹配：同时验证 route_key 和 page_key
+          const matchedItem = menuItems.find(item =>
+            item.page_key === pageId && item.route_key === routeKey
+          );
+
+          if (!matchedItem) {
             setHasPermission(false);
-            setError(`无权限访问此页面: ${pageId}`);
+            setError(`页面 "${pageId}" 不属于路由 "${routeKey}"，或无权限访问`);
             setLoading(false);
             return;
           }
