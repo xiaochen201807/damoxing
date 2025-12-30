@@ -21,10 +21,11 @@
         "marginBottom": "30px"
     },
     "body": [
-        {# 1. 标题与描述 #}
+        {# 1. 标题与描述（仅在配置时显示） #}
+        {% if form_title or form_description %}
         {
             "type": "tpl",
-            "tpl": "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px; margin-bottom: {% if form_description %}10{% else %}20{% endif %}px;'><i style='font-size: 18px;'>✏️</i> {{ form_title | default('调整政策参数') }}</div>"
+            "tpl": "<div style='font-weight: 600; color: #1a3c6e; font-size: 16px; display: flex; align-items: center; gap: 8px; margin-bottom: {% if form_description %}10{% else %}20{% endif %}px;'>{{ form_title | default('调整政策参数') }}</div>"
         },
         {% if form_description %}
         {
@@ -32,12 +33,14 @@
             "tpl": "<div style='color: #666; font-size: 13px; margin-bottom: 20px; padding: 12px; background: #f0f7ff; border-left: 3px solid #1890ff; border-radius: 4px;'>{{ form_description }}</div>"
         },
         {% endif %}
+        {% endif %}
 
         {# 2. 动态表单主体 #}
         {
             "type": "form",
+            "title": "",
             "mode": "normal",
-            "wrapWithPanel": true,
+            "wrapWithPanel": false,
             "panelClassName": "border-none shadow-none",
             "actionsClassName": "border-none p-none m-t-md",
             "body": [
@@ -49,6 +52,18 @@
                 {
                     "type": "fieldset",
                     "title": "{{ group.title }}",
+                    "className": "mb-6",
+                    "headingClassName": "text-base font-semibold text-gray-800 mb-4",
+                    "style": {
+                        "backgroundColor": "#ffffff",
+                        "border": "1px solid #e5e7eb",
+                        "borderLeft": "4px solid #3b82f6",
+                        "borderRadius": "12px",
+                        "padding": "28px 24px",
+                        "marginBottom": "28px",
+                        "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)",
+                        "transition": "box-shadow 0.2s ease"
+                    },
                     "body": [
                         {
                             "type": "grid",
