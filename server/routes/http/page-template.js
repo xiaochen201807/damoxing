@@ -416,13 +416,41 @@ router.put('/template-definitions/:templateId', (req, res) => {
     });
 });
 
-// 触发模板分析
+// 触发模板分析 - 支持全部分析或单个模板分析
 router.post('/analyze-templates', (req, res) => {
     const { exec } = require('child_process');
+    const path = require('path');
+    const { template_id } = req.body;
 
-    logger.info('[Template Definitions] 开始重新分析模板...');
+    // 根据模板ID确定对应的分析脚本
+    const scriptMap = {
+        'fx_demo': 'analyze_fx_demo.js',
+        'policy_demo': 'analyze_policy_demo.js'
+    };
 
-    exec('node scripts/auto_analyze_templates.js', (error, stdout, stderr) => {
+    let scriptName;
+    let logPrefix;
+
+    if (template_id) {
+        scriptName = scriptMap[template_id];
+        if (!scriptName) {
+            return res.status(404).json({
+                status: 404,
+                msg: `未找到模板 ${template_id} 的分析脚本`
+            });
+        }
+        logPrefix = `[Template Definitions] 开始分析模板: ${template_id}`;
+    } else {
+        // 未指定模板ID，分析所有模板
+        scriptName = 'auto_analyze_templates.js';
+        logPrefix = '[Template Definitions] 开始重新分析所有模板...';
+    }
+
+    logger.info(logPrefix);
+
+    const scriptPath = path.join(__dirname, '../../scripts', scriptName);
+
+    exec(`node "${scriptPath}"`, { cwd: path.join(__dirname, '../..') }, (error, stdout, stderr) => {
         if (error) {
             logger.error('[Template Definitions] 模板分析失败:', error);
             return res.status(500).json({
@@ -435,8 +463,8 @@ router.post('/analyze-templates', (req, res) => {
         logger.info('[Template Definitions] 模板分析完成:', stdout);
         res.json({
             status: 0,
-            msg: '模板分析完成，已更新数据库',
-            data: { output: stdout }
+            msg: template_id ? `模板 ${template_id} 分析完成` : '所有模板分析完成',
+            data: { output: stdout, template_id: template_id || 'all' }
         });
     });
 });
