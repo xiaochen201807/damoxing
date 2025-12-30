@@ -40,9 +40,9 @@
             "type": "form",
             "title": "",
             "mode": "normal",
-            "wrapWithPanel": false,
+            "wrapWithPanel": true,
             "panelClassName": "border-none shadow-none",
-            "actionsClassName": "m-t-md",
+            "actionsClassName": "m-t-md text-center",
             "body": [
                 {% set final_groups = groups if (groups | length > 0) else [] %}
                 {% if (final_groups | length == 0) and policy_groups %}
