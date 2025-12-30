@@ -1,0 +1,214 @@
+[
+    {
+        "title": "贷款申请资格",
+        "columns": 4,
+        "fields": [
+            {
+                "name": "deposit_months",
+                "label": "连续缴存月数要求",
+                "type": "input-number",
+                "value": 6
+            },
+            {
+                "name": "income_multiplier",
+                "label": "家庭月收入还款倍数",
+                "type": "input-number",
+                "value": 2
+            },
+            {
+                "name": "first_house_ratio",
+                "label": "首套房首付比例（%）",
+                "type": "input-number",
+                "value": 20
+            },
+            {
+                "name": "second_house_ratio",
+                "label": "二套房首付比例（%）",
+                "type": "input-number",
+                "value": 30
+            }
+        ]
+    },
+    {
+        "title": "贷款年限",
+        "columns": 3,
+        "fields": [
+            {
+                "name": "max_loan_years",
+                "label": "最高贷款年限（年）",
+                "type": "input-number",
+                "value": 30
+            },
+            {
+                "name": "retirement_extension",
+                "label": "退休后可延长年限",
+                "type": "input-number",
+                "value": 5
+            },
+            {
+                "name": "second_house_age_limit",
+                "label": "二手房房龄+贷款年限上限",
+                "type": "input-number",
+                "value": 50
+            }
+        ]
+    },
+    {
+        "title": "贷款额度",
+        "columns": 4,
+        "fields": [
+            {
+                "name": "single_limit",
+                "label": "单人贷款额度上限（万元）",
+                "type": "input-number",
+                "value": 30
+            },
+            {
+                "name": "couple_limit",
+                "label": "双人及以上贷款额度上限（万元）",
+                "type": "input-number",
+                "value": 60
+            },
+            {
+                "name": "credit_times",
+                "label": "账户余额倍数",
+                "type": "input-number",
+                "value": 15
+            },
+            {
+                "name": "construction_limit",
+                "label": "建造住房贷款定额（万元）",
+                "type": "input-number",
+                "value": 20
+            },
+            {
+                "name": "second_house_10y_ratio",
+                "label": "二手房房龄≤10年贷款比例（%）",
+                "type": "input-number",
+                "value": 70
+            },
+            {
+                "name": "second_house_over_10y_ratio",
+                "label": "二手房房龄>10年贷款比例（%）",
+                "type": "input-number",
+                "value": 60
+            }
+        ]
+    },
+    {
+        "title": "特殊政策额度上浮调整",
+        "columns": 8,
+        "fields": [
+            {
+                "name": "urban_boost",
+                "label": "城市品质提升政策上浮（%）",
+                "type": "input-number",
+                "value": 50
+            },
+            {
+                "name": "talent_boost",
+                "label": "人才安居政策上浮（%）",
+                "type": "input-number",
+                "value": 20
+            },
+            {
+                "name": "multi_child_boost",
+                "label": "二孩家庭政策上浮（%）",
+                "type": "input-number",
+                "value": 20
+            },
+            {
+                "name": "blood_donation_boost",
+                "label": "无偿献血政策上浮（%）",
+                "type": "input-number",
+                "value": 50
+            }
+        ]
+    },
+    {
+        "title": "政策参数配置",
+        "columns": 3,
+        "fields": [
+            {
+                "name": "policy_type",
+                "label": "政策类型",
+                "type": "select",
+                "source": {
+                    "method": "post",
+                    "url": "/api/demo/select-options",
+                    "data": {
+                        "type": "policy_type"
+                    },
+                    "adaptor": "return { ...payload, options: payload.data.options }"
+                },
+                "required": true
+            },
+            {
+                "name": "region",
+                "label": "适用区域",
+                "type": "select",
+                "source": {
+                    "method": "post",
+                    "url": "/api/demo/select-options",
+                    "data": {
+                        "type": "region"
+                    },
+                    "adaptor": "return { ...payload, options: payload.data.options }"
+                },
+                "value": "all"
+            },
+            {
+                "name": "house_type",
+                "label": "房屋类型",
+                "type": "select",
+                "source": {
+                    "method": "post",
+                    "url": "/api/demo/select-options",
+                    "data": {
+                        "type": "house_type"
+                    },
+                    "adaptor": "return { ...payload, options: payload.data.options }"
+                },
+                "multiple": true
+            }
+        ]
+    },
+    {
+        "title": "提取政策参数 (API 驱动版)",
+        "columns": 3,
+        "fields": [
+            {
+                "name": "heating_period",
+                "label": "预测周期",
+                "type": "select",
+                "source": {
+                    "method": "post",
+                    "url": "/api/demo/select-options",
+                    "data": {
+                        "type": "heating_period"
+                    }
+                },
+                "autoFill": {
+                    "ext_rate": "${value2}",
+                    "ext_label": "${label}"
+                },
+                "initAutoFill": true,
+                "value": "month",
+                "clearable": false
+            },
+            {
+                "name": "ext_rate",
+                "label": "${ext_label || '按月'}提取限长率(%)",
+                "type": "static",
+                "placeholder": "-"
+            },
+            {
+                "name": "target_rate",
+                "label": "目标提取限长率(%)",
+                "type": "input-number",
+                "value": 8.5,
+                "precision": 1
+            }
+        ]
+    }
+]
