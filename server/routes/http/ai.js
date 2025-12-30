@@ -55,7 +55,7 @@ const MOCK_AMIS_JSON = {
 };
 
 // POST /api/ai/generate
-router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
+router.post("/generate", aiLimiter, validate(schemas.aiGenerate, 'body', { stripUnknown: false }), async (req, res) => {
   const { query, pageId } = req.body;
 
   // 1. 先检查缓存
@@ -256,14 +256,19 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate), async (req, re
 });
 
 // POST /api/ai/generate-page
-router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (req, res) => {
-  const { query, pageId, workflow_type } = req.body;
+router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { stripUnknown: false }), async (req, res) => {
+  // 兼容逻辑：从 body 或 body.data 中提取参数
+  const pageId = req.body.pageId || req.body.data?.pageId;
+  const workflow_type = req.body.workflow_type || req.body.data?.workflow_type;
 
-  // 🔍 调试日志：输出接收到的 workflow_type
+  // 提取 query，优先使用精准的 query，兼容旧版的 user_query
+  const query = req.body.query || req.body.data?.query || req.body.user_query || req.body.data?.user_query;
+
+  // 🔍 调试日志
   logger.info(`[AI Workflow] 接收到的参数 - pageId: ${pageId}, workflow_type: ${workflow_type}, query: ${query}`);
 
   if (!query) {
-    return res.status(400).json({ error: "缺少 prompt 参数" });
+    return res.status(400).json({ error: "缺少 prompt 参数", received_body: req.body });
   }
 
   // 1. 从数据库获取 Dify 配置
@@ -321,8 +326,13 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate), async (re
       `${DIFY_API_URL}/workflows/run`, // 注意路径是 /workflows/run
       {
         inputs: {
-          query: query, // 对应 Start 节点的输入变量名
+          // 1. 核心参数
+          query: query,
           pageId: pageId || "default_page",
+          // 2. 透传表单中的所有业务参数 (如 deposit_months, policy_type 等)
+          // 这里使用展开运算符，将 req.body.data 里的键值对全部合并进来
+          ...(req.body.data || {}),
+          ...req.body // 同时包含外层的 workflow_type 等字段
         },
         response_mode: "blocking", // 使用阻塞模式，等待完全生成后返回
         user: "amis-user-001", // 唯一用户标识，用于日志记录

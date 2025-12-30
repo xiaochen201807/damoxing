@@ -108,7 +108,6 @@
                 }{% if not loop.last %},{% endif %}
                 {% endfor %}
 
-                {# 如果没有分组，则直接渲染普通 fields (向下兼容) #}
                 {% if (final_groups | length == 0) and form_fields %}
                 {
                     "type": "group",
@@ -122,6 +121,42 @@
                             "labelWidth": 150
                         }{% if not loop.last %},{% endif %}
                         {% endfor %}
+                    ]
+                }
+                {% endif %}
+
+                {# 3. 分析需求输入区 #}
+                {% if enable_query_input | default(true) %}
+                {% if (final_groups | length > 0) or ((final_groups | length == 0) and form_fields) %},{% endif %}
+                {
+                    "type": "container",
+                    "className": "m-t-md m-b-md",
+                    "style": {
+                        "backgroundColor": "#f9fbff",
+                        "borderRadius": "8px",
+                        "padding": "20px",
+                        "border": "1px dashed #adc6ff"
+                    },
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "tpl": "<div style='font-size: 14px; color: #333; margin-bottom: 10px; font-weight: 500;'>{{ query_label | default('请输入分析需求') }}</div>"
+                        },
+                        {
+                            "type": "textarea",
+                            "name": "query",
+                            "id": "query_input",
+                            "placeholder": "{{ query_placeholder | default('例如：请根据以上参数，分析该政策调整对不同收入群体的具体影响。') }}",
+                            "minRows": 3,
+                            "maxRows": 6,
+                            "showCounter": true,
+                            "maxLength": 500,
+                            "className": "w-full",
+                            "style": {
+                                "border": "1px solid #d9d9d9",
+                                "borderRadius": "6px"
+                            }
+                        }
                     ]
                 }
                 {% endif %}
@@ -155,17 +190,18 @@
                         "click": {
                             "actions": [
                                 {% if action.actionType == 'ai_analysis' %}
-                                {
-                                    "actionType": "setValue",
-                                    "componentId": "global_page_root",
-                                    "args": {
-                                        "value": {
-                                            "show_analysis_result": true,
-                                            "ai_loading": true
-                                        }
-                                    }
-                                },
-                                {
+                                 
+                                 {
+                                     "actionType": "setValue",
+                                     "componentId": "global_page_root",
+                                     "args": {
+                                         "value": {
+                                             "show_analysis_result": true,
+                                             "ai_loading": true
+                                         }
+                                     }
+                                 },
+                                 {
                                     "actionType": "reload",
                                     "componentId": "unified_analysis_service",
                                     "args": {
@@ -206,7 +242,8 @@
                     "&": "$$",
                     "pageId": "{{ page_key }}",
                     "workflow_type": "{{ workflow_type | default('ai_analysis') }}",
-                    "timestamp": "${date(now(), 'x')}"
+                    "timestamp": "${date(now(), 'x')}",
+                    "query": "${query || '用户未指定要求'}"
                 }
             },
             "onEvent": {
