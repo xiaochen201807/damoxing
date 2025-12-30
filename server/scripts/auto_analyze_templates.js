@@ -13,7 +13,7 @@ const COMPONENT_GROUP_NAMES = {
     'line_chart_panel.j2': '📈 折线图配置',
     'pie_chart.j2': '🥧 饼图配置',
     'stats_cards.j2': '📊 统计卡片配置',
-    'unified_policy_component.j2': '⚙️ 政策分析组件配置',
+    'unified_policy_component.j2': '⚙️ 表单及 AI组件配置',
     'import_Ai.j2': '🤖 AI分析配置',
     'alert.j2': '💡 提示配置',
     '__page__': '📄 页面参数'
@@ -324,8 +324,10 @@ function analyzeTemplate(templateFile, templatesDir) {
         'prediction_data_title': { group: '📊 统计卡片配置', order: 31, desc: '🏷️ 预测数据区域标题', groupOrder: 20 },
         'prediction_data_items': { group: '📊 统计卡片配置', order: 32, desc: '📑 预测数据项 (JSON)', groupOrder: 20 },
         'prediction_columns': { group: '📊 统计卡片配置', order: 33, desc: '🔢 预测显示列数', groupOrder: 20 },
-        'policy_groups': { group: '⚙️ 政策分析组件配置', order: 41, desc: '📝 政策分组表单 (JSON)', groupOrder: 30 },
-        'policy_actions': { group: '⚙️ 政策分析组件配置', order: 42, desc: '🔘 动作按钮配置 (JSON)', groupOrder: 30 },
+        'form_title': { group: '⚙️ 表单及 AI组件配置', order: 40, desc: '📝 表单标题', groupOrder: 30 },
+        'form_description': { group: '⚙️ 表单及 AI组件配置', order: 41, desc: '📄 表单描述', groupOrder: 30 },
+        'policy_groups': { group: '⚙️ 表单及 AI组件配置', order: 42, desc: '📝 政策分组表单 (JSON)', groupOrder: 30 },
+        'policy_actions': { group: '⚙️ 表单及 AI组件配置', order: 43, desc: '🔘 动作按钮配置 (JSON)', groupOrder: 30 },
         'enable_report_button': { group: '🎨 页面头部配置', order: 10, desc: '显示报告生成按钮', groupOrder: 10 }
     };
 
