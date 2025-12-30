@@ -1402,5 +1402,123 @@ router.post('/stats', (req, res) => {
     });
 });
 
+/**
+ * POST 格式 - 获取下拉选项数据
+ * 用于动态表单的 select 组件
+ * 接收参数：type (选项类型), category (可选的分类参数)
+ */
+router.post('/select-options', (req, res) => {
+    const { type, category, keyword } = req.body;
+
+    console.log('[POST] 下拉选项请求:', { type, category, keyword });
+
+    let options = [];
+
+    switch (type) {
+        case 'policy_type':
+            // 政策类型选项
+            options = [
+                { label: '租房提取', value: 'rent' },
+                { label: '购房提取', value: 'buy' },
+                { label: '建房提取', value: 'build' },
+                { label: '大修提取', value: 'repair' },
+                { label: '还贷提取', value: 'repay' }
+            ];
+            break;
+
+        case 'region':
+            // 区域选项
+            options = [
+                { label: '全省', value: 'all' },
+                { label: '市区', value: 'city' },
+                { label: '郊区', value: 'suburb' },
+                { label: '县域', value: 'county' }
+            ];
+            break;
+
+        case 'house_type':
+            // 房屋类型
+            options = [
+                { label: '新建商品房', value: 'new_commercial' },
+                { label: '二手房', value: 'second_hand' },
+                { label: '自建房', value: 'self_built' },
+                { label: '拆迁安置房', value: 'relocation' }
+            ];
+            break;
+
+        case 'risk_level':
+            // 风险等级
+            options = [
+                { label: '极高风险', value: 'critical' },
+                { label: '高风险', value: 'high' },
+                { label: '中高风险', value: 'medium-high' },
+                { label: '中风险', value: 'medium' },
+                { label: '中低风险', value: 'medium-low' },
+                { label: '低风险', value: 'low' },
+                { label: '极低风险', value: 'minimal' },
+                { label: '安全', value: 'safe' }
+            ];
+            break;
+
+        case 'status':
+            // 状态选项
+            options = [
+                { label: '待处理', value: 'pending' },
+                { label: '处理中', value: 'processing' },
+                { label: '已完成', value: 'completed' }
+            ];
+            break;
+
+        case 'department':
+            // 部门选项（模拟）
+            options = [
+                { label: '风险管理部', value: 'dept_risk' },
+                { label: '贷款审批部', value: 'dept_loan' },
+                { label: '稽查监督部', value: 'dept_audit' },
+                { label: '归集管理部', value: 'dept_collection' }
+            ];
+            break;
+
+        case 'city':
+            // 城市选项
+            options = [
+                { label: '杭州市', value: 'hangzhou' },
+                { label: '宁波市', value: 'ningbo' },
+                { label: '温州市', value: 'wenzhou' },
+                { label: '嘉兴市', value: 'jiaxing' },
+                { label: '湖州市', value: 'huzhou' },
+                { label: '绍兴市', value: 'shaoxing' }
+            ];
+            break;
+        case 'heating_period':
+            options = [
+                { label: '按月', value: 'month', value2: '7.2' },
+                { label: '按年', value: 'year', value2: '6.8' }
+            ];
+            break;
+
+        default:
+            return res.status(400).json({
+                status: 400,
+                msg: `未知的选项类型: ${type}`
+            });
+    }
+
+    // 如果提供了关键词，进行过滤
+    if (keyword) {
+        options = options.filter(opt =>
+            opt.label.includes(keyword) || opt.value.includes(keyword)
+        );
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            options: options
+        }
+    });
+});
+
 module.exports = router;
 

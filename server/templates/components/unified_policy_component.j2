@@ -70,15 +70,32 @@
                             "columns": [
                                 {% for field in group.fields %}
                                 {
+                                    {% if field.visibleOn %}"visibleOn": "{{ field.visibleOn }}",{% endif %}
+                                    {% if field.hiddenOn %}"hiddenOn": "{{ field.hiddenOn }}",{% endif %}
                                     "body": [
                                         {
                                             "type": "{{ field.type | default('input-text') }}",
-                                            "name": "{{ field.name }}",
-                                            "label": "{{ field.label }}",
+                                            {% if field.name %}"name": "{{ field.name }}",{% endif %}
+                                            "label": {{ field.label | default('') | tojson }},
                                             "value": {{ field.value | default('') | tojson }},
                                             {% if field.placeholder %}"placeholder": "{{ field.placeholder }}",{% endif %}
                                             {% if field.required %}"required": true,{% endif %}
+                                            {% if field.disabled %}"disabled": {{ field.disabled | tojson }},{% endif %}
                                             {% if field.options %}"options": {{ field.options | tojson }},{% endif %}
+                                            {% if field.source %}"source": {{ field.source | tojson }},{% endif %}
+                                            {% if field.multiple %}"multiple": {{ field.multiple | tojson }},{% endif %}
+                                            {% if field.searchable %}"searchable": {{ field.searchable | tojson }},{% endif %}
+                                            {% if field.autoFill %}"autoFill": {{ field.autoFill | tojson }},{% endif %}
+                                            {% if field.selectFirst %}"selectFirst": {{ field.selectFirst | tojson }},{% endif %}
+                                            {% if field.initAutoFill %}"initAutoFill": {{ field.initAutoFill | tojson }},{% endif %}
+                                            {% if field.clearable is defined %}"clearable": {{ field.clearable | tojson }},{% endif %}
+                                            {% if field.precision is defined %}"precision": {{ field.precision }},{% endif %}
+                                            {% if field.visibleOn %}"visibleOn": "{{ field.visibleOn }}",{% endif %}
+                                            {% if field.hiddenOn %}"hiddenOn": "{{ field.hiddenOn }}",{% endif %}
+                                            {% if field.disabledOn %}"disabledOn": "{{ field.disabledOn }}",{% endif %}
+                                            {% if field.style %}"style": {{ field.style | tojson }},{% endif %}
+                                            {% if field.className %}"className": "{{ field.className }}",{% endif %}
+                                            {% if field.staticClassName %}"staticClassName": "{{ field.staticClassName }}",{% endif %}
                                             "labelWidth": 150
                                         }
                                     ],
