@@ -1520,5 +1520,92 @@ router.post('/select-options', (req, res) => {
     });
 });
 
-module.exports = router;
+// ==================== 卡片组件测试数据 ====================
 
+/**
+ * 获取服务卡片数据
+ * 仅返回纯数据，供前端 AMIS Card 组件渲染
+ */
+router.post('/cards', (req, res) => {
+    // 基础卡片数据
+    const baseCards = [
+        {
+            title: "商贷转组合贷提醒",
+            desc: "根据最新贷款政策和客户信息，主动识别符合商业贷款转组合贷款条件的客户，并推送优化建议",
+            icon: "fa fa-exchange",
+            target_label: "目标群体：",
+            target_value: "符合转贷人群（8,421人）",
+            actions: [
+                {
+                    label: "查看明细",
+                    level: "primary",
+                    actionType: "dialog",
+                    dialog_title: "商贷转组合贷客户清册",
+                    api_url: "/api/demo/risk-list/high",
+                    columns: [
+                        { name: "customer_name", label: "客户姓名" },
+                        { name: "risk_score", label: "评分" },
+                        { name: "amount", label: "贷款金额" },
+                        { name: "status", label: "状态" }
+                    ]
+                }
+            ]
+        },
+        {
+            title: "租房提取精准推送",
+            desc: "基于客户租房备案信息和缴存记录，自动匹配符合租房提取条件的客户，提供便捷提取服务",
+            icon: "fa fa-home",
+            target_label: "目标群体：",
+            target_value: "符合租房提取条件（5,623人）",
+            actions: [
+                {
+                    label: "查看明细",
+                    level: "primary",
+                    actionType: "dialog"
+                }
+            ]
+        },
+        {
+            title: "单位缴存扩面服务",
+            desc: "监测企业用工数据，识别未缴存或部分缴存的单位，推动住房公积金制度扩面覆盖",
+            icon: "fa fa-building",
+            target_label: "目标群体：",
+            target_value: "待扩面企业（1,234家）",
+            actions: [
+                {
+                    label: "下载清册",
+                    level: "info",
+                    actionType: "download",
+                    api: "/api/demo/export/companies"
+                },
+                {
+                    label: "批量导入",
+                    level: "primary",
+                    actionType: "dialog",
+                    dialog_title: "批量导入企业数据"
+                }
+            ]
+        }
+    ];
+
+    // 扩展数据：复制一份以展示多行效果，并修改标题模拟不同服务
+    const moreCards = baseCards.map(item => ({
+        ...item,
+        title: item.title + " (二期)",
+        icon: item.icon,
+        target_value: item.target_value.replace(/(\d+)/, (m) => parseInt(m) + 100)
+    }));
+
+    // 合并数据
+    const allCards = [...baseCards, ...moreCards];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: allCards
+        }
+    });
+});
+
+module.exports = router;

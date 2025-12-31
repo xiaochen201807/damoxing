@@ -30,17 +30,22 @@ router.get('/menu', (req, res) => {
         }
     }
 
-    // 2. 构建查询SQL
-    let sql = 'SELECT * FROM sys_menu';
+    // 2. 构建查询SQL - JOIN with sys_page_template to filter active pages
+    let sql = `
+        SELECT m.* 
+        FROM sys_menu m
+        INNER JOIN sys_page_template p ON m.page_key = p.page_key
+        WHERE p.is_active = 1
+    `;
     const params = [];
 
     if (route_key) {
-        sql += ' WHERE route_key = ?';
+        sql += ' AND m.route_key = ?';
         params.push(route_key);
     }
 
     // 支持层级结构：先按 parent_id 排序（NULL 在前），再按 order 和 id
-    sql += ' ORDER BY route_key ASC, CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END ASC, parent_id ASC, `order` ASC, id ASC';
+    sql += ' ORDER BY m.route_key ASC, CASE WHEN m.parent_id IS NULL THEN 0 ELSE 1 END ASC, m.parent_id ASC, m.`order` ASC, m.id ASC';
 
     db.all(sql, params, (err, rows) => {
         if (err) {

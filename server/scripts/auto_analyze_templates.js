@@ -32,6 +32,12 @@ const TEMPLATE_METADATA = {
         description: '包含AI分析功能的动态演示页面',
         preview_image: '/templates/fx_demo.png',
         theme_id: 'antd'
+    },
+    'active_demo': {
+        template_name: '主动服务模板',
+        description: '通用主动服务页面，支持服务卡片配置与动态数据刷新',
+        preview_image: '/templates/active_service.png',
+        theme_id: 'antd'
     }
 };
 

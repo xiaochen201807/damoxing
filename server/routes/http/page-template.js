@@ -420,31 +420,34 @@ router.put('/template-definitions/:templateId', (req, res) => {
 router.post('/analyze-templates', (req, res) => {
     const { exec } = require('child_process');
     const path = require('path');
+    const fs = require('fs');
     const { template_id } = req.body;
 
-    // 根据模板ID确定对应的分析脚本
-    const scriptMap = {
-        'fx_demo': 'analyze_fx_demo.js',
-        'policy_demo': 'analyze_policy_demo.js'
-    };
-
-    let scriptName;
-    let logPrefix;
-
-    if (template_id) {
-        scriptName = scriptMap[template_id];
-        if (!scriptName) {
-            return res.status(404).json({
-                status: 404,
-                msg: `未找到模板 ${template_id} 的分析脚本`
-            });
-        }
-        logPrefix = `[Template Definitions] 开始分析模板: ${template_id}`;
-    } else {
-        // 未指定模板ID，分析所有模板
-        scriptName = 'auto_analyze_templates.js';
-        logPrefix = '[Template Definitions] 开始重新分析所有模板...';
+    // 必须传 template_id
+    if (!template_id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少参数 template_id',
+            hint: '该接口仅用于分析单个模板，请传递 template_id 参数'
+        });
     }
+
+    // 🔄 自动拼接脚本名：analyze_${template_id}.js
+    const specificScript = `analyze_${template_id}.js`;
+    const specificScriptPath = path.join(__dirname, '../../scripts', specificScript);
+
+    // 检查特定脚本是否存在
+    if (!fs.existsSync(specificScriptPath)) {
+        logger.warn(`[Template Definitions] 未找到模板 ${template_id} 的专用分析脚本: ${specificScript}`);
+        return res.status(404).json({
+            status: 404,
+            msg: `模板 ${template_id} 没有对应的分析脚本`,
+            hint: `请创建 scripts/${specificScript}`
+        });
+    }
+
+    const scriptName = specificScript;
+    const logPrefix = `[Template Definitions] 分析模板: ${template_id}`;
 
     logger.info(logPrefix);
 
@@ -463,8 +466,8 @@ router.post('/analyze-templates', (req, res) => {
         logger.info('[Template Definitions] 模板分析完成:', stdout);
         res.json({
             status: 0,
-            msg: template_id ? `模板 ${template_id} 分析完成` : '所有模板分析完成',
-            data: { output: stdout, template_id: template_id || 'all' }
+            msg: `模板 ${template_id} 分析完成`,
+            data: { output: stdout, template_id: template_id }
         });
     });
 });
