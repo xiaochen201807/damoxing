@@ -320,23 +320,43 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { 
 
     logger.info(`[AI Workflow] 使用配置: ${config.workflow_name || 'Default'} (${pageId || 'env'})`);
     logger.info(`[AI Workflow] 正在请求 Dify Workflow: ${query}`);
+    // 🔄 自动解析 data：如果是 JSON 字符串，解析后展开到 inputs
+    let parsedData = req.body.data || {};
+    if (typeof parsedData === 'string') {
+      try {
+        parsedData = JSON.parse(parsedData);
+        logger.info('[AI Workflow] data 是字符串，已自动解析');
+      } catch (e) {
+        logger.warn('[AI Workflow] data 解析失败:', e.message);
+        parsedData = {};
+      }
+    }
 
-    // Dify Workflow API 调用结构
-    const response = await axios.post(
-      `${DIFY_API_URL}/workflows/run`, // 注意路径是 /workflows/run
-      {
-        inputs: {
-          // 1. 核心参数
-          query: query,
-          pageId: pageId || "default_page",
-          // 2. 透传表单中的所有业务参数 (如 deposit_months, policy_type 等)
-          // 这里使用展开运算符，将 req.body.data 里的键值对全部合并进来
-          ...(req.body.data || {}),
-          ...req.body // 同时包含外层的 workflow_type 等字段
-        },
-        response_mode: "blocking", // 使用阻塞模式，等待完全生成后返回
-        user: "amis-user-001", // 唯一用户标识，用于日志记录
+    // 📋 构造请求体
+    const requestUrl = `${DIFY_API_URL}/workflows/run`;
+    const requestPayload = {
+      inputs: {
+        query: query,
+        pageId: pageId || "default_page",
+        ...parsedData,
+        ...req.body
       },
+      response_mode: "blocking",
+      user: "amis-user-001",
+    };
+
+    // 🔍 排查日志：打印请求详情
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.info('[AI Workflow] 📡 Dify API 请求详情:');
+    logger.info(`[AI Workflow] 🌐 URL: ${requestUrl}`);
+    logger.info(`[AI Workflow] 📦 Payload:`);
+    logger.info(JSON.stringify(requestPayload, null, 2));
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // Dify Workflow API 调用
+    const response = await axios.post(
+      requestUrl,
+      requestPayload,
       {
         headers: {
           Authorization: `Bearer ${DIFY_API_KEY}`,
@@ -346,17 +366,6 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { 
         timeout: parseInt(process.env.DIFY_API_TIMEOUT || '300000'),
       }
     );
-
-    // Dify Workflow 成功响应结构 (Blocking 模式):
-    // response.data = {
-    //   workflow_run_id: "...",
-    //   data: {
-    //     status: "succeeded",
-    //     outputs: {
-    //       result: { ... }  <-- 我们在 End 节点定义的变量名
-    //     }
-    //   }
-    // }
 
     const workflowData = response.data;
 
