@@ -80,6 +80,7 @@
                                             "value": {{ field.value | default('') | tojson }},
                                             {% if field.placeholder %}"placeholder": "{{ field.placeholder }}",{% endif %}
                                             {% if field.required %}"required": true,{% endif %}
+                                            {% if field.static %}"static": {{ field.static | tojson }},{% endif %}
                                             {% if field.disabled %}"disabled": {{ field.disabled | tojson }},{% endif %}
                                             {% if field.options %}"options": {{ field.options | tojson }},{% endif %}
                                             {% if field.source %}"source": {{ field.source | tojson }},{% endif %}
