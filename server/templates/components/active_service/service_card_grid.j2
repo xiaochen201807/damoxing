@@ -1,8 +1,10 @@
 {#
   @param api 数据接口URL, 默认 "/api/demo/cards"
-  @param min_card_width 卡片最小宽度, 默认 "320px"
+  @param columns 每行显示的列数, 默认 3
+  @param min_card_width 卡片最小宽度, 默认 "280px"
   @param target_field 下钻目标字段名, 默认 "target_value"
   @param service_name 组件名称, 默认 "service_cards_list"
+  @param card_height 卡片高度, 默认 "auto"
 #}
 {
   "type": "service",
@@ -15,39 +17,37 @@
   "body": {
     "type": "cards",
     "source": "${items}",
-    "className": "service-cards-container",
-    "style": {
-      "display": "grid",
-      "grid-template-columns": "repeat(auto-fill, minmax({{ min_card_width | default('320px') }}, 1fr))",
-      "gap": "24px",
-      "width": "100%"
-    },
+    "columnsCount": {{ columns | default(4) }},
     "card": {
-      "className": "p-none b-a m-b-sm hover:shadow-lg transition-all h-full flex flex-col",
+      "className": "service-card-item",
+      "style": {
+        "borderRadius": "8px",
+        "boxShadow": "0 2px 8px rgba(0,0,0,0.1)",
+        "border": "1px solid #e8e8e8",
+        "overflow": "hidden"
+      },
       "header": {
-        "className": "bg-primary p-sm b-b-none",
-        "title": "<div class='flex items-center'><div class='m-r-sm flex items-center justify-center rounded' style='width: 32px; height: 32px; background: rgba(255,255,255,0.2);'><i class='${icon} text-lg'></i></div><span>${title}</span></div>",
-        "titleClassName": "text-white font-bold text-md p-xs",
-        "subTitle": ""
+        "title": "${title}",
+        "subTitle": "",
+        "avatar": "${icon}",
+        "avatarClassName": "pull-left thumb-md avatar b-3x m-r"
       },
       "body": [
         {
-          "type": "tpl",
-          "tpl": "<div style='height: 60px; overflow: hidden; color: #666; font-size: 13px; margin-bottom: 15px;'>${desc}</div>",
-          "className": "m-b-sm"
-        },
-        {
           "type": "container",
-          "className": "target-group-box m-t-auto",
+          "className": "card-body-content",
           "style": {
-            "background": "#E8F4FF",
-            "padding": "12px",
-            "borderRadius": "4px"
+            "padding": "16px",
+            "background": "#fff"
           },
           "body": [
             {
               "type": "tpl",
-              "tpl": "<span class='text-primary font-bold'>目标群体：</span><span class='text-dark'>${ {{ target_field | default('target_value') }} }</span>"
+              "tpl": "<div style='color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 12px;'>${desc}</div>"
+            },
+            {
+              "type": "tpl",
+              "tpl": "<div style='background: #f0f0f0; padding: 10px 12px; border-radius: 6px;'><span style='color: #1890FF; font-weight: 600;'>目标群体：</span><span style='color: #333;'>${target_value}</span></div>"
             }
           ]
         }
@@ -57,19 +57,13 @@
           "type": "button",
           "label": "一键提醒",
           "level": "primary",
-          "block": true,
-          "icon": "fa fa-paper-plane",
           "actionType": "dialog",
           "dialog": {
             "title": "${title} - 详情",
-            "body": {
-              "type": "tpl",
-              "tpl": "这里是操作弹窗"
-            }
+            "body": "这里是操作弹窗"
           }
         }
-      ],
-      "toolbar": []
+      ]
     }
   }
 }

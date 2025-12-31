@@ -1527,6 +1527,14 @@ router.post('/select-options', (req, res) => {
  * 仅返回纯数据，供前端 AMIS Card 组件渲染
  */
 router.post('/cards', (req, res) => {
+    // 定义4种渐变色
+    const gradientColors = [
+        'linear-gradient(135deg, #1890FF 0%, #096DD9 100%)', // 蓝色
+        'linear-gradient(135deg, #52C41A 0%, #389E0D 100%)', // 绿色
+        'linear-gradient(135deg, #FA8C16 0%, #D46B08 100%)', // 橙色
+        'linear-gradient(135deg, #F5222D 0%, #CF1322 100%)'  // 红色
+    ];
+
     // 基础卡片数据
     const baseCards = [
         {
@@ -1535,6 +1543,7 @@ router.post('/cards', (req, res) => {
             icon: "fa fa-exchange",
             target_label: "目标群体：",
             target_value: "符合转贷人群（8,421人）",
+            headerGradient: gradientColors[0],
             actions: [
                 {
                     label: "查看明细",
@@ -1557,6 +1566,7 @@ router.post('/cards', (req, res) => {
             icon: "fa fa-home",
             target_label: "目标群体：",
             target_value: "符合租房提取条件（5,623人）",
+            headerGradient: gradientColors[1],
             actions: [
                 {
                     label: "查看明细",
@@ -1571,6 +1581,7 @@ router.post('/cards', (req, res) => {
             icon: "fa fa-building",
             target_label: "目标群体：",
             target_value: "待扩面企业（1,234家）",
+            headerGradient: gradientColors[2],
             actions: [
                 {
                     label: "下载清册",
@@ -1589,11 +1600,12 @@ router.post('/cards', (req, res) => {
     ];
 
     // 扩展数据：复制一份以展示多行效果，并修改标题模拟不同服务
-    const moreCards = baseCards.map(item => ({
+    const moreCards = baseCards.map((item, index) => ({
         ...item,
         title: item.title + " (二期)",
         icon: item.icon,
-        target_value: item.target_value.replace(/(\d+)/, (m) => parseInt(m) + 100)
+        target_value: item.target_value.replace(/(\d+)/, (m) => parseInt(m) + 100),
+        headerGradient: gradientColors[(index + 3) % 4] // 使用不同的颜色
     }));
 
     // 合并数据
