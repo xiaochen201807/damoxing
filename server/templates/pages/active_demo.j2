@@ -32,7 +32,7 @@
 {% set title = title | default('主动服务') %}
 {% set show_refresh_button = show_refresh_button | default(true) %}
 {% set refresh_button_text = refresh_button_text | default('刷新数据') %}
-{% set reload_target = reload_target | default('service_cards_grid') %}
+
 
 {# ========== 卡片配置 ========== #}
 {% set columns = columns | default(4) %}
@@ -110,7 +110,16 @@
     "crud_api_data": {"service_type": "unit_expand", "period": 2},
     "crud_columns": [{"name": "company", "label": "企业名称"}, {"name": "employees", "label": "员工数"}, {"name": "status", "label": "状态"}]
   }
-]') %}
+]
+  ') %}
+
+{# Calculate reload targets dynamically based on cards to refresh individual card services #}
+{% set _card_data = cards | fromjson %}
+{% set _target_ids = [] %}
+{% for item in _card_data %}
+  {% set _ = _target_ids.push('card_service_' + loop.index) %}
+{% endfor %}
+{% set reload_target = reload_target | default(_target_ids.join(',')) %}
 
 {# ========== 页面底部配置 ========== #}
 {% set footer_text = footer_text | default('住房公积金管理中心 © 2025') %}

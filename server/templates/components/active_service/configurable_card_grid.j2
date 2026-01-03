@@ -20,10 +20,9 @@
 #}
 {% set card_list = cards | default('[]') | fromjson %}
 {
-  "type": "service",
+  "type": "container",
   "name": "{{ service_name | default('service_cards_grid') }}",
   "className": "service-cards-container",
-  "schemaApi": "",
   "body": [
     {
       "type": "grid",

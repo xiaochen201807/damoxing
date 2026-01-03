@@ -1634,24 +1634,38 @@ router.post('/target', (req, res) => {
     // 根据 service_type 和 period 返回不同的数据
     const targetData = {
         'loan_convert': {
-            1: { target_value: '符合转贷人群（8,421人）', count: 8421 },
-            2: { target_value: '符合转贷人群（108,421人）', count: 108421 }
+            1: { base_count: 8421, label: '符合转贷人群' },
+            2: { base_count: 108421, label: '符合转贷人群' }
         },
         'rent_extract': {
-            1: { target_value: '符合租房提取条件（5,623人）', count: 5623 },
-            2: { target_value: '符合租房提取条件（105,623人）', count: 105623 }
+            1: { base_count: 5623, label: '符合租房提取条件' },
+            2: { base_count: 105623, label: '符合租房提取条件' }
         },
         'unit_expand': {
-            1: { target_value: '待扩面企业（1,234家）', count: 1234 },
-            2: { target_value: '待扩面企业（101,234家）', count: 101234 }
+            1: { base_count: 1234, label: '待扩面企业', unit: '家' },
+            2: { base_count: 101234, label: '待扩面企业', unit: '家' }
         }
     };
 
     const periodNum = period || 1;
-    const data = targetData[service_type]?.[periodNum] || {
-        target_value: '暂无数据',
-        count: 0
-    };
+    const config = targetData[service_type]?.[periodNum];
+
+    let data;
+    if (config) {
+        // Add random variation (-50 to +50)
+        const randomOffset = Math.floor(Math.random() * 101) - 50;
+        const count = Math.max(0, config.base_count + randomOffset);
+        const unit = config.unit || '人';
+        data = {
+            target_value: `${config.label}（${count.toLocaleString()}${unit}）`,
+            count: count
+        };
+    } else {
+        data = {
+            target_value: '暂无数据',
+            count: 0
+        };
+    }
 
     res.json({
         status: 0,

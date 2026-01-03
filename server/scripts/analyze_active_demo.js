@@ -70,7 +70,7 @@ function extractVariables(content) {
         // 卡片循环中的变量 - 不应作为独立配置项
         'card_list', 'icon', 'desc', 'api', 'api_method', 'api_data', 'target_label', 'target_value',
         'button_label', 'button_icon', 'crud_config', 'crud_api', 'crud_api_data', 'crud_columns',
-        'dialog_title', 'md', 'int', 'method', 'url', 'period', 'service_type'
+        'dialog_title', 'md', 'int', 'method', 'url', 'period', 'service_type', 'push', 'join', 'reload_target'
     ];
 
     const builtins = new Set([
