@@ -1679,37 +1679,71 @@ router.post('/target', (req, res) => {
  * 根据 service_type 和 period 返回不同的用户数据
  */
 router.post('/users', (req, res) => {
-    const { service_type, period, page, perPage } = req.body;
+    // 1. 获取所有参数 (包括查询表单的 name, phone 和 api.data 里的 filter_status)
+    const { service_type, period, page = 1, perPage = 10, name, phone, filter_status } = req.body;
 
-    console.log('[POST] 用户列表请求:', { service_type, period, page, perPage });
+    console.log('[POST] 用户列表请求 params:', { service_type, filter_status, page, perPage, name, phone });
 
-    // 模拟用户数据
-    const mockUsers = [
-        { id: 1, name: '张三', phone: '138****1234', status: '待推送', id_card: '310***1234', amount: 50000 },
-        { id: 2, name: '李四', phone: '139****5678', status: '已推送', id_card: '310***5678', amount: 80000 },
-        { id: 3, name: '王五', phone: '137****9012', status: '待推送', id_card: '310***9012', amount: 120000 },
-        { id: 4, name: '赵六', phone: '136****3456', status: '已办理', id_card: '310***3456', amount: 65000 },
-        { id: 5, name: '钱七', phone: '135****7890', status: '待推送', id_card: '310***7890', amount: 95000 },
-        { id: 6, name: '孙八', phone: '134****2345', status: '已推送', id_card: '310***2345', amount: 110000 },
-        { id: 7, name: '周九', phone: '133****6789', status: '待推送', id_card: '310***6789', amount: 75000 },
-        { id: 8, name: '吴十', phone: '132****0123', status: '已办理', id_card: '310***0123', amount: 88000 }
-    ];
+    // 2. 生成更多模拟数据 (55条) 以便于测试分页
+    const mockUsers = [];
+    for (let i = 1; i <= 55; i++) {
+        // 模拟两种状态分布
+        const isProcessed = i % 3 === 0; // 1/3 是已办
+        mockUsers.push({
+            id: i,
+            name: ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑十一', '卫十二'][i % 10] + (i > 10 ? i : ''),
+            phone: `13${8 + (i % 9)}****${1000 + i}`,
+            // 状态映射：pending (待办/待推送) / processed (已办/已推送)
+            status: isProcessed ? 'processed' : 'pending',
+            // 显示给用户的中文状态 (如果不使用 type: map)
+            status_text: isProcessed ? '已办理' : '待处理',
+            id_card: `310***${1000 + i}`,
+            // 账户余额 (用于已办记录)
+            account_balance: Math.floor(Math.random() * 100000) + 10000,
+            amount: 50000 + i * 1000
+        });
+    }
 
-    // 根据 service_type 添加不同的标识
-    const items = mockUsers.map(user => ({
+    // 3. 过滤逻辑
+    let items = mockUsers.map(user => ({
         ...user,
         service_type: service_type,
         period: period || 1,
         tag: service_type === 'loan_convert' ? '转贷' : '租房提取'
     }));
 
-    // 应用分页
-    const result = paginate(items, page, perPage);
+    // 按状态筛选 (pending/processed)
+    if (filter_status) {
+        items = items.filter(u => u.status === filter_status);
+    }
 
+    // 按姓名模糊查询
+    if (name) {
+        items = items.filter(u => u.name.includes(name));
+    }
+
+    // 按电话模糊查询
+    if (phone) {
+        items = items.filter(u => u.phone.includes(phone));
+    }
+
+    // 4. 获取总数
+    const total = items.length;
+
+    // 5. 手动分页
+    const pageNum = parseInt(page, 10) || 1;
+    const pageSize = parseInt(perPage, 10) || 10;
+    const start = (pageNum - 1) * pageSize;
+    const pagedItems = items.slice(start, start + pageSize);
+
+    // 6. 返回 AMIS 标准结构
     res.json({
         status: 0,
         msg: 'success',
-        data: result
+        data: {
+            items: pagedItems,
+            total: total
+        }
     });
 });
 

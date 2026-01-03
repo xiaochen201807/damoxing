@@ -69,8 +69,9 @@ function extractVariables(content) {
         'card', 'data', 'title',
         // 卡片循环中的变量 - 不应作为独立配置项
         'card_list', 'icon', 'desc', 'api', 'api_method', 'api_data', 'target_label', 'target_value',
-        'button_label', 'button_icon', 'crud_config', 'crud_api', 'crud_api_data', 'crud_columns',
-        'dialog_title', 'md', 'int', 'method', 'url', 'period', 'service_type', 'push', 'join', 'reload_target'
+        'button_label', 'button_icon', 'crud_api', 'crud_api_data', 'crud_columns', 'crud_config',
+        'dialog_title', 'md', 'int', 'method', 'url', 'period', 'service_type', 'push', 'join', 'reload_target', 'string', 'trim',
+        'defined', 'undefined'
     ];
 
     const builtins = new Set([
@@ -119,9 +120,25 @@ function inferType(varName) {
         result.description = '页面标题';
         result.default = '主动服务';
     } else if (varName === 'cards') {
-        result.type = 'json';
-        result.description = '卡片配置数组 (JSON)，每个卡片包含: title, icon, desc, api, target_label, target_value, button_label, crud_config';
-        result.default = '[]';
+        result.type = 'array';
+        result.title = '卡片列表';
+        result.description = '配置显示的服务卡片';
+        result.items = {
+            type: 'object',
+            title: '卡片',
+            properties: {
+                title: { type: 'string', title: '标题' },
+                icon: { type: 'string', title: '图标', description: 'FontAwesome图标类名，如 fa fa-home' },
+                desc: { type: 'string', title: '描述', format: 'textarea' },
+                api: { type: 'string', title: '数据接口API' },
+                api_data: { type: 'json', title: '数据接口参数' },
+                target_label: { type: 'string', title: '数据标签', default: '目标群体' },
+                target_value: { type: 'string', title: '静态数据值', description: '不使用API时显示此静态值' },
+                button_label: { type: 'string', title: '按钮文本', default: '一键提醒' },
+                crud_config: { type: 'json', title: '详情弹窗配置', description: '完整 AMIS JSON 配置 (dialog.body)' }
+            }
+        };
+        result.default = [];
         result.group = COMPONENT_GROUP_NAMES['configurable_card_grid.j2'];
     } else if (varName === 'columns') {
         result.type = 'number';
@@ -239,11 +256,16 @@ function analyzeTemplate(templateFile, templatesDir) {
 
             paramsSchema.properties[param.name] = {
                 type: inferred.type,
+                title: inferred.title || param.description, // Use explicit title if available
                 description: param.description,
                 'ui:group': groupName,
                 'ui:groupOrder': param.groupOrder,
                 'ui:order': param.order
             };
+
+            if (inferred.items) {
+                paramsSchema.properties[param.name].items = inferred.items;
+            }
 
             if (defaultValue !== undefined) {
                 paramsSchema.properties[param.name].default = defaultValue;

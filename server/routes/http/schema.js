@@ -84,6 +84,65 @@ const handleTemplateForm = (req, res) => {
             // 不再硬编码基础字段，所有字段都遵循 ui:group 分组
             const formFields = [];
 
+            // 辅助函数：将 JSON Schema 转换为 AMIS 表单项
+            const convertSchemaToField = (key, schema, defaultParams = {}) => {
+                const field = {
+                    name: key,
+                    label: schema.title || schema.description || key, // Use title first
+                    required: (paramsSchema.required && paramsSchema.required.includes(key)) || false
+                };
+
+                // 根据类型生成不同的表单控件
+                if (schema.type === 'string') {
+                    if (schema.format === 'textarea') {
+                        field.type = 'textarea';
+                    } else {
+                        field.type = 'input-text';
+                    }
+                    field.placeholder = schema.default || '';
+                } else if (schema.type === 'integer' || schema.type === 'number') {
+                    field.type = 'input-number';
+                    field.value = schema.default || defaultParams[key] || 0;
+                    if (schema.minimum !== undefined) field.min = schema.minimum;
+                    if (schema.maximum !== undefined) field.max = schema.maximum;
+                } else if (schema.type === 'boolean') {
+                    field.type = 'switch';
+                    field.value = schema.default !== undefined ? schema.default : (defaultParams[key] || false);
+                } else if (schema.type === 'array') {
+                    // 数组类型转换为 Combo 组件
+                    field.type = 'combo';
+                    field.multiple = true;
+                    field.multiLine = true;
+                    field.addButtonText = '新增 ' + (schema.items?.title || '项目');
+
+                    if (schema.items && schema.items.type === 'object' && schema.items.properties) {
+                        // 递归转换数组项的属性
+                        field.items = Object.entries(schema.items.properties).map(([subKey, subSchema]) => {
+                            // 对于 Combo 子项，name 是相对路径，不需要 paramsParams wrap
+                            // 但 AMIS Combo 子项 name 一般就是属性名
+                            return convertSchemaToField(subKey, subSchema, {});
+                        });
+                        // Sort items inside combo if needed (currently order by definition)
+                    } else {
+                        // 简单数组 (string array etc) - 暂不支持或使用 input-array
+                        field.type = 'input-array';
+                    }
+                    field.value = schema.default || defaultParams[key] || [];
+
+                } else if (schema.type === 'json') {
+                    field.type = 'editor';
+                    field.language = 'json';
+                    field.placeholder = schema.default || '{}';
+                } else if (schema.enum) {
+                    field.type = 'select';
+                    field.options = schema.enum.map(v => ({ label: v, value: v }));
+                } else {
+                    field.type = 'input-text';
+                }
+
+                return field;
+            };
+
             // 根据 params_schema 动态生成字段并分组
             if (paramsSchema.properties) {
                 // 1. 将属性转换为数组并排序
@@ -100,30 +159,7 @@ const handleTemplateForm = (req, res) => {
                 sortedFields.forEach(schema => {
                     const key = schema.key;
 
-                    const field = {
-                        name: key,
-                        label: schema.description || key,
-                        required: (paramsSchema.required && paramsSchema.required.includes(key)) || false
-                    };
-
-                    // 根据类型生成不同的表单控件
-                    if (schema.type === 'string') {
-                        field.type = 'input-text';
-                        field.placeholder = schema.default || '';
-                    } else if (schema.type === 'integer' || schema.type === 'number') {
-                        field.type = 'input-number';
-                        field.value = schema.default || defaultParams[key] || 0;
-                        if (schema.minimum !== undefined) field.min = schema.minimum;
-                        if (schema.maximum !== undefined) field.max = schema.maximum;
-                    } else if (schema.type === 'boolean') {
-                        field.type = 'switch';
-                        field.value = schema.default !== undefined ? schema.default : (defaultParams[key] || false);
-                    } else if (schema.enum) {
-                        field.type = 'select';
-                        field.options = schema.enum.map(v => ({ label: v, value: v }));
-                    } else {
-                        field.type = 'input-text';
-                    }
+                    const field = convertSchemaToField(key, schema, defaultParams);
 
                     // 获取分组名和组序号
                     const groupName = schema['ui:group'] || '⚙️ 其他配置';

@@ -1,7 +1,7 @@
 {#
   主动服务卡片网格组件 - 支持手动配置多个卡片
   
-  @param cards 卡片配置数组 (JSON字符串)，每个卡片包含：
+  @param cards 卡片配置列表，每个卡片包含：
     - title: 卡片标题
     - icon: 图标类名 (如 "fa fa-home")
     - desc: 描述文字
@@ -11,14 +11,12 @@
     - target_value: 静态目标群体值 (如果不用 api)
     - button_label: 按钮文字 (默认 "一键提醒")
     - button_icon: 按钮图标 (默认 "fa fa-paper-plane")
-    - crud_api: CRUD 列表数据接口 (POST请求)
-    - crud_api_data: CRUD API 固定请求参数 (JSON对象，可选)
-    - crud_columns: CRUD 列配置 (JSON数组)
+    - crud_config: 详情弹窗内容的 AMIS JSON 配置 (dialog.body)
     - dialog_title: 弹窗标题 (可选)
   @param columns 每行显示的列数, 默认 4
   @param service_name 组件名称, 默认 "service_cards_grid"
 #}
-{% set card_list = cards | default('[]') | fromjson %}
+{% set card_list = (cards | fromjson) if cards is string else (cards | default([])) %}
 {
   "type": "container",
   "name": "{{ service_name | default('service_cards_grid') }}",
@@ -68,9 +66,10 @@
                 "name": "card_service_{{ loop.index }}",
                 "api": {
                   "method": "post",
+                  "dataType": "json",
                   "url": "{{ card.api }}"
                   {% if card.api_data %}
-                  ,"data": {{ card.api_data | tojson }}
+                  ,"data": {{ card.api_data | fromjson | tojson }}
                   {% endif %}
                 },
                 "style": {
@@ -101,22 +100,32 @@
                     "icon": "{{ card.button_icon | default('fa fa-paper-plane') }}",
                     "level": "primary",
                     "className": "w-full service-card-button",
+                    {% if (card.crud_config is defined and card.crud_config | trim != '{}' and card.crud_config | trim != '') or (card.crud_config is undefined and card.crud_api) %}
                     "actionType": "dialog",
                     "dialog": {
                       "title": "{{ card.dialog_title | default(card.title ~ ' - 详情') }}",
                       "size": "lg",
-                      "body": {% if card.crud_api %}{
+                      "actions": [{"label": "关闭", "type": "button", "actionType": "close"}],
+                      "body": {% if card.crud_config is defined %}{{ card.crud_config | fromjson | tojson }}{% else %}{
                         "type": "crud",
                         "api": {
                           "method": "post",
+                          "dataType": "json",
                           "url": "{{ card.crud_api }}"
                           {% if card.crud_api_data %}
-                          ,"data": {{ card.crud_api_data | tojson }}
+                          ,"data": {{ card.crud_api_data | fromjson | tojson }}
                           {% endif %}
                         },
-                        "columns": {{ card.crud_columns | default([]) | tojson }}
-                      }{% elif card.crud_config %}{{ card.crud_config | fromjson | tojson }}{% else %}{"type": "tpl", "tpl": "暂无配置"}{% endif %}
+                        "columns": {{ card.crud_columns | default([]) | fromjson | tojson }}
+                      }{% endif %}
                     }
+                    {% else %}
+                    "actionType": "toast",
+                    "toast": {
+                        "level": "info",
+                        "items": [{"body": "暂无详情推演配置"}]
+                    }
+                    {% endif %}
                   }
                 ]
               }
