@@ -530,20 +530,10 @@ const handleWizardRequest = async (req, res) => {
                             }
                         },
                         {
-                            label: "下一步",
+                            label: "保存",
                             type: "button",
                             level: "primary",
-                            actionType: "next"
-                        }
-                    ]
-                },
-                {
-                    title: "确认保存",
-                    body: [
-                        {
-                            type: "alert",
-                            level: "info",
-                            body: "## 确认配置\\n\\n- **模板ID**: ${template_id}\\n- **主题风格**: ${app_theme}\\n- **操作模式**: ${target_page_key ? '更新页面' : '创建新页面'}\\n- **页面标识**: ${target_page_key || manual_page_key}\\n- **页面标题**: ${page_title}"
+                            actionType: "submit"
                         }
                     ]
                 }
