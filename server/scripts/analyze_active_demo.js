@@ -8,8 +8,9 @@ const db = require('../db');
 // 组件文件名 -> 友好分组名的映射
 const COMPONENT_GROUP_NAMES = {
     'simple_header.j2': '📄 页面头部配置',
-    'active_service_card.j2': '🛠️ 服务卡片配置',
-    '__page__': '📄 页面参数'
+    'service_card_grid.j2': '🎴 服务卡片配置',
+    '__page__': '📄 页面参数',
+    '__footer__': '🦶 页面底部配置'
 };
 
 // 提取 include 指令
@@ -102,14 +103,14 @@ function extractParamAnnotations(content) {
 
 // 类型推断
 function inferType(varName) {
-    const result = { type: 'string', description: varName.replace(/_/g, ' '), default: '' };
-    if (varName.startsWith('enable_') || varName.startsWith('is_')) {
+    const result = { type: 'string', description: varName.replace(/_/g, ' '), default: '', group: null };
+    if (varName.startsWith('enable_') || varName.startsWith('is_') || varName.startsWith('show_')) {
         result.type = 'boolean';
         result.default = true;
     } else if (varName.endsWith('_api')) {
         result.description = varName.replace(/_/g, ' ') + ' 地址';
         result.default = `/api/${varName.replace('_api', '')}`;
-    } else if (varName === 'page_title') {
+    } else if (varName === 'page_title' || varName === 'title') {
         result.description = '页面标题';
         result.default = '主动服务';
     } else if (varName === 'cards_api') {
@@ -118,6 +119,13 @@ function inferType(varName) {
     } else if (varName === 'service_cards_json') {
         result.description = '服务卡片配置 (JSON 字符串)';
         result.default = '[]';
+    } else if (varName === 'footer_text') {
+        result.description = '页面底部版权文字';
+        result.default = '住房公积金管理中心 © 2025';
+        result.group = COMPONENT_GROUP_NAMES['__footer__'];
+    } else if (varName === 'reload_target') {
+        result.description = '刷新按钮目标组件名称';
+        result.default = 'service_cards_list';
     }
     return result;
 }
@@ -236,11 +244,15 @@ function analyzeTemplate(templateFile, templatesDir) {
         const inferred = inferType(varName);
         context.globalOrder++;
 
+        // 使用推断的分组，如果没有则使用默认分组
+        const groupName = inferred.group || '⚙️ 其他配置';
+        const groupOrder = inferred.group ? 100 : 999;  // footer 分组排在后面但不是最后
+
         paramsSchema.properties[varName] = {
             type: inferred.type,
             description: inferred.description + ' (自动推断)',
-            'ui:group': '⚙️ 其他配置',
-            'ui:groupOrder': 999,
+            'ui:group': groupName,
+            'ui:groupOrder': groupOrder,
             'ui:order': context.globalOrder
         };
 

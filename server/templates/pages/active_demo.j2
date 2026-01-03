@@ -1,6 +1,9 @@
 {
   "type": "page",
   "body": [
+    {% set title = "主动服务" %}
+    {% set show_refresh_button = true %}
+    {% set reload_target = "service_cards_list" %}
     {% include "components/active_service/simple_header.j2" %},
     {
       "type": "container",
@@ -8,6 +11,11 @@
       "body": [
         {% include "components/active_service/service_card_grid.j2" %}
       ]
+    },
+    {# 底部 Footer #}
+    {
+      "type": "tpl",
+      "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>{{ footer_text | default('住房公积金管理中心 © 2025') }}</div>"
     }
   ]
 }

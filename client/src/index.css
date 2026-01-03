@@ -177,3 +177,54 @@ button:focus-visible {
 .stat-trend.trend-green {
   color: #28a745;
 }
+
+/* ==================== 服务卡片组件样式 ==================== */
+.service-card-item {
+  transition: all 0.2s ease;
+  min-height: calc(50vh - 140px);
+  /* 减去 header(60px) + footer(60px) + 间距(20px) */
+  display: flex;
+  flex-direction: column;
+}
+
+.service-card-item:hover {
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.2) !important;
+  transform: translateY(-4px);
+}
+
+/* 覆盖 AMIS 卡片默认 padding，让标题栏撑满 */
+.service-card-item .cxd-Card-body {
+  padding: 0 !important;
+}
+
+.service-card-item .cxd-Card-field {
+  padding: 0 !important;
+}
+
+.service-card-item .cxd-Card-heading {
+  display: none !important;
+}
+
+/* 按钮区域样式优化 */
+.service-card-item .cxd-Card-actions {
+  padding: 0 18px 18px 18px !important;
+  background: transparent;
+  margin-top: auto;
+}
+
+.service-card-item .cxd-Card-actions .cxd-Button--primary {
+  background: linear-gradient(135deg, #1890FF 0%, #40A9FF 100%) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  padding: 8px 20px !important;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  color: #fff !important;
+}
+
+.service-card-item .cxd-Card-actions .cxd-Button--primary:hover {
+  background: linear-gradient(135deg, #40A9FF 0%, #69C0FF 100%) !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+  transform: translateY(-1px);
+}
