@@ -11,16 +11,17 @@
     {
       "type": "tpl",
       "tpl": "<div class='text-lg font-bold text-dark'>{{ title | default('页面标题') }}</div>"
-    },
-    {
+    }
+    {% if show_refresh_button == true or show_refresh_button == 'true' %}
+    ,{
       "type": "button",
-      "label": "{{ refresh_button_text | default('刷新') }}",
+      "label": "{{ refresh_button_text | default('刷新数据') }}",
       "icon": "fa fa-refresh",
       "actionType": "reload",
-      "target": "{{ reload_target }}",
+      "target": "{{ reload_target | default('service_cards_grid') }}",
       "level": "primary",
-      "size": "sm",
-      "visibleOn": "{{ show_refresh_button | default(false) }}"
+      "size": "sm"
     }
+    {% endif %}
   ]
 }

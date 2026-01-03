@@ -1620,4 +1620,119 @@ router.post('/cards', (req, res) => {
     });
 });
 
+// ==================== 主动服务卡片 API ====================
+
+/**
+ * POST 版本 - 获取目标群体数据
+ * 根据 service_type 和 period 返回不同的目标群体统计
+ */
+router.post('/target', (req, res) => {
+    const { service_type, period } = req.body;
+
+    console.log('[POST] 目标群体数据请求:', { service_type, period });
+
+    // 根据 service_type 和 period 返回不同的数据
+    const targetData = {
+        'loan_convert': {
+            1: { target_value: '符合转贷人群（8,421人）', count: 8421 },
+            2: { target_value: '符合转贷人群（108,421人）', count: 108421 }
+        },
+        'rent_extract': {
+            1: { target_value: '符合租房提取条件（5,623人）', count: 5623 },
+            2: { target_value: '符合租房提取条件（105,623人）', count: 105623 }
+        },
+        'unit_expand': {
+            1: { target_value: '待扩面企业（1,234家）', count: 1234 },
+            2: { target_value: '待扩面企业（101,234家）', count: 101234 }
+        }
+    };
+
+    const periodNum = period || 1;
+    const data = targetData[service_type]?.[periodNum] || {
+        target_value: '暂无数据',
+        count: 0
+    };
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: data
+    });
+});
+
+/**
+ * POST 版本 - 获取用户列表（用于 CRUD 弹窗）
+ * 根据 service_type 和 period 返回不同的用户数据
+ */
+router.post('/users', (req, res) => {
+    const { service_type, period, page, perPage } = req.body;
+
+    console.log('[POST] 用户列表请求:', { service_type, period, page, perPage });
+
+    // 模拟用户数据
+    const mockUsers = [
+        { id: 1, name: '张三', phone: '138****1234', status: '待推送', id_card: '310***1234', amount: 50000 },
+        { id: 2, name: '李四', phone: '139****5678', status: '已推送', id_card: '310***5678', amount: 80000 },
+        { id: 3, name: '王五', phone: '137****9012', status: '待推送', id_card: '310***9012', amount: 120000 },
+        { id: 4, name: '赵六', phone: '136****3456', status: '已办理', id_card: '310***3456', amount: 65000 },
+        { id: 5, name: '钱七', phone: '135****7890', status: '待推送', id_card: '310***7890', amount: 95000 },
+        { id: 6, name: '孙八', phone: '134****2345', status: '已推送', id_card: '310***2345', amount: 110000 },
+        { id: 7, name: '周九', phone: '133****6789', status: '待推送', id_card: '310***6789', amount: 75000 },
+        { id: 8, name: '吴十', phone: '132****0123', status: '已办理', id_card: '310***0123', amount: 88000 }
+    ];
+
+    // 根据 service_type 添加不同的标识
+    const items = mockUsers.map(user => ({
+        ...user,
+        service_type: service_type,
+        period: period || 1,
+        tag: service_type === 'loan_convert' ? '转贷' : '租房提取'
+    }));
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+/**
+ * POST 版本 - 获取企业列表（用于 CRUD 弹窗）
+ */
+router.post('/companies', (req, res) => {
+    const { service_type, period, page, perPage } = req.body;
+
+    console.log('[POST] 企业列表请求:', { service_type, period, page, perPage });
+
+    // 模拟企业数据
+    const mockCompanies = [
+        { id: 1, company: '上海科技有限公司', employees: 156, status: '待跟进', contact: '张经理', phone: '021-1234****' },
+        { id: 2, company: '杭州电商股份公司', employees: 89, status: '已联系', contact: '李总监', phone: '0571-5678****' },
+        { id: 3, company: '南京制造集团', employees: 312, status: '待跟进', contact: '王主任', phone: '025-9012****' },
+        { id: 4, company: '苏州贸易公司', employees: 67, status: '已开户', contact: '赵经理', phone: '0512-3456****' },
+        { id: 5, company: '无锡科技园区', employees: 245, status: '待跟进', contact: '钱总', phone: '0510-7890****' },
+        { id: 6, company: '常州新材料公司', employees: 178, status: '已联系', contact: '孙主管', phone: '0519-2345****' }
+    ];
+
+    // 根据 period 调整数据
+    const items = mockCompanies.map(company => ({
+        ...company,
+        service_type: service_type,
+        period: period || 1
+    }));
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
 module.exports = router;
+

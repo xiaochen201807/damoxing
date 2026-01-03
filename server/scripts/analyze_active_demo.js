@@ -8,6 +8,7 @@ const db = require('../db');
 // 组件文件名 -> 友好分组名的映射
 const COMPONENT_GROUP_NAMES = {
     'simple_header.j2': '📄 页面头部配置',
+    'configurable_card_grid.j2': '🎴 服务卡片配置',
     'service_card_grid.j2': '🎴 服务卡片配置',
     '__page__': '📄 页面参数',
     '__footer__': '🦶 页面底部配置'
@@ -65,7 +66,11 @@ function extractVariables(content) {
         'and', 'or', 'not', 'is', 'mapping', 'safe', 'item', 'items', 'loop', 'self', 'cycler', 'joiner', 'namespace',
         'endset', 'block', 'endblock', 'extends', 'parent', 'group', 'field', 'action', 'colors', 'background',
         'text_primary', 'text_secondary', 'last', 'index', 'px', 'rem', 'em', 'vh', 'vw', 'className', 'id', 'type', 'name',
-        'card', 'cards', 'data', 'title'
+        'card', 'data', 'title',
+        // 卡片循环中的变量 - 不应作为独立配置项
+        'card_list', 'icon', 'desc', 'api', 'api_method', 'api_data', 'target_label', 'target_value',
+        'button_label', 'button_icon', 'crud_config', 'crud_api', 'crud_api_data', 'crud_columns',
+        'dialog_title', 'md', 'int', 'method', 'url', 'period', 'service_type'
     ];
 
     const builtins = new Set([
@@ -113,19 +118,27 @@ function inferType(varName) {
     } else if (varName === 'page_title' || varName === 'title') {
         result.description = '页面标题';
         result.default = '主动服务';
-    } else if (varName === 'cards_api') {
-        result.description = '服务卡片数据接口';
-        result.default = '';
-    } else if (varName === 'service_cards_json') {
-        result.description = '服务卡片配置 (JSON 字符串)';
+    } else if (varName === 'cards') {
+        result.type = 'json';
+        result.description = '卡片配置数组 (JSON)，每个卡片包含: title, icon, desc, api, target_label, target_value, button_label, crud_config';
         result.default = '[]';
+        result.group = COMPONENT_GROUP_NAMES['configurable_card_grid.j2'];
+    } else if (varName === 'columns') {
+        result.type = 'number';
+        result.description = '每行显示的卡片列数';
+        result.default = 4;
+        result.group = COMPONENT_GROUP_NAMES['configurable_card_grid.j2'];
+    } else if (varName === 'service_name') {
+        result.description = '组件名称，用于刷新指向';
+        result.default = 'service_cards_grid';
+        result.group = COMPONENT_GROUP_NAMES['configurable_card_grid.j2'];
     } else if (varName === 'footer_text') {
         result.description = '页面底部版权文字';
         result.default = '住房公积金管理中心 © 2025';
         result.group = COMPONENT_GROUP_NAMES['__footer__'];
     } else if (varName === 'reload_target') {
         result.description = '刷新按钮目标组件名称';
-        result.default = 'service_cards_list';
+        result.default = 'service_cards_grid';
     }
     return result;
 }

@@ -1,0 +1,132 @@
+{#
+  主动服务卡片网格组件 - 支持手动配置多个卡片
+  
+  @param cards 卡片配置数组 (JSON字符串)，每个卡片包含：
+    - title: 卡片标题
+    - icon: 图标类名 (如 "fa fa-home")
+    - desc: 描述文字
+    - api: 目标群体数据接口 (可选，POST请求)
+    - api_data: API 固定请求参数 (JSON对象，可选)
+    - target_label: 目标群体标签 (默认 "目标群体")
+    - target_value: 静态目标群体值 (如果不用 api)
+    - button_label: 按钮文字 (默认 "一键提醒")
+    - button_icon: 按钮图标 (默认 "fa fa-paper-plane")
+    - crud_api: CRUD 列表数据接口 (POST请求)
+    - crud_api_data: CRUD API 固定请求参数 (JSON对象，可选)
+    - crud_columns: CRUD 列配置 (JSON数组)
+    - dialog_title: 弹窗标题 (可选)
+  @param columns 每行显示的列数, 默认 4
+  @param service_name 组件名称, 默认 "service_cards_grid"
+#}
+{% set card_list = cards | default('[]') | fromjson %}
+{
+  "type": "service",
+  "name": "{{ service_name | default('service_cards_grid') }}",
+  "className": "service-cards-container",
+  "schemaApi": "",
+  "body": [
+    {
+      "type": "grid",
+      "columns": [
+        {% for card in card_list %}
+        {
+          "body": {
+            "type": "container",
+            "className": "service-card-item",
+            "style": {
+              "borderRadius": "12px",
+              "boxShadow": "0 4px 16px rgba(24,144,255,0.12)",
+              "border": "1px solid #e8f4ff",
+              "overflow": "hidden",
+              "background": "#fff",
+              "height": "100%",
+              "display": "flex",
+              "flexDirection": "column"
+            },
+            "body": [
+              {# 标题栏 - 手动配置 #}
+              {
+                "type": "tpl",
+                "tpl": "<div style='background: linear-gradient(135deg, #1890FF 0%, #40A9FF 100%); padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-radius: 11px 11px 0 0;'><div style='width: 40px; height: 40px; background: rgba(255,255,255,0.25); border-radius: 8px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);'><i class='{{ card.icon | default('fa fa-cog') }}' style='font-size: 20px; color: #fff;'></i></div><div style='color: #fff; font-size: 15px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.1);'>{{ card.title | default('服务标题') }}</div></div>"
+              },
+              {# 描述区域 - 手动配置 #}
+              {
+                "type": "container",
+                "style": {
+                  "padding": "16px 18px 12px 18px"
+                },
+                "body": [
+                  {
+                    "type": "tpl",
+                    "tpl": "<div style='color: #555; font-size: 13px; line-height: 1.8; min-height: 56px;'>{{ card.desc | default('服务描述') }}</div>"
+                  }
+                ]
+              },
+              {# 目标群体区域 - API 返回或静态配置 #}
+              {% if card.api %}
+              {
+                "type": "service",
+                "name": "card_service_{{ loop.index }}",
+                "api": {
+                  "method": "post",
+                  "url": "{{ card.api }}"
+                  {% if card.api_data %}
+                  ,"data": {{ card.api_data | tojson }}
+                  {% endif %}
+                },
+                "style": {
+                  "padding": "0 18px 16px 18px"
+                },
+                "body": {
+                  "type": "tpl",
+                  "tpl": "<div style='background: linear-gradient(135deg, #E6F7FF 0%, #F0FAFF 100%); padding: 10px 14px; border-radius: 6px; border: 1px solid #91D5FF;'><span style='color: #1890FF; font-weight: 500; font-size: 13px;'>{{ card.target_label | default('目标群体') }}：</span><span style='color: #262626; font-size: 13px;'>${target_value}</span></div>"
+                }
+              },
+              {% else %}
+              {
+                "type": "tpl",
+                "style": {
+                  "padding": "0 18px 16px 18px"
+                },
+                "tpl": "<div style='background: linear-gradient(135deg, #E6F7FF 0%, #F0FAFF 100%); padding: 10px 14px; border-radius: 6px; border: 1px solid #91D5FF;'><span style='color: #1890FF; font-weight: 500; font-size: 13px;'>{{ card.target_label | default('目标群体') }}：</span><span style='color: #262626; font-size: 13px;'>{{ card.target_value | default('暂无数据') }}</span></div>"
+              },
+              {% endif %}
+              {# 按钮区域 - 支持 CRUD 配置 #}
+              {
+                "type": "container",
+                "className": "service-card-button-container",
+                "body": [
+                  {
+                    "type": "button",
+                    "label": "{{ card.button_label | default('一键提醒') }}",
+                    "icon": "{{ card.button_icon | default('fa fa-paper-plane') }}",
+                    "level": "primary",
+                    "className": "w-full service-card-button",
+                    "actionType": "dialog",
+                    "dialog": {
+                      "title": "{{ card.dialog_title | default(card.title ~ ' - 详情') }}",
+                      "size": "lg",
+                      "body": {% if card.crud_api %}{
+                        "type": "crud",
+                        "api": {
+                          "method": "post",
+                          "url": "{{ card.crud_api }}"
+                          {% if card.crud_api_data %}
+                          ,"data": {{ card.crud_api_data | tojson }}
+                          {% endif %}
+                        },
+                        "columns": {{ card.crud_columns | default([]) | tojson }}
+                      }{% elif card.crud_config %}{{ card.crud_config | fromjson | tojson }}{% else %}{"type": "tpl", "tpl": "暂无配置"}{% endif %}
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "md": {{ (12 / (columns | default(4))) | int }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+  ]
+}

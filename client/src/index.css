@@ -179,10 +179,19 @@ button:focus-visible {
 }
 
 /* ==================== 服务卡片组件样式 ==================== */
+
+.service-cards-container .cxd-Grid {
+  row-gap: 20px !important;
+}
+
+.service-cards-container .cxd-Grid-col {
+  margin-bottom: 0 !important;
+}
+
 .service-card-item {
   transition: all 0.2s ease;
-  min-height: calc(50vh - 140px);
-  /* 减去 header(60px) + footer(60px) + 间距(20px) */
+  min-height: calc(50vh - 120px);
+  /* 减去 header(60px) + footer(60px) + 行间距(40px) */
   display: flex;
   flex-direction: column;
 }
@@ -205,26 +214,41 @@ button:focus-visible {
   display: none !important;
 }
 
+/* 按钮父容器底部边距清除 */
+.service-card-item .cxd-Container-body {
+  padding-bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+/* 按钮容器推至卡片底部 */
+.service-card-button-container {
+  margin-top: auto !important;
+}
+
 /* 按钮区域样式优化 */
 .service-card-item .cxd-Card-actions {
-  padding: 0 18px 18px 18px !important;
+  padding: 0 !important;
   background: transparent;
   margin-top: auto;
 }
 
 .service-card-item .cxd-Card-actions .cxd-Button--primary {
-  background: linear-gradient(135deg, #1890FF 0%, #40A9FF 100%) !important;
+  background: #fff !important;
   border: none !important;
-  border-radius: 6px !important;
+  border-top: 1px solid #e8f4ff !important;
+  border-radius: 0 0 12px 12px !important;
   font-size: 13px !important;
-  padding: 8px 20px !important;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  padding: 12px 20px !important;
+  box-shadow: none;
   transition: all 0.2s ease;
-  color: #fff !important;
+  color: #1890FF !important;
+  width: 100%;
+  margin: 0 !important;
 }
 
 .service-card-item .cxd-Card-actions .cxd-Button--primary:hover {
-  background: linear-gradient(135deg, #40A9FF 0%, #69C0FF 100%) !important;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #E6F7FF 0%, #F0FAFF 100%) !important;
+  color: #1890FF !important;
 }

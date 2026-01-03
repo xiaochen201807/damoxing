@@ -1,21 +1,136 @@
+{#
+  主动服务演示页面
+  
+  ========== 页面头部配置 ==========
+  - title: 页面标题
+  - show_refresh_button: 是否显示刷新按钮 (true/false)
+  - refresh_button_text: 刷新按钮文本
+  - reload_target: 刷新目标组件名称
+  
+  ========== 卡片配置 ==========
+  - cards: 卡片配置数组 (JSON)，每个卡片包含：
+    - title: 卡片标题
+    - icon: 图标类名
+    - desc: 描述文字
+    - api: 目标群体数据接口 (POST请求)
+    - api_data: API 固定请求参数 (JSON对象)
+    - target_label: 目标群体标签
+    - target_value: 静态目标群体值 (如果不用 api)
+    - button_label: 按钮文字
+    - crud_api: CRUD 列表数据接口 (POST请求)
+    - crud_api_data: CRUD API 固定请求参数 (JSON对象)
+    - crud_columns: CRUD 列配置 (JSON数组)
+    - dialog_title: 弹窗标题
+  - columns: 每行显示的列数
+  - service_name: 组件名称
+  
+  ========== 页面底部配置 ==========
+  - footer_text: 底部版权文字
+#}
+
+{# ========== 页面头部配置 ========== #}
+{% set title = title | default('主动服务') %}
+{% set show_refresh_button = show_refresh_button | default(true) %}
+{% set refresh_button_text = refresh_button_text | default('刷新数据') %}
+{% set reload_target = reload_target | default('service_cards_grid') %}
+
+{# ========== 卡片配置 ========== #}
+{% set columns = columns | default(4) %}
+{% set service_name = service_name | default('service_cards_grid') %}
+{% set cards = cards | default('[
+  {
+    "title": "商贷转组合贷提醒",
+    "icon": "fa fa-exchange",
+    "desc": "根据最新贷款政策和客户信息，主动识别符合商业贷款转组合贷款条件的客户，并推送优化建议",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "loan_convert", "period": 1},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/users",
+    "crud_api_data": {"service_type": "loan_convert"},
+    "crud_columns": [{"name": "name", "label": "姓名"}, {"name": "phone", "label": "电话"}, {"name": "status", "label": "状态"}]
+  },
+  {
+    "title": "租房提取精准推送",
+    "icon": "fa fa-home",
+    "desc": "基于客户租房备案信息和缴存记录，自动匹配符合租房提取条件的客户，提供便捷提取服务",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "rent_extract", "period": 1},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/users",
+    "crud_api_data": {"service_type": "rent_extract"},
+    "crud_columns": [{"name": "name", "label": "姓名"}, {"name": "phone", "label": "电话"}, {"name": "status", "label": "状态"}]
+  },
+  {
+    "title": "单位缴存扩面服务",
+    "icon": "fa fa-building",
+    "desc": "监测企业用工数据，识别未缴存或部分缴存的单位，推动住房公积金制度扩面覆盖",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "unit_expand", "period": 1},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/companies",
+    "crud_api_data": {"service_type": "unit_expand"},
+    "crud_columns": [{"name": "company", "label": "企业名称"}, {"name": "employees", "label": "员工数"}, {"name": "status", "label": "状态"}]
+  },
+  {
+    "title": "商贷转组合贷提醒（二期）",
+    "icon": "fa fa-refresh",
+    "desc": "根据最新贷款政策和客户信息，主动识别符合商业贷款转组合贷款条件的客户，并推送优化建议",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "loan_convert", "period": 2},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/users",
+    "crud_api_data": {"service_type": "loan_convert", "period": 2},
+    "crud_columns": [{"name": "name", "label": "姓名"}, {"name": "phone", "label": "电话"}, {"name": "status", "label": "状态"}]
+  },
+  {
+    "title": "租房提取精准推送（二期）",
+    "icon": "fa fa-home",
+    "desc": "基于客户租房备案信息和缴存记录，自动匹配符合租房提取条件的客户，提供便捷提取服务",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "rent_extract", "period": 2},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/users",
+    "crud_api_data": {"service_type": "rent_extract", "period": 2},
+    "crud_columns": [{"name": "name", "label": "姓名"}, {"name": "phone", "label": "电话"}, {"name": "status", "label": "状态"}]
+  },
+  {
+    "title": "单位缴存扩面服务（二期）",
+    "icon": "fa fa-building",
+    "desc": "监测企业用工数据，识别未缴存或部分缴存的单位，推动住房公积金制度扩面覆盖",
+    "api": "/api/demo/target",
+    "api_data": {"service_type": "unit_expand", "period": 2},
+    "target_label": "目标群体",
+    "button_label": "一键提醒",
+    "crud_api": "/api/demo/companies",
+    "crud_api_data": {"service_type": "unit_expand", "period": 2},
+    "crud_columns": [{"name": "company", "label": "企业名称"}, {"name": "employees", "label": "员工数"}, {"name": "status", "label": "状态"}]
+  }
+]') %}
+
+{# ========== 页面底部配置 ========== #}
+{% set footer_text = footer_text | default('住房公积金管理中心 © 2025') %}
+
+{# ========== 页面结构 ========== #}
 {
   "type": "page",
   "body": [
-    {% set title = "主动服务" %}
-    {% set show_refresh_button = true %}
-    {% set reload_target = "service_cards_list" %}
     {% include "components/active_service/simple_header.j2" %},
     {
       "type": "container",
       "className": "p-md",
       "body": [
-        {% include "components/active_service/service_card_grid.j2" %}
+        {% include "components/active_service/configurable_card_grid.j2" %}
       ]
     },
-    {# 底部 Footer #}
     {
       "type": "tpl",
-      "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>{{ footer_text | default('住房公积金管理中心 © 2025') }}</div>"
+      "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>{{ footer_text }}</div>"
     }
   ]
 }
+
