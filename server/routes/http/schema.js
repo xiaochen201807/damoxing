@@ -578,6 +578,44 @@ router.post('/echo', (req, res) => {
     });
 });
 
+// 递归修复参数中的 AMPERSAND 问题
+const sanitizeParams = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    // 1. 修复被错误转换的 [object Object]
+    if (obj['&'] === '[object Object]') {
+        obj['&'] = '$$';
+    }
+
+    // 2. 为含有 service_type 的对象补全 & : $$ (确保查询参数透传)
+    if (obj.service_type && !obj['&']) {
+        obj['&'] = '$$';
+    }
+
+    for (const key in obj) {
+        // 3. 递归处理字符串形式的 JSON (如 api_data, crud_config 等)
+        if (typeof obj[key] === 'string' &&
+            (obj[key].includes('"service_type"') || obj[key].includes('service_type') || obj[key].includes('[object Object]'))) {
+            try {
+                // 尝试解析
+                const innerObj = JSON.parse(obj[key]);
+                // 递归清理
+                sanitizeParams(innerObj);
+                // 回写字符串
+                const newStr = JSON.stringify(innerObj, null, 2);
+                if (newStr !== obj[key]) {
+                    obj[key] = newStr;
+                }
+            } catch (e) {
+                // 不是 JSON 或解析失败，忽略
+            }
+        } else {
+            // 常规递归
+            sanitizeParams(obj[key]);
+        }
+    }
+};
+
 // POST /api/schema/save - 保存页面到数据库 (支持新建和更新绑定)
 router.post('/save', (req, res) => {
     // 接收参数：
@@ -585,6 +623,17 @@ router.post('/save', (req, res) => {
     // manual_page_key: 手动输入的新页面标识 (仅当 target_page_key 为空时使用)
     // page_title: 页面标题
     const { template_id, params, target_page_key, manual_page_key, page_title } = req.body;
+
+    // --- 自动修复参数逻辑 ---
+    try {
+        if (params) {
+            sanitizeParams(params);
+        }
+    } catch (e) {
+        logger.warn('[Schema API] Auto-fix params failed:', e);
+        // 不阻断保存，继续尝试
+    }
+    // ----------------------
 
     const page_key = target_page_key || manual_page_key;
     const title = page_title;
