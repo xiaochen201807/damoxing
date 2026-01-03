@@ -440,6 +440,7 @@
                                         "resizable": true,
                                         "closeOnEsc": false,
                                         "closeOnOutside": false,
+                                        "actions": [],
                                         "body": {
                                             "type": "service",
                                             "schemaApi": "/api/schema/wizard"
@@ -787,19 +788,6 @@
                             "syncLocation": false,
                             "api": "/api/system/template-definitions",
                             "headerToolbar": [
-                                {
-                                    "type": "button",
-                                    "label": "\u91cd\u65b0\u5206\u6790\u6a21\u677f",
-                                    "icon": "fa fa-refresh",
-                                    "level": "success",
-                                    "actionType": "ajax",
-                                    "api": {
-                                        "method": "post",
-                                        "url": "/api/system/analyze-templates"
-                                    },
-                                    "confirmText": "\u786e\u8ba4\u91cd\u65b0\u626b\u63cf server/templates/pages/ \u76ee\u5f55\u5e76\u66f4\u65b0\u6570\u636e\u5e93\uff1f",
-                                    "reload": "window"
-                                },
                                 "pagination"
                             ],
                             "columns": [
@@ -829,6 +817,28 @@
                                         "saveImmediately": true,
                                         "api": "put:/api/system/template-definitions/${template_id}"
                                     }
+                                },
+                                {
+                                    "type": "operation",
+                                    "label": "\u64cd\u4f5c",
+                                    "width": 120,
+                                    "buttons": [
+                                        {
+                                            "type": "button",
+                                            "label": "\u5206\u6790",
+                                            "icon": "fa fa-magic",
+                                            "level": "link",
+                                            "actionType": "ajax",
+                                            "confirmText": "\u786e\u8ba4\u91cd\u65b0\u5206\u6790\u6a21\u677f\u3010${template_name}\u3011\uff1f",
+                                            "api": {
+                                                "method": "post",
+                                                "url": "/api/system/analyze-templates",
+                                                "data": {
+                                                    "template_id": "${template_id}"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             ]
                         }

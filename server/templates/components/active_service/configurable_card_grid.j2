@@ -69,7 +69,7 @@
                   "dataType": "json",
                   "url": "{{ card.api }}"
                   {% if card.api_data %}
-                  ,"data": {{ card.api_data | fromjson | tojson }}
+                  ,"data": {{ (card.api_data | fromjson) | tojson if card.api_data is string else card.api_data | tojson }}
                   {% endif %}
                 },
                 "style": {
@@ -113,7 +113,7 @@
                           "dataType": "json",
                           "url": "{{ card.crud_api }}"
                           {% if card.crud_api_data %}
-                          ,"data": {{ card.crud_api_data | fromjson | tojson }}
+                          ,"data": {{ (card.crud_api_data | fromjson) | tojson if card.crud_api_data is string else card.crud_api_data | tojson }}
                           {% endif %}
                         },
                         "columns": {{ card.crud_columns | default([]) | fromjson | tojson }}
