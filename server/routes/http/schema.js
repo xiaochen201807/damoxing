@@ -333,6 +333,90 @@ router.get('/load-config/:pageKey', (req, res) => {
     );
 });
 
+// ============ 占位符常量 ============
+// 使用安全占位符完全绕过 AMIS 的变量求值机制
+const DOLLAR_PLACEHOLDER = '__DOLLAR_DOLLAR__';
+
+// 递归转义前端参数中的特殊字符 (防止 AMIS 数据映射误解析)
+// 策略：将 $$ 替换为占位符，前端显示占位符，保存时还原
+const escapeParamsForFrontend = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    // 1. 将 $$ 和被污染的 [object Object] 替换为占位符
+    if (obj['&'] === '$$' || obj['&'] === '[object Object]' ||
+        obj['&'] === '\\[object Object]' || obj['&'] === '\\\\[object Object]' ||
+        (typeof obj['&'] === 'string' && obj['&'].includes('[object Object]'))) {
+        obj['&'] = DOLLAR_PLACEHOLDER;
+    }
+
+    for (const key in obj) {
+        // 2. 递归处理字符串形式的 JSON
+        if (typeof obj[key] === 'string' &&
+            (obj[key].includes('"service_type"') || obj[key].includes('service_type') ||
+                obj[key].includes('[object Object]') || obj[key].includes('"&"'))) {
+            try {
+                const innerObj = JSON.parse(obj[key]);
+                escapeParamsForFrontend(innerObj);
+                const newStr = JSON.stringify(innerObj, null, 2);
+                if (newStr !== obj[key]) {
+                    obj[key] = newStr;
+                }
+            } catch (e) {
+                // Ignore
+            }
+        }
+        // 3. 处理普通字符串值中的 $$
+        else if (typeof obj[key] === 'string' && (obj[key] === '$$' || obj[key] === '[object Object]')) {
+            obj[key] = DOLLAR_PLACEHOLDER;
+        }
+        else if (typeof obj[key] === 'object') {
+            escapeParamsForFrontend(obj[key]);
+        }
+    }
+};
+
+// 递归修复参数中的 AMPERSAND 问题
+// 策略：将占位符和被污染的值都还原为 $$
+const sanitizeParams = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    // 1. 修复被错误转换的 [object Object] 和占位符
+    if (obj['&'] === '[object Object]' || obj['&'] === '\\[object Object]' ||
+        obj['&'] === '\\\\[object Object]' || obj['&'] === DOLLAR_PLACEHOLDER ||
+        obj['&'] === '\\$$' || obj['&'] === '\\\\$$' || obj['&'] === '\\\\\\$$' ||
+        (typeof obj['&'] === 'string' && obj['&'].includes('[object Object]'))) {
+        obj['&'] = '$$';
+    }
+
+    for (const key in obj) {
+        // 递归处理字符串形式的 JSON
+        if (typeof obj[key] === 'string' &&
+            (obj[key].includes('"service_type"') || obj[key].includes('service_type') ||
+                obj[key].includes('[object Object]') || obj[key].includes(DOLLAR_PLACEHOLDER) ||
+                obj[key].includes('"&"'))) {
+            try {
+                const innerObj = JSON.parse(obj[key]);
+                sanitizeParams(innerObj);
+                const newStr = JSON.stringify(innerObj, null, 2);
+                if (newStr !== obj[key]) {
+                    obj[key] = newStr;
+                }
+            } catch (e) {
+                // Ignore
+            }
+        }
+        // 处理普通字符串值中的占位符和污染值
+        else if (typeof obj[key] === 'string' &&
+            (obj[key] === '[object Object]' || obj[key] === DOLLAR_PLACEHOLDER ||
+                obj[key] === '\\$$' || obj[key] === '\\\\$$' || obj[key] === '\\\\\\$$')) {
+            obj[key] = '$$';
+        }
+        else if (typeof obj[key] === 'object') {
+            sanitizeParams(obj[key]);
+        }
+    }
+};
+
 // GET /api/schema/wizard - 返回配置向导的完整 Schema (用于 Drawer 嵌入)
 // 提取 Wizard 处理函数，同时支持 GET 和 POST
 const handleWizardRequest = async (req, res) => {
@@ -366,6 +450,14 @@ const handleWizardRequest = async (req, res) => {
                     page_title: pageData.title,
                     ...JSON.parse(pageData.source_params)
                 };
+
+                // --- 转义前端显示 ---
+                try {
+                    escapeParamsForFrontend(initData);
+                } catch (e) {
+                    logger.warn('[Schema API] Failed to escape params for frontend:', e);
+                }
+                // ------------------
             } else if (mode === 'edit') {
                 // If it's edit mode but source config is missing, return an alert schema
                 return res.json({
@@ -578,43 +670,7 @@ router.post('/echo', (req, res) => {
     });
 });
 
-// 递归修复参数中的 AMPERSAND 问题
-const sanitizeParams = (obj) => {
-    if (!obj || typeof obj !== 'object') return;
 
-    // 1. 修复被错误转换的 [object Object]
-    if (obj['&'] === '[object Object]') {
-        obj['&'] = '$$';
-    }
-
-    // 2. 为含有 service_type 的对象补全 & : $$ (确保查询参数透传)
-    if (obj.service_type && !obj['&']) {
-        obj['&'] = '$$';
-    }
-
-    for (const key in obj) {
-        // 3. 递归处理字符串形式的 JSON (如 api_data, crud_config 等)
-        if (typeof obj[key] === 'string' &&
-            (obj[key].includes('"service_type"') || obj[key].includes('service_type') || obj[key].includes('[object Object]'))) {
-            try {
-                // 尝试解析
-                const innerObj = JSON.parse(obj[key]);
-                // 递归清理
-                sanitizeParams(innerObj);
-                // 回写字符串
-                const newStr = JSON.stringify(innerObj, null, 2);
-                if (newStr !== obj[key]) {
-                    obj[key] = newStr;
-                }
-            } catch (e) {
-                // 不是 JSON 或解析失败，忽略
-            }
-        } else {
-            // 常规递归
-            sanitizeParams(obj[key]);
-        }
-    }
-};
 
 // POST /api/schema/save - 保存页面到数据库 (支持新建和更新绑定)
 router.post('/save', (req, res) => {
