@@ -1,0 +1,303 @@
+{#
+  风险监控页面
+  
+  ========== API 配置 ==========
+  - chart_level_api: 信用级别饼图接口 (POST)
+  - chart_behavior_api: 风险行为柱状图接口 (POST)
+  - chart_region_api: 区域风险柱状图接口 (POST)
+  - chart_trend_api: 风险趋势折线图接口 (POST)
+  - drilldown_level_api: 信用等级钻取接口 (POST)
+  - drilldown_behavior_api: 风险行为钻取接口 (POST)
+  - drilldown_region_api: 区域钻取接口 (POST)
+  - generate_report_api: AI报告生成接口 (POST)
+  
+  ========== 页面配置 ==========
+  - title: 页面标题
+  - page_name: 页面组件名称
+  - default_subject: 默认主体类型
+#}
+
+{# ========== 默认配置 ========== #}
+{% set title = title | default('风险监控') %}
+{% set page_name = page_name | default('riskPage') %}
+{% set default_subject = default_subject | default('缴存单位') %}
+
+{# ========== API 配置 ========== #}
+{% set chart_level_api = chart_level_api | default('/api/demo/credit/risk/chart/level') %}
+{% set chart_behavior_api = chart_behavior_api | default('/api/demo/credit/risk/chart/behavior') %}
+{% set chart_region_api = chart_region_api | default('/api/demo/credit/risk/chart/region') %}
+{% set chart_trend_api = chart_trend_api | default('/api/demo/credit/risk/chart/trend') %}
+{% set drilldown_level_api = drilldown_level_api | default('/api/demo/credit/risk/drilldown/level') %}
+{% set drilldown_behavior_api = drilldown_behavior_api | default('/api/demo/credit/risk/drilldown/behavior') %}
+{% set drilldown_region_api = drilldown_region_api | default('/api/demo/credit/risk/drilldown/region') %}
+{% set generate_report_api = generate_report_api | default('/api/demo/credit/risk/generate-report') %}
+
+{# ========== 页面结构 ========== #}
+{
+  "type": "page",
+  "title": "",
+  "name": "{{ page_name }}",
+  "data": { "subject": "{{ default_subject }}" },
+  "body": [
+    {
+      "type": "wrapper",
+      "className": "bg-white p-md m-b-md",
+      "body": {
+        "type": "flex",
+        "justify": "space-between",
+        "alignItems": "center",
+        "items": [
+          { "type": "html", "html": "<h2 style='margin:0;font-size:24px;font-weight:600;color:#1d39c4'>AI综合风险监控看板</h2>" },
+          {
+            "type": "select",
+            "name": "subject",
+            "value": "{{ default_subject }}",
+            "clearable": false,
+            "options": [
+              { "label": "缴存单位风险视图", "value": "缴存单位" },
+              { "label": "缴存人风险视图", "value": "缴存人" },
+              { "label": "开发商风险视图", "value": "开发商" }
+            ],
+            "onEvent": {
+              "change": {
+                "actions": [
+                  {
+                    "actionType": "setValue",
+                    "componentName": "{{ page_name }}",
+                    "args": { "value": { "subject": "${event.data.value}" } }
+                  },
+                  { "actionType": "reload", "componentId": "levelChart" },
+                  { "actionType": "reload", "componentId": "behaviorChart" },
+                  { "actionType": "reload", "componentId": "regionChart" },
+                  { "actionType": "reload", "componentId": "trendChart" }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "alert",
+      "level": "warning",
+      "className": "m-b-md",
+      "body": {
+        "type": "html",
+        "html": "<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>"
+      }
+    },
+    {
+      "type": "grid",
+      "columns": [
+        {
+          "type": "wrapper",
+          "size": "md",
+          "body": {
+            "type": "card",
+            "header": { "title": "信用级别分布" },
+            "body": {
+              "type": "chart",
+              "id": "levelChart",
+              "height": 350,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_level_api }}",
+                "data": { "subject": "${subject}" }
+              },
+              "onEvent": {
+                "click": {
+                  "actions": [
+                    {
+                      "actionType": "dialog",
+                      "dialog": {
+                        "title": "信用等级【${event.data.name}】主体清单",
+                        "size": "lg",
+                        "body": {
+                          "type": "crud",
+                          "api": {
+                            "method": "post",
+                            "url": "{{ drilldown_level_api }}",
+                            "data": {
+                              "subject": "${subject}",
+                              "selectedId": "${event.data.data.itemId}"
+                            }
+                          },
+                          "syncLocation": false,
+                          "columns": [
+                            { "name": "name", "label": "主体名称" },
+                            { "name": "idNumber", "label": "证件号码" },
+                            { "name": "score", "label": "信用分数", "tpl": "${score}分" },
+                            { "name": "riskBehavior", "label": "风险行为" }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "wrapper",
+          "size": "md",
+          "body": {
+            "type": "card",
+            "header": { "title": "风险行为分布" },
+            "body": {
+              "type": "chart",
+              "id": "behaviorChart",
+              "height": 350,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_behavior_api }}",
+                "data": { "subject": "${subject}" }
+              },
+              "onEvent": {
+                "click": {
+                  "actions": [
+                    {
+                      "actionType": "dialog",
+                      "dialog": {
+                        "title": "风险行为【${event.data.name}】主体清单",
+                        "size": "lg",
+                        "body": {
+                          "type": "crud",
+                          "api": {
+                            "method": "post",
+                            "url": "{{ drilldown_behavior_api }}",
+                            "data": {
+                              "subject": "${subject}",
+                              "selectedId": "${event.data.data.itemId}"
+                            }
+                          },
+                          "syncLocation": false,
+                          "columns": [
+                            { "name": "name", "label": "主体名称" },
+                            { "name": "idNumber", "label": "证件号码" },
+                            { "name": "score", "label": "信用分数", "tpl": "${score}分" },
+                            { "name": "level", "label": "信用等级" }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "grid",
+      "columns": [
+        {
+          "type": "wrapper",
+          "size": "md",
+          "body": {
+            "type": "card",
+            "header": { "title": "区域风险分布" },
+            "body": {
+              "type": "chart",
+              "id": "regionChart",
+              "height": 350,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_region_api }}",
+                "data": { "subject": "${subject}" }
+              },
+              "onEvent": {
+                "click": {
+                  "actions": [
+                    {
+                      "actionType": "dialog",
+                      "dialog": {
+                        "title": "区域【${event.data.name}】风险主体清单",
+                        "size": "lg",
+                        "body": {
+                          "type": "crud",
+                          "api": {
+                            "method": "post",
+                            "url": "{{ drilldown_region_api }}",
+                            "data": {
+                              "subject": "${subject}",
+                              "selectedId": "${event.data.data.itemId}"
+                            }
+                          },
+                          "syncLocation": false,
+                          "columns": [
+                            { "name": "name", "label": "主体名称" },
+                            { "name": "idNumber", "label": "证件号码" },
+                            { "name": "score", "label": "信用分数", "tpl": "${score}分" },
+                            { "name": "level", "label": "信用等级" },
+                            { "name": "riskBehavior", "label": "风险行为" }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "wrapper",
+          "size": "md",
+          "body": {
+            "type": "card",
+            "header": { "title": "近30天风险趋势" },
+            "body": {
+              "type": "chart",
+              "id": "trendChart",
+              "height": 350,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_trend_api }}",
+                "data": { "subject": "${subject}" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "card",
+      "className": "m-t-lg",
+      "body": {
+        "type": "wrapper",
+        "className": "text-center",
+        "style": { "padding": "40px 20px" },
+        "body": [
+          { "type": "html", "html": "<div style='margin-bottom:15px'><svg viewBox='0 0 24 24' style='width:48px;height:48px;fill:#1890ff'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z'/></svg></div>" },
+          { "type": "html", "html": "<p style='color:#666;margin-bottom:20px'>系统支持基于AI大模型技术，深度分析全量信用数据，自动生成专业级信用管理报告。</p>" },
+          {
+            "type": "button",
+            "label": "生成信用体系管理分析报告",
+            "level": "primary",
+            "size": "lg",
+            "actionType": "dialog",
+            "dialog": {
+              "title": "信用体系管理分析报告",
+              "size": "lg",
+              "body": {
+                "type": "service",
+                "api": {
+                  "method": "post",
+                  "url": "{{ generate_report_api }}",
+                  "data": { "subject": "${subject}" }
+                },
+                "body": { "type": "container", "body": "${data.body}" }
+              },
+              "actions": [
+                { "type": "button", "label": "关闭", "actionType": "close" },
+                { "type": "button", "label": "导出PDF", "level": "primary", "actionType": "custom", "onClick": "window.print()" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

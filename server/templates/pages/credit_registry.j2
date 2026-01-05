@@ -1,0 +1,149 @@
+{#
+  信用清册管理页面
+  
+  ========== API 配置 ==========
+  - registry_list_api: 信用清册列表接口 (POST)
+  - registry_details_api: 信用评价明细接口 (POST)
+  
+  ========== 页面配置 ==========
+  - title: 页面标题
+#}
+
+{# ========== 默认配置 ========== #}
+{% set title = title | default('信用清册') %}
+
+{# ========== API 配置 ========== #}
+{% set registry_list_api = registry_list_api | default('/api/demo/credit/registry/list') %}
+{% set registry_details_api = registry_details_api | default('/api/demo/credit/registry/details') %}
+
+{# ========== 页面结构 ========== #}
+{
+  "type": "page",
+  "title": "{{ title }}",
+  "toolbar": [
+    {
+      "type": "button",
+      "label": "刷新",
+      "icon": "fa fa-sync-alt",
+      "level": "primary",
+      "actionType": "reload",
+      "target": "registryCrud"
+    }
+  ],
+  "body": [
+    {
+      "type": "crud",
+      "name": "registryCrud",
+      "api": {
+        "method": "post",
+        "url": "{{ registry_list_api }}",
+        "data": {
+          "subject": "${subject}",
+          "level": "${level}",
+          "page": "${page}",
+          "perPage": "${perPage}"
+        }
+      },
+      "syncLocation": false,
+      "filter": {
+        "title": "信用主体清册",
+        "mode": "inline",
+        "body": [
+          {
+            "type": "select",
+            "name": "subject",
+            "label": "主体类型",
+            "clearable": true,
+            "options": [
+              { "label": "全部", "value": "" },
+              { "label": "缴存人", "value": "缴存人" },
+              { "label": "缴存单位", "value": "缴存单位" },
+              { "label": "开发商", "value": "开发商" }
+            ]
+          },
+          {
+            "type": "select",
+            "name": "level",
+            "label": "信用等级",
+            "clearable": true,
+            "options": [
+              { "label": "全部", "value": "" },
+              { "label": "A", "value": "A" },
+              { "label": "B", "value": "B" },
+              { "label": "C", "value": "C" },
+              { "label": "D", "value": "D" }
+            ]
+          }
+        ],
+        "actions": [
+          { "type": "submit", "label": "查询", "level": "primary" },
+          { "type": "reset", "label": "重置" }
+        ]
+      },
+      "columns": [
+        { "name": "subject", "label": "主体类型", "width": 100 },
+        { "name": "name", "label": "主体名称", "width": 150 },
+        { "name": "idNumber", "label": "主体证件号码", "width": 180 },
+        {
+          "name": "level",
+          "label": "当前信用",
+          "width": 100,
+          "type": "mapping",
+          "map": {
+            "A": "<span class='label label-success' style='background:#52c41a'>A (优秀)</span>",
+            "B": "<span class='label label-info' style='background:#1890ff'>B (良好)</span>",
+            "C": "<span class='label label-warning' style='background:#faad14'>C (较差)</span>",
+            "D": "<span class='label label-danger' style='background:#ff4d4f'>D (差)</span>"
+          }
+        },
+        { "name": "score", "label": "信用分数", "width": 80, "tpl": "${score}分" },
+        {
+          "type": "operation",
+          "label": "信用评价明细",
+          "width": 120,
+          "buttons": [
+            {
+              "type": "button",
+              "label": "查看明细",
+              "actionType": "dialog",
+              "level": "link",
+              "icon": "fa fa-list-alt",
+              "dialog": {
+                "title": "信用评价明细 - ${name}",
+                "size": "md",
+                "body": {
+                  "type": "service",
+                  "api": {
+                    "method": "post",
+                    "url": "{{ registry_details_api }}",
+                    "data": { "id": "${id}" }
+                  },
+                  "body": [
+                    {
+                      "type": "alert",
+                      "body": "主体: ${registryInfo.name} | 类型: ${registryInfo.subject} | 当前信用等级: ${registryInfo.level} | 信用分数: ${registryInfo.score}分",
+                      "level": "info",
+                      "className": "m-b-md"
+                    },
+                    {
+                      "type": "table",
+                      "source": "${details}",
+                      "columns": [
+                        { "name": "detailName", "label": "指标评价明细名称" },
+                        { "name": "weight", "label": "指标评价明细权重", "tpl": "${weight}%" },
+                        { "name": "score", "label": "指标评价明细得分", "tpl": "${score}分" }
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  { "type": "button", "label": "关闭", "actionType": "close" }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1782,5 +1782,1707 @@ router.post('/companies', (req, res) => {
     });
 });
 
+// ==================== 信用评价指标管理 API ====================
+
+// 信用评价指标模拟数据
+let creditIndicators = [
+    // 缴存单位评价指标
+    {
+        id: 1,
+        subject: "缴存单位",
+        name: "缴存单位未按时缴存，有连续欠缴记录",
+        description: "指缴存单位未能按时缴存公积金，存在连续欠缴的情况",
+        weight: 15,
+        elementName: "欠缴月数",
+        elementValue: "≥3个月",
+        status: "开启"
+    },
+    {
+        id: 2,
+        subject: "缴存单位",
+        name: "缴存单位缴存人数骤减",
+        description: "单位在短期内缴存人数大幅减少，可能反映经营异常或裁员情况",
+        weight: 12,
+        elementName: "减少比例",
+        elementValue: "≥30%",
+        status: "开启"
+    },
+    {
+        id: 3,
+        subject: "缴存单位",
+        name: "缴存单位提供信息缺失或与工商注册信息不符",
+        description: "单位提供的信息不完整或与工商注册信息存在不一致",
+        weight: 10,
+        elementName: "信息不一致项",
+        elementValue: "≥2项",
+        status: "开启"
+    },
+    {
+        id: 4,
+        subject: "缴存单位",
+        name: "缴存单位电子稽查检查不通过",
+        description: "单位在电子稽查检查中存在不通过的项目",
+        weight: 8,
+        elementName: "检查不通过项",
+        elementValue: "≥2项",
+        status: "开启"
+    },
+    {
+        id: 5,
+        subject: "缴存单位",
+        name: "缴存单位贷款逾期职工占比异常",
+        description: "单位中贷款逾期的职工比例异常不合规",
+        weight: 15,
+        elementName: "逾期职工占比",
+        elementValue: "≥33%",
+        status: "开启"
+    },
+    {
+        id: 6,
+        subject: "缴存单位",
+        name: "缴存单位未遵守信用承诺制度，被纳入系统一般失信联合惩戒名单",
+        description: "单位因未遵守信用承诺制度被纳入一般失信名单",
+        weight: 20,
+        elementName: "一般失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 7,
+        subject: "缴存单位",
+        name: "缴存单位未遵守信用承诺制度，被纳入系统严重失信联合惩戒名单",
+        description: "单位因未遵守信用承诺制度被纳入严重失信名单",
+        weight: 25,
+        elementName: "严重失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 8,
+        subject: "缴存单位",
+        name: "缴存单位存在缴存职工缴存基数违规",
+        description: "单位存在缴存职工缴存基数违规的情况",
+        weight: 5,
+        elementName: "违规职工占比",
+        elementValue: "≥2%",
+        status: "开启"
+    },
+    // 缴存人评价指标
+    {
+        id: 9,
+        subject: "缴存人",
+        name: "缴存人提供信息缺失或与民政公安等信息不符",
+        description: "缴存人提供的信息不完整或与民政公安等信息不一致",
+        weight: 10,
+        elementName: "信息缺失项",
+        elementValue: "≥3项",
+        status: "开启"
+    },
+    {
+        id: 10,
+        subject: "缴存人",
+        name: "缴存人公积金贷后断缴",
+        description: "缴存人在使用公积金贷款后停止缴存公积金",
+        weight: 20,
+        elementName: "连续断缴月数",
+        elementValue: "≥3个月",
+        status: "开启"
+    },
+    {
+        id: 11,
+        subject: "缴存人",
+        name: "缴存人公积金贷款已逾期",
+        description: "缴存人的公积金贷款存在逾期情况",
+        weight: 25,
+        elementName: "逾期月数",
+        elementValue: "≥1个月",
+        status: "开启"
+    },
+    {
+        id: 12,
+        subject: "缴存人",
+        name: "缴存人未遵守信用承诺制度，被纳入系统一般失信联合惩戒名单",
+        description: "缴存人因未遵守信用承诺制度被纳入一般失信名单",
+        weight: 15,
+        elementName: "一般失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 13,
+        subject: "缴存人",
+        name: "缴存人未遵守信用承诺制度，被纳入系统严重失信联合惩戒名单",
+        description: "缴存人因未遵守信用承诺制度被纳入严重失信名单",
+        weight: 20,
+        elementName: "严重失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 14,
+        subject: "缴存人",
+        name: "缴存人账户状态已冻结",
+        description: "缴存人的公积金账户处于冻结状态",
+        weight: 10,
+        elementName: "缴存人当前状态",
+        elementValue: "冻结",
+        status: "开启"
+    },
+    // 开发商评价指标
+    {
+        id: 15,
+        subject: "开发商",
+        name: "开发商未遵守信用承诺制度，被纳入系统一般失信联合惩戒名单",
+        description: "开发商因未遵守信用承诺制度被纳入一般失信名单",
+        weight: 30,
+        elementName: "一般失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 16,
+        subject: "开发商",
+        name: "开发商未遵守信用承诺制度，被纳入系统严重失信联合惩戒名单",
+        description: "开发商因未遵守信用承诺制度被纳入严重失信名单",
+        weight: 40,
+        elementName: "严重失信",
+        elementValue: "是",
+        status: "开启"
+    },
+    {
+        id: 17,
+        subject: "开发商",
+        name: "开发商提供信息缺失或与工商注册信息不符",
+        description: "开发商提供的信息不完整或与工商注册信息不一致",
+        weight: 30,
+        elementName: "信息缺失项",
+        elementValue: "≥3项",
+        status: "开启"
+    }
+];
+
+// 自增ID计数器
+let creditIndicatorIdCounter = 18;
+
+/**
+ * POST - 查询信用评价指标列表
+ * 支持筛选和分页
+ */
+router.post('/credit/indicators/list', (req, res) => {
+    const { subject, status, page = 1, perPage = 10 } = req.body;
+
+    console.log('[POST] 信用评价指标列表请求:', { subject, status, page, perPage });
+
+    let items = [...creditIndicators];
+
+    // 主体类型筛选
+    if (subject && subject !== '' && subject !== '全部') {
+        items = items.filter(item => item.subject === subject);
+    }
+
+    // 启用状态筛选
+    if (status && status !== '' && status !== '全部') {
+        items = items.filter(item => item.status === status);
+    }
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+/**
+ * POST - 新增信用评价指标
+ */
+router.post('/credit/indicators/create', (req, res) => {
+    const { subject, name, description, weight, elementName, elementValue, status } = req.body;
+
+    console.log('[POST] 新增信用评价指标:', req.body);
+
+    // 参数校验
+    if (!subject || !name || !weight || !elementName || !elementValue) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：subject, name, weight, elementName, elementValue'
+        });
+    }
+
+    // 创建新指标
+    const newIndicator = {
+        id: creditIndicatorIdCounter++,
+        subject,
+        name,
+        description: description || '',
+        weight: parseInt(weight),
+        elementName,
+        elementValue,
+        status: status === true || status === '开启' ? '开启' : '关闭'
+    };
+
+    creditIndicators.push(newIndicator);
+
+    res.json({
+        status: 0,
+        msg: '新增成功',
+        data: {
+            id: newIndicator.id
+        }
+    });
+});
+
+/**
+ * POST - 更新信用评价指标
+ */
+router.post('/credit/indicators/update', (req, res) => {
+    const { id, subject, name, description, weight, elementName, elementValue, status } = req.body;
+
+    console.log('[POST] 更新信用评价指标:', req.body);
+
+    // 参数校验
+    if (!id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：id'
+        });
+    }
+
+    // 查找指标
+    const index = creditIndicators.findIndex(item => item.id === parseInt(id));
+
+    if (index === -1) {
+        return res.status(404).json({
+            status: 404,
+            msg: '指标不存在'
+        });
+    }
+
+    // 更新指标
+    creditIndicators[index] = {
+        ...creditIndicators[index],
+        subject: subject !== undefined ? subject : creditIndicators[index].subject,
+        name: name !== undefined ? name : creditIndicators[index].name,
+        description: description !== undefined ? description : creditIndicators[index].description,
+        weight: weight !== undefined ? parseInt(weight) : creditIndicators[index].weight,
+        elementName: elementName !== undefined ? elementName : creditIndicators[index].elementName,
+        elementValue: elementValue !== undefined ? elementValue : creditIndicators[index].elementValue,
+        status: status !== undefined ? (status === true || status === '开启' ? '开启' : '关闭') : creditIndicators[index].status
+    };
+
+    res.json({
+        status: 0,
+        msg: '更新成功'
+    });
+});
+
+/**
+ * POST - 删除信用评价指标
+ */
+router.post('/credit/indicators/delete', (req, res) => {
+    const { id } = req.body;
+
+    console.log('[POST] 删除信用评价指标:', { id });
+
+    // 参数校验
+    if (!id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：id'
+        });
+    }
+
+    // 查找指标
+    const index = creditIndicators.findIndex(item => item.id === parseInt(id));
+
+    if (index === -1) {
+        return res.status(404).json({
+            status: 404,
+            msg: '指标不存在'
+        });
+    }
+
+    // 删除指标
+    creditIndicators.splice(index, 1);
+
+    res.json({
+        status: 0,
+        msg: '删除成功'
+    });
+});
+
+// ==================== 信用清册管理 API ====================
+
+// 信用清册模拟数据
+let creditRegistry = [
+    // 缴存人
+    {
+        id: 1,
+        subject: "缴存人",
+        name: "罗伯特",
+        idNumber: "42112619910530369X",
+        score: 100,
+        level: "A"
+    },
+    {
+        id: 2,
+        subject: "缴存人",
+        name: "张三",
+        idNumber: "320102199001011234",
+        score: 85,
+        level: "B"
+    },
+    {
+        id: 3,
+        subject: "缴存人",
+        name: "李四",
+        idNumber: "320102199202025678",
+        score: 65,
+        level: "C"
+    },
+    {
+        id: 4,
+        subject: "缴存人",
+        name: "王五",
+        idNumber: "320102199303039012",
+        score: 45,
+        level: "D"
+    },
+    // 缴存单位
+    {
+        id: 5,
+        subject: "缴存单位",
+        name: "神玥科技",
+        idNumber: "TYSH9234202032",
+        score: 100,
+        level: "A"
+    },
+    {
+        id: 6,
+        subject: "缴存单位",
+        name: "华为技术有限公司",
+        idNumber: "TYSH1234567890",
+        score: 95,
+        level: "A"
+    },
+    {
+        id: 7,
+        subject: "缴存单位",
+        name: "某餐饮连锁",
+        idNumber: "TYSH2023001234",
+        score: 60,
+        level: "C"
+    },
+    {
+        id: 8,
+        subject: "缴存单位",
+        name: "YY制造厂",
+        idNumber: "DW2022112345",
+        score: 40,
+        level: "D"
+    },
+    // 开发商
+    {
+        id: 9,
+        subject: "开发商",
+        name: "天山工程",
+        idNumber: "TYSH8398209090",
+        score: 55,
+        level: "D"
+    },
+    {
+        id: 10,
+        subject: "开发商",
+        name: "万科地产",
+        idNumber: "KF202001001",
+        score: 92,
+        level: "A"
+    },
+    {
+        id: 11,
+        subject: "开发商",
+        name: "某置业公司",
+        idNumber: "KF202001002",
+        score: 48,
+        level: "D"
+    },
+    {
+        id: 12,
+        subject: "开发商",
+        name: "某地产集团",
+        idNumber: "KF202015003",
+        score: 68,
+        level: "C"
+    }
+];
+
+// 信用评价明细模拟数据（根据主体生成）
+const creditDetailTemplates = {
+    "缴存人": [
+        { detailName: "信息完整性", weight: 10 },
+        { detailName: "贷后缴存情况", weight: 20 },
+        { detailName: "贷款还款情况", weight: 25 },
+        { detailName: "信用承诺履行", weight: 15 },
+        { detailName: "账户状态", weight: 10 },
+        { detailName: "历史信用记录", weight: 20 }
+    ],
+    "缴存单位": [
+        { detailName: "按时缴存情况", weight: 15 },
+        { detailName: "缴存人数稳定性", weight: 12 },
+        { detailName: "信息一致性", weight: 10 },
+        { detailName: "稽查检查结果", weight: 8 },
+        { detailName: "职工贷款逾期率", weight: 15 },
+        { detailName: "信用承诺履行", weight: 20 },
+        { detailName: "缴存基数合规性", weight: 5 },
+        { detailName: "历史信用记录", weight: 15 }
+    ],
+    "开发商": [
+        { detailName: "信用承诺履行（一般）", weight: 30 },
+        { detailName: "信用承诺履行（严重）", weight: 40 },
+        { detailName: "信息完整性", weight: 30 }
+    ]
+};
+
+// 自增ID计数器
+let creditRegistryIdCounter = 13;
+
+/**
+ * POST - 查询信用清册列表
+ * 支持筛选和分页
+ */
+router.post('/credit/registry/list', (req, res) => {
+    const { subject, level, page = 1, perPage = 10 } = req.body;
+
+    console.log('[POST] 信用清册列表请求:', { subject, level, page, perPage });
+
+    let items = [...creditRegistry];
+
+    // 主体类型筛选
+    if (subject && subject !== '' && subject !== '全部') {
+        items = items.filter(item => item.subject === subject);
+    }
+
+    // 信用等级筛选
+    if (level && level !== '' && level !== '全部') {
+        items = items.filter(item => item.level === level);
+    }
+
+    // 应用分页
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+/**
+ * POST - 新增信用主体
+ */
+router.post('/credit/registry/create', (req, res) => {
+    const { subject, name, idNumber, score, level } = req.body;
+
+    console.log('[POST] 新增信用主体:', req.body);
+
+    // 参数校验
+    if (!subject || !name || !idNumber) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：subject, name, idNumber'
+        });
+    }
+
+    // 根据分数自动计算等级
+    let calculatedLevel = level;
+    if (!level && score !== undefined) {
+        if (score >= 90) calculatedLevel = 'A';
+        else if (score >= 70) calculatedLevel = 'B';
+        else if (score >= 50) calculatedLevel = 'C';
+        else calculatedLevel = 'D';
+    }
+
+    // 创建新主体
+    const newRegistry = {
+        id: creditRegistryIdCounter++,
+        subject,
+        name,
+        idNumber,
+        score: parseInt(score) || 100,
+        level: calculatedLevel || 'A'
+    };
+
+    creditRegistry.push(newRegistry);
+
+    res.json({
+        status: 0,
+        msg: '新增成功',
+        data: {
+            id: newRegistry.id
+        }
+    });
+});
+
+/**
+ * POST - 更新信用主体
+ */
+router.post('/credit/registry/update', (req, res) => {
+    const { id, subject, name, idNumber, score, level } = req.body;
+
+    console.log('[POST] 更新信用主体:', req.body);
+
+    // 参数校验
+    if (!id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：id'
+        });
+    }
+
+    // 查找主体
+    const index = creditRegistry.findIndex(item => item.id === parseInt(id));
+
+    if (index === -1) {
+        return res.status(404).json({
+            status: 404,
+            msg: '信用主体不存在'
+        });
+    }
+
+    // 根据分数自动计算等级
+    let calculatedLevel = level;
+    if (score !== undefined && !level) {
+        const scoreNum = parseInt(score);
+        if (scoreNum >= 90) calculatedLevel = 'A';
+        else if (scoreNum >= 70) calculatedLevel = 'B';
+        else if (scoreNum >= 50) calculatedLevel = 'C';
+        else calculatedLevel = 'D';
+    }
+
+    // 更新主体
+    creditRegistry[index] = {
+        ...creditRegistry[index],
+        subject: subject !== undefined ? subject : creditRegistry[index].subject,
+        name: name !== undefined ? name : creditRegistry[index].name,
+        idNumber: idNumber !== undefined ? idNumber : creditRegistry[index].idNumber,
+        score: score !== undefined ? parseInt(score) : creditRegistry[index].score,
+        level: calculatedLevel !== undefined ? calculatedLevel : creditRegistry[index].level
+    };
+
+    res.json({
+        status: 0,
+        msg: '更新成功'
+    });
+});
+
+/**
+ * POST - 删除信用主体
+ */
+router.post('/credit/registry/delete', (req, res) => {
+    const { id } = req.body;
+
+    console.log('[POST] 删除信用主体:', { id });
+
+    // 参数校验
+    if (!id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：id'
+        });
+    }
+
+    // 查找主体
+    const index = creditRegistry.findIndex(item => item.id === parseInt(id));
+
+    if (index === -1) {
+        return res.status(404).json({
+            status: 404,
+            msg: '信用主体不存在'
+        });
+    }
+
+    // 删除主体
+    creditRegistry.splice(index, 1);
+
+    res.json({
+        status: 0,
+        msg: '删除成功'
+    });
+});
+
+/**
+ * POST - 获取信用评价明细
+ */
+router.post('/credit/registry/details', (req, res) => {
+    const { id, detailName } = req.body;
+
+    console.log('[POST] 查询信用评价明细:', { id, detailName });
+
+    // 参数校验
+    if (!id) {
+        return res.status(400).json({
+            status: 400,
+            msg: '缺少必要参数：id'
+        });
+    }
+
+    // 查找主体
+    const registry = creditRegistry.find(item => item.id === parseInt(id));
+
+    if (!registry) {
+        return res.status(404).json({
+            status: 404,
+            msg: '信用主体不存在'
+        });
+    }
+
+    // 获取该主体类型的评价明细模板
+    const templates = creditDetailTemplates[registry.subject] || [];
+
+    // 根据主体分数生成各项明细得分
+    const baseScore = registry.score;
+    let details = templates.map((template, index) => {
+        // 模拟各项得分（基于总分浮动）
+        const variance = (Math.random() - 0.5) * 20;
+        let detailScore = Math.min(100, Math.max(0, baseScore + variance));
+        detailScore = Math.round(detailScore);
+
+        return {
+            id: index + 1,
+            detailName: template.detailName,
+            weight: template.weight,
+            score: detailScore
+        };
+    });
+
+    // 按明细名称筛选
+    if (detailName && detailName !== '' && detailName !== '全部') {
+        details = details.filter(item => item.detailName === detailName);
+    }
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            registryInfo: {
+                id: registry.id,
+                subject: registry.subject,
+                name: registry.name,
+                idNumber: registry.idNumber,
+                score: registry.score,
+                level: registry.level
+            },
+            details: details,
+            // 明细名称选项（用于筛选下拉框）
+            detailOptions: templates.map(t => ({ label: t.detailName, value: t.detailName }))
+        }
+    });
+});
+
+// ==================== 风险监控 API ====================
+
+// 风险监控数据
+const riskDashboardData = {
+    "缴存单位": {
+        charts: {
+            level: [
+                { value: 1200, name: 'A (优秀)', itemStyle: { color: '#52c41a' } },
+                { value: 800, name: 'B (良好)', itemStyle: { color: '#1890ff' } },
+                { value: 300, name: 'C (一般)', itemStyle: { color: '#faad14' } },
+                { value: 100, name: 'D (差)', itemStyle: { color: '#ff4d4f' } }
+            ],
+            behavior: {
+                labels: ['连续欠缴', '缴存人数骤降', '信息不一致', '贷款逾期', '一般失信'],
+                data: [120, 85, 45, 30, 20]
+            },
+            region: {
+                labels: ['城关管理部', '七里河管理部', '西固管理部', '安宁管理部', '红古管理部'],
+                data: [450, 320, 280, 210, 80]
+            },
+            trend: {
+                dates: ['6/1', '6/3', '6/5', '6/7', '6/9', '6/11', '6/13'],
+                high: [5, 4, 6, 8, 7, 9, 8],
+                medium: [12, 15, 13, 16, 18, 15, 14]
+            }
+        },
+        summary: {
+            total: 2400,
+            highRisk: 100,
+            mediumRisk: 300,
+            lowRisk: 2000
+        }
+    },
+    "缴存人": {
+        charts: {
+            level: [
+                { value: 6500, name: 'A (优秀)', itemStyle: { color: '#52c41a' } },
+                { value: 2500, name: 'B (良好)', itemStyle: { color: '#1890ff' } },
+                { value: 1000, name: 'C (一般)', itemStyle: { color: '#faad14' } },
+                { value: 200, name: 'D (差)', itemStyle: { color: '#ff4d4f' } }
+            ],
+            behavior: {
+                labels: ['信息不完善', '违规提取', '贷后停缴', '账户冻结', '贷款逾期'],
+                data: [150, 80, 60, 45, 20]
+            },
+            region: {
+                labels: ['城关管理部', '七里河管理部', '西固管理部', '安宁管理部', '新华管理部'],
+                data: [60, 50, 40, 30, 20]
+            },
+            trend: {
+                dates: ['6/1', '6/3', '6/5', '6/7', '6/9', '6/11', '6/13'],
+                high: [10, 12, 11, 15, 14, 18, 16],
+                medium: [25, 28, 26, 30, 32, 35, 33]
+            }
+        },
+        summary: {
+            total: 10200,
+            highRisk: 200,
+            mediumRisk: 1000,
+            lowRisk: 9000
+        }
+    },
+    "开发商": {
+        charts: {
+            level: [
+                { value: 150, name: 'A (优秀)', itemStyle: { color: '#52c41a' } },
+                { value: 60, name: 'B (良好)', itemStyle: { color: '#1890ff' } },
+                { value: 20, name: 'C (一般)', itemStyle: { color: '#faad14' } },
+                { value: 12, name: 'D (差)', itemStyle: { color: '#ff4d4f' } }
+            ],
+            behavior: {
+                labels: ['楼盘停工', '协助违规', '捂盘惜售', '资金异常', '延期交房'],
+                data: [8, 5, 4, 3, 2]
+            },
+            region: {
+                labels: ['城关区', '七里河区', '安宁区', '西固区', '红古区'],
+                data: [5, 3, 2, 1, 1]
+            },
+            trend: {
+                dates: ['6/1', '6/3', '6/5', '6/7', '6/9', '6/11', '6/13'],
+                high: [1, 1, 1, 2, 2, 2, 2],
+                medium: [3, 3, 4, 4, 5, 4, 4]
+            }
+        },
+        summary: {
+            total: 242,
+            highRisk: 12,
+            mediumRisk: 20,
+            lowRisk: 210
+        }
+    }
+};
+
+/**
+ * POST - 获取风险监控看板数据
+ * 返回 ECharts 图表配置，饼图和柱状图支持钻取
+ */
+router.post('/credit/risk/dashboard', (req, res) => {
+    const { subject = '缴存单位' } = req.body;
+
+    console.log('[POST] 风险监控看板请求:', { subject });
+
+    const data = riskDashboardData[subject] || riskDashboardData['缴存单位'];
+
+    // 为饼图数据添加 itemId
+    const levelChartData = data.charts.level.map(item => ({
+        ...item,
+        itemId: item.name.charAt(0) // A, B, C, D
+    }));
+
+    // 为风险行为柱状图添加 itemId
+    const behaviorChartData = data.charts.behavior.data.map((val, idx) => ({
+        value: val,
+        name: data.charts.behavior.labels[idx],
+        itemId: data.charts.behavior.labels[idx]
+    }));
+
+    // 为区域柱状图添加 itemId
+    const regionChartData = data.charts.region.data.map((val, idx) => ({
+        value: val,
+        name: data.charts.region.labels[idx],
+        itemId: data.charts.region.labels[idx]
+    }));
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            subject,
+            summary: data.summary,
+            // 信用级别分布饼图（支持钻取）
+            levelChart: {
+                tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', left: 'left' },
+                series: [{
+                    name: '信用级别',
+                    type: 'pie',
+                    radius: '60%',
+                    data: levelChartData
+                }]
+            },
+            // 风险行为分布柱状图（支持钻取）
+            behaviorChart: {
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: data.charts.behavior.labels },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: '风险数量',
+                    type: 'bar',
+                    data: behaviorChartData,
+                    itemStyle: { color: '#ff4d4f', borderRadius: [4, 4, 0, 0] }
+                }]
+            },
+            // 区域风险分布柱状图（支持钻取）
+            regionChart: {
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: data.charts.region.labels },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: '风险主体数',
+                    type: 'bar',
+                    data: regionChartData,
+                    itemStyle: { color: '#1890ff', borderRadius: [4, 4, 0, 0] }
+                }]
+            },
+            // 风险趋势折线图（不支持钻取）
+            trendChart: {
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['高风险', '中风险'] },
+                xAxis: { type: 'category', data: data.charts.trend.dates },
+                yAxis: { type: 'value' },
+                series: [
+                    { name: '高风险', type: 'line', data: data.charts.trend.high, itemStyle: { color: '#ff4d4f' } },
+                    { name: '中风险', type: 'line', data: data.charts.trend.medium, itemStyle: { color: '#faad14' } }
+                ]
+            }
+        }
+    });
+});
+
+/**
+ * POST - 获取信用级别分布饼图配置
+ */
+router.post('/credit/risk/chart/level', (req, res) => {
+    const { subject = '缴存单位' } = req.body;
+
+    console.log('[POST] 信用级别分布图表请求:', { subject });
+
+    const data = riskDashboardData[subject] || riskDashboardData['缴存单位'];
+
+    // 为饼图数据添加 itemId
+    const levelChartData = data.charts.level.map(item => ({
+        ...item,
+        itemId: item.name.charAt(0)
+    }));
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { orient: 'vertical', left: 'left' },
+            series: [{
+                name: '信用级别',
+                type: 'pie',
+                radius: '60%',
+                data: levelChartData
+            }]
+        }
+    });
+});
+
+/**
+ * POST - 获取风险行为分布柱状图配置
+ */
+router.post('/credit/risk/chart/behavior', (req, res) => {
+    const { subject = '缴存单位' } = req.body;
+
+    console.log('[POST] 风险行为分布图表请求:', { subject });
+
+    const data = riskDashboardData[subject] || riskDashboardData['缴存单位'];
+
+    // 为柱状图添加 itemId
+    const behaviorChartData = data.charts.behavior.data.map((val, idx) => ({
+        value: val,
+        name: data.charts.behavior.labels[idx],
+        itemId: data.charts.behavior.labels[idx]
+    }));
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: data.charts.behavior.labels },
+            yAxis: { type: 'value' },
+            series: [{
+                name: '风险数量',
+                type: 'bar',
+                data: behaviorChartData,
+                itemStyle: { color: '#ff4d4f', borderRadius: [4, 4, 0, 0] }
+            }]
+        }
+    });
+});
+
+/**
+ * POST - 获取区域风险分布柱状图配置
+ */
+router.post('/credit/risk/chart/region', (req, res) => {
+    const { subject = '缴存单位' } = req.body;
+
+    console.log('[POST] 区域风险分布图表请求:', { subject });
+
+    const data = riskDashboardData[subject] || riskDashboardData['缴存单位'];
+
+    // 为柱状图添加 itemId
+    const regionChartData = data.charts.region.data.map((val, idx) => ({
+        value: val,
+        name: data.charts.region.labels[idx],
+        itemId: data.charts.region.labels[idx]
+    }));
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: data.charts.region.labels },
+            yAxis: { type: 'value' },
+            series: [{
+                name: '风险主体数',
+                type: 'bar',
+                data: regionChartData,
+                itemStyle: { color: '#1890ff', borderRadius: [4, 4, 0, 0] }
+            }]
+        }
+    });
+});
+
+/**
+ * POST - 获取风险趋势折线图配置
+ */
+router.post('/credit/risk/chart/trend', (req, res) => {
+    const { subject = '缴存单位' } = req.body;
+
+    console.log('[POST] 风险趋势图表请求:', { subject });
+
+    const data = riskDashboardData[subject] || riskDashboardData['缴存单位'];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['高风险', '中风险'] },
+            xAxis: { type: 'category', data: data.charts.trend.dates },
+            yAxis: { type: 'value' },
+            series: [
+                { name: '高风险', type: 'line', data: data.charts.trend.high, itemStyle: { color: '#ff4d4f' } },
+                { name: '中风险', type: 'line', data: data.charts.trend.medium, itemStyle: { color: '#faad14' } }
+            ]
+        }
+    });
+});
+
+// 钻取数据：按信用等级的主体列表
+const drilldownByLevel = {
+    "缴存单位": {
+        "A": [
+            { id: 1, name: "华为技术有限公司", idNumber: "TYSH1234567890", score: 95, riskBehavior: "无" },
+            { id: 2, name: "神玥科技", idNumber: "TYSH9234202032", score: 100, riskBehavior: "无" },
+            { id: 3, name: "阿里巴巴集团", idNumber: "TYSH5678901234", score: 92, riskBehavior: "无" }
+        ],
+        "B": [
+            { id: 4, name: "某科技公司", idNumber: "TYSH2345678901", score: 78, riskBehavior: "信息不一致" },
+            { id: 5, name: "某贸易公司", idNumber: "TYSH3456789012", score: 72, riskBehavior: "无" }
+        ],
+        "C": [
+            { id: 6, name: "某餐饮连锁", idNumber: "TYSH2023001234", score: 60, riskBehavior: "连续欠缴" },
+            { id: 7, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, riskBehavior: "缴存人数骤降" }
+        ],
+        "D": [
+            { id: 8, name: "YY制造厂", idNumber: "DW2022112345", score: 40, riskBehavior: "连续欠缴+缴存人数骤降" },
+            { id: 9, name: "某建材公司", idNumber: "TYSH6789012345", score: 35, riskBehavior: "一般失信" }
+        ]
+    },
+    "缴存人": {
+        "A": [
+            { id: 10, name: "罗伯特", idNumber: "42112619910530369X", score: 100, riskBehavior: "无" },
+            { id: 11, name: "李明", idNumber: "320102199001011234", score: 95, riskBehavior: "无" }
+        ],
+        "B": [
+            { id: 12, name: "张三", idNumber: "320102199202025678", score: 85, riskBehavior: "无" },
+            { id: 13, name: "王芳", idNumber: "320102199303039012", score: 75, riskBehavior: "信息不完善" }
+        ],
+        "C": [
+            { id: 14, name: "李四", idNumber: "320102199404045678", score: 65, riskBehavior: "贷后停缴" },
+            { id: 15, name: "赵六", idNumber: "320102199505051234", score: 55, riskBehavior: "违规提取" }
+        ],
+        "D": [
+            { id: 16, name: "王五", idNumber: "320102199606067890", score: 45, riskBehavior: "贷款逾期(三期以上)" },
+            { id: 17, name: "钱七", idNumber: "320102199707073456", score: 30, riskBehavior: "严重失信" }
+        ]
+    },
+    "开发商": {
+        "A": [
+            { id: 18, name: "万科地产", idNumber: "KF202001001", score: 92, riskBehavior: "无" },
+            { id: 19, name: "碧桂园", idNumber: "KF202001002", score: 90, riskBehavior: "无" }
+        ],
+        "B": [
+            { id: 20, name: "保利地产", idNumber: "KF202001003", score: 78, riskBehavior: "无" }
+        ],
+        "C": [
+            { id: 21, name: "某地产集团", idNumber: "KF202015003", score: 68, riskBehavior: "延期交房" }
+        ],
+        "D": [
+            { id: 22, name: "天山工程", idNumber: "TYSH8398209090", score: 55, riskBehavior: "楼盘停工" },
+            { id: 23, name: "某置业公司", idNumber: "KF202001004", score: 48, riskBehavior: "协助违规" }
+        ]
+    }
+};
+
+/**
+ * POST - 按信用等级钻取（饼图点击）
+ */
+router.post('/credit/risk/drilldown/level', (req, res) => {
+    const { subject = '缴存单位', selectedId, page = 1, perPage = 10 } = req.body;
+
+    console.log('[POST] 信用等级钻取:', { subject, selectedId, page, perPage });
+
+    if (!selectedId) {
+        return res.status(400).json({ status: 400, msg: 'selectedId is required' });
+    }
+
+    // 从 itemId 提取等级 (A, B, C, D)
+    const level = selectedId.charAt(0);
+    const items = drilldownByLevel[subject]?.[level] || [];
+
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+// 钻取数据：按风险行为的主体列表
+const drilldownByBehavior = {
+    "缴存单位": {
+        "连续欠缴": [
+            { id: 1, name: "YY制造厂", idNumber: "DW2022112345", score: 40, level: "D", overdueMonths: 5 },
+            { id: 2, name: "某餐饮连锁", idNumber: "TYSH2023001234", score: 60, level: "C", overdueMonths: 3 },
+            { id: 3, name: "某建材公司", idNumber: "TYSH6789012345", score: 55, level: "C", overdueMonths: 4 }
+        ],
+        "缴存人数骤降": [
+            { id: 4, name: "YY制造厂", idNumber: "DW2022112345", score: 40, level: "D", decreaseRate: "45%" },
+            { id: 5, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, level: "C", decreaseRate: "32%" }
+        ],
+        "信息不一致": [
+            { id: 6, name: "某科技公司", idNumber: "TYSH2345678901", score: 78, level: "B", mismatchItems: 2 },
+            { id: 7, name: "某餐饮连锁", idNumber: "TYSH2023001234", score: 60, level: "C", mismatchItems: 3 }
+        ],
+        "贷款逾期": [
+            { id: 8, name: "某建材公司", idNumber: "TYSH6789012345", score: 55, level: "C", overdueRate: "35%" }
+        ],
+        "一般失信": [
+            { id: 9, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, level: "C", reason: "违反承诺" }
+        ]
+    },
+    "缴存人": {
+        "信息不完善": [
+            { id: 10, name: "王芳", idNumber: "320102199303039012", score: 75, level: "B", missingItems: 3 },
+            { id: 11, name: "张三", idNumber: "320102199202025678", score: 85, level: "B", missingItems: 2 }
+        ],
+        "违规提取": [
+            { id: 12, name: "赵六", idNumber: "320102199505051234", score: 55, level: "C", reason: "虚假证明" }
+        ],
+        "贷后停缴": [
+            { id: 13, name: "李四", idNumber: "320102199404045678", score: 65, level: "C", stopMonths: 4 }
+        ],
+        "账户冻结": [
+            { id: 14, name: "钱七", idNumber: "320102199707073456", score: 30, level: "D", reason: "法院冻结" }
+        ],
+        "贷款逾期": [
+            { id: 15, name: "王五", idNumber: "320102199606067890", score: 45, level: "D", overdueMonths: 5 }
+        ]
+    },
+    "开发商": {
+        "楼盘停工": [
+            { id: 16, name: "天山工程", idNumber: "TYSH8398209090", score: 55, level: "D", project: "天山花园" },
+            { id: 17, name: "某置业公司", idNumber: "KF202001004", score: 48, level: "D", project: "阳光小区" }
+        ],
+        "协助违规": [
+            { id: 18, name: "某置业公司", idNumber: "KF202001004", score: 48, level: "D", reason: "提供虚假材料" }
+        ],
+        "捂盘惜售": [
+            { id: 19, name: "某地产集团", idNumber: "KF202015003", score: 68, level: "C", project: "城市花园" }
+        ],
+        "资金异常": [
+            { id: 20, name: "天山工程", idNumber: "TYSH8398209090", score: 55, level: "D", amount: 5000000 }
+        ],
+        "延期交房": [
+            { id: 21, name: "某地产集团", idNumber: "KF202015003", score: 68, level: "C", delayMonths: 6 }
+        ]
+    }
+};
+
+/**
+ * POST - 按风险行为钻取（风险行为柱状图点击）
+ */
+router.post('/credit/risk/drilldown/behavior', (req, res) => {
+    const { subject = '缴存单位', selectedId, page = 1, perPage = 10 } = req.body;
+
+    console.log('[POST] 风险行为钻取:', { subject, selectedId, page, perPage });
+
+    if (!selectedId) {
+        return res.status(400).json({ status: 400, msg: 'selectedId is required' });
+    }
+
+    const items = drilldownByBehavior[subject]?.[selectedId] || [];
+
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+// 钻取数据：按区域的风险主体列表
+const drilldownByRegion = {
+    "缴存单位": {
+        "城关管理部": [
+            { id: 1, name: "YY制造厂", idNumber: "DW2022112345", score: 40, level: "D", riskBehavior: "连续欠缴" },
+            { id: 2, name: "某餐饮连锁", idNumber: "TYSH2023001234", score: 60, level: "C", riskBehavior: "信息不一致" },
+            { id: 3, name: "某建材公司", idNumber: "TYSH6789012345", score: 55, level: "C", riskBehavior: "贷款逾期" }
+        ],
+        "七里河管理部": [
+            { id: 4, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, level: "C", riskBehavior: "缴存人数骤降" },
+            { id: 5, name: "某科技公司", idNumber: "TYSH2345678901", score: 78, level: "B", riskBehavior: "信息不一致" }
+        ],
+        "西固管理部": [
+            { id: 6, name: "某机械厂", idNumber: "TYSH7890123456", score: 50, level: "C", riskBehavior: "连续欠缴" }
+        ],
+        "安宁管理部": [
+            { id: 7, name: "某商贸公司", idNumber: "TYSH8901234567", score: 62, level: "C", riskBehavior: "一般失信" }
+        ],
+        "红古管理部": [
+            { id: 8, name: "某化工厂", idNumber: "TYSH9012345678", score: 58, level: "C", riskBehavior: "缴存人数骤降" }
+        ]
+    },
+    "缴存人": {
+        "城关管理部": [
+            { id: 9, name: "王五", idNumber: "320102199606067890", score: 45, level: "D", riskBehavior: "贷款逾期" },
+            { id: 10, name: "李四", idNumber: "320102199404045678", score: 65, level: "C", riskBehavior: "贷后停缴" }
+        ],
+        "七里河管理部": [
+            { id: 11, name: "赵六", idNumber: "320102199505051234", score: 55, level: "C", riskBehavior: "违规提取" }
+        ],
+        "西固管理部": [
+            { id: 12, name: "钱七", idNumber: "320102199707073456", score: 30, level: "D", riskBehavior: "账户冻结" }
+        ],
+        "安宁管理部": [
+            { id: 13, name: "孙八", idNumber: "320102199808088901", score: 68, level: "C", riskBehavior: "信息不完善" }
+        ],
+        "新华管理部": [
+            { id: 14, name: "周九", idNumber: "320102199909099012", score: 52, level: "C", riskBehavior: "贷后停缴" }
+        ]
+    },
+    "开发商": {
+        "城关区": [
+            { id: 15, name: "天山工程", idNumber: "TYSH8398209090", score: 55, level: "D", riskBehavior: "楼盘停工" },
+            { id: 16, name: "某置业公司", idNumber: "KF202001004", score: 48, level: "D", riskBehavior: "协助违规" }
+        ],
+        "七里河区": [
+            { id: 17, name: "某地产集团", idNumber: "KF202015003", score: 68, level: "C", riskBehavior: "延期交房" }
+        ],
+        "安宁区": [
+            { id: 18, name: "某开发公司", idNumber: "KF202001005", score: 60, level: "C", riskBehavior: "捂盘惜售" }
+        ],
+        "西固区": [
+            { id: 19, name: "某建设公司", idNumber: "KF202001006", score: 55, level: "C", riskBehavior: "资金异常" }
+        ],
+        "红古区": [
+            { id: 20, name: "某房产公司", idNumber: "KF202001007", score: 62, level: "C", riskBehavior: "延期交房" }
+        ]
+    }
+};
+
+/**
+ * POST - 按区域钻取（区域柱状图点击）
+ */
+router.post('/credit/risk/drilldown/region', (req, res) => {
+    const { subject = '缴存单位', selectedId, page = 1, perPage = 10 } = req.body;
+
+    console.log('[POST] 区域钻取:', { subject, selectedId, page, perPage });
+
+    if (!selectedId) {
+        return res.status(400).json({ status: 400, msg: 'selectedId is required' });
+    }
+
+    const items = drilldownByRegion[subject]?.[selectedId] || [];
+
+    const result = paginate(items, page, perPage);
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: result
+    });
+});
+
+/**
+ * POST - 生成信用体系管理分析报告
+ * 模拟调用 Dify 工作流，返回 AMIS Schema
+ */
+router.post('/credit/risk/generate-report', (req, res) => {
+    const { subject } = req.body;
+
+    console.log('[POST] 生成信用风险报告请求:', { subject });
+
+    // 获取当前日期
+    const now = new Date();
+    const reportDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+    // 模拟 Dify 工作流返回的 AMIS Schema
+    const reportSchema = {
+        type: "page",
+        body: [
+            {
+                type: "wrapper",
+                className: "bg-white p-lg",
+                style: {
+                    fontFamily: "SimSun, Songti SC, serif",
+                    lineHeight: "1.8"
+                },
+                body: [
+                    // 报告标题
+                    {
+                        type: "html",
+                        html: "<h1 style='text-align:center;font-size:28px;font-weight:bold;margin-bottom:40px;color:#000'>公积金信用体系管理分析报告</h1>"
+                    },
+                    {
+                        type: "html",
+                        html: `<p style='text-align:center;font-size:16px;margin-bottom:60px;color:#666'>报告生成日期：${reportDate}</p>`
+                    },
+
+                    // 一、信用体系运行概况
+                    {
+                        type: "html",
+                        html: "<div style='font-size:18px;font-weight:bold;margin-top:30px;margin-bottom:15px;border-left:4px solid #1890ff;padding:8px 10px;background:#f0f7ff'>一、信用体系运行概况</div>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>截至本报告期，我中心信用管理系统已纳入信用主体共计 <strong>12,842</strong> 个，包括缴存单位 <strong>2,400</strong> 家、缴存人 <strong>10,200</strong> 人、开发商 <strong>242</strong> 家。</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>整体信用状况良好，A级（优秀）主体占比 <strong>61.4%</strong>，B级（良好）主体占比 <strong>26.2%</strong>，C级及D级风险主体合计占比 <strong>12.4%</strong>。</p>"
+                    },
+
+                    // 二、风险主体分析
+                    {
+                        type: "html",
+                        html: "<div style='font-size:18px;font-weight:bold;margin-top:30px;margin-bottom:15px;border-left:4px solid #1890ff;padding:8px 10px;background:#f0f7ff'>二、风险主体分析</div>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'><strong>2.1 缴存单位风险分析</strong></p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>当前共有 <strong>100</strong> 家缴存单位被标记为D级（高风险），主要风险行为集中在：连续欠缴（120起）、缴存人数骤降（85起）、信息不一致（45起）。城关管理部辖区内高风险主体数量最多（450家），建议重点关注。</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'><strong>2.2 缴存人风险分析</strong></p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>高风险缴存人共 <strong>200</strong> 人，主要风险点为：信息不完善（150人）、违规提取（80人）、贷后停缴（60人）。近30天风险趋势呈上升态势，需加强监控。</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'><strong>2.3 开发商风险分析</strong></p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>高风险开发商 <strong>12</strong> 家，主要风险行为为楼盘停工（8起）、协助违规（5起）。建议对相关楼盘开展专项核查。</p>"
+                    },
+
+                    // 三、趋势预警
+                    {
+                        type: "html",
+                        html: "<div style='font-size:18px;font-weight:bold;margin-top:30px;margin-bottom:15px;border-left:4px solid #1890ff;padding:8px 10px;background:#f0f7ff'>三、趋势预警</div>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>基于AI模型分析，预测未来30天内：</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<ul style='font-size:16px;padding-left:20px;margin-bottom:20px'><li>缴存单位高风险数量可能增加 <strong>15-20%</strong></li><li>缴存人贷款逾期率预计上升 <strong>0.3个百分点</strong></li><li>开发商风险相对稳定，无明显波动</li></ul>"
+                    },
+
+                    // 四、管理建议
+                    {
+                        type: "html",
+                        html: "<div style='font-size:18px;font-weight:bold;margin-top:30px;margin-bottom:15px;border-left:4px solid #1890ff;padding:8px 10px;background:#f0f7ff'>四、管理建议</div>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>1. <strong>强化分类监管：</strong>对C级、D级主体实施差异化管理，建立\"红黄牌\"预警机制，确保风险早发现、早干预。</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>2. <strong>深化数据共享：</strong>加强与工商、税务、人社等部门的数据联动，提升信用信息的全面性与时效性。</p>"
+                    },
+                    {
+                        type: "html",
+                        html: "<p style='font-size:16px;text-align:justify;margin-bottom:20px'>3. <strong>完善信用修复通道：</strong>针对非恶意失信主体（如因疫情等不可抗力导致），建立快速信用修复与异议处理通道，体现管理的温度与弹性。</p>"
+                    },
+
+                    // 落款
+                    {
+                        type: "html",
+                        html: `<div style='text-align:right;margin-top:50px'><p><strong>住房公积金管理中心 · 信用管理部</strong></p><p>${reportDate}</p></div>`
+                    }
+                ]
+            }
+        ]
+    };
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: reportSchema
+    });
+});
+
+// ==================== 智能稽核 - 风险总览 API ====================
+
+/**
+ * POST - 获取风险总览统计数据
+ * 返回顶部4个统计卡片的数据
+ */
+router.post('/audit/risk/overview/stats', (req, res) => {
+    console.log('[POST] 风险总览统计请求');
+
+    // 模拟统计数据
+    const stats = {
+        todayRiskCount: 18,           // 今日风险识别
+        unreviewedCount: 11,          // 未复核数量
+        totalIdentified: 929,         // 累计识别数量
+        lastUpdateTime: new Date().toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    };
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: stats
+    });
+});
+
+/**
+ * POST - 获取近7日AI预警趋势图数据
+ * 返回 ECharts 折线图配置
+ */
+router.post('/audit/risk/overview/chart/trend', (req, res) => {
+    console.log('[POST] 风险趋势图请求');
+
+    // 生成近7天的日期
+    const dates = [];
+    const values = [12, 15, 10, 18, 16, 14, 18]; // 模拟数据
+
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
+    }
+    // 最后一天改为"今日"
+    dates[dates.length - 1] = '今日';
+
+    const chartConfig = {
+        tooltip: { trigger: 'axis' },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: dates,
+            axisLine: { lineStyle: { color: '#ccc' } },
+            axisLabel: { color: '#666' }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: '#ccc' } },
+            axisLabel: { color: '#666' },
+            splitLine: { lineStyle: { color: '#eee' } }
+        },
+        series: [{
+            name: 'AI预警数',
+            type: 'line',
+            data: values,
+            smooth: true,
+            itemStyle: { color: '#e63946' },
+            areaStyle: {
+                color: {
+                    type: 'linear',
+                    x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                        { offset: 0, color: 'rgba(230, 57, 70, 0.3)' },
+                        { offset: 1, color: 'rgba(230, 57, 70, 0.05)' }
+                    ]
+                }
+            }
+        }]
+    };
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: chartConfig
+    });
+});
+
+/**
+ * POST - 获取AI风险类型分布饼图数据
+ * 返回 ECharts 饼图配置
+ */
+router.post('/audit/risk/overview/chart/pie', (req, res) => {
+    console.log('[POST] 风险分布饼图请求');
+
+    // 模拟各类型风险数量
+    const riskTypes = [
+        { value: 5, name: '材料伪造', itemId: 'material_forgery' },
+        { value: 5, name: '团伙骗提', itemId: 'gang_fraud' },
+        { value: 5, name: '单位挂靠', itemId: 'unit_affiliation' },
+        { value: 5, name: '合同造假', itemId: 'contract_fake' },
+        { value: 5, name: '地址矛盾', itemId: 'address_conflict' },
+        { value: 5, name: '突击提取', itemId: 'rush_withdrawal' }
+    ];
+
+    const chartConfig = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c}笔 ({d}%)'
+        },
+        legend: {
+            bottom: '5%',
+            left: 'center',
+            textStyle: { color: '#666' }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            data: riskTypes,
+            label: { show: false },
+            emphasis: {
+                label: { show: true, fontSize: 14, fontWeight: 'bold' }
+            },
+            itemStyle: {
+                borderRadius: 4,
+                borderColor: '#fff',
+                borderWidth: 2
+            },
+            color: ['#e63946', '#f4a261', '#2a9d8f', '#264653', '#e9c46a', '#9b59b6']
+        }]
+    };
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: chartConfig
+    });
+});
+
+// ==================== 智能稽核 - 风险清册 API ====================
+
+// 风险清册模拟数据
+const auditRiskRegistry = [
+    // 材料伪造
+    { id: 1, name: "张伟", idCard: "3301061990******12", type: "购房提取", amount: 480000, date: "2025-04-05", riskType: "材料伪造", confidence: 92, status: "未复核" },
+    { id: 2, name: "李娜", idCard: "3301081988******21", type: "购房提取", amount: 420000, date: "2025-04-04", riskType: "材料伪造", confidence: 88, status: "未复核" },
+    { id: 3, name: "王强", idCard: "3301051985******33", type: "租房提取", amount: 36000, date: "2025-04-03", riskType: "材料伪造", confidence: 85, status: "已复核" },
+    { id: 4, name: "赵芳", idCard: "3301091992******44", type: "购房提取", amount: 520000, date: "2025-04-02", riskType: "材料伪造", confidence: 90, status: "未复核" },
+    { id: 5, name: "郑明", idCard: "3301101987******55", type: "租房提取", amount: 42000, date: "2025-04-01", riskType: "材料伪造", confidence: 87, status: "已复核" },
+    // 团伙骗提
+    { id: 6, name: "刘洋", idCard: "3301081988******21", type: "租房提取", amount: 36000, date: "2025-04-04", riskType: "团伙骗提", confidence: 78, status: "未复核" },
+    { id: 7, name: "陈涛", idCard: "3301071986******11", type: "离职提取", amount: 18000, date: "2025-04-03", riskType: "团伙骗提", confidence: 82, status: "未复核" },
+    { id: 8, name: "周静", idCard: "3301061991******22", type: "购房提取", amount: 450000, date: "2025-04-02", riskType: "团伙骗提", confidence: 80, status: "已复核" },
+    { id: 9, name: "吴磊", idCard: "3301051984******33", type: "租房提取", amount: 38000, date: "2025-04-01", riskType: "团伙骗提", confidence: 76, status: "未复核" },
+    { id: 10, name: "黄蓉", idCard: "3301091989******44", type: "离职提取", amount: 15000, date: "2025-03-31", riskType: "团伙骗提", confidence: 79, status: "已复核" },
+    // 单位挂靠
+    { id: 11, name: "孙强", idCard: "3301051985******33", type: "离职提取", amount: 18000, date: "2025-04-03", riskType: "单位挂靠", confidence: 85, status: "未复核" },
+    { id: 12, name: "钱伟", idCard: "3301101987******55", type: "租房提取", amount: 42000, date: "2025-04-01", riskType: "单位挂靠", confidence: 73, status: "已复核" },
+    { id: 13, name: "李鹏", idCard: "3301061983******12", type: "购房提取", amount: 480000, date: "2025-03-30", riskType: "单位挂靠", confidence: 81, status: "未复核" },
+    { id: 14, name: "王燕", idCard: "3301081990******21", type: "离职提取", amount: 18000, date: "2025-03-28", riskType: "单位挂靠", confidence: 77, status: "未复核" },
+    { id: 15, name: "赵鑫", idCard: "3301071985******11", type: "租房提取", amount: 36000, date: "2025-03-25", riskType: "单位挂靠", confidence: 75, status: "已复核" },
+    // 合同造假
+    { id: 16, name: "陈峰", idCard: "3301091992******44", type: "购房提取", amount: 520000, date: "2025-04-02", riskType: "合同造假", confidence: 90, status: "未复核" },
+    { id: 17, name: "张芳", idCard: "3301101986******12", type: "购房提取", amount: 480000, date: "2025-04-01", riskType: "合同造假", confidence: 88, status: "未复核" },
+    { id: 18, name: "刘华", idCard: "3301051989******22", type: "购房提取", amount: 460000, date: "2025-03-30", riskType: "合同造假", confidence: 86, status: "已复核" },
+    { id: 19, name: "李明", idCard: "3301061984******11", type: "购房提取", amount: 490000, date: "2025-03-28", riskType: "合同造假", confidence: 84, status: "未复核" },
+    { id: 20, name: "王丽", idCard: "3301081991******22", type: "购房提取", amount: 510000, date: "2025-03-25", riskType: "合同造假", confidence: 82, status: "已复核" },
+    // 地址矛盾
+    { id: 21, name: "赵强", idCard: "3301051985******33", type: "离职提取", amount: 18000, date: "2025-04-03", riskType: "地址矛盾", confidence: 85, status: "未复核" },
+    { id: 22, name: "孙梅", idCard: "3301101987******55", type: "租房提取", amount: 42000, date: "2025-04-01", riskType: "地址矛盾", confidence: 73, status: "已复核" },
+    { id: 23, name: "黄军", idCard: "3301091988******21", type: "离职提取", amount: 15000, date: "2025-03-30", riskType: "地址矛盾", confidence: 79, status: "未复核" },
+    { id: 24, name: "周敏", idCard: "3301061985******11", type: "离职提取", amount: 18000, date: "2025-03-28", riskType: "地址矛盾", confidence: 76, status: "未复核" },
+    { id: 25, name: "吴刚", idCard: "3301071990******22", type: "离职提取", amount: 15000, date: "2025-03-25", riskType: "地址矛盾", confidence: 74, status: "已复核" },
+    // 突击提取
+    { id: 26, name: "林涛", idCard: "3301081988******21", type: "租房提取", amount: 36000, date: "2025-04-04", riskType: "突击提取", confidence: 78, status: "未复核" },
+    { id: 27, name: "杨芳", idCard: "3301061960******12", type: "退休提取", amount: 620000, date: "2025-04-03", riskType: "突击提取", confidence: 83, status: "未复核" },
+    { id: 28, name: "郭华", idCard: "3301051961******11", type: "退休提取", amount: 580000, date: "2025-04-02", riskType: "突击提取", confidence: 80, status: "已复核" },
+    { id: 29, name: "何梅", idCard: "3301081960******22", type: "退休提取", amount: 610000, date: "2025-04-01", riskType: "突击提取", confidence: 85, status: "未复核" },
+    { id: 30, name: "罗才", idCard: "3301071962******11", type: "退休提取", amount: 590000, date: "2025-03-30", riskType: "突击提取", confidence: 79, status: "已复核" }
+];
+
+/**
+ * POST - 获取风险清册列表
+ * 支持筛选和分页
+ */
+router.post('/audit/risk/registry/list', (req, res) => {
+    const { riskType, status, page = 1, perPage = 10 } = req.body;
+    console.log('[POST] 风险清册列表请求:', { riskType, status, page, perPage });
+
+    let filtered = [...auditRiskRegistry];
+
+    // 筛选条件
+    if (riskType) {
+        filtered = filtered.filter(item => item.riskType === riskType);
+    }
+    if (status) {
+        filtered = filtered.filter(item => item.status === status);
+    }
+
+    // 分页
+    const total = filtered.length;
+    const start = (page - 1) * perPage;
+    const items = filtered.slice(start, start + perPage);
+
+    // 格式化金额
+    const formattedItems = items.map(item => ({
+        ...item,
+        amountFormatted: `¥${item.amount.toLocaleString()}`,
+        confidenceFormatted: `${item.confidence}%`
+    }));
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: formattedItems,
+            total,
+            page: parseInt(page),
+            perPage: parseInt(perPage)
+        }
+    });
+});
+
+// ==================== 智能稽核 - AI 模型库 API ====================
+
+/**
+ * POST - 获取 AI 模型库列表
+ * 返回所有 AI 稽核模型的信息
+ */
+router.post('/audit/ai-models/list', (req, res) => {
+    console.log('[POST] AI 模型库列表请求');
+
+    const models = [
+        {
+            id: 1,
+            name: "材料伪造识别模型",
+            icon: "fa fa-picture-o",
+            color: "#1890ff",
+            bgColor: "primary",
+            function: "通过图像特征识别PS痕迹、重复上传、印章异常等模板材料检测。",
+            technology: "卷积神经网络（CNN）+ 图像哈希对比",
+            accuracy: "96.5%",
+            status: "运行中",
+            lastUpdate: "2025-04-01"
+        },
+        {
+            id: 2,
+            name: "团伙骗提检测模型",
+            icon: "fa fa-users",
+            color: "#dc3545",
+            bgColor: "danger",
+            function: "基于'共用电话、合同签约、金额近似'等关联关系图谱，识别团伙式骗提。",
+            technology: "图神经网络（GNN）+ 社区检测算法",
+            accuracy: "94.2%",
+            status: "运行中",
+            lastUpdate: "2025-03-28"
+        },
+        {
+            id: 3,
+            name: "单位挂靠识别模型",
+            icon: "fa fa-building",
+            color: "#ffc107",
+            bgColor: "warning",
+            function: "识别短工龄申报、短期参保、多次变更单位等'挂靠缴存'行为。",
+            technology: "随机森林 + 行为序列建模（LSTM）",
+            accuracy: "91.8%",
+            status: "运行中",
+            lastUpdate: "2025-04-02"
+        },
+        {
+            id: 4,
+            name: "合同套用检测模型",
+            icon: "fa fa-file-text-o",
+            color: "#17a2b8",
+            bgColor: "info",
+            function: "检测同一份合同在不同申请人之间重复使用。",
+            technology: "文本相似度（SimHash）+ 规则表达式验证对比",
+            accuracy: "98.1%",
+            status: "运行中",
+            lastUpdate: "2025-03-25"
+        },
+        {
+            id: 5,
+            name: "租房地址矛盾识别",
+            icon: "fa fa-home",
+            color: "#28a745",
+            bgColor: "success",
+            function: "对比租房合同地址与社保/劳动合同/居住证地址是否一致。",
+            technology: "NLP实体抽取 + 地址标准化匹配",
+            accuracy: "93.6%",
+            status: "运行中",
+            lastUpdate: "2025-04-03"
+        },
+        {
+            id: 6,
+            name: "突击提取行为预警",
+            icon: "fa fa-clock-o",
+            color: "#6c757d",
+            bgColor: "secondary",
+            function: "识别临近退休集中大额提取、失业前突击提取等异常行为。",
+            technology: "时序异常检测（Prophet + Z-score）",
+            accuracy: "89.4%",
+            status: "运行中",
+            lastUpdate: "2025-03-30"
+        }
+    ];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            items: models,
+            total: models.length
+        }
+    });
+});
+
 module.exports = router;
 

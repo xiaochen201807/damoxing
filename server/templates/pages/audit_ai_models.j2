@@ -1,0 +1,52 @@
+{#
+  智能稽核 - AI 模型库页面
+  
+  ========== API 配置 ==========
+  - models_list_api: AI 模型列表接口 (POST)
+#}
+
+{# ========== API 配置 ========== #}
+{% set models_list_api = models_list_api | default('/api/demo/audit/ai-models/list') %}
+
+{# ========== 页面结构 ========== #}
+{
+  "type": "page",
+  "title": "",
+  "body": [
+    {
+      "type": "wrapper",
+      "className": "bg-white p-md m-b-md",
+      "body": [
+        { "type": "html", "html": "<h2 style='margin:0;font-size:24px;font-weight:600;color:#1d39c4'><i class='fa fa-microchip' style='margin-right:10px'></i>AI 稽核模型库</h2>" },
+        { "type": "html", "html": "<p style='margin:8px 0 0 0;color:#666'>多人工智能构成的组合风险识别模型，高效发现各类违规行为</p>" }
+      ]
+    },
+    {
+      "type": "service",
+      "api": {
+        "method": "post",
+        "url": "{{ models_list_api }}"
+      },
+      "body": {
+        "type": "cards",
+        "source": "${items}",
+        "columnsCount": 2,
+        "card": {
+          "className": "b-none overflow-hidden",
+          "bodyClassName": "p-none",
+          "style": { "borderRadius": "8px", "boxShadow": "0 2px 8px rgba(0,0,0,0.1)" },
+          "body": [
+            {
+              "type": "tpl",
+              "tpl": "<div style='background:${color};color:#fff;padding:12px 16px;font-weight:600;border-radius:8px 8px 0 0'><i class='${icon}' style='margin-right:8px'></i>${name}</div>"
+            },
+            {
+              "type": "tpl",
+              "tpl": "<div style='padding:20px'><p style='margin:0 0 12px 0;line-height:1.6'><strong>功能：</strong>${function}</p><p style='margin:0;line-height:1.6'><strong>技术：</strong>${technology}</p></div>"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

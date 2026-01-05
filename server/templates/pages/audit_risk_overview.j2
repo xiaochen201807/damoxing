@@ -1,0 +1,163 @@
+{#
+  智能稽核 - 风险总览页面
+  
+  ========== API 配置 ==========
+  - stats_api: 统计概览接口 (POST)
+  - chart_trend_api: 趋势图接口 (POST)
+  - chart_pie_api: 风险分布饼图接口 (POST)
+  
+  ========== 页面配置 ==========
+  - title: 页面标题
+  - page_name: 页面组件名称
+#}
+
+{# ========== 默认配置 ========== #}
+{% set title = title | default('风险总览') %}
+{% set page_name = page_name | default('auditOverviewPage') %}
+
+{# ========== API 配置 ========== #}
+{% set stats_api = stats_api | default('/api/demo/audit/risk/overview/stats') %}
+{% set chart_trend_api = chart_trend_api | default('/api/demo/audit/risk/overview/chart/trend') %}
+{% set chart_pie_api = chart_pie_api | default('/api/demo/audit/risk/overview/chart/pie') %}
+
+{# ========== 页面结构 ========== #}
+{
+  "type": "page",
+  "title": "",
+  "name": "{{ page_name }}",
+  "body": [
+    {
+      "type": "wrapper",
+      "className": "bg-white p-md m-b-md",
+      "body": {
+        "type": "flex",
+        "justify": "space-between",
+        "alignItems": "center",
+        "items": [
+          {
+            "type": "wrapper",
+            "body": [
+              { "type": "html", "html": "<h2 style='margin:0;font-size:24px;font-weight:600;color:#1d39c4'><i class='fa fa-tachometer-alt' style='margin-right:10px'></i>{{ title }}</h2>" },
+              { "type": "html", "html": "<p style='margin:8px 0 0 0;color:#666'>AI智能异常识别，高效发现潜在欺诈及违规行为</p>" }
+            ]
+          },
+          {
+            "type": "button",
+            "label": "刷新数据",
+            "level": "primary",
+            "icon": "fa fa-sync-alt",
+            "actionType": "reload",
+            "target": "statsService,trendChart,pieChart"
+          }
+        ]
+      }
+    },
+    {
+      "type": "service",
+      "name": "statsService",
+      "api": {
+        "method": "post",
+        "url": "{{ stats_api }}"
+      },
+      "body": {
+        "type": "grid",
+        "className": "m-b-md",
+        "columns": [
+          {
+            "type": "wrapper",
+            "size": "md",
+            "body": {
+              "type": "card",
+              "className": "text-center",
+              "body": [
+                { "type": "html", "html": "<div style='color:#999;font-size:14px;margin-bottom:8px'>今日风险识别</div>" },
+                { "type": "tpl", "tpl": "<div style='font-size:36px;font-weight:600;color:#e63946'>${todayRiskCount}</div>" }
+              ]
+            }
+          },
+          {
+            "type": "wrapper",
+            "size": "md",
+            "body": {
+              "type": "card",
+              "className": "text-center",
+              "body": [
+                { "type": "html", "html": "<div style='color:#999;font-size:14px;margin-bottom:8px'>未复核数量</div>" },
+                { "type": "tpl", "tpl": "<div style='font-size:36px;font-weight:600;color:#1890ff'>${unreviewedCount}</div>" }
+              ]
+            }
+          },
+          {
+            "type": "wrapper",
+            "size": "md",
+            "body": {
+              "type": "card",
+              "className": "text-center",
+              "body": [
+                { "type": "html", "html": "<div style='color:#999;font-size:14px;margin-bottom:8px'>累计识别数量</div>" },
+                { "type": "tpl", "tpl": "<div style='font-size:36px;font-weight:600;color:#52c41a'>${totalIdentified}</div>" }
+              ]
+            }
+          },
+          {
+            "type": "wrapper",
+            "size": "md",
+            "body": {
+              "type": "card",
+              "className": "text-center",
+              "body": [
+                { "type": "html", "html": "<div style='color:#999;font-size:14px;margin-bottom:8px'>更新时间</div>" },
+                { "type": "tpl", "tpl": "<div style='font-size:16px;color:#666'>${lastUpdateTime}</div>" }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "grid",
+      "columns": [
+        {
+          "type": "wrapper",
+          "size": "lg",
+          "body": {
+            "type": "card",
+            "header": { "title": "近7日AI预警趋势" },
+            "body": {
+              "type": "chart",
+              "id": "trendChart",
+              "name": "trendChart",
+              "height": 320,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_trend_api }}"
+              }
+            }
+          }
+        },
+        {
+          "type": "wrapper",
+          "size": "md",
+          "body": {
+            "type": "card",
+            "header": { "title": "AI风险类型分布" },
+            "body": {
+              "type": "chart",
+              "id": "pieChart",
+              "name": "pieChart",
+              "height": 320,
+              "api": {
+                "method": "post",
+                "url": "{{ chart_pie_api }}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "html": "<div style='text-align:center;color:#999;font-size:12px;margin-top:16px'>以上数据均由人工智能模型自动识别生成，仅作预警参考</div>"
+    }
+  ]
+}

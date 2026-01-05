@@ -38,6 +38,42 @@ const TEMPLATE_METADATA = {
         description: '通用主动服务页面，支持服务卡片配置与动态数据刷新',
         preview_image: '/templates/active_service.png',
         theme_id: 'antd'
+    },
+    'credit_indicators': {
+        template_name: '信用评价指标管理',
+        description: '信用评价指标的增删改查管理页面，支持4个API配置',
+        preview_image: '/templates/credit_indicators.png',
+        theme_id: 'antd'
+    },
+    'credit_registry': {
+        template_name: '信用清册',
+        description: '信用主体清册查询与评价明细查看，支持2个API配置',
+        preview_image: '/templates/credit_registry.png',
+        theme_id: 'antd'
+    },
+    'credit_risk_monitor': {
+        template_name: '风险监控',
+        description: 'AI综合风险监控看板，支持8个API配置（4图表+3钻取+1报告）',
+        preview_image: '/templates/credit_risk_monitor.png',
+        theme_id: 'antd'
+    },
+    'audit_risk_overview': {
+        template_name: '智能稽核-风险总览',
+        description: 'AI智能稽核风险总览页面，支持3个API配置（统计+趋势图+饼图）',
+        preview_image: '/templates/audit_risk_overview.png',
+        theme_id: 'antd'
+    },
+    'audit_risk_registry': {
+        template_name: '智能稽核-风险清册',
+        description: 'AI风险清册列表页面，支持1个API配置（列表查询）',
+        preview_image: '/templates/audit_risk_registry.png',
+        theme_id: 'antd'
+    },
+    'audit_ai_models': {
+        template_name: '智能稽核-AI模型库',
+        description: 'AI稽核模型卡片展示页面，支持1个API配置（模型列表）',
+        preview_image: '/templates/audit_ai_models.png',
+        theme_id: 'antd'
     }
 };
 
