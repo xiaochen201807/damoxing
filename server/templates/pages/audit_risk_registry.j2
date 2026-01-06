@@ -3,10 +3,14 @@
   
   ========== API 配置 ==========
   - registry_list_api: 风险清册列表接口 (POST)
+  - registry_list_data: 风险清册列表固定参数 (JSON)
 #}
 
 {# ========== API 配置 ========== #}
 {% set registry_list_api = registry_list_api | default('/api/demo/audit/risk/registry/list') %}
+
+{# ========== 固定参数配置 ========== #}
+{% set list_data_obj = registry_list_data | default('{}') | fromjson %}
 
 {# ========== 页面结构 ========== #}
 {
@@ -38,12 +42,15 @@
         "method": "post",
         "url": "{{ registry_list_api }}",
         "data": {
+          {% if list_data_obj %}{% for key, val in list_data_obj %}"{{ key }}": {{ val | tojson }},
+          {% endfor %}{% endif %}
           "riskType": "${riskType}",
           "status": "${status}",
           "page": "${page}",
           "perPage": "${perPage}"
         }
       },
+
       "syncLocation": false,
       "headerToolbar": ["bulkActions", "pagination"],
       "footerToolbar": ["statistics", "pagination"],

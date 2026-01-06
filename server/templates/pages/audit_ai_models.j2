@@ -3,10 +3,14 @@
   
   ========== API 配置 ==========
   - models_list_api: AI 模型列表接口 (POST)
+  - models_list_data: AI 模型列表固定参数 (JSON)
 #}
 
 {# ========== API 配置 ========== #}
 {% set models_list_api = models_list_api | default('/api/demo/audit/ai-models/list') %}
+
+{# ========== 固定参数配置 ========== #}
+{% set list_data_obj = models_list_data | default('{}') | fromjson %}
 
 {# ========== 页面结构 ========== #}
 {
@@ -25,8 +29,14 @@
       "type": "service",
       "api": {
         "method": "post",
-        "url": "{{ models_list_api }}"
+        "url": "{{ models_list_api }}",
+        "data": {
+          {% if list_data_obj %}{% for key, val in list_data_obj %}"{{ key }}": {{ val | tojson }},
+          {% endfor %}{% endif %}
+          "&": "$$"
+        }
       },
+
       "body": {
         "type": "cards",
         "source": "${items}",

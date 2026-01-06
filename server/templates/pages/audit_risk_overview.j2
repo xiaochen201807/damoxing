@@ -3,8 +3,11 @@
   
   ========== API 配置 ==========
   - stats_api: 统计概览接口 (POST)
+  - stats_data: 统计概览固定参数 (JSON)
   - chart_trend_api: 趋势图接口 (POST)
+  - chart_trend_data: 趋势图固定参数 (JSON)
   - chart_pie_api: 风险分布饼图接口 (POST)
+  - chart_pie_data: 饼图固定参数 (JSON)
   
   ========== 页面配置 ==========
   - title: 页面标题
@@ -19,6 +22,11 @@
 {% set stats_api = stats_api | default('/api/demo/audit/risk/overview/stats') %}
 {% set chart_trend_api = chart_trend_api | default('/api/demo/audit/risk/overview/chart/trend') %}
 {% set chart_pie_api = chart_pie_api | default('/api/demo/audit/risk/overview/chart/pie') %}
+
+{# ========== 固定参数配置 ========== #}
+{% set stats_data_obj = stats_data | default('{}') | fromjson %}
+{% set chart_trend_data_obj = chart_trend_data | default('{}') | fromjson %}
+{% set chart_pie_data_obj = chart_pie_data | default('{}') | fromjson %}
 
 {# ========== 页面结构 ========== #}
 {
@@ -57,8 +65,14 @@
       "name": "statsService",
       "api": {
         "method": "post",
-        "url": "{{ stats_api }}"
+        "url": "{{ stats_api }}",
+        "data": {
+          {% if stats_data_obj %}{% for key, val in stats_data_obj %}"{{ key }}": {{ val | tojson }},
+          {% endfor %}{% endif %}
+          "&": "$$"
+        }
       },
+
       "body": {
         "type": "grid",
         "className": "m-b-md",
@@ -130,7 +144,12 @@
               "height": 320,
               "api": {
                 "method": "post",
-                "url": "{{ chart_trend_api }}"
+                "url": "{{ chart_trend_api }}",
+                "data": {
+                  {% if chart_trend_data_obj %}{% for key, val in chart_trend_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "&": "$$"
+                }
               }
             }
           }
@@ -148,7 +167,12 @@
               "height": 320,
               "api": {
                 "method": "post",
-                "url": "{{ chart_pie_api }}"
+                "url": "{{ chart_pie_api }}",
+                "data": {
+                  {% if chart_pie_data_obj %}{% for key, val in chart_pie_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "&": "$$"
+                }
               }
             }
           }

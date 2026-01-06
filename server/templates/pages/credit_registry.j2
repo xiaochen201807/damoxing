@@ -3,7 +3,9 @@
   
   ========== API 配置 ==========
   - registry_list_api: 信用清册列表接口 (POST)
+  - registry_list_data: 信用清册列表接口固定参数 (JSON)
   - registry_details_api: 信用评价明细接口 (POST)
+  - registry_details_data: 评价明细接口固定参数 (JSON)
   
   ========== 页面配置 ==========
   - title: 页面标题
@@ -15,6 +17,10 @@
 {# ========== API 配置 ========== #}
 {% set registry_list_api = registry_list_api | default('/api/demo/credit/registry/list') %}
 {% set registry_details_api = registry_details_api | default('/api/demo/credit/registry/details') %}
+
+{# ========== 固定参数配置 ========== #}
+{% set list_data_obj = registry_list_data | default('{}') | fromjson %}
+{% set details_data_obj = registry_details_data | default('{}') | fromjson %}
 
 {# ========== 页面结构 ========== #}
 {
@@ -38,12 +44,15 @@
         "method": "post",
         "url": "{{ registry_list_api }}",
         "data": {
+          {% if list_data_obj %}{% for key, val in list_data_obj %}"{{ key }}": {{ val | tojson }},
+          {% endfor %}{% endif %}
           "subject": "${subject}",
           "level": "${level}",
           "page": "${page}",
           "perPage": "${perPage}"
         }
       },
+
       "syncLocation": false,
       "filter": {
         "title": "信用主体清册",
@@ -116,8 +125,13 @@
                   "api": {
                     "method": "post",
                     "url": "{{ registry_details_api }}",
-                    "data": { "id": "${id}" }
+                    "data": {
+                      {% if details_data_obj %}{% for key, val in details_data_obj %}"{{ key }}": {{ val | tojson }},
+                      {% endfor %}{% endif %}
+                      "id": "${id}"
+                    }
                   },
+
                   "body": [
                     {
                       "type": "alert",

@@ -3,13 +3,21 @@
   
   ========== API 配置 ==========
   - chart_level_api: 信用级别饼图接口 (POST)
+  - chart_level_data: 信用级别饼图固定参数 (JSON)
   - chart_behavior_api: 风险行为柱状图接口 (POST)
+  - chart_behavior_data: 风险行为柱状图固定参数 (JSON)
   - chart_region_api: 区域风险柱状图接口 (POST)
+  - chart_region_data: 区域风险柱状图固定参数 (JSON)
   - chart_trend_api: 风险趋势折线图接口 (POST)
+  - chart_trend_data: 风险趋势折线图固定参数 (JSON)
   - drilldown_level_api: 信用等级钻取接口 (POST)
+  - drilldown_level_data: 信用等级钻取固定参数 (JSON)
   - drilldown_behavior_api: 风险行为钻取接口 (POST)
+  - drilldown_behavior_data: 风险行为钻取固定参数 (JSON)
   - drilldown_region_api: 区域钻取接口 (POST)
+  - drilldown_region_data: 区域钻取固定参数 (JSON)
   - generate_report_api: AI报告生成接口 (POST)
+  - generate_report_data: AI报告生成固定参数 (JSON)
   
   ========== 页面配置 ==========
   - title: 页面标题
@@ -32,12 +40,23 @@
 {% set drilldown_region_api = drilldown_region_api | default('/api/demo/credit/risk/drilldown/region') %}
 {% set generate_report_api = generate_report_api | default('/api/demo/credit/risk/generate-report') %}
 
+{# ========== 固定参数配置 ========== #}
+{% set chart_level_data_obj = chart_level_data | default('{}') | fromjson %}
+{% set chart_behavior_data_obj = chart_behavior_data | default('{}') | fromjson %}
+{% set chart_region_data_obj = chart_region_data | default('{}') | fromjson %}
+{% set chart_trend_data_obj = chart_trend_data | default('{}') | fromjson %}
+{% set drilldown_level_data_obj = drilldown_level_data | default('{}') | fromjson %}
+{% set drilldown_behavior_data_obj = drilldown_behavior_data | default('{}') | fromjson %}
+{% set drilldown_region_data_obj = drilldown_region_data | default('{}') | fromjson %}
+{% set generate_report_data_obj = generate_report_data | default('{}') | fromjson %}
+
 {# ========== 页面结构 ========== #}
 {
   "type": "page",
   "title": "",
   "name": "{{ page_name }}",
   "data": { "subject": "{{ default_subject }}" },
+
   "body": [
     {
       "type": "wrapper",
@@ -102,7 +121,11 @@
               "api": {
                 "method": "post",
                 "url": "{{ chart_level_api }}",
-                "data": { "subject": "${subject}" }
+                "data": {
+                  {% if chart_level_data_obj %}{% for key, val in chart_level_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "subject": "${subject}"
+                }
               },
               "onEvent": {
                 "click": {
@@ -118,6 +141,8 @@
                             "method": "post",
                             "url": "{{ drilldown_level_api }}",
                             "data": {
+                              {% if drilldown_level_data_obj %}{% for key, val in drilldown_level_data_obj %}"{{ key }}": {{ val | tojson }},
+                              {% endfor %}{% endif %}
                               "subject": "${subject}",
                               "selectedId": "${event.data.data.itemId}"
                             }
@@ -151,7 +176,11 @@
               "api": {
                 "method": "post",
                 "url": "{{ chart_behavior_api }}",
-                "data": { "subject": "${subject}" }
+                "data": {
+                  {% if chart_behavior_data_obj %}{% for key, val in chart_behavior_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "subject": "${subject}"
+                }
               },
               "onEvent": {
                 "click": {
@@ -167,6 +196,8 @@
                             "method": "post",
                             "url": "{{ drilldown_behavior_api }}",
                             "data": {
+                              {% if drilldown_behavior_data_obj %}{% for key, val in drilldown_behavior_data_obj %}"{{ key }}": {{ val | tojson }},
+                              {% endfor %}{% endif %}
                               "subject": "${subject}",
                               "selectedId": "${event.data.data.itemId}"
                             }
@@ -205,7 +236,11 @@
               "api": {
                 "method": "post",
                 "url": "{{ chart_region_api }}",
-                "data": { "subject": "${subject}" }
+                "data": {
+                  {% if chart_region_data_obj %}{% for key, val in chart_region_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "subject": "${subject}"
+                }
               },
               "onEvent": {
                 "click": {
@@ -221,6 +256,8 @@
                             "method": "post",
                             "url": "{{ drilldown_region_api }}",
                             "data": {
+                              {% if drilldown_region_data_obj %}{% for key, val in drilldown_region_data_obj %}"{{ key }}": {{ val | tojson }},
+                              {% endfor %}{% endif %}
                               "subject": "${subject}",
                               "selectedId": "${event.data.data.itemId}"
                             }
@@ -255,7 +292,11 @@
               "api": {
                 "method": "post",
                 "url": "{{ chart_trend_api }}",
-                "data": { "subject": "${subject}" }
+                "data": {
+                  {% if chart_trend_data_obj %}{% for key, val in chart_trend_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "subject": "${subject}"
+                }
               }
             }
           }
@@ -286,7 +327,11 @@
                 "api": {
                   "method": "post",
                   "url": "{{ generate_report_api }}",
-                  "data": { "subject": "${subject}" }
+                  "data": {
+                    {% if generate_report_data_obj %}{% for key, val in generate_report_data_obj %}"{{ key }}": {{ val | tojson }},
+                    {% endfor %}{% endif %}
+                    "subject": "${subject}"
+                  }
                 },
                 "body": { "type": "container", "body": "${data.body}" }
               },

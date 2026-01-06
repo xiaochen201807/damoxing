@@ -3,9 +3,13 @@
   
   ========== API 配置 ==========
   - indicators_list_api: 指标列表接口 (POST)
+  - indicators_list_data: 列表接口固定参数 (JSON)
   - indicators_create_api: 新增指标接口 (POST)
+  - indicators_create_data: 新增接口固定参数 (JSON)
   - indicators_update_api: 更新指标接口 (POST)
+  - indicators_update_data: 更新接口固定参数 (JSON)
   - indicators_delete_api: 删除指标接口 (POST)
+  - indicators_delete_data: 删除接口固定参数 (JSON)
   
   ========== 页面配置 ==========
   - title: 页面标题
@@ -20,6 +24,12 @@
 {% set indicators_update_api = indicators_update_api | default('/api/demo/credit/indicators/update') %}
 {% set indicators_delete_api = indicators_delete_api | default('/api/demo/credit/indicators/delete') %}
 
+{# ========== 固定参数配置 ========== #}
+{% set list_data_obj = indicators_list_data | default('{}') | fromjson %}
+{% set create_data_obj = indicators_create_data | default('{}') | fromjson %}
+{% set update_data_obj = indicators_update_data | default('{}') | fromjson %}
+{% set delete_data_obj = indicators_delete_data | default('{}') | fromjson %}
+
 {# ========== 页面结构 ========== #}
 {
   "type": "page",
@@ -32,12 +42,15 @@
         "method": "post",
         "url": "{{ indicators_list_api }}",
         "data": {
+          {% if list_data_obj %}{% for key, val in list_data_obj %}"{{ key }}": {{ val | tojson }},
+          {% endfor %}{% endif %}
           "subject": "${subject}",
           "status": "${status}",
           "page": "${page}",
           "perPage": "${perPage}"
         }
       },
+
       "syncLocation": false,
       "headerToolbar": [
         {
@@ -53,7 +66,12 @@
               "type": "form",
               "api": {
                 "method": "post",
-                "url": "{{ indicators_create_api }}"
+                "url": "{{ indicators_create_api }}",
+                "data": {
+                  {% if create_data_obj %}{% for key, val in create_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "&": "$$"
+                }
               },
               "body": [
                 {
@@ -186,7 +204,12 @@
                   "type": "form",
                   "api": {
                     "method": "post",
-                    "url": "{{ indicators_update_api }}"
+                    "url": "{{ indicators_update_api }}",
+                    "data": {
+                      {% if update_data_obj %}{% for key, val in update_data_obj %}"{{ key }}": {{ val | tojson }},
+                      {% endfor %}{% endif %}
+                      "&": "$$"
+                    }
                   },
                   "body": [
                     { "type": "hidden", "name": "id" },
@@ -230,7 +253,11 @@
               "api": {
                 "method": "post",
                 "url": "{{ indicators_delete_api }}",
-                "data": { "id": "${id}" }
+                "data": {
+                  {% if delete_data_obj %}{% for key, val in delete_data_obj %}"{{ key }}": {{ val | tojson }},
+                  {% endfor %}{% endif %}
+                  "id": "${id}"
+                }
               }
             }
           ]
