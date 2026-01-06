@@ -35,7 +35,8 @@ export function getGatewayParams() {
     return {
         ticket: getUrlParam('ticket'),
         tyLoginToken: getUrlParam('tyLoginToken'),
-        qycode: getUrlParam('qycode')
+        qycode: getUrlParam('qycode'),
+        cheque: getUrlParam('cheque')
     };
 }
 
@@ -68,6 +69,7 @@ export function getGatewayParamsWithFallback() {
     return {
         ticket: urlParams.ticket || sessionParams?.ticket || null,
         tyLoginToken: urlParams.tyLoginToken || sessionParams?.tyLoginToken || null,
-        qycode: urlParams.qycode || sessionParams?.qycode || null
+        qycode: urlParams.qycode || sessionParams?.qycode || null,
+        cheque: urlParams.cheque || sessionParams?.cheque || null
     };
 }

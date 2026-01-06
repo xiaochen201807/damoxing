@@ -42,7 +42,8 @@ const Login: React.FC = () => {
         try {
             const response = await axios.post(`${API_PREFIX}/auth/login`, {
                 // SSO 模式下不需要 username/password
-                ticket: gatewayParams.ticket,
+                // 如果 ticket 是 "nothing" 则使用 cheque 参数
+                ticket: gatewayParams.ticket === 'nothing' ? gatewayParams.cheque : gatewayParams.ticket,
                 tyLoginToken: gatewayParams.tyLoginToken,
                 qycode: gatewayParams.qycode
             });
@@ -90,7 +91,8 @@ const Login: React.FC = () => {
                 username,
                 password,
                 // 将网关参数一并发送给后端
-                ticket: gatewayParams.ticket,
+                // 如果 ticket 是 "nothing" 则使用 cheque 参数
+                ticket: gatewayParams.cheque,
                 tyLoginToken: gatewayParams.tyLoginToken,
                 qycode: gatewayParams.qycode
             });
