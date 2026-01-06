@@ -1794,7 +1794,8 @@ let creditIndicators = [
         description: "指缴存单位未能按时缴存公积金，存在连续欠缴的情况",
         weight: 15,
         elementName: "欠缴月数",
-        elementValue: "≥3个月",
+        elementDesc: "连续欠缴公积金的月数",
+        elementValue: 3,
         status: "开启"
     },
     {
@@ -1804,7 +1805,8 @@ let creditIndicators = [
         description: "单位在短期内缴存人数大幅减少，可能反映经营异常或裁员情况",
         weight: 12,
         elementName: "减少比例",
-        elementValue: "≥30%",
+        elementDesc: "缴存人数减少的百分比",
+        elementValue: 30,
         status: "开启"
     },
     {
@@ -1814,7 +1816,8 @@ let creditIndicators = [
         description: "单位提供的信息不完整或与工商注册信息存在不一致",
         weight: 10,
         elementName: "信息不一致项",
-        elementValue: "≥2项",
+        elementDesc: "信息不一致的项目数量",
+        elementValue: 2,
         status: "开启"
     },
     {
@@ -1824,7 +1827,8 @@ let creditIndicators = [
         description: "单位在电子稽查检查中存在不通过的项目",
         weight: 8,
         elementName: "检查不通过项",
-        elementValue: "≥2项",
+        elementDesc: "电子稽查检查不通过的项目数",
+        elementValue: 2,
         status: "开启"
     },
     {
@@ -1834,7 +1838,8 @@ let creditIndicators = [
         description: "单位中贷款逾期的职工比例异常不合规",
         weight: 15,
         elementName: "逾期职工占比",
-        elementValue: "≥33%",
+        elementDesc: "贷款逾期职工占总职工的百分比",
+        elementValue: 33,
         status: "开启"
     },
     {
@@ -1844,7 +1849,8 @@ let creditIndicators = [
         description: "单位因未遵守信用承诺制度被纳入一般失信名单",
         weight: 20,
         elementName: "一般失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入一般失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1854,7 +1860,8 @@ let creditIndicators = [
         description: "单位因未遵守信用承诺制度被纳入严重失信名单",
         weight: 25,
         elementName: "严重失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入严重失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1864,7 +1871,8 @@ let creditIndicators = [
         description: "单位存在缴存职工缴存基数违规的情况",
         weight: 5,
         elementName: "违规职工占比",
-        elementValue: "≥2%",
+        elementDesc: "缴存基数违规职工占总职工的百分比",
+        elementValue: 2,
         status: "开启"
     },
     // 缴存人评价指标
@@ -1875,7 +1883,8 @@ let creditIndicators = [
         description: "缴存人提供的信息不完整或与民政公安等信息不一致",
         weight: 10,
         elementName: "信息缺失项",
-        elementValue: "≥3项",
+        elementDesc: "信息缺失或不一致的项目数",
+        elementValue: 3,
         status: "开启"
     },
     {
@@ -1885,7 +1894,8 @@ let creditIndicators = [
         description: "缴存人在使用公积金贷款后停止缴存公积金",
         weight: 20,
         elementName: "连续断缴月数",
-        elementValue: "≥3个月",
+        elementDesc: "贷后连续断缴公积金的月数",
+        elementValue: 3,
         status: "开启"
     },
     {
@@ -1895,7 +1905,8 @@ let creditIndicators = [
         description: "缴存人的公积金贷款存在逾期情况",
         weight: 25,
         elementName: "逾期月数",
-        elementValue: "≥1个月",
+        elementDesc: "公积金贷款逾期的月数",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1905,7 +1916,8 @@ let creditIndicators = [
         description: "缴存人因未遵守信用承诺制度被纳入一般失信名单",
         weight: 15,
         elementName: "一般失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入一般失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1915,7 +1927,8 @@ let creditIndicators = [
         description: "缴存人因未遵守信用承诺制度被纳入严重失信名单",
         weight: 20,
         elementName: "严重失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入严重失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1925,7 +1938,8 @@ let creditIndicators = [
         description: "缴存人的公积金账户处于冻结状态",
         weight: 10,
         elementName: "缴存人当前状态",
-        elementValue: "冻结",
+        elementDesc: "账户是否处于冻结状态",
+        elementValue: 1,
         status: "开启"
     },
     // 开发商评价指标
@@ -1936,7 +1950,8 @@ let creditIndicators = [
         description: "开发商因未遵守信用承诺制度被纳入一般失信名单",
         weight: 30,
         elementName: "一般失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入一般失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1946,7 +1961,8 @@ let creditIndicators = [
         description: "开发商因未遵守信用承诺制度被纳入严重失信名单",
         weight: 40,
         elementName: "严重失信",
-        elementValue: "是",
+        elementDesc: "是否被纳入严重失信名单",
+        elementValue: 1,
         status: "开启"
     },
     {
@@ -1956,7 +1972,8 @@ let creditIndicators = [
         description: "开发商提供的信息不完整或与工商注册信息不一致",
         weight: 30,
         elementName: "信息缺失项",
-        elementValue: "≥3项",
+        elementDesc: "信息缺失或不一致的项目数",
+        elementValue: 3,
         status: "开启"
     }
 ];
@@ -1999,15 +2016,15 @@ router.post('/credit/indicators/list', (req, res) => {
  * POST - 新增信用评价指标
  */
 router.post('/credit/indicators/create', (req, res) => {
-    const { subject, name, description, weight, elementName, elementValue, status } = req.body;
+    const { subject, name, description, weight, elementName, elementDesc, elementValue, status } = req.body;
 
     console.log('[POST] 新增信用评价指标:', req.body);
 
     // 参数校验
-    if (!subject || !name || !weight || !elementName || !elementValue) {
+    if (!subject || !name || !weight || !elementName || !elementDesc || elementValue === undefined) {
         return res.status(400).json({
             status: 400,
-            msg: '缺少必要参数：subject, name, weight, elementName, elementValue'
+            msg: '缺少必要参数：subject, name, weight, elementName, elementDesc, elementValue'
         });
     }
 
@@ -2019,7 +2036,8 @@ router.post('/credit/indicators/create', (req, res) => {
         description: description || '',
         weight: parseInt(weight),
         elementName,
-        elementValue,
+        elementDesc,
+        elementValue: parseFloat(elementValue),
         status: status === true || status === '开启' ? '开启' : '关闭'
     };
 
@@ -2038,7 +2056,7 @@ router.post('/credit/indicators/create', (req, res) => {
  * POST - 更新信用评价指标
  */
 router.post('/credit/indicators/update', (req, res) => {
-    const { id, subject, name, description, weight, elementName, elementValue, status } = req.body;
+    const { id, subject, name, description, weight, elementName, elementDesc, elementValue, status } = req.body;
 
     console.log('[POST] 更新信用评价指标:', req.body);
 
@@ -2068,7 +2086,8 @@ router.post('/credit/indicators/update', (req, res) => {
         description: description !== undefined ? description : creditIndicators[index].description,
         weight: weight !== undefined ? parseInt(weight) : creditIndicators[index].weight,
         elementName: elementName !== undefined ? elementName : creditIndicators[index].elementName,
-        elementValue: elementValue !== undefined ? elementValue : creditIndicators[index].elementValue,
+        elementDesc: elementDesc !== undefined ? elementDesc : creditIndicators[index].elementDesc,
+        elementValue: elementValue !== undefined ? parseFloat(elementValue) : creditIndicators[index].elementValue,
         status: status !== undefined ? (status === true || status === '开启' ? '开启' : '关闭') : creditIndicators[index].status
     };
 
