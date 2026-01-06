@@ -55,7 +55,8 @@ function restoreAmisVariables(str) {
     result = result.replace(/__DOLLAR_AND__/g, '${&}');
 
     // 还原 __VAR_xxx__ -> ${xxx}
-    result = result.replace(/__VAR_(.*?)__(?!_)/g, (_, varExpr) => {
+    // 使用更精确的正则：匹配变量名和可能的 PIPE/COLON 修饰符
+    result = result.replace(/__VAR_([A-Za-z0-9_]+(?:__(?:PIPE|COLON)__[A-Za-z0-9_]+)*)__/g, (_, varExpr) => {
         const originalExpr = varExpr
             .replace(/__PIPE__/g, '|')
             .replace(/__COLON__/g, ':');
