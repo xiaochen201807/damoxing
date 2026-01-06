@@ -117,10 +117,17 @@
                 },
                 {
                   "type": "input-text",
+                  "name": "elementDesc",
+                  "label": "管理要素说明",
+                  "required": true,
+                  "placeholder": "请输入管理要素的详细说明"
+                },
+                {
+                  "type": "input-number",
                   "name": "elementValue",
                   "label": "管理要素阈值",
                   "required": true,
-                  "placeholder": "例如：≥3个月、≥30%"
+                  "placeholder": "请输入阈值数字"
                 },
                 {
                   "type": "switch",
@@ -228,7 +235,8 @@
                     { "type": "textarea", "name": "description", "label": "指标描述" },
                     { "type": "input-number", "name": "weight", "label": "权重", "required": true, "min": 1, "max": 100, "suffix": "%" },
                     { "type": "input-text", "name": "elementName", "label": "管理要素名称", "required": true },
-                    { "type": "input-text", "name": "elementValue", "label": "管理要素阈值", "required": true },
+                    { "type": "input-text", "name": "elementDesc", "label": "管理要素说明", "required": true },
+                    { "type": "input-number", "name": "elementValue", "label": "管理要素阈值", "required": true },
                     {
                       "type": "switch",
                       "name": "status",
