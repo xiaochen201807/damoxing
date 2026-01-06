@@ -19,6 +19,8 @@
   - export_method: 导出API请求方法 (default: 'get', optional: 'post')
   - ai_analysis_text: AI生成的风险分析 (optional)
   - ai_suggestions: AI生成的规避建议 (optional)
+  - analysis_label: AI分析区域标签 (default: '风险分析')
+  - suggestions_label: 规避建议区域标签 (default: '规避建议')
   - enable_drilldown: 是否启用钻取 (default: true)
 #}
 {% import 'macros/chart_adaptors.j2' as adaptors %}
@@ -202,11 +204,11 @@
             "body": [
                 {
                     "type": "tpl",
-                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #0050b3; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>风险分析</span></div><div style='margin-bottom: 25px; font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_analysis_text | default('暂无AI分析数据。') | replace('\n', '<br/>') }}</div>"
+                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #0050b3; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>{{ analysis_label | default('风险分析') }}</span></div><div style='margin-bottom: 25px; font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_analysis_text | default('暂无AI分析数据。') | replace('\n', '<br/>') }}</div>"
                 },
                 {
                     "type": "tpl",
-                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #006d75; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>规避建议</span></div><div style='font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}</div>"
+                    "tpl": "<div style='margin-bottom: 5px;'><span style='background: #006d75; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;'>{{ suggestions_label | default('规避建议') }}</span></div><div style='font-size: 14px; line-height: 1.6; color: #666;'>{{ ai_suggestions | default('暂无规避建议。') | replace('\n', '<br/>') }}</div>"
                 }
 
             ]
