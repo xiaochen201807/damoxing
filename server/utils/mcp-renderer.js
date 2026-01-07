@@ -50,22 +50,46 @@ function renderComponent(templatePath, params) {
 }
 
 /**
+ * 渲染 PDF 导出按钮
+ * @param {object} options - PDF 导出选项
+ * @returns {object|null} - PDF 导出按钮 Schema 或 null
+ */
+function renderPdfExportButton(options = {}) {
+    const { enable_pdf_export, pdf_button_label, pdf_filename } = options;
+
+    if (!enable_pdf_export) {
+        return null;
+    }
+
+    try {
+        const buttonSchema = renderComponent('components/pdf_export_button.j2', {
+            pdf_button_label: pdf_button_label || '导出为 PDF',
+            pdf_filename: pdf_filename || '页面导出',
+            pdf_target_selector: '.cxd-Page-body',
+            pdf_button_position: 'center'
+        });
+        return buttonSchema;
+    } catch (error) {
+        logger.warn(`[MCP Renderer] Failed to render PDF export button: ${error.message}`);
+        return null;
+    }
+}
+
+/**
  * 组装页面 Schema
  * @param {string} layout - 布局模式 ('simple', 'dashboard')
  * @param {string} title - 页面标题
  * @param {array} componentSchemas - 已渲染的组件 Schema 数组
+ * @param {object} options - 可选配置 { enable_pdf_export, pdf_button_label, pdf_filename }
  * @returns {object} - 完整的 AMIS Page Schema
  */
-function assemblePage(layout, title, componentSchemas) {
-    const pageSchema = {
-        type: "container",
-        body: []
-    };
+function assemblePage(layout, title, componentSchemas, options = {}) {
+    let bodyContent;
 
     if (layout === 'dashboard' || layout === 'grid') {
         // 仪表盘布局：假设是 Grid，每个组件占一定宽度
         // 简单起见，每行 2 个
-        pageSchema.body = {
+        bodyContent = {
             type: "grid",
             columns: componentSchemas.map(comp => ({
                 body: [comp],
@@ -74,7 +98,23 @@ function assemblePage(layout, title, componentSchemas) {
         };
     } else {
         // 默认流式布局：垂直堆叠
-        pageSchema.body = componentSchemas;
+        bodyContent = componentSchemas;
+    }
+
+    // 构建最终 body
+    const pageSchema = {
+        type: "container",
+        body: Array.isArray(bodyContent) ? [...bodyContent] : [bodyContent]
+    };
+
+    // 添加 PDF 导出按钮（如果启用）
+    const pdfButton = renderPdfExportButton(options);
+    if (pdfButton) {
+        if (Array.isArray(pageSchema.body)) {
+            pageSchema.body.push(pdfButton);
+        } else {
+            pageSchema.body = [pageSchema.body, pdfButton];
+        }
     }
 
     return pageSchema;
@@ -85,39 +125,50 @@ function assemblePage(layout, title, componentSchemas) {
  * @param {string} layout - 布局模式 ('simple', 'dashboard')
  * @param {string} title - 页面标题
  * @param {array} tabs - 标签页配置数组，每个元素包含 { title, renderedComponents }
+ * @param {object} options - 可选配置 { enable_pdf_export, pdf_button_label, pdf_filename }
  * @returns {object} - 完整的 AMIS Page Schema
  */
-function assemblePageWithTabs(layout, title, tabs) {
+function assemblePageWithTabs(layout, title, tabs, options = {}) {
     // 如果只有一个标签，不使用 tabs 组件，直接展示内容
     if (tabs.length === 1) {
-        return assemblePage(layout, title, tabs[0].renderedComponents);
+        return assemblePage(layout, title, tabs[0].renderedComponents, options);
     }
 
     // 多个标签，生成 AMIS tabs 组件
-    const pageSchema = {
-        type: "container",
-        body: {
-            type: "tabs",
-            tabs: tabs.map(tab => ({
-                title: tab.title,
-                body: layout === 'dashboard' || layout === 'grid'
-                    ? {
-                        type: "grid",
-                        columns: tab.renderedComponents.map(comp => ({
-                            body: [comp],
-                            md: 6
-                        }))
-                    }
-                    : tab.renderedComponents
-            }))
-        }
+    const tabsComponent = {
+        type: "tabs",
+        tabs: tabs.map(tab => ({
+            title: tab.title,
+            body: layout === 'dashboard' || layout === 'grid'
+                ? {
+                    type: "grid",
+                    columns: tab.renderedComponents.map(comp => ({
+                        body: [comp],
+                        md: 6
+                    }))
+                }
+                : tab.renderedComponents
+        }))
     };
 
-    return pageSchema;
+    const bodyContent = [tabsComponent];
+
+    // 添加 PDF 导出按钮（如果启用）
+    const pdfButton = renderPdfExportButton(options);
+    if (pdfButton) {
+        bodyContent.push(pdfButton);
+    }
+
+    return {
+        type: "container",
+        body: bodyContent
+    };
 }
 
 module.exports = {
     renderComponent,
     assemblePage,
-    assemblePageWithTabs
+    assemblePageWithTabs,
+    renderPdfExportButton
 };
+

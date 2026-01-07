@@ -135,7 +135,7 @@ function registerTools(server) {
                 },
                 {
                     name: "generate_page_schema",
-                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。支持两种模式：1) 单页模式：使用 components 数组；2) 标签页模式：使用 tabs 数组分组显示组件。",
+                    description: "根据组件列表和参数生成页面配置 (AMIS Schema)。支持两种模式：1) 单页模式：使用 components 数组；2) 标签页模式：使用 tabs 数组分组显示组件。可选添加 PDF 导出按钮。",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -202,6 +202,21 @@ function registerTools(server) {
                                     }
                                 ],
                                 description: "标签页模式：多个标签页配置（与 components 二选一），支持数组或JSON字符串格式。如果只有1个tab则自动降级为单页模式。"
+                            },
+                            enable_pdf_export: {
+                                type: "boolean",
+                                description: "是否在页面底部添加 PDF 导出按钮",
+                                default: false
+                            },
+                            pdf_button_label: {
+                                type: "string",
+                                description: "PDF 导出按钮的文字内容（仅当 enable_pdf_export 为 true 时生效）",
+                                default: "导出为 PDF"
+                            },
+                            pdf_filename: {
+                                type: "string",
+                                description: "导出的 PDF 文件名前缀（仅当 enable_pdf_export 为 true 时生效）",
+                                default: "页面导出"
                             }
                         }
                     }
@@ -283,7 +298,7 @@ function registerTools(server) {
         }
 
         if (name === "generate_page_schema") {
-            let { title, layout, components, tabs } = args;
+            let { title, layout, components, tabs, enable_pdf_export, pdf_button_label, pdf_filename } = args;
 
             // 字符串转数组：如果 components 是字符串，解析为数组
             if (typeof components === 'string') {
@@ -423,7 +438,7 @@ function registerTools(server) {
                     };
                 }
 
-                pageSchema = mcpRenderer.assemblePageWithTabs(layout, title, tabsData);
+                pageSchema = mcpRenderer.assemblePageWithTabs(layout, title, tabsData, { enable_pdf_export, pdf_button_label, pdf_filename });
             } else {
                 // 单页模式（兼容旧逻辑）
                 const renderedComponents = await renderComponentList(components, defMap);
@@ -435,7 +450,7 @@ function registerTools(server) {
                     };
                 }
 
-                pageSchema = mcpRenderer.assemblePage(layout, title, renderedComponents);
+                pageSchema = mcpRenderer.assemblePage(layout, title, renderedComponents, { enable_pdf_export, pdf_button_label, pdf_filename });
             }
 
             return {
