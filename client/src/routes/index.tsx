@@ -24,8 +24,8 @@ const AppRoutes: React.FC = () => {
       path: '/',
       element: <AuthGuard><MainLayout /></AuthGuard>,
       children: [
-        // 默认重定向到第一个菜单页面
-        { index: true, element: <Navigate to="/dashboard/loan_risk" replace /> },
+        // 默认重定向到系统配置页面
+        { index: true, element: <Navigate to="/system/config" replace /> },
 
         // 通用动态路由：匹配 /:routeKey/:pageId
         // 例如 /dashboard/loan_risk, /zcfx/gdlfx

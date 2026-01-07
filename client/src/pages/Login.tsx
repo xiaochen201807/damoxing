@@ -6,8 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getGatewayParamsWithFallback, saveUrlParamsToSession } from '../utils/urlParams';
+import { getGatewayParamsWithFallback, saveUrlParamsToSession, getUrlParam } from '../utils/urlParams';
 import '../styles/Login.css';
+
+// 默认跳转路径
+const DEFAULT_REDIRECT_PATH = '/system/config';
 
 // API 路由前缀（从环境变量读取，默认 /api）
 const API_PREFIX = import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
@@ -34,6 +37,23 @@ const Login: React.FC = () => {
         }
     }, []);
 
+    /**
+     * 获取登录后的跳转路径
+     * - 有网关参数（cheque + tyLoginToken）时：返回原始路径或默认路径
+     * - 无网关参数时：返回默认路径
+     */
+    const getRedirectPath = (hasGatewayParams: boolean): string => {
+        if (hasGatewayParams) {
+            // 网关登录：优先返回原始路径
+            const returnUrl = getUrlParam('returnUrl');
+            if (returnUrl && returnUrl !== '/' && returnUrl !== '/login') {
+                return returnUrl;
+            }
+        }
+        // 默认跳转到系统配置页面
+        return DEFAULT_REDIRECT_PATH;
+    };
+
     // SSO 自动登录
     const performSsoLogin = async (gatewayParams: any) => {
         setLoading(true);
@@ -58,9 +78,10 @@ const Login: React.FC = () => {
                     localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
                 }
 
-                console.log('[SSO] 登录成功，跳转到首页');
-                // 跳转到首页
-                navigate('/');
+                // 网关登录成功，跳转到原始路径或默认路径
+                const redirectPath = getRedirectPath(true);
+                console.log('[SSO] 登录成功，跳转到:', redirectPath);
+                navigate(redirectPath);
             } else {
                 setError(response.data.msg || 'SSO 登录失败');
                 setSsoMode(false); // 失败后显示表单
@@ -107,8 +128,11 @@ const Login: React.FC = () => {
                     localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
                 }
 
-                // 跳转到首页
-                navigate('/');
+                // 判断是否有网关参数
+                const hasGatewayParams = !!(gatewayParams.cheque && gatewayParams.tyLoginToken);
+                const redirectPath = getRedirectPath(hasGatewayParams);
+                console.log('[Login] 登录成功，跳转到:', redirectPath);
+                navigate(redirectPath);
             } else {
                 setError(response.data.msg || '登录失败');
             }

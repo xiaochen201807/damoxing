@@ -17,7 +17,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (!token) {
         // 未登录，重定向到登录页
         // ⭐ 关键：保留原始 URL 的所有查询参数（ticket、tyLoginToken、qycode 等）
-        const loginPath = `/login${location.search}`; // 保留完整的查询参数
+        // 同时保存原始路径到 returnUrl 参数，以便登录后返回
+        const searchParams = new URLSearchParams(location.search);
+
+        // 将原始路径编码后添加到参数中
+        if (location.pathname !== '/' && location.pathname !== '/login') {
+            searchParams.set('returnUrl', location.pathname);
+        }
+
+        const loginPath = `/login?${searchParams.toString()}`;
 
         return <Navigate to={loginPath} replace />;
     }
