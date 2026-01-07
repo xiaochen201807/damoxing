@@ -123,6 +123,11 @@ function inferType(varName) {
         result.type = 'array';
         result.title = '卡片列表';
         result.description = '配置显示的服务卡片';
+        result.tabsMode = true;
+        result.tabsLabelTpl = '${title || "卡片 " + (index + 1)}';
+        result.multiLine = true;
+        result.subFormMode = 'horizontal';
+        result.itemClassName = 'bg-light p-3 mb-3 rounded border';
         result.items = {
             type: 'object',
             title: '卡片',

@@ -97,6 +97,11 @@ const handleTemplateForm = (req, res) => {
                 if (schema.type === 'string') {
                     if (schema.format === 'textarea') {
                         field.type = 'textarea';
+                    } else if (schema.format === 'color') {
+                        // 颜色选择器
+                        field.type = 'input-color';
+                        field.format = 'hex';
+                        field.presetColors = ['#1890ff', '#52c41a', '#faad14', '#722ed1', '#eb2f96', '#fa541c', '#13c2c2', '#2f54eb'];
                     } else {
                         field.type = 'input-text';
                     }
@@ -113,17 +118,50 @@ const handleTemplateForm = (req, res) => {
                     // 数组类型转换为 Combo 组件
                     field.type = 'combo';
                     field.multiple = true;
-                    field.multiLine = true;
+                    field.multiLine = schema.multiLine !== false; // 默认 true
+                    field.draggable = true; // 支持拖拽排序
                     field.addButtonText = '新增 ' + (schema.items?.title || '项目');
 
+                    // 支持 tabsMode 标签页模式
+                    if (schema.tabsMode) {
+                        field.tabsMode = true;
+                        field.tabsLabelTpl = schema.tabsLabelTpl || '${index + 1}';
+                    }
+
+                    // 支持自定义样式类名
+                    if (schema.itemClassName) {
+                        field.itemClassName = schema.itemClassName;
+                    }
+
+                    // 支持子表单模式
+                    if (schema.subFormMode) {
+                        field.subFormMode = schema.subFormMode;
+                    }
+
                     if (schema.items && schema.items.type === 'object' && schema.items.properties) {
-                        // 递归转换数组项的属性
-                        field.items = Object.entries(schema.items.properties).map(([subKey, subSchema]) => {
-                            // 对于 Combo 子项，name 是相对路径，不需要 paramsParams wrap
-                            // 但 AMIS Combo 子项 name 一般就是属性名
+                        // 递归转换数组项的属性（包含 sortOrder 字段供用户手动输入）
+                        const subFields = Object.entries(schema.items.properties).map(([subKey, subSchema]) => {
                             return convertSchemaToField(subKey, subSchema, {});
                         });
-                        // Sort items inside combo if needed (currently order by definition)
+
+                        // 如果有 color 字段，用 container 包裹并添加动态背景色
+                        if (schema.items.properties.color) {
+                            field.items = [
+                                {
+                                    type: 'container',
+                                    style: {
+                                        background: 'linear-gradient(135deg, ${color || "#f5f5f5"}15, ${color || "#f5f5f5"}08)',
+                                        borderLeft: '4px solid ${color || "#ddd"}',
+                                        borderRadius: '8px',
+                                        padding: '16px',
+                                        marginBottom: '8px'
+                                    },
+                                    body: subFields
+                                }
+                            ];
+                        } else {
+                            field.items = subFields;
+                        }
                     } else {
                         // 简单数组 (string array etc) - 暂不支持或使用 input-array
                         field.type = 'input-array';
@@ -362,11 +400,24 @@ const handleWizardRequest = async (req, res) => {
             });
 
             if (pageData && pageData.source_template_id && pageData.source_params) {
+                const parsedParams = JSON.parse(pageData.source_params);
+
+                // 自动为数组项分配 sortOrder（如果没有的话）
+                for (const key of Object.keys(parsedParams)) {
+                    if (Array.isArray(parsedParams[key])) {
+                        parsedParams[key].forEach((item, idx) => {
+                            if (item && typeof item === 'object' && item.sortOrder === undefined) {
+                                item.sortOrder = (idx + 1) * 10; // 使用 10 的倍数，方便插入
+                            }
+                        });
+                    }
+                }
+
                 initData = {
                     template_id: pageData.source_template_id,
                     target_page_key: page_key,
                     page_title: pageData.title,
-                    ...JSON.parse(pageData.source_params)
+                    ...parsedParams
                 };
 
                 // --- 转义前端显示 ---
@@ -634,10 +685,22 @@ router.post('/save', (req, res) => {
             }
 
             try {
+                // 对 params 中的数组按 sortOrder 排序
+                const sortedParams = { ...params };
+                for (const key of Object.keys(sortedParams)) {
+                    if (Array.isArray(sortedParams[key])) {
+                        sortedParams[key] = [...sortedParams[key]].sort((a, b) => {
+                            const orderA = a.sortOrder !== undefined ? a.sortOrder : 999;
+                            const orderB = b.sortOrder !== undefined ? b.sortOrder : 999;
+                            return orderA - orderB;
+                        });
+                    }
+                }
+
                 // 渲染模板生成 Schema
                 // 注意：传入 page_key, title 和 app_theme 到模板上下文
-                const app_theme = params.app_theme || 'default';
-                const renderContext = { ...params, page_key, title, app_theme };
+                const app_theme = sortedParams.app_theme || 'default';
+                const renderContext = { ...sortedParams, page_key, title, app_theme };
                 const schema_json = env.render(template.template_file, renderContext);
 
                 // 调试：输出生成的JSON

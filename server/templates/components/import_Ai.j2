@@ -39,7 +39,7 @@
             "body": [
                 {
                     "type": "tpl",
-                    "tpl": "<div style='font-size: 14px; color: #333; margin-bottom: 10px; font-weight: 500;'><span style='color: #ff4d4f;'>*</span>{{ query_label | default('请输入分析需求') }}</div>"
+                    "tpl": "<div style='font-size: 14px; color: #333; margin-bottom: 10px; font-weight: 500;'>{{ query_label | default('请输入分析需求') }}</div>"
                 },
                 {
                     "type": "textarea",
@@ -234,9 +234,9 @@
                     "pageId": "{{ page_key }}",
                     "workflow_type": "{{ workflow_type | default('ai_analysis') }}",  {# 🆕 智能分析按钮的工作流类型 #}
                     {% if enable_query_input | default(false) %}
-                    "query": "${user_query}",
+                    "query": "${user_query || '用户未指定要求'}",
                     {% else %}
-                    "query": "{{ query | default('{}') }}",
+                    "query": "{{ query | default('用户未指定要求') }}",
                     {% endif %}
                     "timestamp": "${date(now(), 'x')}"
                 }

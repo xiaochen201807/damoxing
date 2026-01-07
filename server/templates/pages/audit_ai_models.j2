@@ -1,16 +1,65 @@
 {#
   智能稽核 - AI 模型库页面
   
-  ========== API 配置 ==========
-  - models_list_api: AI 模型列表接口 (POST)
-  - models_list_data: AI 模型列表固定参数 (JSON)
+  ========== 页面头部配置 ==========
+  - title: 页面标题
+  - subtitle: 页面副标题
+  
+  ========== 卡片配置 ==========
+  - cards: AI 模型卡片配置数组 (JSON)，每个卡片包含：
+    - name: 模型名称
+    - icon: 图标类名 (如 fa fa-shield)
+    - color: 卡片头部背景颜色 (如 #1890ff)
+    - function: 功能描述
+    - technology: 技术说明
+  - columns_count: 每行显示的列数 (默认2)
+  
+  ========== 页面底部配置 ==========
+  - footer_text: 底部版权文字
 #}
 
-{# ========== API 配置 ========== #}
-{% set models_list_api = models_list_api | default('/api/demo/audit/ai-models/list') %}
+{# ========== 页面头部配置 ========== #}
+{% set title = title | default('AI 稽核模型库') %}
+{% set subtitle = subtitle | default('多人工智能构成的组合风险识别模型，高效发现各类违规行为') %}
 
-{# ========== 固定参数配置 ========== #}
-{% set list_data_obj = models_list_data | default('{}') | fromjson %}
+{# ========== 卡片配置 ========== #}
+{% set columns_count = columns_count | default(2) %}
+{% set cards = cards | default('[
+  {
+    "name": "智能风控模型",
+    "icon": "fa fa-shield",
+    "color": "#1890ff",
+    "function": "基于深度学习的实时风险评估，自动识别异常交易行为和潜在欺诈风险",
+    "technology": "深度神经网络 + 实时规则引擎 + 知识图谱"
+  },
+  {
+    "name": "合规审计模型",
+    "icon": "fa fa-check-circle",
+    "color": "#52c41a",
+    "function": "自动化合规检测，智能识别业务流程中的合规风险点和违规操作",
+    "technology": "NLP语义分析 + 业务规则匹配 + 智能推理"
+  },
+  {
+    "name": "异常检测模型",
+    "icon": "fa fa-exclamation-triangle",
+    "color": "#faad14",
+    "function": "多维度异常行为检测，精准发现数据造假、异常操作等问题",
+    "technology": "无监督学习 + 统计分析 + 时序异常检测"
+  },
+  {
+    "name": "风险预警模型",
+    "icon": "fa fa-bell",
+    "color": "#722ed1",
+    "function": "提前预测潜在风险，及时预警可能发生的违规行为和业务风险",
+    "technology": "时间序列预测 + 概率模型 + 风险评分"
+  }
+]') %}
+
+{# ========== 页面底部配置 ========== #}
+{% set footer_text = footer_text | default('住房公积金管理中心 © 2025') %}
+
+{# 解析卡片数据 #}
+{% set card_list = cards | fromjson %}
 
 {# ========== 页面结构 ========== #}
 {
@@ -21,26 +70,19 @@
       "type": "wrapper",
       "className": "bg-white p-md m-b-md",
       "body": [
-        { "type": "html", "html": "<h2 style='margin:0;font-size:24px;font-weight:600;color:#1d39c4'><i class='fa fa-microchip' style='margin-right:10px'></i>AI 稽核模型库</h2>" },
-        { "type": "html", "html": "<p style='margin:8px 0 0 0;color:#666'>多人工智能构成的组合风险识别模型，高效发现各类违规行为</p>" }
+        { "type": "html", "html": "<h2 style='margin:0;font-size:24px;font-weight:600;color:#1d39c4'><i class='fa fa-microchip' style='margin-right:10px'></i>{{ title }}</h2>" },
+        { "type": "html", "html": "<p style='margin:8px 0 0 0;color:#666'>{{ subtitle }}</p>" }
       ]
     },
     {
       "type": "service",
-      "api": {
-        "method": "post",
-        "url": "{{ models_list_api }}",
-        "data": {
-          {% if list_data_obj %}{% for key, val in list_data_obj %}"{{ key }}": {{ val | tojson }},
-          {% endfor %}{% endif %}
-          "&": "$$"
-        }
+      "data": {
+        "items": {{ card_list | tojson }}
       },
-
       "body": {
         "type": "cards",
         "source": "${items}",
-        "columnsCount": 2,
+        "columnsCount": {{ columns_count }},
         "card": {
           "className": "b-none overflow-hidden",
           "bodyClassName": "p-none",
@@ -57,6 +99,10 @@
           ]
         }
       }
+    },
+    {
+      "type": "tpl",
+      "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 20px 0;'>{{ footer_text }}</div>"
     }
   ]
 }
