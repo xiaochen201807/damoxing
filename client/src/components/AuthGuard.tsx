@@ -9,7 +9,7 @@
 import React, { type ReactNode, useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { getGatewayParamsWithFallback, saveUrlParamsToSession, getGatewayParams } from '../utils/urlParams';
+import { getGatewayParamsWithFallback, saveUrlParamsToSession, getGatewayParams, clearGatewayParamsSession } from '../utils/urlParams';
 import SkeletonLayout from './SkeletonLayout';
 import '../styles/AuthGuard.css';
 
@@ -80,6 +80,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
                 }
 
                 console.log('[AuthGuard SSO] 登录成功，更新组件状态');
+
+                // 清除 sessionStorage 中的网关参数缓存
+                clearGatewayParamsSession();
 
                 // 通过状态更新触发重新渲染，而不是刷新页面
                 setAuthToken(response.data.data.token);

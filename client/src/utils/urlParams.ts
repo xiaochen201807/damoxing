@@ -41,7 +41,16 @@ export function getGatewayParams() {
 }
 
 /**
+ * 检查 URL 中是否有任何网关参数
+ */
+export function hasGatewayParamsInUrl(): boolean {
+    const params = getGatewayParams();
+    return !!(params.ticket || params.tyLoginToken || params.cheque);
+}
+
+/**
  * 保存 URL 参数到 sessionStorage（用于页面刷新后保持）
+ * 注意：只有当 URL 中有网关参数时才保存，避免复用旧的缓存
  */
 export function saveUrlParamsToSession() {
     const params = getGatewayParams();
@@ -53,6 +62,14 @@ export function saveUrlParamsToSession() {
 }
 
 /**
+ * 清除 sessionStorage 中的网关参数缓存
+ * 应该在登录成功后调用
+ */
+export function clearGatewayParamsSession() {
+    sessionStorage.removeItem('gateway_url_params');
+}
+
+/**
  * 从 sessionStorage 读取保存的参数
  */
 export function getUrlParamsFromSession() {
@@ -61,10 +78,28 @@ export function getUrlParamsFromSession() {
 }
 
 /**
- * 获取网关参数（优先从 URL，其次从 sessionStorage）
+ * 获取网关参数
+ * - 优先从 URL 读取
+ * - 只有当 URL 中有参数时，才 fallback 到 sessionStorage
+ * - 如果 URL 中没有任何网关参数，返回空值（不使用缓存）
  */
 export function getGatewayParamsWithFallback() {
     const urlParams = getGatewayParams();
+
+    // 检查 URL 中是否有任何网关参数
+    const urlHasParams = !!(urlParams.ticket || urlParams.tyLoginToken || urlParams.cheque);
+
+    if (!urlHasParams) {
+        // URL 中没有网关参数，不使用缓存，返回空值
+        return {
+            ticket: null,
+            tyLoginToken: null,
+            qycode: null,
+            cheque: null
+        };
+    }
+
+    // URL 中有部分参数，可以从 sessionStorage 补充缺失的参数
     const sessionParams = getUrlParamsFromSession();
 
     return {
