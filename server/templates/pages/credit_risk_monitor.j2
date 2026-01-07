@@ -144,7 +144,9 @@
                               {% if drilldown_level_data_obj %}{% for key, val in drilldown_level_data_obj %}"{{ key }}": {{ val | tojson }},
                               {% endfor %}{% endif %}
                               "subject": "${subject}",
-                              "selectedId": "${event.data.data.itemId}"
+                              "selectedId": "${event.data.data.itemId}",
+                              "page": "${page}",
+                              "perPage": "${perPage}"
                             }
                           },
                           "syncLocation": false,
@@ -211,7 +213,9 @@
                               {% if drilldown_behavior_data_obj %}{% for key, val in drilldown_behavior_data_obj %}"{{ key }}": {{ val | tojson }},
                               {% endfor %}{% endif %}
                               "subject": "${subject}",
-                              "selectedId": "${event.data.data.itemId}"
+                              "selectedId": "${event.data.data.itemId}",
+                              "page": "${page}",
+                              "perPage": "${perPage}"
                             }
                           },
                           "syncLocation": false,
@@ -283,7 +287,9 @@
                               {% if drilldown_region_data_obj %}{% for key, val in drilldown_region_data_obj %}"{{ key }}": {{ val | tojson }},
                               {% endfor %}{% endif %}
                               "subject": "${subject}",
-                              "selectedId": "${event.data.data.itemId}"
+                              "selectedId": "${event.data.data.itemId}",
+                              "page": "${page}",
+                              "perPage": "${perPage}"
                             }
                           },
                           "syncLocation": false,
