@@ -7,10 +7,10 @@ import React from 'react';
 import './SkeletonLayout.css';
 
 interface SkeletonLayoutProps {
-    message?: string;
+    error?: string | null;  // 错误信息，有值时显示错误提示
 }
 
-const SkeletonLayout: React.FC<SkeletonLayoutProps> = ({ message = '正在验证登录...' }) => {
+const SkeletonLayout: React.FC<SkeletonLayoutProps> = ({ error }) => {
     return (
         <div className="skeleton-layout">
             {/* 侧边栏骨架 */}
@@ -51,13 +51,17 @@ const SkeletonLayout: React.FC<SkeletonLayoutProps> = ({ message = '正在验证
                     </div>
                 </div>
 
-                {/* 加载提示遮罩 */}
-                <div className="skeleton-overlay">
-                    <div className="skeleton-loading-box">
-                        <div className="skeleton-spinner"></div>
-                        <span>{message}</span>
+                {/* 只有失败时才显示错误提示 */}
+                {error && (
+                    <div className="skeleton-overlay">
+                        <div className="skeleton-error-box">
+                            <span className="skeleton-error-text">{error}</span>
+                            <button onClick={() => window.location.reload()} className="skeleton-retry-btn">
+                                重试
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </main>
         </div>
     );

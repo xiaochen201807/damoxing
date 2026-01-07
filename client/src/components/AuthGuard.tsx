@@ -28,17 +28,19 @@ const hasValidGatewayParams = (): boolean => {
 };
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-    const token = localStorage.getItem('auth_token');
     const location = useLocation();
 
+    // 使用状态管理 token，而不是直接读取 localStorage
+    const [authToken, setAuthToken] = useState(() => localStorage.getItem('auth_token'));
+
     // SSO 登录状态
-    const [ssoLoading, setSsoLoading] = useState(() => !token && hasValidGatewayParams());
+    const [ssoLoading, setSsoLoading] = useState(() => !authToken && hasValidGatewayParams());
     const [ssoError, setSsoError] = useState<string | null>(null);
-    const [authChecked, setAuthChecked] = useState(!!token);
+    const [authChecked, setAuthChecked] = useState(!!authToken);
 
     // SSO 自动登录
     useEffect(() => {
-        if (token) {
+        if (authToken) {
             setAuthChecked(true);
             return;
         }
@@ -54,7 +56,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         } else {
             setAuthChecked(true);
         }
-    }, [token]);
+    }, [authToken]);
 
     // SSO 登录函数
     const performSsoLogin = async (gatewayParams: any) => {
@@ -69,6 +71,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             });
 
             if (response.data.status === 0) {
+                // 保存到 localStorage
                 localStorage.setItem('auth_token', response.data.data.token);
                 localStorage.setItem('user_info', JSON.stringify(response.data.data.user));
 
@@ -76,25 +79,28 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
                     localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
                 }
 
-                console.log('[AuthGuard SSO] 登录成功');
-                // 移除遮罩，刷新以显示内容
-                window.location.reload();
+                console.log('[AuthGuard SSO] 登录成功，更新组件状态');
+
+                // 通过状态更新触发重新渲染，而不是刷新页面
+                setAuthToken(response.data.data.token);
+                setSsoLoading(false);
+                setAuthChecked(true);
             } else {
                 setSsoError(response.data.msg || 'SSO 登录失败');
                 setAuthChecked(true);
+                setSsoLoading(false);
             }
         } catch (err: any) {
             console.error('[AuthGuard SSO] 登录失败:', err);
             setSsoError(err.response?.data?.msg || '网关验证失败');
             setAuthChecked(true);
-        } finally {
             setSsoLoading(false);
         }
     };
 
     // 无 token 且无网关参数，重定向到登录页
     // 注意：如果有 ssoError，说明是网关登录失败，应该显示错误遮罩而不是重定向
-    if (authChecked && !localStorage.getItem('auth_token') && !ssoLoading && !ssoError) {
+    if (authChecked && !authToken && !ssoLoading && !ssoError) {
         // 检查是否有网关参数，有的话不重定向（保持显示错误或重试）
         if (!hasValidGatewayParams()) {
             const searchParams = new URLSearchParams(location.search);
@@ -107,14 +113,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
 
     // 渲染逻辑
-    // 1. SSO 验证中：显示骨架屏布局
+    // 1. SSO 验证中：显示骨架屏布局（无提示框）
     if (ssoLoading) {
-        return <SkeletonLayout message="正在验证登录..." />;
+        return <SkeletonLayout />;
     }
 
     // 2. SSO 失败：显示骨架屏 + 错误提示
     if (ssoError) {
-        return <SkeletonLayout message={`验证失败: ${ssoError}`} />;
+        return <SkeletonLayout error={ssoError} />;
     }
 
     // 3. 已登录：渲染子组件
