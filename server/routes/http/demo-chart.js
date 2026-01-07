@@ -2806,59 +2806,179 @@ router.post('/credit/risk/chart/trend', (req, res) => {
     });
 });
 
-// 钻取数据：按信用等级的主体列表
+// 钻取数据：按信用等级的主体列表（扩充数据用于分页测试）
 const drilldownByLevel = {
     "缴存单位": {
         "A": [
             { id: 1, name: "华为技术有限公司", idNumber: "TYSH1234567890", score: 95, riskBehavior: "无" },
             { id: 2, name: "神玥科技", idNumber: "TYSH9234202032", score: 100, riskBehavior: "无" },
-            { id: 3, name: "阿里巴巴集团", idNumber: "TYSH5678901234", score: 92, riskBehavior: "无" }
+            { id: 3, name: "阿里巴巴集团", idNumber: "TYSH5678901234", score: 92, riskBehavior: "无" },
+            { id: 101, name: "腾讯科技", idNumber: "TYSH1001001001", score: 98, riskBehavior: "无" },
+            { id: 102, name: "百度网络", idNumber: "TYSH1001001002", score: 94, riskBehavior: "无" },
+            { id: 103, name: "京东集团", idNumber: "TYSH1001001003", score: 93, riskBehavior: "无" },
+            { id: 104, name: "美团科技", idNumber: "TYSH1001001004", score: 91, riskBehavior: "无" },
+            { id: 105, name: "字节跳动", idNumber: "TYSH1001001005", score: 97, riskBehavior: "无" },
+            { id: 106, name: "小米科技", idNumber: "TYSH1001001006", score: 90, riskBehavior: "无" },
+            { id: 107, name: "网易公司", idNumber: "TYSH1001001007", score: 92, riskBehavior: "无" },
+            { id: 108, name: "滴滴出行", idNumber: "TYSH1001001008", score: 91, riskBehavior: "无" },
+            { id: 109, name: "拼多多", idNumber: "TYSH1001001009", score: 93, riskBehavior: "无" },
+            { id: 110, name: "携程旅行", idNumber: "TYSH1001001010", score: 90, riskBehavior: "无" },
+            { id: 111, name: "顺丰速运", idNumber: "TYSH1001001011", score: 94, riskBehavior: "无" },
+            { id: 112, name: "中兴通讯", idNumber: "TYSH1001001012", score: 92, riskBehavior: "无" }
         ],
         "B": [
             { id: 4, name: "某科技公司", idNumber: "TYSH2345678901", score: 78, riskBehavior: "信息不一致" },
-            { id: 5, name: "某贸易公司", idNumber: "TYSH3456789012", score: 72, riskBehavior: "无" }
+            { id: 5, name: "某贸易公司", idNumber: "TYSH3456789012", score: 72, riskBehavior: "无" },
+            { id: 201, name: "恒大集团", idNumber: "TYSH2001001001", score: 75, riskBehavior: "无" },
+            { id: 202, name: "万达商业", idNumber: "TYSH2001001002", score: 79, riskBehavior: "无" },
+            { id: 203, name: "融创中国", idNumber: "TYSH2001001003", score: 73, riskBehavior: "无" },
+            { id: 204, name: "绿地控股", idNumber: "TYSH2001001004", score: 76, riskBehavior: "无" },
+            { id: 205, name: "中海地产", idNumber: "TYSH2001001005", score: 77, riskBehavior: "无" },
+            { id: 206, name: "龙湖集团", idNumber: "TYSH2001001006", score: 74, riskBehavior: "无" },
+            { id: 207, name: "新城控股", idNumber: "TYSH2001001007", score: 71, riskBehavior: "无" },
+            { id: 208, name: "世茂集团", idNumber: "TYSH2001001008", score: 78, riskBehavior: "无" },
+            { id: 209, name: "金地集团", idNumber: "TYSH2001001009", score: 75, riskBehavior: "无" },
+            { id: 210, name: "招商蛇口", idNumber: "TYSH2001001010", score: 79, riskBehavior: "无" },
+            { id: 211, name: "华润置地", idNumber: "TYSH2001001011", score: 76, riskBehavior: "无" },
+            { id: 212, name: "旭辉控股", idNumber: "TYSH2001001012", score: 72, riskBehavior: "无" }
         ],
         "C": [
             { id: 6, name: "某餐饮连锁", idNumber: "TYSH2023001234", score: 60, riskBehavior: "连续欠缴" },
-            { id: 7, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, riskBehavior: "缴存人数骤降" }
+            { id: 7, name: "某物流公司", idNumber: "TYSH4567890123", score: 55, riskBehavior: "缴存人数骤降" },
+            { id: 301, name: "鑫源建材", idNumber: "TYSH3001001001", score: 58, riskBehavior: "连续欠缴" },
+            { id: 302, name: "宏达机械", idNumber: "TYSH3001001002", score: 62, riskBehavior: "信息不一致" },
+            { id: 303, name: "永盛纺织", idNumber: "TYSH3001001003", score: 56, riskBehavior: "缴存人数骤降" },
+            { id: 304, name: "利华化工", idNumber: "TYSH3001001004", score: 59, riskBehavior: "连续欠缴" },
+            { id: 305, name: "金鹏物流", idNumber: "TYSH3001001005", score: 61, riskBehavior: "信息不一致" },
+            { id: 306, name: "瑞丰食品", idNumber: "TYSH3001001006", score: 57, riskBehavior: "缴存人数骤降" },
+            { id: 307, name: "恒通电子", idNumber: "TYSH3001001007", score: 63, riskBehavior: "连续欠缴" },
+            { id: 308, name: "盛达贸易", idNumber: "TYSH3001001008", score: 54, riskBehavior: "一般失信" },
+            { id: 309, name: "华美装饰", idNumber: "TYSH3001001009", score: 60, riskBehavior: "信息不一致" },
+            { id: 310, name: "天成印刷", idNumber: "TYSH3001001010", score: 58, riskBehavior: "连续欠缴" },
+            { id: 311, name: "博远科技", idNumber: "TYSH3001001011", score: 55, riskBehavior: "缴存人数骤降" },
+            { id: 312, name: "嘉禾农业", idNumber: "TYSH3001001012", score: 62, riskBehavior: "信息不一致" }
         ],
         "D": [
             { id: 8, name: "YY制造厂", idNumber: "DW2022112345", score: 40, riskBehavior: "连续欠缴+缴存人数骤降" },
-            { id: 9, name: "某建材公司", idNumber: "TYSH6789012345", score: 35, riskBehavior: "一般失信" }
+            { id: 9, name: "某建材公司", idNumber: "TYSH6789012345", score: 35, riskBehavior: "一般失信" },
+            { id: 401, name: "鸿运建筑", idNumber: "TYSH4001001001", score: 38, riskBehavior: "连续欠缴+一般失信" },
+            { id: 402, name: "金龙机电", idNumber: "TYSH4001001002", score: 42, riskBehavior: "缴存人数骤降" },
+            { id: 403, name: "华信贸易", idNumber: "TYSH4001001003", score: 36, riskBehavior: "严重失信" },
+            { id: 404, name: "盛世地产", idNumber: "TYSH4001001004", score: 44, riskBehavior: "连续欠缴" },
+            { id: 405, name: "远东物流", idNumber: "TYSH4001001005", score: 39, riskBehavior: "一般失信" },
+            { id: 406, name: "天宇科技", idNumber: "TYSH4001001006", score: 41, riskBehavior: "缴存人数骤降" },
+            { id: 407, name: "鼎盛实业", idNumber: "TYSH4001001007", score: 37, riskBehavior: "严重失信" },
+            { id: 408, name: "汇通商贸", idNumber: "TYSH4001001008", score: 43, riskBehavior: "连续欠缴" },
+            { id: 409, name: "瑞祥建材", idNumber: "TYSH4001001009", score: 34, riskBehavior: "连续欠缴+一般失信" },
+            { id: 410, name: "恒基工程", idNumber: "TYSH4001001010", score: 40, riskBehavior: "缴存人数骤降" },
+            { id: 411, name: "金泰纺织", idNumber: "TYSH4001001011", score: 38, riskBehavior: "一般失信" },
+            { id: 412, name: "宏图电子", idNumber: "TYSH4001001012", score: 45, riskBehavior: "信息不一致" }
         ]
     },
     "缴存人": {
         "A": [
             { id: 10, name: "罗伯特", idNumber: "42112619910530369X", score: 100, riskBehavior: "无" },
-            { id: 11, name: "李明", idNumber: "320102199001011234", score: 95, riskBehavior: "无" }
+            { id: 11, name: "李明", idNumber: "320102199001011234", score: 95, riskBehavior: "无" },
+            { id: 501, name: "张伟", idNumber: "320102199101011001", score: 98, riskBehavior: "无" },
+            { id: 502, name: "王芳", idNumber: "320102199201011002", score: 96, riskBehavior: "无" },
+            { id: 503, name: "刘洋", idNumber: "320102199301011003", score: 94, riskBehavior: "无" },
+            { id: 504, name: "陈静", idNumber: "320102199401011004", score: 97, riskBehavior: "无" },
+            { id: 505, name: "杨磊", idNumber: "320102199501011005", score: 93, riskBehavior: "无" },
+            { id: 506, name: "赵敏", idNumber: "320102199601011006", score: 95, riskBehavior: "无" },
+            { id: 507, name: "黄强", idNumber: "320102199701011007", score: 92, riskBehavior: "无" },
+            { id: 508, name: "周婷", idNumber: "320102199801011008", score: 96, riskBehavior: "无" },
+            { id: 509, name: "吴刚", idNumber: "320102199901011009", score: 91, riskBehavior: "无" },
+            { id: 510, name: "郑丽", idNumber: "320102200001011010", score: 94, riskBehavior: "无" }
         ],
         "B": [
             { id: 12, name: "张三", idNumber: "320102199202025678", score: 85, riskBehavior: "无" },
-            { id: 13, name: "王芳", idNumber: "320102199303039012", score: 75, riskBehavior: "信息不完善" }
+            { id: 13, name: "王芳", idNumber: "320102199303039012", score: 75, riskBehavior: "信息不完善" },
+            { id: 601, name: "李华", idNumber: "320102199102021001", score: 82, riskBehavior: "无" },
+            { id: 602, name: "孙涛", idNumber: "320102199202021002", score: 78, riskBehavior: "无" },
+            { id: 603, name: "钱芳", idNumber: "320102199302021003", score: 76, riskBehavior: "信息不完善" },
+            { id: 604, name: "周明", idNumber: "320102199402021004", score: 84, riskBehavior: "无" },
+            { id: 605, name: "吴静", idNumber: "320102199502021005", score: 79, riskBehavior: "无" },
+            { id: 606, name: "郑强", idNumber: "320102199602021006", score: 77, riskBehavior: "信息不完善" },
+            { id: 607, name: "王磊", idNumber: "320102199702021007", score: 81, riskBehavior: "无" },
+            { id: 608, name: "陈婷", idNumber: "320102199802021008", score: 73, riskBehavior: "无" },
+            { id: 609, name: "杨洋", idNumber: "320102199902021009", score: 80, riskBehavior: "无" },
+            { id: 610, name: "赵丽", idNumber: "320102200002021010", score: 74, riskBehavior: "信息不完善" }
         ],
         "C": [
             { id: 14, name: "李四", idNumber: "320102199404045678", score: 65, riskBehavior: "贷后停缴" },
-            { id: 15, name: "赵六", idNumber: "320102199505051234", score: 55, riskBehavior: "违规提取" }
+            { id: 15, name: "赵六", idNumber: "320102199505051234", score: 55, riskBehavior: "违规提取" },
+            { id: 701, name: "刘伟", idNumber: "320102199103031001", score: 62, riskBehavior: "贷后停缴" },
+            { id: 702, name: "张芳", idNumber: "320102199203031002", score: 58, riskBehavior: "违规提取" },
+            { id: 703, name: "王涛", idNumber: "320102199303031003", score: 64, riskBehavior: "贷后停缴" },
+            { id: 704, name: "李静", idNumber: "320102199403031004", score: 56, riskBehavior: "信息不完善" },
+            { id: 705, name: "陈明", idNumber: "320102199503031005", score: 61, riskBehavior: "贷后停缴" },
+            { id: 706, name: "杨强", idNumber: "320102199603031006", score: 59, riskBehavior: "违规提取" },
+            { id: 707, name: "赵磊", idNumber: "320102199703031007", score: 63, riskBehavior: "贷后停缴" },
+            { id: 708, name: "黄婷", idNumber: "320102199803031008", score: 57, riskBehavior: "信息不完善" },
+            { id: 709, name: "周洋", idNumber: "320102199903031009", score: 60, riskBehavior: "贷后停缴" },
+            { id: 710, name: "吴丽", idNumber: "320102200003031010", score: 54, riskBehavior: "违规提取" }
         ],
         "D": [
             { id: 16, name: "王五", idNumber: "320102199606067890", score: 45, riskBehavior: "贷款逾期(三期以上)" },
-            { id: 17, name: "钱七", idNumber: "320102199707073456", score: 30, riskBehavior: "严重失信" }
+            { id: 17, name: "钱七", idNumber: "320102199707073456", score: 30, riskBehavior: "严重失信" },
+            { id: 801, name: "孙伟", idNumber: "320102199104041001", score: 42, riskBehavior: "贷款逾期(三期以上)" },
+            { id: 802, name: "李芳", idNumber: "320102199204041002", score: 38, riskBehavior: "严重失信" },
+            { id: 803, name: "张涛", idNumber: "320102199304041003", score: 44, riskBehavior: "账户冻结" },
+            { id: 804, name: "王静", idNumber: "320102199404041004", score: 36, riskBehavior: "贷款逾期(三期以上)" },
+            { id: 805, name: "陈明", idNumber: "320102199504041005", score: 41, riskBehavior: "严重失信" },
+            { id: 806, name: "杨强", idNumber: "320102199604041006", score: 39, riskBehavior: "账户冻结" },
+            { id: 807, name: "赵磊", idNumber: "320102199704041007", score: 43, riskBehavior: "贷款逾期(三期以上)" },
+            { id: 808, name: "黄婷", idNumber: "320102199804041008", score: 37, riskBehavior: "严重失信" },
+            { id: 809, name: "周洋", idNumber: "320102199904041009", score: 40, riskBehavior: "账户冻结" },
+            { id: 810, name: "吴丽", idNumber: "320102200004041010", score: 34, riskBehavior: "贷款逾期(三期以上)" }
         ]
     },
     "开发商": {
         "A": [
             { id: 18, name: "万科地产", idNumber: "KF202001001", score: 92, riskBehavior: "无" },
-            { id: 19, name: "碧桂园", idNumber: "KF202001002", score: 90, riskBehavior: "无" }
+            { id: 19, name: "碧桂园", idNumber: "KF202001002", score: 90, riskBehavior: "无" },
+            { id: 901, name: "中海地产", idNumber: "KF202001101", score: 94, riskBehavior: "无" },
+            { id: 902, name: "华润置地", idNumber: "KF202001102", score: 91, riskBehavior: "无" },
+            { id: 903, name: "龙湖集团", idNumber: "KF202001103", score: 93, riskBehavior: "无" },
+            { id: 904, name: "招商蛇口", idNumber: "KF202001104", score: 95, riskBehavior: "无" },
+            { id: 905, name: "金地集团", idNumber: "KF202001105", score: 90, riskBehavior: "无" },
+            { id: 906, name: "绿城中国", idNumber: "KF202001106", score: 92, riskBehavior: "无" },
+            { id: 907, name: "新城控股", idNumber: "KF202001107", score: 91, riskBehavior: "无" },
+            { id: 908, name: "世茂集团", idNumber: "KF202001108", score: 93, riskBehavior: "无" }
         ],
         "B": [
-            { id: 20, name: "保利地产", idNumber: "KF202001003", score: 78, riskBehavior: "无" }
+            { id: 20, name: "保利地产", idNumber: "KF202001003", score: 78, riskBehavior: "无" },
+            { id: 1001, name: "旭辉控股", idNumber: "KF202001201", score: 76, riskBehavior: "无" },
+            { id: 1002, name: "中南建设", idNumber: "KF202001202", score: 79, riskBehavior: "无" },
+            { id: 1003, name: "阳光城", idNumber: "KF202001203", score: 74, riskBehavior: "无" },
+            { id: 1004, name: "正荣地产", idNumber: "KF202001204", score: 77, riskBehavior: "无" },
+            { id: 1005, name: "中梁控股", idNumber: "KF202001205", score: 75, riskBehavior: "无" },
+            { id: 1006, name: "美的置业", idNumber: "KF202001206", score: 78, riskBehavior: "无" },
+            { id: 1007, name: "时代中国", idNumber: "KF202001207", score: 73, riskBehavior: "无" },
+            { id: 1008, name: "雅居乐", idNumber: "KF202001208", score: 76, riskBehavior: "无" }
         ],
         "C": [
-            { id: 21, name: "某地产集团", idNumber: "KF202015003", score: 68, riskBehavior: "延期交房" }
+            { id: 21, name: "某地产集团", idNumber: "KF202015003", score: 68, riskBehavior: "延期交房" },
+            { id: 1101, name: "富力地产", idNumber: "KF202001301", score: 62, riskBehavior: "延期交房" },
+            { id: 1102, name: "佳兆业", idNumber: "KF202001302", score: 58, riskBehavior: "捂盘惜售" },
+            { id: 1103, name: "泰禾集团", idNumber: "KF202001303", score: 64, riskBehavior: "延期交房" },
+            { id: 1104, name: "蓝光发展", idNumber: "KF202001304", score: 56, riskBehavior: "资金异常" },
+            { id: 1105, name: "中骏集团", idNumber: "KF202001305", score: 61, riskBehavior: "延期交房" },
+            { id: 1106, name: "禹洲集团", idNumber: "KF202001306", score: 59, riskBehavior: "捂盘惜售" },
+            { id: 1107, name: "建业地产", idNumber: "KF202001307", score: 63, riskBehavior: "延期交房" },
+            { id: 1108, name: "花样年", idNumber: "KF202001308", score: 57, riskBehavior: "资金异常" }
         ],
         "D": [
             { id: 22, name: "天山工程", idNumber: "TYSH8398209090", score: 55, riskBehavior: "楼盘停工" },
-            { id: 23, name: "某置业公司", idNumber: "KF202001004", score: 48, riskBehavior: "协助违规" }
+            { id: 23, name: "某置业公司", idNumber: "KF202001004", score: 48, riskBehavior: "协助违规" },
+            { id: 1201, name: "恒大地产", idNumber: "KF202001401", score: 42, riskBehavior: "楼盘停工" },
+            { id: 1202, name: "融创中国", idNumber: "KF202001402", score: 38, riskBehavior: "资金异常" },
+            { id: 1203, name: "奥园集团", idNumber: "KF202001403", score: 44, riskBehavior: "楼盘停工" },
+            { id: 1204, name: "新力控股", idNumber: "KF202001404", score: 36, riskBehavior: "协助违规" },
+            { id: 1205, name: "当代置业", idNumber: "KF202001405", score: 41, riskBehavior: "楼盘停工" },
+            { id: 1206, name: "祥生控股", idNumber: "KF202001406", score: 39, riskBehavior: "资金异常" },
+            { id: 1207, name: "阳光100", idNumber: "KF202001407", score: 43, riskBehavior: "延期交房" },
+            { id: 1208, name: "华夏幸福", idNumber: "KF202001408", score: 37, riskBehavior: "楼盘停工" }
         ]
     }
 };
