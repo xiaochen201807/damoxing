@@ -46,7 +46,8 @@ export function getGatewayParams() {
 export function saveUrlParamsToSession() {
     const params = getGatewayParams();
 
-    if (params.ticket || params.tyLoginToken || params.qycode) {
+    // 有任意网关参数时保存（包括 cheque）
+    if (params.ticket || params.tyLoginToken || params.qycode || params.cheque) {
         sessionStorage.setItem('gateway_url_params', JSON.stringify(params));
     }
 }

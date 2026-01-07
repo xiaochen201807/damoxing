@@ -15,25 +15,54 @@ const DEFAULT_REDIRECT_PATH = '/system/config';
 // API 路由前缀（从环境变量读取，默认 /api）
 const API_PREFIX = import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
 
+// 在组件渲染前检测是否有网关参数（避免登录页面闪烁）
+const checkInitialSsoMode = (): boolean => {
+    const gatewayParams = getGatewayParamsWithFallback();
+    const hasValidTicket = (gatewayParams.ticket && gatewayParams.ticket !== 'nothing') || gatewayParams.cheque;
+    return !!(hasValidTicket && gatewayParams.tyLoginToken);
+};
+
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(() => checkInitialSsoMode()); // 有网关参数时初始就显示 loading
     const [error, setError] = useState('');
-    const [ssoMode, setSsoMode] = useState(false); // 是否为 SSO 模式
+    const [ssoMode, setSsoMode] = useState(() => checkInitialSsoMode()); // 有网关参数时初始就进入 SSO 模式
     const navigate = useNavigate();
 
     // 组件加载时保存 URL 参数到 sessionStorage，并尝试 SSO 自动登录
     useEffect(() => {
+        // 先保存参数到 session
         saveUrlParamsToSession();
 
-        // 检查是否有网关参数，如果有则尝试 SSO 登录
-        const gatewayParams = getGatewayParamsWithFallback();
+        // 检测并执行 SSO 登录的函数
+        const checkAndPerformSsoLogin = () => {
+            const gatewayParams = getGatewayParamsWithFallback();
+            const hasValidTicket = (gatewayParams.ticket && gatewayParams.ticket !== 'nothing') || gatewayParams.cheque;
 
-        if (gatewayParams.ticket && gatewayParams.tyLoginToken) {
-            console.log('[SSO] 检测到网关参数，尝试自动登录');
-            setSsoMode(true);
-            performSsoLogin(gatewayParams);
+            console.log('[SSO] 检查网关参数:', {
+                ticket: gatewayParams.ticket,
+                cheque: gatewayParams.cheque,
+                tyLoginToken: gatewayParams.tyLoginToken ? '存在' : '不存在',
+                hasValidTicket
+            });
+
+            if (hasValidTicket && gatewayParams.tyLoginToken) {
+                console.log('[SSO] 检测到网关参数，尝试自动登录');
+                setSsoMode(true);
+                performSsoLogin(gatewayParams);
+                return true;
+            }
+            return false;
+        };
+
+        // 立即检查一次
+        if (!checkAndPerformSsoLogin()) {
+            // 如果首次没检测到，延迟 100ms 再检查一次（解决某些浏览器的时序问题）
+            const timer = setTimeout(() => {
+                checkAndPerformSsoLogin();
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, []);
 
