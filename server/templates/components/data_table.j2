@@ -1,0 +1,129 @@
+{#
+  CRUD 数据表格组件
+  封装 AMIS CRUD 完整功能,支持分页、序号、筛选、批量操作等
+
+  Parameters:
+  - api_url (required): 数据 API 地址
+  - api_method (optional, default: 'post'): API 请求方法
+  - api_data (optional): POST 请求的固定参数,会与分页参数、筛选参数自动合并
+  - page_field (optional, default: 'page'): 分页页码字段名
+  - page_size_field (optional, default: 'perPage'): 分页大小字段名
+  - columns (optional): 表格列定义数组
+  - enable_sequence (optional, default: true): 是否显示序号列
+  - sequence_label (optional, default: '序号'): 序号列标题
+  - filter_form (optional): 筛选表单字段配置数组
+  - per_page (optional, default: 10): 每页显示条数
+  - per_page_options (optional, default: [10, 20, 50, 100]): 每页条数选项
+  - enable_batch (optional, default: false): 是否启用批量操作
+  - batch_actions (optional): 批量操作按钮配置数组
+  - header_toolbar (optional): 顶部工具栏配置
+  - footer_toolbar (optional): 底部工具栏配置
+  - primary_field (optional, default: 'id'): 主键字段名
+#}
+
+{# 设置默认值 #}
+{% set method = api_method | default('post') | lower %}
+{% set page_param = page_field | default('page') %}
+{% set size_param = page_size_field | default('perPage') %}
+{% set seq_enabled = enable_sequence | default(true) %}
+{% set seq_label = sequence_label | default('序号') %}
+{% set per_page_val = per_page | default(10) %}
+{% set per_page_opts = per_page_options | default([10, 20, 50, 100]) %}
+{% set batch_enabled = enable_batch | default(false) %}
+{% set pk_field = primary_field | default('id') %}
+
+{# 处理固定参数 #}
+{% set fixed_params = api_data | default({}) %}
+
+{
+  "type": "crud",
+  "syncLocation": false,
+  "api": {
+    "method": {{ method | tojson }},
+    "url": {{ api_url | tojson }},
+    {% if method == 'post' %}
+    "data": {
+      {% if fixed_params %}
+      {% for key, val in fixed_params %}
+      {{ key | tojson }}: {{ val | tojson }},
+      {% endfor %}
+      {% endif %}
+      {{ page_param | tojson }}: "${page}",
+      {{ size_param | tojson }}: "${perPage}"
+    },
+    {% endif %}
+    "adaptor": "return payload;"
+  },
+  "primaryField": {{ pk_field | tojson }},
+  {% if filter_form %}
+  "filter": {
+    "title": "",
+    "mode": "inline",
+    "body": {{ filter_form | tojson }},
+    "actions": [
+      {"type": "submit", "label": "查询", "level": "primary"},
+      {"type": "reset", "label": "重置"}
+    ]
+  },
+  {% endif %}
+  {% if batch_enabled %}
+  "keepItemSelectionOnPageChange": true,
+  {% if batch_actions %}
+  "bulkActions": {{ batch_actions | tojson }},
+  {% else %}
+  "bulkActions": [
+    {
+      "label": "批量操作",
+      "actionType": "dialog",
+      "dialog": {
+        "title": "提示",
+        "body": "已选中 ${selectedItems.length} 条数据"
+      }
+    }
+  ],
+  {% endif %}
+  {% endif %}
+  {% if header_toolbar %}
+  "headerToolbar": {{ header_toolbar | tojson }},
+  {% else %}
+  "headerToolbar": [{% if batch_enabled %}"bulkActions", {% endif %}"pagination"],
+  {% endif %}
+  {% if footer_toolbar %}
+  "footerToolbar": {{ footer_toolbar | tojson }},
+  {% else %}
+  "footerToolbar": ["statistics", "switch-per-page", "pagination"],
+  {% endif %}
+  "perPage": {{ per_page_val }},
+  "perPageAvailable": {{ per_page_opts | tojson }},
+  "columns": [
+    {% if seq_enabled %}
+    {
+      "name": "__index",
+      "label": {{ seq_label | tojson }},
+      "type": "tpl",
+      "tpl": "${(page - 1) * perPage + index + 1}",
+      "width": 60
+    }{% if columns and columns | length > 0 %},{% endif %}
+    {% endif %}
+    {% if columns %}
+    {% for col in columns %}
+    {{ col | tojson }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+    {% else %}
+    {
+      "name": "id",
+      "label": "ID",
+      "width": 60
+    },
+    {
+      "name": "name",
+      "label": "名称"
+    },
+    {
+      "name": "created_at",
+      "label": "创建时间",
+      "type": "datetime"
+    }
+    {% endif %}
+  ]
+}
