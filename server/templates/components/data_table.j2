@@ -3,6 +3,7 @@
   封装 AMIS CRUD 完整功能,支持分页、序号、筛选、批量操作等
 
   Parameters:
+  - title (optional): 表格标题
   - api_url (required): 数据 API 地址
   - api_method (optional, default: 'post'): API 请求方法
   - api_data (optional): POST 请求的固定参数,会与分页参数、筛选参数自动合并
@@ -31,12 +32,22 @@
 {% set per_page_opts = per_page_options | default([10, 20, 50, 100]) %}
 {% set batch_enabled = enable_batch | default(false) %}
 {% set pk_field = primary_field | default('id') %}
-
-{# 处理固定参数 #}
 {% set fixed_params = api_data | default({}) %}
 
+{% if title %}
+{
+  "type": "container",
+  "body": [
+    {
+      "type": "tpl",
+      "tpl": "<h3 style='margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #262626;'>{{ title }}</h3>"
+    },
+    {
+      "type": "crud",
+{% else %}
 {
   "type": "crud",
+{% endif %}
   "syncLocation": false,
   "api": {
     "method": {{ method | tojson }},
@@ -86,7 +97,7 @@
   {% if header_toolbar %}
   "headerToolbar": {{ header_toolbar | tojson }},
   {% else %}
-  "headerToolbar": [{% if batch_enabled %}"bulkActions", {% endif %}"pagination"],
+  "headerToolbar": [{% if batch_enabled %}"bulkActions"{% endif %}],
   {% endif %}
   {% if footer_toolbar %}
   "footerToolbar": {{ footer_toolbar | tojson }},
@@ -126,4 +137,10 @@
     }
     {% endif %}
   ]
+{% if title %}
+    }
+  ]
 }
+{% else %}
+}
+{% endif %}
