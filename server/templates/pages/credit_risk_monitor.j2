@@ -366,17 +366,15 @@
               "size": "lg",
               "body": {
                 "type": "service",
-                "api": {
+                "schemaApi": {
                   "method": "post",
                   "url": "{{ generate_report_api }}",
                   "data": {
                     {% if generate_report_data_obj %}{% for key, val in generate_report_data_obj %}"{{ key }}": {{ val | tojson }},
                     {% endfor %}{% endif %}
                     "subject": "${subject}"
-                  },
-                  "responseData": "${data}"
-                },
-                "body": "${&}"
+                  }
+                }
               },
               "actions": [
                 {

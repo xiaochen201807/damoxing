@@ -3190,7 +3190,7 @@ router.post('/credit/risk/generate-report', (req, res) => {
 
     // 模拟 Dify 工作流返回的 AMIS Schema
     const reportSchema = {
-        type: "page",
+        type: "container",
         body: [
             {
                 type: "wrapper",
