@@ -6,6 +6,7 @@
   - title (optional): 表格标题
   - api_url (required): 数据 API 地址
   - api_method (optional, default: 'post'): API 请求方法
+  - api_headers (optional): 自定义请求头,例如 {"Authorization": "Bearer token"}
   - api_data (optional): POST 请求的固定参数,会与分页参数、筛选参数自动合并
   - page_field (optional, default: 'page'): 分页页码字段名
   - page_size_field (optional, default: 'perPage'): 分页大小字段名
@@ -52,6 +53,9 @@
   "api": {
     "method": {{ method | tojson }},
     "url": {{ api_url | tojson }},
+    {% if api_headers %}
+    "headers": {{ api_headers | tojson }},
+    {% endif %}
     {% if method == 'post' %}
     "data": {
       {% if fixed_params %}
