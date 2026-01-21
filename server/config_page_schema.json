@@ -850,8 +850,56 @@
                     "body": [
                         {
                             "type": "alert",
-                            "level": "warning",
-                            "body": "\u26a0\ufe0f \u540e\u7aef\u8bbe\u7f6e\u529f\u80fd\u5f00\u53d1\u4e2d..."
+                            "level": "info",
+                            "body": "\ud83d\udca1 \u4ee5\u4e0b\u914d\u7f6e\u4ece\u73af\u5883\u53d8\u91cf\u8bfb\u53d6\uff0c\u5982\u9700\u4fee\u6539\u8bf7\u7f16\u8f91 `.env` \u6587\u4ef6\u5e76\u91cd\u542f\u670d\u52a1\u3002",
+                            "className": "m-b"
+                        },
+                        {
+                            "type": "service",
+                            "api": "/api/schema/env-config",
+                            "body": [
+                                {
+                                    "type": "each",
+                                    "name": "configGroups",
+                                    "items": {
+                                        "type": "card",
+                                        "className": "m-b",
+                                        "header": {
+                                            "title": "${group}",
+                                            "titleClassName": "text-base font-bold"
+                                        },
+                                        "body": {
+                                            "type": "table",
+                                            "source": "${items}",
+                                            "columns": [
+                                                {
+                                                    "name": "label",
+                                                    "label": "\u914d\u7f6e\u9879",
+                                                    "width": 160
+                                                },
+                                                {
+                                                    "name": "value",
+                                                    "label": "\u5f53\u524d\u503c",
+                                                    "width": 280,
+                                                    "type": "tpl",
+                                                    "tpl": "<code class='${sensitive ? \"text-warning\" : \"\"}'>${value}${unit ? ' ('+unit+')' : ''}</code>"
+                                                },
+                                                {
+                                                    "name": "description",
+                                                    "label": "\u8bf4\u660e"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "divider"
+                                },
+                                {
+                                    "type": "tpl",
+                                    "tpl": "<div style='text-align: center; color: #999; font-size: 12px; padding: 10px;'>\u6700\u540e\u66f4\u65b0: ${lastUpdated | date: 'YYYY-MM-DD HH\\:mm\\:ss'}</div>"
+                                }
+                            ]
                         }
                     ]
                 }

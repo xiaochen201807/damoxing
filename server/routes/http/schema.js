@@ -843,4 +843,125 @@ router.get('/components', (req, res) => {
     });
 });
 
+
+/**
+ * 环境配置只读展示
+ * GET /api/schema/env-config
+ * 用于后端设置页面展示当前配置
+ */
+router.get('/env-config', (req, res) => {
+    // 辅助函数：脱敏处理 API Key
+    const maskApiKey = (key) => {
+        if (!key) return '未配置';
+        if (key.length <= 8) return '****';
+        return key.substring(0, 4) + '****' + key.substring(key.length - 4);
+    };
+
+    // 配置项定义：包含环境变量名、显示名称、描述、分组
+    const configItems = [
+        // Dify 配置
+        {
+            group: 'Dify AI 服务',
+            items: [
+                {
+                    key: 'DIFY_API_URL',
+                    label: 'Dify API 地址',
+                    value: process.env.DIFY_API_URL || 'https://api.dify.ai/v1',
+                    description: 'Dify 服务的 API 基础地址'
+                },
+                {
+                    key: 'DIFY_API_KEY',
+                    label: 'Dify API Key',
+                    value: maskApiKey(process.env.DIFY_API_KEY),
+                    description: '默认的 Dify API 密钥（页面级配置优先）',
+                    sensitive: true
+                },
+                {
+                    key: 'DIFY_API_TIMEOUT',
+                    label: 'API 超时时间',
+                    value: process.env.DIFY_API_TIMEOUT || '300000',
+                    description: '调用 Dify API 的超时时间（毫秒），默认 5 分钟',
+                    unit: 'ms'
+                }
+            ]
+        },
+        // 服务器配置
+        {
+            group: '服务器配置',
+            items: [
+                {
+                    key: 'PORT',
+                    label: '服务端口',
+                    value: process.env.PORT || '3001',
+                    description: 'Node.js 服务监听端口'
+                },
+                {
+                    key: 'NODE_ENV',
+                    label: '运行环境',
+                    value: process.env.NODE_ENV || 'development',
+                    description: '当前运行环境 (development/production)'
+                },
+                {
+                    key: 'API_ROUTE_PREFIX',
+                    label: 'API 路由前缀',
+                    value: process.env.API_ROUTE_PREFIX || '/',
+                    description: '用于多项目兼容部署的路由前缀'
+                },
+                {
+                    key: 'LOG_LEVEL',
+                    label: '日志级别',
+                    value: process.env.LOG_LEVEL || 'info',
+                    description: '日志输出级别 (debug/info/warn/error)'
+                }
+            ]
+        },
+        // 网关配置
+        {
+            group: '网关集成',
+            items: [
+                {
+                    key: 'GATEWAY_ENABLED',
+                    label: '启用网关',
+                    value: process.env.GATEWAY_ENABLED || 'false',
+                    description: '是否启用第三方网关验证'
+                },
+                {
+                    key: 'GATEWAY_VALIDATE_URL',
+                    label: '网关验证地址',
+                    value: process.env.GATEWAY_VALIDATE_URL || '未配置',
+                    description: '第三方网关 ticket 验证接口'
+                },
+                {
+                    key: 'SKIP_LOCAL_AUTH',
+                    label: '跳过本地认证',
+                    value: process.env.SKIP_LOCAL_AUTH || 'false',
+                    description: '开发环境可设为 true 跳过登录验证'
+                }
+            ]
+        },
+        // 数据库配置
+        {
+            group: '数据库',
+            items: [
+                {
+                    key: 'DB_PATH',
+                    label: '数据库路径',
+                    value: process.env.DB_PATH || './data/database.sqlite',
+                    description: 'SQLite 数据库文件路径'
+                }
+            ]
+        }
+    ];
+
+    res.json({
+        status: 0,
+        msg: 'success',
+        data: {
+            configGroups: configItems,
+            notice: '如需修改配置，请编辑 .env 文件并重启服务',
+            lastUpdated: new Date().toISOString()
+        }
+    });
+});
+
 module.exports = router;
