@@ -131,7 +131,7 @@
                                         "toolbar": [
                                             {
                                                 "type": "button",
-                                                "label": "下载模板",
+                                                "label": "下载模板(v4.4)",
                                                 "icon": "fa fa-download",
                                                 "level": "default",
                                                 "className": "m-r-xs",
@@ -139,14 +139,8 @@
                                                     "click": {
                                                         "actions": [
                                                             {
-                                                                "actionType": "download",
-                                                                "api": {
-                                                                    "method": "post",
-                                                                    "url": "{{ item.template_url }}",
-                                                                    "dataType": "json",
-                                                                    "data": {{ item.template_data | default('{}') | fromjson | tojson }},
-                                                                    "responseType": "blob"
-                                                                }
+                                                                "actionType": "custom",
+                                                                "script": "console.log('v4.6 (Gateway Support) fetch start'); let token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('amis-token'); const headers = { 'Content-Type': 'application/json' }; if (token) { headers['Authorization'] = 'Bearer ' + token; } const gatewayInfoStr = localStorage.getItem('gateway_info'); if (gatewayInfoStr) { try { const info = JSON.parse(gatewayInfoStr); if (info.login_token) { const parts = info.login_token.split(':'); if (parts.length > 1) { headers['channel'] = parts[1]; } headers['login-token'] = info.login_token; } if (info.jgbh) headers['jgbh'] = info.jgbh; if (info.zzbs) headers['zzbs'] = info.zzbs; if (info.zzjgdmz) headers['zzjgdmz'] = info.zzjgdmz; console.log('Gateway headers added'); } catch(e) { console.warn('Parse gateway_info failed', e); } } let url = '{{ item.template_url }}'; const pathParts = window.location.pathname.split('/'); const prefixIndex = pathParts.findIndex(p => p === 'api'); let prefix = ''; if (prefixIndex > 1) { prefix = '/' + pathParts.slice(1, prefixIndex).join('/'); } else if (window.location.pathname.startsWith('/gjjrgzn')) { prefix = '/gjjrgzn'; } if (prefix && !url.startsWith(prefix)) { url = prefix + url; } console.log('Fetching URL:', url); fetch(url, { method: 'POST', headers: headers, body: '{}' }).then(res => { console.log('Fetch response status:', res.status); if(!res.ok) throw new Error('Network error: ' + res.status); return res.blob(); }).then(blob => { console.log('Blob received', blob.size); var url = window.URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = '模板文件.xlsx'; document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url); }).catch(err => { console.error('Download error:', err); alert('下载出错: ' + err.message); });"
                                                             }
                                                         ]
                                                     }
