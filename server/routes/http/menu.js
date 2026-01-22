@@ -19,7 +19,7 @@ router.get('/menu', (req, res) => {
 
     // 是否包含未关联有效页面的菜单（用于管理后台）
     const showAll = include_inactive === 'true' || include_inactive === '1';
-    
+
     // 1. 尝试从缓存获取（支持 route_key 和 include_inactive 参数）
     const cacheKey = route_key ? `${route_key}:${showAll}` : showAll ? 'all:true' : undefined;
     const cachedMenu = cache.menu.get(cacheKey);
@@ -42,7 +42,7 @@ router.get('/menu', (req, res) => {
         sql = `
             SELECT m.*, p.is_active as page_is_active
             FROM sys_menu m
-            LEFT JOIN sys_page_template p ON m.page_key = p.page_key
+            LEFT JOIN sys_page_template p ON m.page_key = p.page_key AND p.is_active = 1
             WHERE 1=1
         `;
     } else {
