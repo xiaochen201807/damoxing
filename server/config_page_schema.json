@@ -310,6 +310,12 @@
                                                         "adaptor": "return { options: (payload.data || []).filter(item => !item.parent_id).map(item => ({ label: item.label, value: item.id })) };"
                                                     },
                                                     "description": "选择同路由下的上级菜单，不选则为该路由的顶级菜单"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "subtitle",
+                                                    "label": "副标题",
+                                                    "placeholder": "可选，显示在菜单名称下方的说明文字"
                                                 }
                                             ]
                                         }
@@ -320,6 +326,12 @@
                                 {
                                     "name": "label",
                                     "label": "\u83dc\u5355\u540d\u79f0"
+                                },
+                                {
+                                    "name": "subtitle",
+                                    "label": "副标题",
+                                    "searchable": true,
+                                    "placeholder": "-"
                                 },
                                 {
                                     "name": "page_key",
@@ -413,6 +425,12 @@
                                                                 "adaptor": "return { options: (payload.data || []).filter(item => !item.parent_id).map(item => ({ label: item.label, value: item.id })) };"
                                                             },
                                                             "description": "选择同路由下的上级菜单，不选则为该路由的顶级菜单"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "subtitle",
+                                                            "label": "副标题",
+                                                            "placeholder": "可选，显示在菜单名称下方的说明文字"
                                                         }
                                                     ]
                                                 }

@@ -125,7 +125,8 @@
 }
 
 /* 空菜单提示 */
-.menu-empty, .menu-loading {
+.menu-empty,
+.menu-loading {
   padding: 20px;
   text-align: center;
   color: var(--text-secondary, #999);

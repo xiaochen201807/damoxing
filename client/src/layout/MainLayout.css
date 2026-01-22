@@ -87,7 +87,8 @@
   padding: 0;
 }
 
-.menu-link {
+.menu-link,
+.submenu-header {
   display: flex;
   align-items: center;
   padding: 14px 16px;
@@ -104,7 +105,8 @@
 }
 
 /* 菜单项背景光效 */
-.menu-link::before {
+.menu-link::before,
+.submenu-header::before {
   content: '';
   position: absolute;
   top: 0;
@@ -118,12 +120,14 @@
   transition: left 0.5s;
 }
 
-.menu-link:hover::before {
+.menu-link:hover::before,
+.submenu-header:hover::before {
   left: 100%;
 }
 
 /* 悬停效果 */
-.menu-link:hover {
+.menu-link:hover,
+.submenu-header:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   transform: translateX(4px);
@@ -145,7 +149,8 @@
 }
 
 /* 图标样式 */
-.menu-link i {
+.menu-link i,
+.submenu-header i {
   width: 24px;
   min-width: 24px;
   margin-right: 12px;
@@ -157,6 +162,7 @@
 }
 
 .menu-link:hover i,
+.submenu-header:hover i,
 .menu-link.active i {
   opacity: 1;
   transform: scale(1.1);
@@ -198,7 +204,8 @@
 }
 
 /* 悬停状态下的副标题 */
-.menu-link:hover .menu-subtitle {
+.menu-link:hover .menu-subtitle,
+.submenu-header:hover .menu-subtitle {
   color: rgba(255, 255, 255, 0.85);
 }
 
