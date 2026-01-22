@@ -3623,5 +3623,136 @@ router.post('/audit/ai-models/list', (req, res) => {
     });
 });
 
+/**
+ * POST 版本 - 下载人社局数据导入模板
+ * 用于测试 import_ai 组件的模板下载功能
+ */
+router.post('/download-renshe', async (req, res) => {
+    try {
+        const ExcelJS = require('exceljs');
+
+        // 创建工作簿
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = '大模型系统';
+        workbook.created = new Date();
+
+        // 创建工作表
+        const worksheet = workbook.addWorksheet('人社局数据导入模板');
+
+        // 定义列（人社局常见字段）
+        worksheet.columns = [
+            { header: '姓名', key: 'name', width: 15 },
+            { header: '身份证号', key: 'id_card', width: 20 },
+            { header: '社保编号', key: 'social_security_no', width: 20 },
+            { header: '单位名称', key: 'company_name', width: 30 },
+            { header: '参保类型', key: 'insurance_type', width: 15 },
+            { header: '缴费基数', key: 'payment_base', width: 15 },
+            { header: '缴费月份', key: 'payment_month', width: 12 },
+            { header: '个人缴费', key: 'personal_payment', width: 15 },
+            { header: '单位缴费', key: 'company_payment', width: 15 },
+            { header: '缴费状态', key: 'payment_status', width: 12 }
+        ];
+
+        // 设置表头样式
+        worksheet.getRow(1).font = { bold: true, size: 11 };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4472C4' }
+        };
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+        // 添加示例数据（3行）
+        worksheet.addRow({
+            name: '张三',
+            id_card: '110101199001011234',
+            social_security_no: 'SH20240001',
+            company_name: '上海某某科技有限公司',
+            insurance_type: '城镇职工基本养老保险',
+            payment_base: '8000',
+            payment_month: '2024-01',
+            personal_payment: '640',
+            company_payment: '1280',
+            payment_status: '已缴费'
+        });
+
+        worksheet.addRow({
+            name: '李四',
+            id_card: '110101199102022345',
+            social_security_no: 'SH20240002',
+            company_name: '北京某某贸易有限公司',
+            insurance_type: '城镇职工基本医疗保险',
+            payment_base: '10000',
+            payment_month: '2024-01',
+            personal_payment: '200',
+            company_payment: '800',
+            payment_status: '已缴费'
+        });
+
+        worksheet.addRow({
+            name: '王五',
+            id_card: '110101199203033456',
+            social_security_no: 'SH20240003',
+            company_name: '广州某某制造有限公司',
+            insurance_type: '失业保险',
+            payment_base: '7500',
+            payment_month: '2024-01',
+            personal_payment: '37.5',
+            company_payment: '112.5',
+            payment_status: '未缴费'
+        });
+
+        // 设置数据区域样式
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) {
+                row.alignment = { vertical: 'middle', horizontal: 'left' };
+                row.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            }
+        });
+
+        // 添加说明sheet
+        const instructionSheet = workbook.addWorksheet('填写说明');
+        instructionSheet.getColumn(1).width = 80;
+        instructionSheet.addRow(['人社局数据导入模板填写说明']);
+        instructionSheet.addRow(['']);
+        instructionSheet.addRow(['1. 请严格按照模板格式填写，不要修改表头']);
+        instructionSheet.addRow(['2. 身份证号必须为18位有效身份证号']);
+        instructionSheet.addRow(['3. 社保编号格式：地区代码 + 年份 + 流水号（如：SH20240001）']);
+        instructionSheet.addRow(['4. 参保类型可选项：城镇职工基本养老保险、城镇职工基本医疗保险、失业保险、工伤保险、生育保险']);
+        instructionSheet.addRow(['5. 缴费基数和金额填写数字，不需要单位']);
+        instructionSheet.addRow(['6. 缴费月份格式：YYYY-MM（如：2024-01）']);
+        instructionSheet.addRow(['7. 缴费状态可选项：已缴费、未缴费、欠费']);
+        instructionSheet.addRow(['8. 导入时请删除示例数据，仅保留表头']);
+
+        instructionSheet.getRow(1).font = { bold: true, size: 14, color: { argb: 'FF1890FF' } };
+        instructionSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // 设置响应头
+        const filename = `人社局数据导入模板_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`;
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+
+        // 将工作簿写入响应流
+        await workbook.xlsx.write(res);
+        res.end();
+
+        console.log(`[Excel模板] 成功生成人社局数据导入模板: ${filename}`);
+
+    } catch (error) {
+        console.error('[Excel模板] 生成失败:', error);
+        res.status(500).json({
+            status: 500,
+            msg: '模板生成失败',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
 

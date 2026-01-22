@@ -47,14 +47,32 @@ function generateKey(prefix, ...parts) {
  * 菜单缓存辅助函数
  */
 const menu = {
-    get: () => menuCache.get('menu_list'),
-    set: (data) => {
-        menuCache.set('menu_list', data);
-        logger.info('[Cache] Menu cached');
+    /**
+     * 获取菜单缓存
+     * @param {string} routeKey - 可选的 route_key 参数
+     */
+    get: (routeKey) => {
+        const key = routeKey ? `menu_list:${routeKey}` : 'menu_list';
+        return menuCache.get(key);
     },
+    /**
+     * 设置菜单缓存
+     * @param {any} data - 菜单数据
+     * @param {string} routeKey - 可选的 route_key 参数
+     */
+    set: (data, routeKey) => {
+        const key = routeKey ? `menu_list:${routeKey}` : 'menu_list';
+        menuCache.set(key, data);
+        logger.info(`[Cache] Menu cached (key: ${key})`);
+    },
+    /**
+     * 清除所有菜单缓存
+     */
     clear: () => {
-        menuCache.del('menu_list');
-        logger.info('[Cache] Menu cache cleared');
+        const keys = menuCache.keys();
+        const menuKeys = keys.filter(k => k.startsWith('menu_list'));
+        menuKeys.forEach(k => menuCache.del(k));
+        logger.info(`[Cache] Cleared ${menuKeys.length} menu cache entries`);
     },
 };
 

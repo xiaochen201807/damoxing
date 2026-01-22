@@ -12,32 +12,48 @@ const cache = require('../../utils/cache');
 // 获取所有菜单
 router.get('/menu', (req, res) => {
     // 获取查询参数
-    const { route_key } = req.query;
+    const { route_key, include_inactive } = req.query;
     console.log('[DEBUG Menu API] Query params:', req.query);
     console.log('[DEBUG Menu API] route_key:', route_key);
+    console.log('[DEBUG Menu API] include_inactive:', include_inactive);
 
-    // 1. 尝试从缓存获取（仅在无过滤条件时使用缓存）
-    if (!route_key) {
-        const cachedMenu = cache.menu.get();
-        if (cachedMenu) {
-            logger.debug('[Menu] Cache hit');
-            return res.json({
-                status: 0,
-                msg: 'success',
-                data: cachedMenu,
-                cached: true,
-            });
-        }
+    // 是否包含未关联有效页面的菜单（用于管理后台）
+    const showAll = include_inactive === 'true' || include_inactive === '1';
+    
+    // 1. 尝试从缓存获取（支持 route_key 和 include_inactive 参数）
+    const cacheKey = route_key ? `${route_key}:${showAll}` : showAll ? 'all:true' : undefined;
+    const cachedMenu = cache.menu.get(cacheKey);
+    if (cachedMenu) {
+        logger.debug(`[Menu] Cache hit (key: ${cacheKey || 'default'})`);
+        return res.json({
+            status: 0,
+            msg: 'success',
+            data: cachedMenu,
+            cached: true,
+        });
     }
 
-    // 2. 构建查询SQL - JOIN with sys_page_template to filter active pages
-    let sql = `
-        SELECT m.* 
-        FROM sys_menu m
-        INNER JOIN sys_page_template p ON m.page_key = p.page_key
-        WHERE p.is_active = 1
-    `;
+    // 2. 构建查询SQL
+    let sql;
     const params = [];
+
+    if (showAll) {
+        // 管理后台模式：使用 LEFT JOIN，显示所有菜单（包括未关联页面的）
+        sql = `
+            SELECT m.*, p.is_active as page_is_active
+            FROM sys_menu m
+            LEFT JOIN sys_page_template p ON m.page_key = p.page_key
+            WHERE 1=1
+        `;
+    } else {
+        // 前端导航模式：使用 INNER JOIN，只显示有效页面的菜单
+        sql = `
+            SELECT m.* 
+            FROM sys_menu m
+            INNER JOIN sys_page_template p ON m.page_key = p.page_key
+            WHERE p.is_active = 1
+        `;
+    }
 
     if (route_key) {
         sql += ' AND m.route_key = ?';
@@ -57,10 +73,8 @@ router.get('/menu', (req, res) => {
             });
         }
 
-        // 3. 仅在无过滤条件时缓存结果
-        if (!route_key) {
-            cache.menu.set(rows);
-        }
+        // 3. 缓存结果（使用包含 include_inactive 的缓存键）
+        cache.menu.set(rows, cacheKey);
 
         res.json({
             status: 0,
@@ -244,70 +258,85 @@ function updateMenu(req, res) {
     }
 
     function performUpdate() {
-        const updates = [];
-        const params = [];
-
-        if (label !== undefined) {
-            updates.push('label = ?');
-            params.push(label);
-        }
-        if (subtitle !== undefined) {
-            updates.push('subtitle = ?');
-            params.push(subtitle);
-        }
-        if (newPageKey !== undefined && newPageKey !== pageKey) {
-            updates.push('page_key = ?');
-            params.push(newPageKey);
-            // 自动更新 path
-            updates.push('path = ?');
-            params.push(`/dashboard/${newPageKey}`);
-        }
-        if (icon !== undefined) {
-            updates.push('icon = ?');
-            params.push(icon);
-        }
-        if (order !== undefined) {
-            updates.push('`order` = ?');
-            params.push(order);
-        }
-        if (route_key !== undefined) {
-            updates.push('route_key = ?');
-            params.push(route_key);
-        }
-        if (parent_id !== undefined) {
-            updates.push('parent_id = ?');
-            params.push(parent_id || null);
-        }
-
-        if (updates.length === 0) {
-            return res.status(400).json({ status: 400, msg: '没有需要更新的字段' });
-        }
-
-        params.push(pageKey);
-        const sql = `UPDATE sys_menu SET ${updates.join(', ')} WHERE page_key = ?`;
-
-        db.run(sql, params, function (err) {
+        // 先查询当前菜单信息，以便正确更新 path
+        db.get('SELECT page_key, route_key FROM sys_menu WHERE page_key = ?', [pageKey], (err, currentMenu) => {
             if (err) {
-                logger.error('[Menu] 更新失败:', err);
-                return res.status(500).json({ status: 500, msg: '更新菜单失败', error: err.message });
+                return res.status(500).json({ status: 500, error: err.message });
             }
-
-            if (this.changes === 0) {
+            if (!currentMenu) {
                 return res.status(404).json({ status: 404, msg: '菜单不存在' });
             }
 
-            // 清除缓存
-            cache.menu.clear();
+            const updates = [];
+            const params = [];
 
-            // 如果 pageKey 变了，返回新的；否则返回旧的
-            const distinctKey = (newPageKey !== undefined && newPageKey !== pageKey) ? newPageKey : pageKey;
+            if (label !== undefined) {
+                updates.push('label = ?');
+                params.push(label);
+            }
+            if (subtitle !== undefined) {
+                updates.push('subtitle = ?');
+                params.push(subtitle);
+            }
+            if (newPageKey !== undefined && newPageKey !== pageKey) {
+                updates.push('page_key = ?');
+                params.push(newPageKey);
+            }
+            if (icon !== undefined) {
+                updates.push('icon = ?');
+                params.push(icon);
+            }
+            if (order !== undefined) {
+                updates.push('`order` = ?');
+                params.push(order);
+            }
+            if (route_key !== undefined) {
+                updates.push('route_key = ?');
+                params.push(route_key);
+            }
+            if (parent_id !== undefined) {
+                updates.push('parent_id = ?');
+                params.push(parent_id || null);
+            }
 
-            logger.info(`[Menu] 更新菜单成功: ${distinctKey}`);
+            // 如果 route_key 或 page_key 有变化，需要更新 path
+            if (route_key !== undefined || (newPageKey !== undefined && newPageKey !== pageKey)) {
+                const finalRouteKey = route_key !== undefined ? route_key : currentMenu.route_key;
+                const finalPageKey = (newPageKey !== undefined && newPageKey !== pageKey) ? newPageKey : currentMenu.page_key;
+                updates.push('path = ?');
+                params.push(`/${finalRouteKey}/${finalPageKey}`);
+            }
 
-            res.json({
-                status: 0,
-                msg: 'success',
-                data: { page_key: distinctKey, updated: true }
+            if (updates.length === 0) {
+                return res.status(400).json({ status: 400, msg: '没有需要更新的字段' });
+            }
+
+            params.push(pageKey);
+            const sql = `UPDATE sys_menu SET ${updates.join(', ')} WHERE page_key = ?`;
+
+            db.run(sql, params, function (err) {
+                if (err) {
+                    logger.error('[Menu] 更新失败:', err);
+                    return res.status(500).json({ status: 500, msg: '更新菜单失败', error: err.message });
+                }
+
+                if (this.changes === 0) {
+                    return res.status(404).json({ status: 404, msg: '菜单不存在' });
+                }
+
+                // 清除缓存
+                cache.menu.clear();
+
+                // 如果 pageKey 变了，返回新的；否则返回旧的
+                const distinctKey = (newPageKey !== undefined && newPageKey !== pageKey) ? newPageKey : pageKey;
+
+                logger.info(`[Menu] 更新菜单成功: ${distinctKey}`);
+
+                res.json({
+                    status: 0,
+                    msg: 'success',
+                    data: { page_key: distinctKey, updated: true }
+                });
             });
         });
     }

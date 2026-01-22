@@ -15,7 +15,7 @@ try {
 
     const UPDATE_SQL = `
         UPDATE sys_page_template 
-        SET schema_json = ?, version = version + 1, updated_at = datetime('now', '+08:00')
+        SET schema_json = ?, updated_at = datetime('now', '+08:00')
         WHERE page_key = 'config' AND is_active = 1
     `;
 

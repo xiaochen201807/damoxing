@@ -228,7 +228,7 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
-                            "api": "/api/system/menu",
+                            "api": "/api/system/menu?include_inactive=true",
                             "filter": {
                                 "title": "筛选",
                                 "body": [
@@ -297,6 +297,19 @@
                                                         "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
                                                     },
                                                     "description": "\u9009\u62e9\u83dc\u5355\u6240\u5c5e\u7684\u4e3b\u8def\u6a21\u5757"
+                                                },
+                                                {
+                                                    "type": "select",
+                                                    "name": "parent_id",
+                                                    "label": "上级菜单",
+                                                    "placeholder": "无（顶级菜单）",
+                                                    "clearable": true,
+                                                    "source": {
+                                                        "method": "get",
+                                                        "url": "/api/system/menu?route_key=${route_key}&include_inactive=true",
+                                                        "adaptor": "return { options: (payload.data || []).filter(item => !item.parent_id).map(item => ({ label: item.label, value: item.id })) };"
+                                                    },
+                                                    "description": "选择同路由下的上级菜单，不选则为该路由的顶级菜单"
                                                 }
                                             ]
                                         }
@@ -387,6 +400,19 @@
                                                                 "url": "/api/routes",
                                                                 "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
                                                             }
+                                                        },
+                                                        {
+                                                            "type": "select",
+                                                            "name": "parent_id",
+                                                            "label": "上级菜单",
+                                                            "placeholder": "无（顶级菜单）",
+                                                            "clearable": true,
+                                                            "source": {
+                                                                "method": "get",
+                                                                "url": "/api/system/menu?route_key=${route_key}&include_inactive=true",
+                                                                "adaptor": "return { options: (payload.data || []).filter(item => !item.parent_id).map(item => ({ label: item.label, value: item.id })) };"
+                                                            },
+                                                            "description": "选择同路由下的上级菜单，不选则为该路由的顶级菜单"
                                                         }
                                                     ]
                                                 }
@@ -474,7 +500,7 @@
                                         "label": "所属菜单",
                                         "placeholder": "全部菜单",
                                         "clearable": true,
-                                        "source": "/api/system/menu?route_key=${route_key}",
+                                        "source": "/api/system/menu?route_key=${route_key}&include_inactive=true",
                                         "labelField": "label",
                                         "valueField": "id"
                                     }
