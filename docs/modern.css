@@ -1,0 +1,131 @@
+body {
+    font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2em;
+    background-color: #fff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #2c3e50;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 2.2em;
+    border-bottom: 2px solid #eaecef;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.8em;
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 0.3em;
+}
+
+h3 {
+    font-size: 1.4em;
+}
+
+a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code {
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    background-color: #f6f8fa;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 85%;
+}
+
+pre {
+    background-color: #f6f8fa;
+    padding: 16px;
+    overflow: auto;
+    border-radius: 6px;
+    line-height: 1.45;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
+}
+
+blockquote {
+    padding: 0 1em;
+    color: #6a737d;
+    border-left: 0.25em solid #dfe2e5;
+    margin: 1em 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid #dfe2e5;
+    padding: 6px 13px;
+}
+
+th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+}
+
+tr:nth-child(2n) {
+    background-color: #f8f8f8;
+}
+
+img {
+    max-width: 100%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    margin: 1em 0;
+}
+
+ul, ol {
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.25em 0;
+}
+
+/* TOC Styling */
+#TOC {
+    background-color: #f8f9fa;
+    padding: 1em;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 2em;
+}
+
+#TOC ul {
+    list-style-type: none;
+    padding-left: 1em;
+}
+
+#TOC > ul {
+    padding-left: 0;
+}
+
+#TOC a {
+    color: #495057;
+}
+
+#TOC a:hover {
+    color: #0366d6;
+}
