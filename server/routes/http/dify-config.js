@@ -162,6 +162,39 @@ router.delete('/config/:id', (req, res) => {
     });
 });
 
+// 删除配置 (POST 方式) - AMIS 兼容
+router.post('/config/:id/delete', (req, res) => {
+    const { id } = req.params;
+
+    const sql = 'DELETE FROM sys_dify_config WHERE id = ?';
+
+    db.run(sql, [id], function (err) {
+        if (err) {
+            logger.error('[Dify Config] 删除失败 (POST):', err);
+            return res.status(500).json({
+                status: 500,
+                msg: '删除配置失败',
+                error: err.message
+            });
+        }
+
+        if (this.changes === 0) {
+            return res.status(404).json({
+                status: 404,
+                msg: '配置不存在'
+            });
+        }
+
+        logger.info(`[Dify Config] 删除配置成功 (POST): ID ${id}`);
+
+        res.json({
+            status: 0,
+            msg: 'success',
+            data: { id, deleted: true }
+        });
+    });
+});
+
 // 更新配置 (PUT) - 根据 id
 router.put('/config/:id', validate(schemas.difyConfigUpdate), updateDifyConfig);
 

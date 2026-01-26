@@ -780,7 +780,7 @@
                                                                     "className": "text-danger",
                                                                     "actionType": "ajax",
                                                                     "confirmText": "\u786e\u8ba4\u5220\u9664\u5de5\u4f5c\u6d41\u3010${workflow_name}\u3011\uff1f",
-                                                                    "api": "delete:/api/dify/config/${id}"
+                                                                    "api": "post:/api/dify/config/${id}/delete"
                                                                 }
                                                             ]
                                                         }
