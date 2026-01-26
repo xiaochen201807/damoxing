@@ -31,6 +31,8 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
+                            "loadDataOnce": true,
+                            "perPage": 10,
                             "api": "/api/routes",
                             "headerToolbar": [
                                 {
@@ -107,12 +109,18 @@
                                             ]
                                         }
                                     }
-                                },
-                                "pagination"
+                                }
                             ],
                             "footerToolbar": [
                                 "statistics",
+                                "switch-per-page",
                                 "pagination"
+                            ],
+                            "perPageAvailable": [
+                                10,
+                                20,
+                                50,
+                                100
                             ],
                             "columns": [
                                 {
@@ -228,6 +236,8 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
+                            "loadDataOnce": true,
+                            "perPage": 10,
                             "api": "/api/system/menu?include_inactive=true",
                             "filter": {
                                 "title": "筛选",
@@ -321,6 +331,17 @@
                                         }
                                     }
                                 }
+                            ],
+                            "footerToolbar": [
+                                "statistics",
+                                "switch-per-page",
+                                "pagination"
+                            ],
+                            "perPageAvailable": [
+                                10,
+                                20,
+                                50,
+                                100
                             ],
                             "columns": [
                                 {
@@ -496,6 +517,7 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
+                            "loadDataOnce": true,
                             "api": "/api/system/template",
                             "filter": {
                                 "title": "筛选",
@@ -525,11 +547,11 @@
                                 ]
                             },
                             "headerToolbar": [
-                                "bulkActions",
-                                "pagination"
+                                "bulkActions"
                             ],
                             "footerToolbar": [
                                 "statistics",
+                                "switch-per-page",
                                 "pagination"
                             ],
                             "perPageAvailable": [
