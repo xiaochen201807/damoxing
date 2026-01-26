@@ -16,6 +16,9 @@ const axios = require('axios');
  * @param {string} tyLoginToken - 从前端 URL 获取的 tyLoginToken 参数
  */
 async function callGatewayValidate(ticket, tyLoginToken) {
+    // DEBUG: 打印网关验证参数
+    logger.info(`[Auth Debug] callGatewayValidate called with: ticket=${ticket}, tyLoginToken=${tyLoginToken}`);
+
     const gatewayEnabled = process.env.GATEWAY_ENABLED === 'true';
 
     if (!gatewayEnabled) {
@@ -44,6 +47,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
     const finalTicket = ticket || process.env.GATEWAY_TICKET;
     const finalLoginToken = tyLoginToken || process.env.GATEWAY_LOGIN_TOKEN;
 
+
     if (!finalTicket || !finalLoginToken) {
         logger.warn('[Gateway] 网关参数不完整 (ticket 或 tyLoginToken 缺失)，使用模拟数据');
         return {
@@ -56,7 +60,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
 
     try {
         logger.info(`[Gateway] 调用网关验证接口: ${gatewayUrl}`);
-        logger.info(`[Gateway] 参数: ticket=${finalTicket.substring(0, 10)}..., tyLoginToken=${finalLoginToken.substring(0, 10)}...`);
+        logger.info(`[Gateway] 参数: ticket=${finalTicket.substring(0, 30)}..., tyLoginToken=${finalLoginToken.substring(0, 30)}...`);
 
         // 使用 JSON 格式发送（更简单可靠）
         const response = await axios.post(gatewayUrl, {
@@ -165,6 +169,9 @@ async function callGatewayValidate(ticket, tyLoginToken) {
  */
 router.post('/login', async (req, res) => {
     try {
+        // DEBUG: 打印完整的请求体
+        logger.info('[Auth Debug] Login API received body:', JSON.stringify(req.body));
+
         const { username, password, ticket, tyLoginToken, qycode } = req.body;
         const skipLocalAuth = process.env.SKIP_LOCAL_AUTH === 'true';
 

@@ -23,8 +23,11 @@ interface AuthGuardProps {
 // 检测是否有有效的网关参数
 const hasValidGatewayParams = (): boolean => {
     const params = getGatewayParams();
+    // 只要有 ticket 或 cheque 就认为是 SSO 登录尝试
+    // 不需要强制检查 tyLoginToken，防止因缺失该参数导致重定向循环
     const hasValidTicket = (params.ticket && params.ticket !== 'nothing') || params.cheque;
-    return !!(hasValidTicket && params.tyLoginToken);
+    console.log('[AuthGuard] Checking gateway params:', { params, hasValidTicket });
+    return !!hasValidTicket;
 };
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
@@ -47,13 +50,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
         saveUrlParamsToSession();
 
+        // 这里同样使用放宽后的检查逻辑
         const gatewayParams = getGatewayParamsWithFallback();
         const hasValidTicket = (gatewayParams.ticket && gatewayParams.ticket !== 'nothing') || gatewayParams.cheque;
 
-        if (hasValidTicket && gatewayParams.tyLoginToken) {
-            console.log('[AuthGuard SSO] 检测到网关参数，进行 SSO 登录');
+        if (hasValidTicket) {
+            console.log('[AuthGuard SSO] 检测到网关参数，进行 SSO 登录', gatewayParams);
             performSsoLogin(gatewayParams);
         } else {
+            console.log('[AuthGuard SSO] 未检测到有效网关参数，跳过 SSO');
             setAuthChecked(true);
         }
     }, [authToken]);
@@ -64,9 +69,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         setSsoError(null);
 
         try {
+            console.log('[AuthGuard SSO] 发起登录请求...');
             const response = await axios.post(`${API_PREFIX}/auth/login`, {
                 ticket: gatewayParams.ticket === 'nothing' ? gatewayParams.cheque : gatewayParams.ticket,
-                tyLoginToken: gatewayParams.tyLoginToken,
+                tyLoginToken: gatewayParams.tyLoginToken, // 可选
                 qycode: gatewayParams.qycode
             });
 
@@ -89,14 +95,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
                 setSsoLoading(false);
                 setAuthChecked(true);
             } else {
+                console.warn('[AuthGuard SSO] 登录返回非 0 状态:', response.data);
                 setSsoError(response.data.msg || 'SSO 登录失败');
-                setAuthChecked(true);
+                // 登录失败不应该 setAuthChecked(true) 导致重定向，而是显示错误
                 setSsoLoading(false);
             }
         } catch (err: any) {
             console.error('[AuthGuard SSO] 登录失败:', err);
-            setSsoError(err.response?.data?.msg || '网关验证失败');
-            setAuthChecked(true);
+            const errMsg = err.response?.data?.msg || err.message || '网关验证失败';
+            setSsoError(errMsg);
             setSsoLoading(false);
         }
     };
