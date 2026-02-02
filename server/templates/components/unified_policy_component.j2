@@ -244,7 +244,7 @@
                     "pageId": "{{ page_key }}",
                     "workflow_type": "{{ workflow_type | default('ai_analysis') }}",
                     "timestamp": "${date(now(), 'x')}",
-                    "query": "${query || '用户未指定要求'}"
+                    "query": "${data.query || query || '用户未指定要求'}"
                 }
             },
             "onEvent": {
