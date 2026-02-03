@@ -50,6 +50,9 @@
   "type": "crud",
 {% endif %}
   "syncLocation": false,
+  {% if header_toolbar is defined and header_toolbar|length == 0 %}
+  "columnsTogglable": false,
+  {% endif %}
   "api": {
     "method": {{ method | tojson }},
     "url": {{ api_url | tojson }},
