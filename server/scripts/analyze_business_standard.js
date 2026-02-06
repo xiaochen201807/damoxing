@@ -69,6 +69,26 @@ const API_PARAMS = {
         groupOrder: 3,
         order: 2
     },
+    // 关键数据算法选项配置
+    algorithm_options: {
+        type: 'combo',
+        title: '关键数据算法选项',
+        description: '配置关键数据算法的下拉选项 (Key为中文拼音首字母)',
+        multiple: true,
+        items: [
+            { type: 'input-text', name: 'label', label: '显示名称', required: true },
+            { type: 'input-text', name: 'value', label: '值 (Key)', required: true }
+        ],
+        default: [
+            { "label": "可提取金额", "value": "ktqje" },
+            { "label": "可贷款金额", "value": "kdkje" },
+            { "label": "可贷款年限", "value": "kdknx" },
+            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
+        ],
+        group: '⚙️ 选项配置',
+        groupOrder: 4,
+        order: 1
+    },
     // 服务对象接口
     service_objects_api: {
         type: 'string',
@@ -98,16 +118,17 @@ async function analyzeBusinessStandard() {
 
         // 添加 API 参数
         Object.entries(API_PARAMS).forEach(([name, config]) => {
+            // 复制配置到 schema，支持更多属性 (如 items, multiple 等)
+            const { group, groupOrder, order, default: defaultValue, ...otherProps } = config;
+
             paramsSchema.properties[name] = {
-                type: config.type,
-                title: config.title,
-                description: config.description,
-                'ui:group': config.group,
-                'ui:groupOrder': config.groupOrder,
-                'ui:order': config.order,
-                default: config.default
+                ...otherProps,
+                'ui:group': group,
+                'ui:groupOrder': groupOrder,
+                'ui:order': order,
+                default: defaultValue
             };
-            defaultParams[name] = config.default;
+            defaultParams[name] = defaultValue;
         });
 
         // 统计分组

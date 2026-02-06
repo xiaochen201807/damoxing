@@ -1,6 +1,14 @@
 {
     "type": "page",
     "title": "业务办理标准库",
+    "data": {
+        "algorithm_options": [
+            { "label": "可提取金额", "value": "ktqje" },
+            { "label": "可贷款金额", "value": "kdkje" },
+            { "label": "可贷款年限", "value": "kdknx" },
+            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
+        ]
+    },
     "body": [
         {
             "type": "crud",
@@ -14,28 +22,11 @@
                 "body": [
                     {
                         "type": "select",
-                        "name": "ywsf",
-                        "label": "业务算法",
-                        "placeholder": "请选择业务算法",
+                        "name": "gjsjsf",
+                        "label": "关键数据算法",
+                        "placeholder": "请选择关键数据算法",
                         "clearable": true,
-                        "options": [
-                            {
-                                "label": "可提取金额",
-                                "value": "可提取金额"
-                            },
-                            {
-                                "label": "可贷款金额",
-                                "value": "可贷款金额"
-                            },
-                            {
-                                "label": "可贷款年限",
-                                "value": "可贷款年限"
-                            },
-                            {
-                                "label": "贷款还款时可对冲金额",
-                                "value": "贷款还款时可对冲金额"
-                            }
-                        ]
+                        "source": "${algorithm_options}"
                     },
                     {
                         "type": "select",
@@ -164,22 +155,9 @@
                                     },
                                     {
                                         "type": "select",
-                                        "name": "ywsf",
-                                        "label": "业务算法",
-                                        "options": [
-                                            {
-                                                "label": "可贷款金额",
-                                                "value": "可贷款金额"
-                                            },
-                                            {
-                                                "label": "可提取金额",
-                                                "value": "可提取金额"
-                                            },
-                                            {
-                                                "label": "可贷款年限",
-                                                "value": "可贷款年限"
-                                            }
-                                        ]
+                                        "name": "gjsjsf",
+                                        "label": "关键数据算法",
+                                        "source": "${algorithm_options}"
                                     },
                                     {
                                         "type": "select",
@@ -331,8 +309,8 @@
                     "width": 350
                 },
                 {
-                    "name": "ywsf",
-                    "label": "业务算法",
+                    "name": "gjsjsf",
+                    "label": "关键数据算法",
                     "width": 150
                 },
                 {
@@ -436,8 +414,8 @@
                                         },
                                         {
                                             "type": "input-text",
-                                            "name": "ywsf",
-                                            "label": "业务算法"
+                                            "name": "gjsjsf",
+                                            "label": "关键数据算法"
                                         },
                                         {
                                             "type": "select",
