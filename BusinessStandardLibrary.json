@@ -1,0 +1,473 @@
+{
+    "type": "page",
+    "title": "业务办理标准库",
+    "body": [
+        {
+            "type": "crud",
+            "api": "/business-standards",
+            "filter": {
+                "title": "",
+                "submitText": "",
+                "type": "form",
+                "mode": "inline",
+                "wrapWithPanel": false,
+                "body": [
+                    {
+                        "type": "select",
+                        "name": "ywsf",
+                        "label": "业务算法",
+                        "placeholder": "请选择业务算法",
+                        "clearable": true,
+                        "options": [
+                            {
+                                "label": "可提取金额",
+                                "value": "可提取金额"
+                            },
+                            {
+                                "label": "可贷款金额",
+                                "value": "可贷款金额"
+                            },
+                            {
+                                "label": "可贷款年限",
+                                "value": "可贷款年限"
+                            },
+                            {
+                                "label": "贷款还款时可对冲金额",
+                                "value": "贷款还款时可对冲金额"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "select",
+                        "name": "ywnrfl",
+                        "label": "业务内容分类",
+                        "placeholder": "请选择业务内容分类",
+                        "clearable": true,
+                        "options": [
+                            {
+                                "label": "工具接口",
+                                "value": "工具接口"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "select",
+                        "name": "ywblbz",
+                        "label": "业务办理标准",
+                        "placeholder": "请选择业务办理标准",
+                        "searchable": true,
+                        "clearable": true,
+                        "options": []
+                    },
+                    {
+                        "type": "submit",
+                        "label": "查询",
+                        "level": "primary"
+                    },
+                    {
+                        "type": "reset",
+                        "label": "重置"
+                    },
+                    {
+                        "type": "button",
+                        "label": "增加",
+                        "actionType": "dialog",
+                        "level": "success",
+                        "dialog": {
+                            "title": "新增业务标准模板",
+                            "size": "lg",
+                            "body": {
+                                "type": "form",
+                                "mode": "normal",
+                                "api": "post:/business-standards",
+                                "body": [
+                                    {
+                                        "type": "input-number",
+                                        "name": "pxh",
+                                        "label": "排序号",
+                                        "value": 0
+                                    },
+                                    {
+                                        "type": "input-group",
+                                        "label": "业务办理标准",
+                                        "body": [
+                                            {
+                                                "type": "input-text",
+                                                "name": "ywblbz",
+                                                "required": true,
+                                                "placeholder": "请输入描述，使用按钮插入属性引用",
+                                                "id": "u:standard_name_input"
+                                            },
+                                            {
+                                                "type": "button",
+                                                "label": "插入属性",
+                                                "icon": "fa fa-link",
+                                                "level": "default",
+                                                "actionType": "dialog",
+                                                "dialog": {
+                                                    "title": "选择属性插入",
+                                                    "size": "md",
+                                                    "body": {
+                                                        "type": "form",
+                                                        "wrapWithPanel": false,
+                                                        "body": [
+                                                            {
+                                                                "type": "select",
+                                                                "name": "_temp_attribute_obj",
+                                                                "label": "选择属性",
+                                                                "placeholder": "请选择要插入的属性",
+                                                                "source": "${sxpz}",
+                                                                "labelField": "sxmc",
+                                                                "valueField": "sxmc",
+                                                                "menuTpl": "<div>${fwdxbq} - ${sxmc}</div>",
+                                                                "required": true
+                                                            }
+                                                        ]
+                                                    },
+                                                    "actions": [
+                                                        {
+                                                            "type": "button",
+                                                            "label": "取消",
+                                                            "actionType": "cancel"
+                                                        },
+                                                        {
+                                                            "type": "button",
+                                                            "label": "插入",
+                                                            "level": "primary",
+                                                            "onEvent": {
+                                                                "click": {
+                                                                    "actions": [
+                                                                        {
+                                                                            "actionType": "setValue",
+                                                                            "componentId": "u:standard_name_input",
+                                                                            "args": {
+                                                                                "value": "${ywblbz + ' [/' + _temp_attribute_obj + '] '}"
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "closeDialog"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "input-text",
+                                        "name": "ywblbzsm",
+                                        "label": "业务办理标准说明",
+                                        "placeholder": "请输入业务办理标准说明"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "ywsf",
+                                        "label": "业务算法",
+                                        "options": [
+                                            {
+                                                "label": "可贷款金额",
+                                                "value": "可贷款金额"
+                                            },
+                                            {
+                                                "label": "可提取金额",
+                                                "value": "可提取金额"
+                                            },
+                                            {
+                                                "label": "可贷款年限",
+                                                "value": "可贷款年限"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "bzfl",
+                                        "label": "标准分类",
+                                        "required": true,
+                                        "options": [
+                                            {
+                                                "label": "购买住房提取",
+                                                "value": "购买住房提取"
+                                            },
+                                            {
+                                                "label": "建造翻建大修提取",
+                                                "value": "建造翻建大修提取"
+                                            },
+                                            {
+                                                "label": "偿还贷款本息提取",
+                                                "value": "偿还贷款本息提取"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "input-text",
+                                        "name": "ywbzz",
+                                        "label": "业务标准值"
+                                    },
+                                    {
+                                        "type": "textarea",
+                                        "name": "ywbzjg",
+                                        "label": "业务标准结果SQL",
+                                        "placeholder": "请输入 SQL"
+                                    },
+                                    {
+                                        "type": "combo",
+                                        "name": "sxpz",
+                                        "label": "要素属性配置",
+                                        "multiple": true,
+                                        "multiLine": true,
+                                        "addable": true,
+                                        "removable": true,
+                                        "items": [
+                                            {
+                                                "type": "select",
+                                                "name": "fwdx",
+                                                "label": "服务对象",
+                                                "required": true,
+                                                "source": {
+                                                    "method": "post",
+                                                    "url": "/service-objects"
+                                                },
+                                                "autoFill": {
+                                                    "fwdxbq": "${label}"
+                                                }
+                                            },
+                                            {
+                                                "type": "hidden",
+                                                "name": "fwdxbq"
+                                            },
+                                            {
+                                                "type": "input-text",
+                                                "name": "sxmc",
+                                                "label": "属性名称",
+                                                "placeholder": "如: 贷款状态"
+                                            },
+                                            {
+                                                "type": "radios",
+                                                "name": "sxly",
+                                                "label": "属性来源",
+                                                "inline": true,
+                                                "options": [
+                                                    {
+                                                        "label": "页面",
+                                                        "value": "page"
+                                                    },
+                                                    {
+                                                        "label": "SQL",
+                                                        "value": "sql"
+                                                    }
+                                                ],
+                                                "value": "page"
+                                            },
+                                            {
+                                                "type": "textarea",
+                                                "name": "sqlyj",
+                                                "label": "SQL语句",
+                                                "visibleOn": "${sxly === 'sql'}"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+            "columns": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "width": 50
+                },
+                {
+                    "name": "pxh",
+                    "label": "排序",
+                    "width": 60
+                },
+                {
+                    "name": "ywblbz",
+                    "label": "业务办理标准",
+                    "width": 350
+                },
+                {
+                    "name": "ywsf",
+                    "label": "业务算法",
+                    "width": 150
+                },
+                {
+                    "name": "bzfl",
+                    "label": "标准分类",
+                    "width": 150
+                },
+                {
+                    "type": "operation",
+                    "label": "操作",
+                    "buttons": [
+                        {
+                            "type": "button",
+                            "label": "编辑",
+                            "level": "link",
+                            "actionType": "dialog",
+                            "dialog": {
+                                "title": "编辑业务标准模板",
+                                "size": "lg",
+                                "body": {
+                                    "type": "form",
+                                    "mode": "normal",
+                                    "initApi": "get:/business-standards/${id}",
+                                    "api": "put:/business-standards/${id}",
+                                    "body": [
+                                        {
+                                            "type": "input-number",
+                                            "name": "pxh",
+                                            "label": "排序号"
+                                        },
+                                        {
+                                            "type": "input-group",
+                                            "label": "业务办理标准",
+                                            "body": [
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "ywblbz",
+                                                    "required": true,
+                                                    "id": "u:edit_standard_name_input"
+                                                },
+                                                {
+                                                    "type": "button",
+                                                    "label": "插入属性",
+                                                    "actionType": "dialog",
+                                                    "dialog": {
+                                                        "title": "插入属性",
+                                                        "body": {
+                                                            "type": "form",
+                                                            "body": [
+                                                                {
+                                                                    "type": "select",
+                                                                    "name": "_temp_attribute_obj",
+                                                                    "label": "选择属性",
+                                                                    "source": "${sxpz}",
+                                                                    "labelField": "sxmc",
+                                                                    "valueField": "sxmc"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "actions": [
+                                                            {
+                                                                "type": "button",
+                                                                "label": "插入",
+                                                                "level": "primary",
+                                                                "onEvent": {
+                                                                    "click": {
+                                                                        "actions": [
+                                                                            {
+                                                                                "actionType": "setValue",
+                                                                                "componentId": "u:edit_standard_name_input",
+                                                                                "args": {
+                                                                                    "value": "${ywblbz + ' [/' + _temp_attribute_obj + '] '}"
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "actionType": "closeDialog"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "input-text",
+                                            "name": "ywbzz",
+                                            "label": "业务标准值"
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "ywbzjg",
+                                            "label": "业务标准结果SQL"
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "ywblbzsm",
+                                            "label": "核心解释说明"
+                                        },
+                                        {
+                                            "type": "input-text",
+                                            "name": "ywsf",
+                                            "label": "业务算法"
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "bzfl",
+                                            "label": "分类",
+                                            "options": [
+                                                {
+                                                    "label": "购买住房提取",
+                                                    "value": "购买住房提取"
+                                                },
+                                                {
+                                                    "label": "偿还贷款本息提取",
+                                                    "value": "偿还贷款本息提取"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "combo",
+                                            "name": "sxpz",
+                                            "label": "要素配置",
+                                            "multiple": true,
+                                            "multiLine": true,
+                                            "items": [
+                                                {
+                                                    "type": "select",
+                                                    "name": "fwdx",
+                                                    "label": "对象",
+                                                    "source": "/service-objects",
+                                                    "autoFill": {
+                                                        "fwdxbq": "${label}"
+                                                    }
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "sxmc",
+                                                    "label": "属性"
+                                                },
+                                                {
+                                                    "type": "radios",
+                                                    "name": "sxly",
+                                                    "options": [
+                                                        {
+                                                            "label": "页面",
+                                                            "value": "page"
+                                                        },
+                                                        {
+                                                            "label": "SQL",
+                                                            "value": "sql"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "label": "删除",
+                            "level": "link",
+                            "className": "text-danger",
+                            "actionType": "ajax",
+                            "confirmText": "确认要删除此模板吗?",
+                            "api": "delete:/business-standards/${id}"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

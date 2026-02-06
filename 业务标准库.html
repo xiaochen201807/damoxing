@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="GBK">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务办理标准库</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif; 
+        }
+        body { 
+            background-color: #f5f5f5; 
+            color: #333; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 1350px; 
+            margin: 0 auto; 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            overflow: hidden;
+        }
+        
+        /* 头部标题 */
+        .page-header { 
+            padding: 20px 24px; 
+            border-bottom: 1px solid #e8e8e8; 
+            background: #fafafa; 
+        }
+        .page-header h1 { 
+            font-size: 18px; 
+            font-weight: 600; 
+            color: #000; 
+        }
+        
+        /* 查询区域 */
+        .query-section { 
+            padding: 24px; 
+            border-bottom: 1px solid #e8e8e8; 
+        }
+        .query-row { 
+            display: flex; 
+            flex-wrap: wrap; 
+            margin-bottom: 16px; 
+        }
+        .form-item { 
+            margin-right: 24px; 
+            margin-bottom: 16px; 
+            display: flex; 
+            align-items: center;
+        }
+        .form-item label { 
+            width: 120px; 
+            text-align: right; 
+            padding-right: 12px; 
+            font-size: 14px; 
+            color: #666; 
+            font-weight: 500; 
+        }
+        .form-item select, .form-item input { 
+            width: 280px; 
+            height: 36px; 
+            padding: 0 12px; 
+            border: 1px solid #d9d9d9; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            background: #fff; 
+        }
+        .form-item select:focus, .form-item input:focus { 
+            border-color: #1890ff; 
+            outline: none; 
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); 
+        }
+        .query-actions { 
+            display: flex; 
+            justify-content: flex-start; 
+            margin-top: 8px; 
+        }
+        .btn { 
+            height: 36px; 
+            padding: 0 20px; 
+            font-size: 14px; 
+            border-radius: 6px; 
+            border: 1px solid #d9d9d9; 
+            background: #fff; 
+            cursor: pointer; 
+            margin-right: 12px; 
+            font-weight: 500; 
+            transition: all 0.3s; 
+        }
+        .btn:hover { 
+            opacity: 0.9; 
+            transform: translateY(-1px); 
+        }
+        .btn-primary { 
+            color: #fff; 
+            background-color: #1890ff; 
+            border-color: #1890ff; 
+        }
+        .btn-success { 
+            color: #fff; 
+            background-color: #52c41a; 
+            border-color: #52c41a; 
+        }
+        .btn-danger {
+            color: #fff;
+            background-color: #ff4d4f;
+            border-color: #ff4d4f;
+        }
+        
+        /* 表格区域 */
+        .table-section { 
+            padding: 0; 
+        }
+        .table-container { 
+            width: 100%; 
+            overflow-x: auto; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 800px; 
+            table-layout: fixed; /* 添加固定表格布局 */
+        }
+        th, td { 
+            padding: 12px 16px; 
+            text-align: left; 
+            border-bottom: 1px solid #f0f0f0; 
+            font-size: 14px; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        th { 
+            background-color: #fafafa; 
+            font-weight: 600; 
+            color: #000; 
+            position: sticky; 
+            top: 0; 
+        }
+        /* 调整序号列宽度为80px，确保足够显示 */
+        th:first-child, td:first-child { 
+            width: 80px; 
+            min-width: 80px; 
+            max-width: 80px; 
+        }
+        /* 调整业务办理标准列宽度 */
+        th:nth-child(2), td:nth-child(2) { 
+            width: 300px; 
+            min-width: 300px; 
+        }
+        /* 新增：业务标准值列宽度 */
+        th:nth-child(3), td:nth-child(3) { 
+            width: 180px; 
+            min-width: 180px; 
+        }
+        /* 调整业务办理标准说明列宽度 */
+        th:nth-child(4), td:nth-child(4) { 
+            width: 350px; 
+            min-width: 350px; 
+        }
+        /* 调整应用说明列宽度 */
+        th:last-child, td:last-child { 
+            width: auto; 
+            min-width: 200px; 
+        }
+        tr:hover { 
+            background-color: #fafafa; 
+        }
+        .link { 
+            color: #1890ff; 
+            cursor: pointer; 
+            text-decoration: none; 
+            transition: color 0.3s; 
+        }
+        .link:hover { 
+            color: #40a9ff; 
+            text-decoration: underline; 
+        }
+        .action-delete { 
+            color: #ff4d4f; 
+            cursor: pointer; 
+        }
+        
+        /* 弹窗样式 */
+        .modal-mask { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.45); 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content { 
+            background: #fff; 
+            width: 800px; 
+            max-width: 90vw;
+            border-radius: 8px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header { 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #e8e8e8; 
+            font-size: 16px; 
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-close { 
+            color: #999; 
+            cursor: pointer; 
+            font-size: 18px; 
+        }
+        .modal-close:hover { 
+            color: #666; 
+        }
+        .modal-body { 
+            padding: 20px; 
+            max-height: 70vh; 
+            overflow-y: auto; 
+        }
+        .text-area { 
+            width: 100%; 
+            height: 150px; 
+            padding: 8px 12px; 
+            border: 1px solid #d9d9d9; 
+            border-radius: 4px; 
+            resize: vertical; 
+            font-size: 14px; 
+            font-family: Consolas, Monaco, monospace;
+        }
+        .text-area:focus {
+            border-color: #1890ff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        .input-field { 
+            width: 100%; 
+            height: 36px; 
+            padding: 0 12px; 
+            border: 1px solid #d9d9d9; 
+            border-radius: 4px; 
+            font-size: 14px; 
+        }
+        .input-field:focus {
+            border-color: #1890ff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+            color: #333;
+            font-weight: 500;
+        }
+        .button-group { 
+            margin: 10px 0; 
+            text-align: right; 
+        }
+        .btn { 
+            margin-left: 10px; 
+        }
+        .sql-preview {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #24292e;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        /* 属性卡片样式 */
+        .attribute-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: #fafafa;
+            position: relative;
+        }
+        .attribute-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #333;
+        }
+        .remove-card-btn {
+            background: none;
+            border: none;
+            color: #ff4d4f;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .attribute-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .attribute-col {
+            flex: 1;
+        }
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+        }
+        .radio-item input {
+            margin-right: 6px;
+        }
+        .add-card-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f5ff;
+            border: 1px dashed #1890ff;
+            border-radius: 4px;
+            padding: 12px;
+            cursor: pointer;
+            color: #1890ff;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        .add-card-btn:hover {
+            background: #e6f7ff;
+        }
+        .add-card-btn i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主页面 -->
+    <div class="container">
+        <div class="page-header">
+            <h1>业务办理标准库</h1>
+        </div>
+        
+        <!-- 查询区域 -->
+        <div class="query-section">
+            <!-- 第一行：筛选条件 -->
+            <div class="query-row">
+                <div class="form-item">
+                    <label for="bizAlgorithm">关键数据算法：</label>
+                    <select id="bizAlgorithm">
+                        <option value="">请选择关键数据算法</option>
+                        <option value="algo1">可提取金额</option>
+                        <option value="algo2">可贷款金额</option>
+                        <option value="algo3">可贷款年限</option>
+                        <option value="algo4">贷款还款时可对冲金额</option>
+                    </select>
+                </div>
+                <div class="form-item">
+                    <label for="bizCategory">业务内容分类：</label>
+                    <select id="bizCategory">
+                        <option value="">请选择</option>
+                        <option value="algo11">购买住房提取</option>
+                        <option value="algo12">建造翻建大修提取</option>
+                        <option value="algo13">偿还贷款本息提取</option>
+                        <option value="algo14">既有住宅增设电梯提取</option>
+                        <option value="algo15">租房提取</option>
+                        <option value="algo16">大病医疗提取</option>
+                        <option value="algo17">离休退休提取</option>
+                        <option value="algo18">完全丧失劳动能力并终止劳动关系提取</option>
+                        <option value="algo19">出境国定居提取</option>
+                        <option value="algo20">灵活就业人员部分提取</option>
+                        <option value="algo21">灵活就业人员销户提取</option>
+                        <option value="algo22">享受城镇居民最低生活保障提取</option>
+                        <option value="algo23">封存满半年未再缴存提取</option>
+                        <option value="algo24">重大灾害提取</option>
+                        <option value="algo25">缴纳物业管理费提取</option>
+                        <option value="algo26">缴纳房屋维修基金提取</option>
+                    </select>
+                </div>
+                <div class="form-item">
+                    <label for="bizStandard">业务办理标准：</label>
+                    <select id="bizStandard">
+                        <option value="">请选择业务办理标准</option>
+                        <option value="std1">提取金额为缴存人实时账户余额</option>
+                        <option value="std2">提取金额为缴存人上月缴存余额</option>
+                        <option value="std3">提取金额为缴存人购房登记日期时账户余额</option>
+                        <option value="std4">缴存人账户冻结金额不可进行提取</option>
+                        <option value="std5">提取后账户余额需保留X元</option>
+                        <option value="std6">缴存人公积金贷款情况为A，提取后账户余额需保留X月缴存额</option>
+                        <option value="std7">缴存人公积金贷款状态为A，且贷款对冲签约状态为B，提取后账户余额需保留X元</option>
+                        <option value="std8">提取方式为A，可提取比例为B,最大可提取额为X元</option>
+                        <option value="std9">提取方式为A，可提取比例为B,最大可提取额不得超过房屋的累计提取金额</option>
+                        <option value="std10">提取精度：个位、十位、百位、两位小数</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 第二行：功能按钮 -->
+            <div class="query-actions">
+                <button class="btn btn-primary" onclick="handleQuery()">查询</button>
+                <button class="btn" onclick="handleReset()">重置</button>
+                <button class="btn btn-success" onclick="showAddModal()">增加</button>
+                <button class="btn" onclick="exportAll()">全量导出</button>
+                <button class="btn" onclick="importAll()">全量导入</button>
+            </div>
+        </div>
+        
+        <!-- 表格区域 -->
+        <div class="table-section">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>业务办理标准</th>
+                            <th>业务办理标准说明</th>
+                            <th>关键数据算法</th>
+                            <th>业务内容分类</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><a class="link" onclick="showEditModal('职工类型为【职工类型】，最高可贷额度为【结果】元')">职工类型为【职工类型】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>按职工身份类别设定固定贷款上限</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><a class="link" onclick="showEditModal('职工类型为【职工类型】，且子女数量为【子女数量】，最高可贷额度为【结果】元')">职工类型为【职工类型】，且子女数量为【子女数量】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>结合职工类型与子女数量设定额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><a class="link" onclick="showEditModal('人才卡类型为【人才卡类型】，最高可贷额度为【结果】元')">人才卡类型为【人才卡类型】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>持特定人才卡人员享受专属贷款额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><a class="link" onclick="showEditModal('购房套数为【购房套数】，且贷款次数为【贷款次数】，且子女数量为【子女数量】，且高层次人才类型为【高层次人才类型】，最高可贷额度为【结果】元')">购房套数为【购房套数】，且贷款次数为【贷款次数】，且子女数量为【子女数量】，且高层次人才类型为【高层次人才类型】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>多条件组合（套数、贷款次数、子女、人才）综合确定额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><a class="link" onclick="showEditModal('职工类型为【职工类型】，且子女数量为【子女数量】，且高层次人才类型为【高层次人才类型】，且贷款次数为【贷款次数】，且购房套数为【购房套数】，最高可贷额度为【结果】元')">职工类型为【职工类型】，且子女数量为【子女数量】，且高层次人才类型为【高层次人才类型】，且贷款次数为【贷款次数】，且购房套数为【购房套数】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>多重身份与家庭因素叠加，精准核定最高额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td><a class="link" onclick="showEditModal('房屋套数为【房屋套数】，最高可贷额度为房屋总价的【X】%')">房屋套数为【房屋套数】，最高可贷额度为房屋总价的【X】%</a></td>
+                            <td>——</td>
+                            <td>按所购住房套数对应比例计算可贷额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td><a class="link" onclick="showEditModal('是否存在商业贷款为【是否存在商业贷款】，最高可贷额度为房屋总价【结果】%')">是否存在商业贷款为【是否存在商业贷款】，最高可贷额度为房屋总价【结果】%</a></td>
+                            <td>——</td>
+                            <td>有商贷记录时，按房价比例限制公积金贷款额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><a class="link" onclick="showEditModal('最高可贷额度为房屋总价减首付款')">最高可贷额度为【房屋总价】减【首付款】</a></td>
+                            <td>——</td>
+                            <td>贷款额不超过房价扣除规定首付款后的余额</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td><a class="link" onclick="showEditModal('最高可贷额度为（【公积金账户余额】加【一年内购房提取金额】）×【缴存余额倍数】×【缴存时间系数】×【风险防控系数】')">最高可贷额度为（【公积金账户余额】加【一年内购房提取金额】）×【缴存余额倍数】×【缴存时间系数】×【风险防控系数】</a></td>
+                            <td>——</td>
+                            <td>综合账户余额、提取记录及多项系数动态计算额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td><a class="link" onclick="showEditModal('最高可贷额度为缴存人余额【X】倍')">最高可贷额度为缴存人余额【X】倍</a></td>
+                            <td>10</td>
+                            <td>以账户余额乘以政策倍数确定贷款上限</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td><a class="link" onclick="showEditModal('贷款类型为【贷款类型】，最高可贷额度为【商业贷款余额】')">贷款类型为【贷款类型】，最高可贷额度为【商业贷款余额】</a></td>
+                            <td>——</td>
+                            <td>商转公贷款额度不超过原商业贷款剩余本金</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>12</td>
+                            <td><a class="link" onclick="showEditModal('购房类型为【购房类型】，最高可贷额度为【结果】元')">购房类型为【购房类型】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>按新房、二手房等购房类型设定不同额度上限</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>13</td>
+                            <td><a class="link" onclick="showEditModal('缴存人类型【缴存人类型】，最高可贷额度为【结果】元')">缴存人类型【缴存人类型】，最高可贷额度为【结果】元</a></td>
+                            <td>——</td>
+                            <td>根据缴存人身份（如灵活就业、单位职工）设定额度</td>
+                            <td>可贷款金额</td>
+                            <td>——</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        
+                        <tr>
+                            <td>1</td>
+                            <td><a class="link" onclick="showEditModal('提取金额为【缴存人实时账户余额】')">提取金额为【缴存人实时账户余额】</a></td>
+                            <td>——</td>
+                            <td>缴存人业务账户实时余额，反映当前账户资金状况</td>
+                            <td>可提取金额 </td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><a class="link" onclick="showEditModal('提取金额为【缴存人上月缴存余额】')">提取金额为【缴存人上月缴存余额】</a></td>
+                            <td>——</td>
+                            <td>缴存人业务账户的余额 - 缴存人业务账户流水本月的收入金额 + 缴存人业务账户流水本月的支出金额</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><a class="link" onclick="showEditModal('提取金额为【缴存人购房登记日期时账户余额】')">提取金额为【缴存人购房登记日期时账户余额】</a></td>
+                            <td>——</td>
+                            <td>缴存人业务账户的冻结金额</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><a class="link" onclick="showEditModal('【缴存人账户冻结金额】不可进行提取')">【缴存人账户冻结金额】不可进行提取</a></td>
+                            <td>——</td>
+                            <td>缴存人业务账户的冻结金额</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><a class="link" onclick="showEditModal('提取后账户余额需保留【X】元')">提取后账户余额需保留【X】元</a></td>
+                            <td>100</td>
+                            <td>在提取时需保留固定金额，如保留100元</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td><a class="link" onclick="showEditModal('缴存人公积金贷款情况为【缴存人公积金贷款情况】，提取后账户余额需保留【X】月缴存额')">缴存人公积金贷款情况为【缴存人公积金贷款情况】，提取后账户余额需保留【X】月缴存额</a></td>
+                            <td>——</td>
+                            <td>若缴存人有未结清公积金贷款，则需保留若干个月的缴存额作为保障</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td><a class="link" onclick="showEditModal('缴存人公积金贷款状态为【缴存人公积金贷款状态】，且贷款对冲签约状态为【贷款对冲签约状态】，提取后账户余额需保留【X】元')">缴存人公积金贷款状态为【缴存人公积金贷款状态】，且贷款对冲签约状态为【贷款对冲签约状态】，提取后账户余额需保留【X】元</a></td>
+                            <td>100</td>
+                            <td>若缴存人有未结清公积金贷款，则需保留若干个月的缴存额作为保障</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><a class="link" onclick="showEditModal('提取方式为【提取方式】，最大可提取额为【房屋份额】*【房屋总价】元')">提取方式为【提取方式】，最大可提取额为【房屋份额】*【房屋总价】-【房屋累计提取金额】元</a></td>
+                            <td>1</td>
+                            <td>按比例计算的可提取金额，比例可配置</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td><a class="link" onclick="showEditModal('提取精度为【提取精度】')">提取精度为【提取精度】</a></td>
+                            <td>保留整百</td>
+                            <td>计算结果精度控制，支持多种精度设置保留整百、保留整十、保留整数</td>
+                            <td>可提取金额</td>
+                            <td>购买住房提取</td>
+                            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 增加业务办理标准弹窗 -->
+    <div id="addModal" class="modal-mask">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>增加业务办理标准</span>
+                <span class="modal-close" onclick="closeModal('addModal')">×</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="standardDescription">业务办理标准描述：</label>
+                    <input type="text" class="input-field" id="standardDescription" placeholder="请输入业务办理标准描述">
+                </div>
+                
+                <div class="form-group">
+                    <label for="standardExplanation">业务办理标准说明：</label>
+                    <input type="text" class="input-field" id="standardExplanation" placeholder="请输入业务办理标准说明">
+                </div>
+                
+                <div class="form-group">
+                    <label for="appCategory">关键数据算法：</label>
+                    <select class="input-field" id="appCategory">
+                        <option value="">请选择关键数据算法</option>
+                        <option value="category1">可提取金额</option>
+                        <option value="category2">可贷款金额</option>
+                        <option value="category3">可贷款年限</option>
+                        <option value="category4">贷款还款可对冲支取金额</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="appSubCategory">业务内容分类：</label>
+                    <select class="input-field" id="appSubCategory">
+                        <option value="">请选择业务内容分类</option>
+                        <option value="sub1">购买住房提取</option>
+                        <option value="sub2">偿还贷款本息提取</option>
+                        <option value="sub3">租房提取</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="standardClass">标准分类：</label>
+                    <select class="input-field" id="standardClass">
+                        <option value="">请选择标准分类</option>
+                        <option value="class1">个人账户余额类</option>
+                        <option value="class2">业务政策类</option>
+                        <option value="class3">取值精度类</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="standardValue">业务办理标准值：</label>
+                    <select class="input-field" id="standardValue">
+                        <option value="">请选择对应的业务办理标准值</option>
+                        <option value="val1">业务保留金额X元</option>
+                        <option value="val2">缴存人存在公积金贷款时保留X个月缴存额</option>
+                        <option value="val3">可提取额取值精度</option>
+                    </select>
+                </div>
+                
+                <!-- 动态属性卡片区域 -->
+                <div id="attributeCardsContainer">
+                    <div class="attribute-card">
+                        <div class="attribute-card-header">
+                            <div class="card-title">业务办理标准属性组</div>
+                            <button class="remove-card-btn" style="display:none;">×</button>
+                        </div>
+                        <div class="attribute-row">
+                            <div class="attribute-col">
+                                <label>业务办理标准对象：</label>
+                                <select class="input-field attribute-object">
+                                    <option value="">请选择对象</option>
+                                    <option value="person">缴存人</option>
+                                    <option value="loan">贷款合同</option>
+                                    <option value="credit">缴存人信用账户</option>
+                                </select>
+                            </div>
+                            <div class="attribute-col">
+                                <label>业务办理标准属性：</label>
+                                <select class="input-field attribute-property">
+                                    <option value="">请选择对应的属性</option>
+                                    <option value="prop1">个人账户余额</option>
+                                    <option value="prop2">贷款状态</option>
+                                    <option value="prop3">贷款对冲签约状态</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>属性来源：</label>
+                            <div class="radio-group">
+                                <div class="radio-item">
+                                    <input type="radio" name="sourceGroup0" value="page" checked>
+                                    <span>页面</span>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" name="sourceGroup0" value="sql">
+                                    <span>sql</span>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" name="sourceGroup0" value="result">
+                                    <span>结果</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group statement-container">
+                            <label for="statement0">业务办理标准语句：</label>
+                            <textarea class="text-area" id="statement0" placeholder="请输入SQL语句"></textarea>
+                            <div class="sql-preview" id="preview0" style="display: none;">
+                                -- SQL预览将显示在这里
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="add-card-btn" onclick="addAttributeCard()">
+                    <span>+</span> 添加属性组
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e8e8e8; text-align: right;">
+                <button class="btn" onclick="closeModal('addModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveStandard()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改业务办理标准弹窗 -->
+    <div id="editModal" class="modal-mask">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="editModalTitle">修改业务办理标准</span>
+                <span class="modal-close" onclick="closeModal('editModal')">×</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editStandardDescription">业务办理标准描述：</label>
+                    <input type="text" class="input-field" id="editStandardDescription" placeholder="请输入业务办理标准描述">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editStandardExplanation">业务办理标准说明：</label>
+                    <input type="text" class="input-field" id="editStandardExplanation" placeholder="请输入业务办理标准说明">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editAppCategory">关键数据算法：</label>
+                    <select class="input-field" id="editAppCategory">
+                        <option value="">关键数据算法</option>
+                        <option value="category1">可提取金额</option>
+                        <option value="category2">可贷款金额</option>
+                        <option value="category3">可贷款年限</option>
+                        <option value="category4">贷款还款可对冲支取金额</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editAppSubCategory">业务内容分类：</label>
+                    <select class="input-field" id="editAppSubCategory">
+                        <option value="">请选择业务内容分类</option>
+                        <option value="sub1">购买住房提取</option>
+                        <option value="sub2">偿还贷款本息提取</option>
+                        <option value="sub3">租房提取</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editStandardClass">标准分类：</label>
+                    <select class="input-field" id="editStandardClass">
+                        <option value="">请选择标准分类</option>
+                        <option value="class1">个人账户余额类</option>
+                        <option value="class2">业务政策类</option>
+                        <option value="class3">取值精度类</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editStandardValue">业务办理标准值：</label>
+                    <select class="input-field" id="editStandardValue">
+                        <option value=""></option>
+                        <option value="val1">业务保留金额X元</option>
+                        <option value="val2">缴存人存在公积金贷款时保留X个月缴存额</option>
+                        <option value="val3">可提取额取值精度</option>
+                    </select>
+                </div>
+                
+                <!-- 动态属性卡片区域 -->
+                <div id="editAttributeCardsContainer">
+                    <div class="attribute-card">
+                        <div class="attribute-card-header">
+                            <div class="card-title">业务办理标准属性组</div>
+                            <button class="remove-card-btn" style="display:none;">×</button>
+                        </div>
+                        <div class="attribute-row">
+                            <div class="attribute-col">
+                                <label>业务办理标准对象：</label>
+                                <select class="input-field attribute-object">
+                                    <option value="">请选择对象</option>
+                                    <option value="person">缴存人</option>
+                                    <option value="loan">贷款合同</option>
+                                    <option value="credit">缴存人信用账户</option>
+                                </select>
+                            </div>
+                            <div class="attribute-col">
+                                <label>业务办理标准属性：</label>
+                                <select class="input-field attribute-property">
+                                    <option value="">请选择对应的属性</option>
+                                    <option value="prop1">个人账户余额</option>
+                                    <option value="prop2">贷款状态</option>
+                                    <option value="prop3">贷款对冲签约状态</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>属性来源：</label>
+                            <div class="radio-group">
+                                <div class="radio-item">
+                                    <input type="radio" name="editSourceGroup0" value="page" checked>
+                                    <span>页面</span>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" name="editSourceGroup0" value="sql">
+                                    <span>sql</span>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" name="editSourceGroup0" value="result">
+                                    <span>结果</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group statement-container">
+                            <label for="editStatement0">业务办理标准语句：</label>
+                            <textarea class="text-area" id="editStatement0" placeholder="请输入SQL语句"></textarea>
+                            <div class="sql-preview" id="editPreview0" style="display: none;">
+                                -- SQL预览将显示在这里
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="add-card-btn" onclick="addEditAttributeCard()">
+                    <span>+</span> 添加属性组
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e8e8e8; text-align: right;">
+                <button class="btn" onclick="closeModal('editModal')">取消</button>
+                <button class="btn btn-primary" onclick="updateStandard()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 查询函数
+        function handleQuery() {
+            const algorithm = document.getElementById('bizAlgorithm').value;
+            const category = document.getElementById('bizCategory').value;
+            const standard = document.getElementById('bizStandard').value;
+            
+            if (!algorithm && !category && !standard) {
+                alert('请至少选择一个查询条件');
+                return;
+            }
+            
+            // 模拟查询结果
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                row.style.display = 'table-row';
+            });
+            
+            alert('查询完成，共找到 ' + rows.length + ' 条记录');
+        }
+        
+        // 重置函数
+        function handleReset() {
+            document.getElementById('bizAlgorithm').value = '';
+            document.getElementById('bizCategory').value = '';
+            document.getElementById('bizStandard').value = '';
+            
+            // 显示所有行
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                row.style.display = 'table-row';
+            });
+        }
+        
+        // 全量导出
+        function exportAll() {
+            alert('执行全量导出操作');
+        }
+        
+        // 全量导入
+        function importAll() {
+            alert('执行全量导入操作');
+        }
+        
+        // 删除行
+        function deleteRow(button) {
+            if (confirm('确定要删除这条记录吗？')) {
+                const row = button.closest('tr');
+                row.remove();
+                // 更新序号
+                updateRowNumbers();
+            }
+        }
+        
+        // 更新序号
+        function updateRowNumbers() {
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+            });
+        }
+        
+        // 显示增加弹窗
+        function showAddModal() {
+            document.getElementById('standardDescription').value = '';
+            document.getElementById('standardExplanation').value = '';
+            document.getElementById('appCategory').value = '';
+            document.getElementById('appSubCategory').value = '';
+            document.getElementById('standardClass').value = '';
+            document.getElementById('standardValue').value = '';
+            
+            // 重置第一个卡片
+            const firstCard = document.querySelector('#addModal .attribute-card');
+            firstCard.querySelector('.attribute-object').value = '';
+            firstCard.querySelector('.attribute-property').value = '';
+            firstCard.querySelector('input[value="page"]').checked = true;
+            firstCard.querySelector('.text-area').value = '';
+            firstCard.querySelector('.sql-preview').style.display = 'none';
+            
+            // 移除额外卡片
+            const container = document.getElementById('attributeCardsContainer');
+            while (container.children.length > 1) {
+                container.removeChild(container.lastChild);
+            }
+            
+            document.getElementById('addModal').style.display = 'flex';
+        }
+        
+        // 显示修改弹窗
+        function showEditModal(standardName) {
+            document.getElementById('editModalTitle').textContent = `修改业务办理标准 - ${standardName}`;
+            document.getElementById('editStandardDescription').value = standardName;
+            
+            // 模拟根据标准名称加载数据
+            let explanation = '';
+            let category = '';
+            let subCategory = '';
+            let standardClass = '';
+            let standardValue = '';
+            let sqlStatement = '';
+            
+            
+            
+            document.getElementById('editStandardExplanation').value = explanation;
+            document.getElementById('editAppCategory').value = category;
+            document.getElementById('editAppSubCategory').value = subCategory;
+            document.getElementById('editStandardClass').value = standardClass;
+            document.getElementById('editStandardValue').value = standardValue;
+            
+            // 设置第一个卡片
+            const firstCard = document.querySelector('#editModal .attribute-card');
+            firstCard.querySelector('.attribute-object').value = 'person';
+            firstCard.querySelector('.attribute-property').value = 'prop1';
+            firstCard.querySelector('input[value="sql"]').checked = true;
+            firstCard.querySelector('.text-area').value = sqlStatement;
+            firstCard.querySelector('.sql-preview').textContent = sqlStatement;
+            firstCard.querySelector('.sql-preview').style.display = sqlStatement ? 'block' : 'none';
+            
+            // 移除额外卡片
+            const container = document.getElementById('editAttributeCardsContainer');
+            while (container.children.length > 1) {
+                container.removeChild(container.lastChild);
+            }
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        
+        // 关闭弹窗
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // 添加属性卡片
+        function addAttributeCard() {
+            const container = document.getElementById('attributeCardsContainer');
+            const cardCount = container.children.length;
+            const newCard = document.createElement('div');
+            newCard.className = 'attribute-card';
+            
+            newCard.innerHTML = `
+                <div class="attribute-card-header">
+                    <div class="card-title">业务办理标准属性组</div>
+                    <button class="remove-card-btn" onclick="removeAttributeCard(this)">×</button>
+                </div>
+                <div class="attribute-row">
+                    <div class="attribute-col">
+                        <label>业务办理标准对象：</label>
+                        <select class="input-field attribute-object">
+                            <option value="">请选择对象</option>
+                            <option value="person">缴存人</option>
+                            <option value="loan">贷款合同</option>
+                            <option value="credit">缴存人信用账户</option>
+                        </select>
+                    </div>
+                    <div class="attribute-col">
+                        <label>业务办理标准属性：</label>
+                        <select class="input-field attribute-property">
+                            <option value="">请选择对应的属性</option>
+                            <option value="prop1">个人账户余额</option>
+                            <option value="prop2">贷款状态</option>
+                            <option value="prop3">贷款对冲签约状态</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>属性来源：</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" name="sourceGroup${cardCount}" value="page" checked>
+                            <span>页面</span>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="sourceGroup${cardCount}" value="sql">
+                            <span>sql</span>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="sourceGroup${cardCount}" value="result">
+                            <span>结果</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group statement-container">
+                    <label for="statement${cardCount}">业务办理标准语句：</label>
+                    <textarea class="text-area" id="statement${cardCount}" placeholder="请输入SQL语句"></textarea>
+                    <div class="sql-preview" id="preview${cardCount}" style="display: none;">
+                        -- SQL预览将显示在这里
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newCard);
+            
+            // 添加事件监听器
+            const radioGroup = newCard.querySelectorAll(`input[name="sourceGroup${cardCount}"]`);
+            radioGroup.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const statementContainer = this.closest('.attribute-card').querySelector('.statement-container');
+                    if (this.value === 'page') {
+                        statementContainer.style.display = 'none';
+                    } else {
+                        statementContainer.style.display = 'block';
+                    }
+                });
+            });
+            
+            // 添加文本域监听器
+            const textArea = newCard.querySelector(`#statement${cardCount}`);
+            const preview = newCard.querySelector(`#preview${cardCount}`);
+            textArea.addEventListener('input', function() {
+                preview.textContent = this.value;
+                preview.style.display = this.value ? 'block' : 'none';
+            });
+        }
+        
+        // 添加编辑属性卡片
+        function addEditAttributeCard() {
+            const container = document.getElementById('editAttributeCardsContainer');
+            const cardCount = container.children.length;
+            const newCard = document.createElement('div');
+            newCard.className = 'attribute-card';
+            
+            newCard.innerHTML = `
+                <div class="attribute-card-header">
+                    <div class="card-title">业务办理标准属性组</div>
+                    <button class="remove-card-btn" onclick="removeAttributeCard(this)">×</button>
+                </div>
+                <div class="attribute-row">
+                    <div class="attribute-col">
+                        <label>业务办理标准对象：</label>
+                        <select class="input-field attribute-object">
+                            <option value="">请选择对象</option>
+                            <option value="person">缴存人</option>
+                            <option value="loan">贷款合同</option>
+                            <option value="credit">缴存人信用账户</option>
+                        </select>
+                    </div>
+                    <div class="attribute-col">
+                        <label>业务办理标准属性：</label>
+                        <select class="input-field attribute-property">
+                            <option value="">请选择对应的属性</option>
+                            <option value="prop1">个人账户余额</option>
+                            <option value="prop2">贷款状态</option>
+                            <option value="prop3">贷款对冲签约状态</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>属性来源：</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" name="editSourceGroup${cardCount}" value="page" checked>
+                            <span>页面</span>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="editSourceGroup${cardCount}" value="sql">
+                            <span>sql</span>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="editSourceGroup${cardCount}" value="result">
+                            <span>结果</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group statement-container">
+                    <label for="editStatement${cardCount}">业务办理标准语句：</label>
+                    <textarea class="text-area" id="editStatement${cardCount}" placeholder="请输入SQL语句"></textarea>
+                    <div class="sql-preview" id="editPreview${cardCount}" style="display: none;">
+                        -- SQL预览将显示在这里
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newCard);
+            
+            // 添加事件监听器
+            const radioGroup = newCard.querySelectorAll(`input[name="editSourceGroup${cardCount}"]`);
+            radioGroup.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const statementContainer = this.closest('.attribute-card').querySelector('.statement-container');
+                    if (this.value === 'page') {
+                        statementContainer.style.display = 'none';
+                    } else {
+                        statementContainer.style.display = 'block';
+                    }
+                });
+            });
+            
+            // 添加文本域监听器
+            const textArea = newCard.querySelector(`#editStatement${cardCount}`);
+            const preview = newCard.querySelector(`#editPreview${cardCount}`);
+            textArea.addEventListener('input', function() {
+                preview.textContent = this.value;
+                preview.style.display = this.value ? 'block' : 'none';
+            });
+        }
+        
+        // 移除属性卡片
+        function removeAttributeCard(button) {
+            const card = button.closest('.attribute-card');
+            card.remove();
+        }
+        
+        // 保存标准
+        function saveStandard() {
+            const description = document.getElementById('standardDescription').value;
+            const explanation = document.getElementById('standardExplanation').value;
+            const category = document.getElementById('appCategory').value;
+            const subCategory = document.getElementById('appSubCategory').value;
+            const standardClass = document.getElementById('standardClass').value;
+            const standardValue = document.getElementById('standardValue').value;
+            
+            if (!description.trim()) {
+                alert('请输入业务办理标准描述');
+                return;
+            }
+            
+            if (!explanation.trim()) {
+                alert('请输入业务办理标准说明');
+                return;
+            }
+            
+            if (!category) {
+                alert('请选择关键数据算法');
+                return;
+            }
+            
+            // 验证每个属性卡片
+            const cards = document.querySelectorAll('#addModal .attribute-card');
+            for (let i = 0; i < cards.length; i++) {
+                const object = cards[i].querySelector('.attribute-object').value;
+                const property = cards[i].querySelector('.attribute-property').value;
+                const source = cards[i].querySelector('input[name^="sourceGroup"]:checked').value;
+                const statement = cards[i].querySelector('.text-area').value;
+                
+                if (!object) {
+                    alert(`第${i+1}组属性中，请选择业务办理标准对象`);
+                    return;
+                }
+                
+                if (!property) {
+                    alert(`第${i+1}组属性中，请选择业务办理标准属性`);
+                    return;
+                }
+                
+                if (source !== 'page' && !statement.trim()) {
+                    alert(`第${i+1}组属性中，请输入业务办理标准语句`);
+                    return;
+                }
+            }
+            
+            alert(`保存成功！\n描述：${description}\n说明：${explanation}`);
+            closeModal('addModal');
+        }
+        
+        // 更新标准
+        function updateStandard() {
+            const description = document.getElementById('editStandardDescription').value;
+            const explanation = document.getElementById('editStandardExplanation').value;
+            const category = document.getElementById('editAppCategory').value;
+            const subCategory = document.getElementById('editAppSubCategory').value;
+            const standardClass = document.getElementById('editStandardClass').value;
+            const standardValue = document.getElementById('editStandardValue').value;
+            
+            if (!description.trim()) {
+                alert('请输入业务办理标准描述');
+                return;
+            }
+            
+            if (!explanation.trim()) {
+                alert('请输入业务办理标准说明');
+                return;
+            }
+            
+            if (!category) {
+                alert('请选择关键数据算法');
+                return;
+            }
+            
+            // 验证每个属性卡片
+            const cards = document.querySelectorAll('#editModal .attribute-card');
+            for (let i = 0; i < cards.length; i++) {
+                const object = cards[i].querySelector('.attribute-object').value;
+                const property = cards[i].querySelector('.attribute-property').value;
+                const source = cards[i].querySelector('input[name^="editSourceGroup"]:checked').value;
+                const statement = cards[i].querySelector('.text-area').value;
+                
+                if (!object) {
+                    alert(`第${i+1}组属性中，请选择业务办理标准对象`);
+                    return;
+                }
+                
+                if (!property) {
+                    alert(`第${i+1}组属性中，请选择业务办理标准属性`);
+                    return;
+                }
+                
+                if (source !== 'page' && !statement.trim()) {
+                    alert(`第${i+1}组属性中，请输入业务办理标准语句`);
+                    return;
+                }
+            }
+            
+            alert(`更新成功！\n描述：${description}\n说明：${explanation}`);
+            closeModal('editModal');
+        }
+        
+        // 初始化事件监听器
+        document.addEventListener('DOMContentLoaded', function() {
+            // 点击蒙层关闭弹窗
+            document.getElementById('addModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal('addModal');
+            });
+            
+            document.getElementById('editModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal('editModal');
+            });
+            
+            // 初始卡片的事件监听器
+            const initialRadioGroups = document.querySelectorAll('#addModal input[name="sourceGroup0"]');
+            initialRadioGroups.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const statementContainer = this.closest('.attribute-card').querySelector('.statement-container');
+                    if (this.value === 'page') {
+                        statementContainer.style.display = 'none';
+                    } else {
+                        statementContainer.style.display = 'block';
+                    }
+                });
+            });
+            
+            const initialTextAreas = document.querySelectorAll('#addModal .text-area');
+            initialTextAreas.forEach(textArea => {
+                textArea.addEventListener('input', function() {
+                    const preview = this.nextElementSibling;
+                    preview.textContent = this.value;
+                    preview.style.display = this.value ? 'block' : 'none';
+                });
+            });
+            
+            // 编辑模态框初始卡片事件监听器
+            const editInitialRadioGroups = document.querySelectorAll('#editModal input[name="editSourceGroup0"]');
+            editInitialRadioGroups.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const statementContainer = this.closest('.attribute-card').querySelector('.statement-container');
+                    if (this.value === 'page') {
+                        statementContainer.style.display = 'none';
+                    } else {
+                        statementContainer.style.display = 'block';
+                    }
+                });
+            });
+            
+            const editInitialTextAreas = document.querySelectorAll('#editModal .text-area');
+            editInitialTextAreas.forEach(textArea => {
+                textArea.addEventListener('input', function() {
+                    const preview = this.nextElementSibling;
+                    preview.textContent = this.value;
+                    preview.style.display = this.value ? 'block' : 'none';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
