@@ -1,7 +1,7 @@
 /**
- * credit_indicators 模板专属参数分析脚本
- * 信用评价指标管理页面
- * 保留4个API配置：列表、新增、更新、删除，每个API包含url和data
+ * business_standard 模板专属参数分析脚本
+ * 业务标准库管理页面
+ * 配置 CRUD 及其相关接口参数
  */
 const fs = require('fs');
 const path = require('path');
@@ -10,86 +10,80 @@ const db = require('../db');
 // API 参数配置定义
 const API_PARAMS = {
     // 列表接口
-    indicators_list_api: {
+    standard_list_api: {
         type: 'string',
-        title: '列表接口 URL',
-        description: '信用评价指标列表查询 API 地址',
-        default: '/api/demo/credit/indicators/list',
-        group: '🔗 列表接口配置',
+        title: '标准列表接口 URL',
+        description: '业务标准列表查询 API 地址',
+        default: '/business-standards',
+        group: '🔗 标准管理接口配置',
         groupOrder: 1,
         order: 1
     },
-    indicators_list_data: {
-        type: 'json',
-        title: '列表接口固定参数',
-        description: '列表查询 API 的固定请求参数（JSON格式）',
-        default: '{}',
-        group: '🔗 列表接口配置',
+    // 新增接口
+    standard_create_api: {
+        type: 'string',
+        title: '新增标准接口 URL',
+        description: '创建新业务标准的 API 地址',
+        default: 'post:/business-standards',
+        group: '🔗 标准管理接口配置',
         groupOrder: 1,
         order: 2
     },
-    // 新增接口
-    indicators_create_api: {
+    // 更新接口
+    standard_update_api: {
         type: 'string',
-        title: '新增接口 URL',
-        description: '新增信用评价指标 API 地址',
-        default: '/api/demo/credit/indicators/create',
-        group: '🔗 新增接口配置',
-        groupOrder: 2,
+        title: '更新标准接口 URL',
+        description: '更新业务标准的 API 地址 (支持变量如 ${id})',
+        default: 'put:/business-standards/${id}',
+        group: '🔗 标准管理接口配置',
+        groupOrder: 1,
         order: 3
     },
-    indicators_create_data: {
-        type: 'json',
-        title: '新增接口固定参数',
-        description: '新增 API 的固定请求参数（JSON格式）',
-        default: '{}',
-        group: '🔗 新增接口配置',
-        groupOrder: 2,
+    // 删除接口
+    standard_delete_api: {
+        type: 'string',
+        title: '删除标准接口 URL',
+        description: '删除业务标准的 API 地址 (支持变量如 ${id})',
+        default: 'delete:/business-standards/${id}',
+        group: '🔗 标准管理接口配置',
+        groupOrder: 1,
         order: 4
     },
-    // 更新接口
-    indicators_update_api: {
+    // 导入接口
+    standard_import_api: {
         type: 'string',
-        title: '更新接口 URL',
-        description: '更新信用评价指标 API 地址',
-        default: '/api/demo/credit/indicators/update',
-        group: '🔗 更新接口配置',
+        title: '全量导入接口 URL',
+        description: '全量导入业务标准 (CSV上传)',
+        default: '/business-standards/import',
+        group: '🔗 导入导出配置',
         groupOrder: 3,
-        order: 5
+        order: 1
     },
-    indicators_update_data: {
-        type: 'json',
-        title: '更新接口固定参数',
-        description: '更新 API 的固定请求参数（JSON格式）',
-        default: '{}',
-        group: '🔗 更新接口配置',
-        groupOrder: 3,
-        order: 6
-    },
-    // 删除接口
-    indicators_delete_api: {
+    // 导出接口
+    standard_export_api: {
         type: 'string',
-        title: '删除接口 URL',
-        description: '删除信用评价指标 API 地址',
-        default: '/api/demo/credit/indicators/delete',
-        group: '🔗 删除接口配置',
-        groupOrder: 4,
-        order: 7
+        title: '全量导出接口 URL',
+        description: '全量导出业务标准 (CSV下载)',
+        default: '/business-standards/export',
+        group: '🔗 导入导出配置',
+        groupOrder: 3,
+        order: 2
     },
-    indicators_delete_data: {
-        type: 'json',
-        title: '删除接口固定参数',
-        description: '删除 API 的固定请求参数（JSON格式）',
-        default: '{}',
-        group: '🔗 删除接口配置',
-        groupOrder: 4,
-        order: 8
+    // 服务对象接口
+    service_objects_api: {
+        type: 'string',
+        title: '服务对象接口 URL',
+        description: '获取服务对象列表的 API 地址',
+        default: '/service-objects',
+        group: '🔗 辅助数据接口配置',
+        groupOrder: 2,
+        order: 1
     }
 };
 
 // 主函数
-async function analyzeCreditIndicators() {
-    const templateId = 'credit_indicators';
+async function analyzeBusinessStandard() {
+    const templateId = 'business_standard';
 
     console.log(`\n🔍 分析模板: ${templateId}\n`);
 
@@ -155,7 +149,7 @@ async function analyzeCreditIndicators() {
 
 // 支持直接运行和模块导出
 if (require.main === module) {
-    analyzeCreditIndicators().then(() => process.exit(0));
+    analyzeBusinessStandard().then(() => process.exit(0));
 }
 
-module.exports = analyzeCreditIndicators;
+module.exports = analyzeBusinessStandard;
