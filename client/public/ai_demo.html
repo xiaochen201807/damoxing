@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damoxing AI Vision Prototype</title>
+    <!-- Amis SDK -->
+    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/sdk.css">
+    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/helper.css">
+    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/iconfont.css">
+    <script src="https://registry.npmmirror.com/amis/6.9.0/files/sdk/sdk.js"></script>
+    <script src="https://registry.npmmirror.com/vue/2.7.16/files/dist/vue.min.js"></script>
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Left: Main Application Area */
+        .main-view {
+            flex: 1;
+            background: #f0f2f5;
+            padding: 20px;
+            overflow-y: auto;
+            transition: width 0.3s;
+        }
+
+        /* Right: AI Copilot Panel */
+        .ai-panel {
+            width: 400px;
+            background: #fff;
+            border-left: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+
+        .ai-header {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1c3b70;
+            color: white;
+        }
+
+        .ai-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #1c3b70;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e8e8e8;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .message.ai .avatar {
+            position: absolute;
+            left: -32px;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            background: #1c3b70;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Generative UI Container within Chat */
+        .gen-ui-container {
+            margin-top: 8px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .input-area {
+            padding: 16px;
+            border-top: 1px solid #f0f0f0;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #d9d9d9;
+            border-radius: 20px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-area input:focus {
+            border-color: #1c3b70;
+            box-shadow: 0 0 0 2px rgba(28, 59, 112, 0.1);
+        }
+
+        .btn-send {
+            background: #1c3b70;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .btn-send:hover {
+            background: #16305a;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #ccc;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        /* Float Trigger (if we want to hide panel) */
+        .ai-trigger {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #1c3b70 0%, #3a5b96 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(28, 59, 112, 0.3);
+            cursor: pointer;
+            z-index: 99;
+            transition: all 0.3s;
+        }
+
+        .ai-trigger:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app" class="app-container">
+        <!-- Main Dashboard Application -->
+        <div class="main-view">
+            <div
+                style="background: white; padding: 24px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <h2 style="margin-top:0; color:#333;">贷款风险概览 (Dashboard)</h2>
+                <div id="main-amis-root"></div>
+            </div>
+        </div>
+
+        <!-- AI Copilot Panel -->
+        <div class="ai-panel">
+            <div class="ai-header">
+                <h3>🤖 Damoxing AI Assistant</h3>
+                <div style="font-size: 12px; opacity: 0.8;">Model: Claude 3.5 Sonnet</div>
+            </div>
+
+            <div class="chat-container" ref="chatContainer">
+                <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
+                    <div v-if="msg.role === 'ai'" class="avatar">AI</div>
+                    <div v-html="msg.text"></div>
+                    <!-- GenUI Slot -->
+                    <div v-if="msg.uiSchema" class="gen-ui-container">
+                        <div :id="'gen-ui-' + index"></div>
+                    </div>
+                </div>
+
+                <div v-if="isTyping" class="message ai">
+                    <div class="avatar">AI</div>
+                    <div class="typing-indicator"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" v-model="inputObj" @keyup.enter="sendMessage" placeholder="试着问：'帮我分析一下最近的贷款逾期情况'...">
+                <button class="btn-send" @click="sendMessage">
+                    <i class="iconfont icon-send">➜</i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 0. Setup AMIS ---
+        // Correctly load amis from the SDK global
+        // @ts-ignore
+        var amisEmbed = amisRequire('amis/embed');
+
+        // --- 1. Initial Main Dashboard Schema ---
+        const initialSchema = {
+            type: "page",
+            body: [
+                {
+                    type: "grid",
+                    columns: [
+                        {
+                            md: 3,
+                            body: {
+                                type: "card",
+                                header: { title: "今日申请数" },
+                                body: "1,284",
+                                className: "bg-blue-50 text-blue-800"
+                            }
+                        },
+                        {
+                            md: 3,
+                            body: {
+                                type: "card",
+                                header: { title: "待审批" },
+                                body: "45",
+                                className: "bg-orange-50 text-orange-800"
+                            }
+                        },
+                        {
+                            md: 3,
+                            body: {
+                                type: "card",
+                                header: { title: "拒绝率" },
+                                body: "12.5%",
+                                className: "bg-red-50 text-red-800"
+                            }
+                        },
+                        {
+                            md: 3,
+                            body: {
+                                type: "card",
+                                header: { title: "放款总额" },
+                                body: "¥ 8,920,000",
+                                className: "bg-green-50 text-green-800"
+                            }
+                        }
+                    ]
+                },
+                {
+                    type: "divider"
+                },
+                {
+                    type: "crud",
+                    api: "https://aisuda.bce.baidu.com/amis/api/mock2/sample",
+                    syncLocation: false,
+                    columns: [
+                        { name: "id", label: "ID" },
+                        { name: "engine", label: "申请人" },
+                        { name: "browser", label: "贷款类型" },
+                        { name: "platform", label: "申请时间" },
+                        { name: "version", label: "信用分" },
+                        {
+                            type: "operation",
+                            label: "操作",
+                            buttons: [
+                                { type: "button", label: "查看", level: "link" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // --- 2. Initialize Main AMIS ---
+        let mainAmisInstance = amisEmbed.embed('#main-amis-root', initialSchema);
+
+        // --- 3. Vue App for Chat Logic ---
+        new Vue({
+            el: '#app',
+            data: {
+                inputObj: '',
+                isTyping: false,
+                messages: [
+                    { role: 'ai', text: '你好！我是您的智能业务助手。您可以随时让我分析数据、生成报表，或者调整当前页面的布局。<br>试试问我：<b>“分析一下高风险用户的特征”</b>' }
+                ]
+            },
+            methods: {
+                sendMessage() {
+                    if (!this.inputObj.trim()) return;
+
+                    // 1. Add User Message
+                    const userText = this.inputObj;
+                    this.messages.push({ role: 'user', text: userText });
+                    this.inputObj = '';
+                    this.scrollToBottom();
+
+                    // 2. Simulate AI Thinking
+                    this.isTyping = true;
+                    setTimeout(() => {
+                        this.handleAIResponse(userText);
+                    }, 1500);
+                },
+
+                handleAIResponse(query) {
+                    this.isTyping = false;
+                    let response = { role: 'ai', text: '', uiSchema: null };
+
+                    // Mock Logic for Demo
+                    if (query.includes("分析") || query.includes("风险")) {
+                        response.text = "根据最近 30 天的数据分析，我为您生成了**逾期风险趋势图**。可以明显看到最近一周风险略有上升，建议关注信用分低于 600 的用户。";
+                        response.uiSchema = {
+                            type: "chart",
+                            height: 300,
+                            api: "https://aisuda.bce.baidu.com/amis/api/mock2/chart/chart",
+                            config: {
+                                title: { text: "近30天逾期风险趋势" },
+                                tooltip: {},
+                                xAxis: { data: ["W1", "W2", "W3", "W4"] },
+                                yAxis: {},
+                                series: [{
+                                    name: '风险指数',
+                                    type: 'line',
+                                    data: [5, 20, 36, 10],
+                                    smooth: true,
+                                    itemStyle: { color: '#c23531' },
+                                    areaStyle: { color: 'rgba(194, 53, 49, 0.2)' }
+                                }]
+                            }
+                        };
+
+                        // Also update main dashboard to show details
+                        this.updateMainDashboardToRiskView();
+
+                    } else if (query.includes("红色") || query.includes("red")) {
+                        response.text = "好的，已将主视图的图表主题色调整为**红色警示模式**。";
+                        // Real implementation would modify the actual schema object
+                    } else if (query.includes("报表") || query.includes("excel")) {
+                        response.text = "已为您生成本月贷款审批报表，包含 1,284 条记录。";
+                        response.uiSchema = {
+                            type: "service", // mini widget
+                            body: {
+                                type: "button",
+                                level: "primary",
+                                label: "下载 Excel 报表 (1.2MB)",
+                                icon: "fa fa-download",
+                                actionType: "download"
+                            }
+                        };
+                    } else {
+                        response.text = "我明白了。您可以尝试让我**“添加一个搜索框”**或者**“分析逾期数据”**。";
+                    }
+
+                    this.messages.push(response);
+
+                    // Render GenUI if exists
+                    this.$nextTick(() => {
+                        if (response.uiSchema) {
+                            const index = this.messages.length - 1;
+                            const containerId = '#gen-ui-' + index;
+                            amisEmbed.embed(containerId, response.uiSchema);
+                        }
+                        this.scrollToBottom();
+                    });
+                },
+
+                updateMainDashboardToRiskView() {
+                    // Dynamically update the main dashboard (Simulating "Agent Controller" aspect)
+                    const newSchema = {
+                        type: "page",
+                        body: [
+                            {
+                                type: "alert",
+                                level: "warning",
+                                body: "AI 洞察：检测到信用评分 < 600 的用户违约风险增加 15%。"
+                            },
+                            {
+                                type: "grid",
+                                columns: [
+                                    {
+                                        md: 8,
+                                        body: {
+                                            type: "chart",
+                                            height: 400,
+                                            config: {
+                                                title: { text: "风险用户地域分布" },
+                                                tooltip: {},
+                                                legend: { data: ['风险数'] },
+                                                xAxis: { data: ["北京", "上海", "广州", "深圳", "杭州", "成都"] },
+                                                yAxis: {},
+                                                series: [{
+                                                    name: '风险数',
+                                                    type: 'bar',
+                                                    data: [120, 200, 150, 80, 70, 110],
+                                                    itemStyle: { color: '#d48265' }
+                                                }]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        md: 4,
+                                        body: {
+                                            type: "list",
+                                            title: "高风险名单",
+                                            items: [
+                                                { label: "张三 (ID: 9821)", desc: "逾期 15 天" },
+                                                { label: "李四 (ID: 8821)", desc: "资料不全" },
+                                                { label: "王五 (ID: 7712)", desc: "多头借贷" }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+
+                    // Re-render main area
+                    document.getElementById('main-amis-root').innerHTML = '';
+                    mainAmisInstance = amisEmbed.embed('#main-amis-root', newSchema);
+                },
+
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const el = this.$refs.chatContainer;
+                        el.scrollTop = el.scrollHeight;
+                    });
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

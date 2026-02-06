@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能数字稽核助理 - 领导驾驶舱</title>
+    <!-- Amis SDK (Removed: Not used in Leadership Cockpit version) -->
+    <!-- Vue.js -->
+    <script src="https://registry.npmmirror.com/vue/2.7.16/files/dist/vue.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://registry.npmmirror.com/echarts/5.5.0/files/dist/echarts.min.js"></script>
+
+    <style>
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --highlight: #60a5fa;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #0b1121;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        /* Background Ambient */
+        .bg-ambient {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
+        }
+
+        .dashboard-header {
+            height: 64px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            backdrop-filter: blur(20px);
+            z-index: 10;
+        }
+
+        .dashboard-container {
+            display: flex;
+            height: calc(100vh - 64px);
+            padding: 24px;
+            gap: 24px;
+            position: relative;
+        }
+
+        /* 3-Column Layout */
+        .col-left {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .col-center {
+            flex: 4;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .col-right {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            opacity: 0;
+            animation: slideUp 0.6s ease-out forwards;
+        }
+
+        /* Highlight Mode for Presentation */
+        .card.highlight {
+            border-color: var(--highlight);
+            box-shadow: 0 0 30px rgba(96, 165, 250, 0.15);
+            transform: scale(1.02);
+            z-index: 5;
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* KPI Cards */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .kpi-mini {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .kpi-num {
+            font-size: 28px;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin: 4px 0;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Charts */
+        .chart-box {
+            flex: 1;
+            min-height: 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* AI Assistant Panel */
+        .insight-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .chat-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-bubble {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 3px solid #60a5fa;
+            color: #e2e8f0;
+            line-height: 1.6;
+            font-size: 14px;
+            position: relative;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .chat-bubble.action {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* Voice Wave */
+        .voice-wave {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            height: 20px;
+        }
+
+        .bar {
+            width: 3px;
+            background: #60a5fa;
+            border-radius: 2px;
+            height: 4px;
+            transition: 0.2s;
+        }
+
+        .voice-wave.active .bar {
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        .voice-wave.active .bar:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .voice-wave.active .bar:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .voice-wave.active .bar:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                height: 4px;
+                opacity: 0.5
+            }
+
+            50% {
+                height: 16px;
+                opacity: 1
+            }
+        }
+
+        /* Start Overlay */
+        .start-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 17, 33, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            transition: opacity 0.6s;
+        }
+
+        .start-btn {
+            margin-top: 30px;
+            padding: 12px 32px;
+            font-size: 16px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-ambient"></div>
+
+    <div id="app">
+        <!-- Intro Overlay -->
+        <div class="start-overlay" :class="{hidden: hasStarted}">
+            <h1 style="font-size: 32px; font-weight: 300; margin: 0;">AI Audit <span
+                    style="font-weight:700; color:#60a5fa">Commander</span></h1>
+            <p style="color: #64748b; margin-top: 10px;">智能稽核驾驶舱 V3.0</p>
+            <button class="start-btn" @click="startPresentation">在此刻，开启未来</button>
+        </div>
+
+        <header class="dashboard-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="voice-wave" :class="{active: isSpeaking}">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <div style="font-weight: 600; font-size: 16px;">智能数字助理 <span
+                        style="font-weight:400; font-size:12px; color:#64748b; margin-left:8px">在线</span></div>
+            </div>
+            <div style="font-size: 13px; color: #64748b;">数据更新至: 实时</div>
+        </header>
+
+        <div class="dashboard-container">
+
+            <!-- LEFT COL: Trends -->
+            <div class="col-left">
+                <div class="card" :class="{highlight: focusArea === 'trend'}" style="flex: 2">
+                    <div class="card-title">违约风险趋势预测
+                        <span style="font-size: 12px; color: #fbbf24;" v-if="showPrediction">● AI 推演模式</span>
+                    </div>
+                    <div id="trendChart" class="chart-box"></div>
+                </div>
+                <div class="card" :class="{highlight: focusArea === 'kpi'}"
+                    style="flex: 1; flex-direction: row; gap: 16px;">
+                    <div class="kpi-mini" style="flex:1">
+                        <div class="kpi-label">高风险笔数</div>
+                        <div class="kpi-num" style="color: #f87171">142</div>
+                        <div class="kpi-sub">环比 <span style="color:#f87171">↑ 8%</span></div>
+                    </div>
+                    <div class="kpi-mini" style="flex:1">
+                        <div class="kpi-label">拦截金额</div>
+                        <div class="kpi-num" style="color: #60a5fa">¥4.2M</div>
+                        <div class="kpi-sub">累计 <span style="color:#60a5fa">↑ 12%</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER COL: Deep Dive -->
+            <div class="col-center">
+                <!-- Top: Radar -->
+                <div class="card" :class="{highlight: focusArea === 'radar'}" style="flex: 1.5">
+                    <div class="card-title">风险类型分布雷达</div>
+                    <div id="radarChart" class="chart-box"></div>
+                </div>
+                <!-- Bottom: Branch Ranking -->
+                <div class="card" :class="{highlight: focusArea === 'rank'}" style="flex: 1.5">
+                    <div class="card-title">机构风险 Top5</div>
+                    <div id="rankChart" class="chart-box"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT COL: Assistant -->
+            <div class="col-right">
+                <div class="card insight-panel" style="background: rgba(15, 23, 42, 0.4); height: 100%;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); font-weight: 600;">
+                        会议简报
+                    </div>
+                    <div class="chat-stream" ref="chatBox">
+                        <div class="chat-bubble ai" v-for="(msg, i) in messages" :key="i"
+                            :class="{action: msg.type === 'action'}">
+                            <div v-html="msg.displayedText" :class="{'typing-cursor': msg.typing}"></div>
+                        </div>
+                    </div>
+                    <div style="padding: 20px;">
+                        <button v-if="currentStep < scenario.length" class="start-btn"
+                            style="width:100%; margin:0; padding:10px; font-size:14px; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
+                            @click="nextStep">
+                            继续汇报 ({{currentStep + 1}}/{{scenario.length}})
+                        </button>
+                        <div v-else style="text-align: center; color: #64748b; font-size: 12px;">汇报已结束</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const app = new Vue({
+            el: '#app',
+            data: {
+                hasStarted: false,
+                isSpeaking: false,
+                showPrediction: false,
+                focusArea: '', // 'trend', 'radar', 'rank', 'kpi'
+
+                trendChart: null,
+                radarChart: null,
+                rankChart: null,
+
+                messages: [],
+                currentStep: 0,
+
+                // Scripted Presentation Scenario
+                scenario: [
+                    {
+                        text: "张总好。我是您的智能稽核助理。今天的数据更新于 09:00，整体风险水平处于 **可控范围**，但有两个异常点需要您关注。",
+                        focus: 'kpi',
+                        action: () => { }
+                    },
+                    {
+                        text: "首先看趋势。在 AI 推演模式下，我们发现下周的 **流动性风险** 可能会触及警戒线（黄色虚线部分）。",
+                        focus: 'trend',
+                        action: function () { this.togglePrediction(true); }
+                    },
+                    {
+                        text: "从结构上看，**“频发提取”** 类的风险占比最高，达到了 38%，主要集中在租房提取业务。",
+                        focus: 'radar',
+                        action: () => { }
+                    },
+                    {
+                        text: "具体到机构，**华东滨江支行** 本周的异常数据激增，建议对其发起专项核查。",
+                        focus: 'rank',
+                        action: function () { this.highlightRank(0); }
+                    },
+                    {
+                        text: "汇报完毕。您是否需要导出详细的核查清单？",
+                        focus: '',
+                        type: 'action',
+                        action: () => { }
+                    }
+                ]
+            },
+            mounted() {
+                this.initCharts();
+                window.addEventListener('resize', this.resizeCharts);
+                // Preload voices
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        const v = this.getBestVoice();
+                        if (v) console.log("Voices loaded, best match:", v.name);
+                    };
+                }
+            },
+            methods: {
+                startPresentation() {
+                    this.hasStarted = true;
+                    // Unlock audio
+                    window.speechSynthesis && window.speechSynthesis.cancel();
+
+                    setTimeout(() => {
+                        this.nextStep();
+                    }, 1000);
+                },
+
+                nextStep() {
+                    if (this.currentStep >= this.scenario.length) return;
+
+                    const step = this.scenario[this.currentStep];
+                    this.focusArea = step.focus;
+
+                    // Execute Action if bound to 'this' correctly
+                    if (step.action) step.action.call(this);
+
+                    // Speak & Type
+                    this.speak(step.text.replace(/\*\*/g, '')); // remove markdown for speech
+                    this.addMessage(step.text, step.type);
+
+                    this.currentStep++;
+                },
+
+                togglePrediction(val) {
+                    this.showPrediction = val;
+                    this.renderTrend();
+                },
+
+                highlightRank(index) {
+                    this.rankChart.dispatchAction({
+                        type: 'highlight',
+                        seriesIndex: 0,
+                        dataIndex: index
+                    });
+                    this.rankChart.dispatchAction({
+                        type: 'showTip',
+                        seriesIndex: 0,
+                        dataIndex: index
+                    });
+                },
+
+                addMessage(text, type) {
+                    const msg = { fullText: text, displayedText: '', typing: true, type: type };
+                    this.messages.push(msg);
+                    this.$nextTick(() => this.$refs.chatBox.scrollTop = this.$refs.chatBox.scrollHeight);
+
+                    let i = 0;
+                    const timer = setInterval(() => {
+                        if (i < msg.fullText.length) {
+                            msg.displayedText += msg.fullText[i];
+                            i++;
+                            this.$refs.chatBox.scrollTop = this.$refs.chatBox.scrollHeight;
+                        } else {
+                            clearInterval(timer);
+                            msg.typing = false;
+                            this.isSpeaking = false; // Stop wave when typing done (approx sync)
+                        }
+                    }, 50); // Typing speed
+                },
+
+                getBestVoice() {
+                    const voices = window.speechSynthesis.getVoices();
+                    const femaleKeywords = ['Google 普通话', 'Microsoft Xiaoxiao', 'Ting-Ting', 'Yu-shu', 'Huihui', 'Yaoyao'];
+                    const maleKeywords = ['Li-Mu', 'Kangkang', 'Yaoming', 'Yunyang'];
+
+                    // 1. Priority: Known female names
+                    let v = voices.find(voice => femaleKeywords.some(k => voice.name.includes(k)));
+
+                    // 2. Fallback: Any zh-CN that is NOT known male
+                    if (!v) {
+                        const zhVoices = voices.filter(voice => voice.lang && (voice.lang.includes('zh') || voice.lang.includes('CN')));
+                        v = zhVoices.find(voice => !maleKeywords.some(k => voice.name.includes(k)));
+                        if (!v && zhVoices.length > 0) v = zhVoices[0];
+                    }
+                    return v;
+                },
+
+                speak(text) {
+                    this.isSpeaking = true;
+                    if (!window.speechSynthesis) return;
+
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.rate = 1.0;
+                    u.pitch = 1.0;
+
+                    const v = this.getBestVoice();
+                    if (v) {
+                        u.voice = v;
+                        // console.log("Using voice:", v.name);
+                    }
+
+                    u.onend = () => { /* wave handled by typing for visual consistency */ };
+                    window.speechSynthesis.speak(u);
+                },
+
+                initCharts() {
+                    this.trendChart = echarts.init(document.getElementById('trendChart'));
+                    this.radarChart = echarts.init(document.getElementById('radarChart'));
+                    this.rankChart = echarts.init(document.getElementById('rankChart'));
+
+                    this.renderTrend();
+                    this.renderRadar();
+                    this.renderRank();
+                },
+
+                resizeCharts() {
+                    this.trendChart && this.trendChart.resize();
+                    this.radarChart && this.radarChart.resize();
+                    this.rankChart && this.rankChart.resize();
+                },
+
+                renderTrend() {
+                    const data = [120, 132, 101, 134, 90, 230, 210];
+                    const predict = [null, null, null, null, null, null, 210, 240, 280, 250];
+                    this.trendChart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { top: 30, left: 40, right: 20, bottom: 20, containLabel: true },
+                        xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Next1', 'Next2', 'Next3'], axisLabel: { color: '#94a3b8' } },
+                        yAxis: { type: 'value', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }, axisLabel: { color: '#94a3b8' } },
+                        series: [
+                            { name: 'History', type: 'line', smooth: true, data: data, itemStyle: { color: '#3b82f6' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59,130,246,0.5)' }, { offset: 1, color: 'rgba(59,130,246,0)' }]) } },
+                            this.showPrediction ? { name: 'AI Predict', type: 'line', smooth: true, lineStyle: { type: 'dashed' }, data: predict, itemStyle: { color: '#fbbf24' } } : null
+                        ].filter(Boolean)
+                    });
+                },
+
+                renderRadar() {
+                    this.radarChart.setOption({
+                        radar: {
+                            indicator: [
+                                { name: '频发提取', max: 100 },
+                                { name: '异地购房', max: 100 },
+                                { name: '大额销户', max: 100 },
+                                { name: '材料造假', max: 100 },
+                                { name: '关联交易', max: 100 }
+                            ],
+                            splitArea: { areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.05)'] } }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{ value: [80, 50, 60, 30, 20], name: 'Risk Distribution' }],
+                            itemStyle: { color: '#f472b6' },
+                            areaStyle: { color: 'rgba(244, 114, 182, 0.4)' }
+                        }]
+                    });
+                },
+
+                renderRank() {
+                    this.rankChart.setOption({
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        grid: { top: 10, left: 10, right: 20, bottom: 20, containLabel: true },
+                        xAxis: { type: 'value', show: false },
+                        yAxis: { type: 'category', data: ['城西支行', '高新网点', '市民中心', '省直分中心', '华东滨江'], axisLabel: { color: '#fff' } },
+                        series: [{
+                            type: 'bar',
+                            data: [12, 19, 24, 31, 45],
+                            barWidth: 12,
+                            itemStyle: { borderRadius: 10, color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#f87171' }, { offset: 1, color: '#fca5a5' }]) },
+                            label: { show: true, position: 'right', color: '#fff' }
+                        }]
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
