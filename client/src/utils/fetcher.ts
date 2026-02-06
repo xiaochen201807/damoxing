@@ -107,10 +107,24 @@ export const fetcher = <T = any>({
 
   // 只有 POST、PUT、PATCH 才在 body 中发送 data
   if (['post', 'put', 'patch'].includes(requestMethod)) {
-    axiosConfig.data = data;
-  } else if (data) {
+    axiosConfig.data = data || {};
+    // 将网关信息合并到请求体中 (如果存在)
+    if (gatewayInfo) {
+      try {
+        const info = JSON.parse(gatewayInfo);
+        axiosConfig.data = { ...info, ...axiosConfig.data };
+      } catch (e) { /* ignore */ }
+    }
+  } else {
     // GET、DELETE 等方法如果有数据，放到 params（查询字符串）
-    axiosConfig.params = data;
+    axiosConfig.params = data || {};
+    // 将网关信息合并到查询参数中 (如果存在)
+    if (gatewayInfo) {
+      try {
+        const info = JSON.parse(gatewayInfo);
+        axiosConfig.params = { ...info, ...axiosConfig.params };
+      } catch (e) { /* ignore */ }
+    }
   }
 
   return axios(axiosConfig).then((response) => {

@@ -9,46 +9,6 @@ const db = require('../db');
 
 // API 参数配置定义
 const API_PARAMS = {
-    // 列表接口
-    standard_list_api: {
-        type: 'string',
-        title: '标准列表接口 URL',
-        description: '业务标准列表查询 API 地址',
-        default: '/business-standards',
-        group: '🔗 标准管理接口配置',
-        groupOrder: 1,
-        order: 1
-    },
-    // 新增接口
-    standard_create_api: {
-        type: 'string',
-        title: '新增标准接口 URL',
-        description: '创建新业务标准的 API 地址',
-        default: 'post:/business-standards',
-        group: '🔗 标准管理接口配置',
-        groupOrder: 1,
-        order: 2
-    },
-    // 更新接口
-    standard_update_api: {
-        type: 'string',
-        title: '更新标准接口 URL',
-        description: '更新业务标准的 API 地址 (支持变量如 ${id})',
-        default: 'put:/business-standards/${id}',
-        group: '🔗 标准管理接口配置',
-        groupOrder: 1,
-        order: 3
-    },
-    // 删除接口
-    standard_delete_api: {
-        type: 'string',
-        title: '删除标准接口 URL',
-        description: '删除业务标准的 API 地址 (支持变量如 ${id})',
-        default: 'delete:/business-standards/${id}',
-        group: '🔗 标准管理接口配置',
-        groupOrder: 1,
-        order: 4
-    },
     // 导入接口
     standard_import_api: {
         type: 'string',
@@ -85,19 +45,111 @@ const API_PARAMS = {
             { "label": "可贷款年限", "value": "kdknx" },
             { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
         ],
+        placeholder: '例如：[{"label":"显示名称", "value":"值"}]',
         group: '⚙️ 选项配置',
         groupOrder: 4,
         order: 1
     },
-    // 服务对象接口
+    // 标准分类选项配置
+    standard_class_options: {
+        type: 'combo',
+        title: '标准分类选项',
+        description: '配置业务标准分类的下拉选项',
+        multiple: true,
+        items: [
+            { type: 'input-text', name: 'label', label: '显示名称', required: true },
+            { type: 'input-text', name: 'value', label: '值', required: true }
+        ],
+        default: [
+            { "label": "购买住房提取", "value": "购买住房提取" },
+            { "label": "建造翻建大修提取", "value": "建造翻建大修提取" },
+            { "label": "偿还贷款本息提取", "value": "偿还贷款本息提取" }
+        ],
+        placeholder: '例如：[{"label":"显示名称", "value":"值"}]',
+        group: '⚙️ 选项配置',
+        groupOrder: 4,
+        order: 2
+    },
+    // 业务内容分类接口
+    business_content_class_api: {
+        type: 'string',
+        title: '业务内容分类接口 URL',
+        description: '获取业务内容分类的 API 地址',
+        default: '/business-content-classes',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 5,
+        required: true
+    },
+    // 业务内容分类参数
+    business_content_class_params: {
+        type: 'json-editor',
+        title: '业务内容分类接口参数',
+        description: '获取业务内容分类的请求参数 (JSON格式)',
+        default: {},
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 6
+    },
+    // 业务标准值接口
+    business_standard_value_api: {
+        type: 'string',
+        title: '业务标准值接口 URL',
+        description: '获取业务标准值的 API 地址',
+        default: '/business-standard-values',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 7
+    },
+    // 业务标准值参数
+    business_standard_value_params: {
+        type: 'json-editor',
+        title: '业务标准值接口参数',
+        description: '获取业务标准值的请求参数 (JSON格式)',
+        default: {},
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 8
+    },
+    // 业务办理标准对象接口
     service_objects_api: {
         type: 'string',
-        title: '服务对象接口 URL',
-        description: '获取服务对象列表的 API 地址',
+        title: '业务办理标准对象接口 URL',
+        description: '获取业务办理标准对象列表的 API 地址',
         default: '/service-objects',
-        group: '🔗 辅助数据接口配置',
-        groupOrder: 2,
-        order: 1
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 9
+    },
+    // 业务办理标准对象参数
+    service_objects_params: {
+        type: 'json-editor',
+        title: '业务办理标准对象接口参数',
+        description: '获取业务办理标准对象列表的请求参数 (JSON格式)',
+        default: {},
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 10
+    },
+    // 业务办理标准属性接口
+    business_standard_attribute_api: {
+        type: 'string',
+        title: '业务办理标准属性接口 URL',
+        description: '获取业务办理标准属性列表的 API 地址',
+        default: '/business-standard-attributes',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 11
+    },
+    // 业务办理标准属性参数
+    business_standard_attribute_params: {
+        type: 'json-editor',
+        title: '业务办理标准属性接口参数',
+        description: '获取业务办理标准属性列表的请求参数 (JSON格式)，支持联动 `${ywblbzdx}`',
+        default: {},
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 12
     }
 };
 
@@ -119,7 +171,11 @@ async function analyzeBusinessStandard() {
         // 添加 API 参数
         Object.entries(API_PARAMS).forEach(([name, config]) => {
             // 复制配置到 schema，支持更多属性 (如 items, multiple 等)
-            const { group, groupOrder, order, default: defaultValue, ...otherProps } = config;
+            const { group, groupOrder, order, default: defaultValue, required, ...otherProps } = config;
+
+            if (required) {
+                paramsSchema.required.push(name);
+            }
 
             paramsSchema.properties[name] = {
                 ...otherProps,

@@ -7,12 +7,26 @@
             { "label": "可贷款金额", "value": "kdkje" },
             { "label": "可贷款年限", "value": "kdknx" },
             { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
-        ]
+        ],
+        "standard_class_options": [
+            { "label": "购买住房提取", "value": "gmzftq" },
+            { "label": "建造翻建大修提取", "value": "jzfjdx" },
+            { "label": "偿还贷款本息提取", "value": "chdkbx" }
+        ],
+        "business_content_class_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-content-classes",
+        "business_content_class_params": {},
+        "business_standard_value_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-standard-values",
+        "business_standard_value_params": {},
+        "service_objects_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/service-objects",
+        "service_objects_params": {},
+        "business_standard_attribute_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-standard-attributes",
+        "business_standard_attribute_params": {}
     },
     "body": [
         {
             "type": "crud",
-            "api": "/business-standards",
+            "columnsTogglable": false,
+            "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/list",
             "filter": {
                 "title": "",
                 "submitText": "",
@@ -34,12 +48,11 @@
                         "label": "业务内容分类",
                         "placeholder": "请选择业务内容分类",
                         "clearable": true,
-                        "options": [
-                            {
-                                "label": "工具接口",
-                                "value": "工具接口"
-                            }
-                        ]
+                        "source": {
+                            "method": "post",
+                            "url": "${business_content_class_api}",
+                            "data": "${business_content_class_params}"
+                        }
                     },
                     {
                         "type": "select",
@@ -70,7 +83,7 @@
                             "body": {
                                 "type": "form",
                                 "mode": "normal",
-                                "api": "post:/business-standards",
+                                "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
                                 "body": [
                                     {
                                         "type": "input-number",
@@ -107,10 +120,10 @@
                                                                 "name": "_temp_attribute_obj",
                                                                 "label": "选择属性",
                                                                 "placeholder": "请选择要插入的属性",
-                                                                "source": "${sxpz}",
-                                                                "labelField": "sxmc",
-                                                                "valueField": "sxmc",
-                                                                "menuTpl": "<div>${fwdxbq} - ${sxmc}</div>",
+                                                                "source": "${ywblbzsxz}",
+                                                                "labelField": "ywblbzsx",
+                                                                "valueField": "ywblbzsx",
+                                                                "menuTpl": "<div>${fwdxbq} - ${ywblbzsx}</div>",
                                                                 "required": true
                                                             }
                                                         ]
@@ -161,28 +174,34 @@
                                     },
                                     {
                                         "type": "select",
+                                        "name": "ywnrfl",
+                                        "label": "业务内容分类",
+                                        "placeholder": "请选择业务内容分类",
+                                        "clearable": true,
+                                        "source": {
+                                            "method": "post",
+                                            "url": "${business_content_class_api}",
+                                            "data": "${business_content_class_params}"
+                                        }
+                                    },
+                                    {
+                                        "type": "select",
                                         "name": "bzfl",
                                         "label": "标准分类",
                                         "required": true,
-                                        "options": [
-                                            {
-                                                "label": "购买住房提取",
-                                                "value": "购买住房提取"
-                                            },
-                                            {
-                                                "label": "建造翻建大修提取",
-                                                "value": "建造翻建大修提取"
-                                            },
-                                            {
-                                                "label": "偿还贷款本息提取",
-                                                "value": "偿还贷款本息提取"
-                                            }
-                                        ]
+                                        "source": "${standard_class_options}"
                                     },
                                     {
-                                        "type": "input-text",
+                                        "type": "select",
                                         "name": "ywbzz",
-                                        "label": "业务标准值"
+                                        "label": "业务标准值",
+                                        "clearable": true,
+                                        "placeholder": "请选择业务标准值",
+                                        "source": {
+                                            "method": "post",
+                                            "url": "${business_standard_value_api}",
+                                            "data": "${business_standard_value_params}"
+                                        }
                                     },
                                     {
                                         "type": "textarea",
@@ -192,8 +211,8 @@
                                     },
                                     {
                                         "type": "combo",
-                                        "name": "sxpz",
-                                        "label": "要素属性配置",
+                                        "name": "ywblbzsxz",
+                                        "label": "业务办理标准属性组",
                                         "multiple": true,
                                         "multiLine": true,
                                         "addable": true,
@@ -201,12 +220,13 @@
                                         "items": [
                                             {
                                                 "type": "select",
-                                                "name": "fwdx",
-                                                "label": "服务对象",
+                                                "name": "ywblbzdx",
+                                                "label": "业务办理标准对象",
                                                 "required": true,
                                                 "source": {
                                                     "method": "post",
-                                                    "url": "/service-objects"
+                                                    "url": "${service_objects_api}",
+                                                    "data": "${service_objects_params}"
                                                 },
                                                 "autoFill": {
                                                     "fwdxbq": "${label}"
@@ -217,10 +237,18 @@
                                                 "name": "fwdxbq"
                                             },
                                             {
-                                                "type": "input-text",
-                                                "name": "sxmc",
-                                                "label": "属性名称",
-                                                "placeholder": "如: 贷款状态"
+                                                "type": "select",
+                                                "name": "ywblbzsx",
+                                                "label": "业务办理标准属性",
+                                                "placeholder": "请选择属性",
+                                                "source": {
+                                                    "method": "post",
+                                                    "url": "${business_standard_attribute_api}",
+                                                    "data": {
+                                                        "&": "${business_standard_attribute_params}",
+                                                        "ywblbzdx": "${ywblbzdx}"
+                                                    }
+                                                }
                                             },
                                             {
                                                 "type": "radios",
@@ -241,8 +269,8 @@
                                             },
                                             {
                                                 "type": "textarea",
-                                                "name": "sqlyj",
-                                                "label": "SQL语句",
+                                                "name": "ywblbzyg",
+                                                "label": "业务办理标准语句",
                                                 "visibleOn": "${sxly === 'sql'}"
                                             }
                                         ]
@@ -294,13 +322,8 @@
             "headerToolbar": [],
             "columns": [
                 {
-                    "name": "id",
-                    "label": "ID",
-                    "width": 50
-                },
-                {
                     "name": "pxh",
-                    "label": "排序",
+                    "label": "序号",
                     "width": 60
                 },
                 {
@@ -309,13 +332,18 @@
                     "width": 350
                 },
                 {
+                    "name": "ywblbzsm",
+                    "label": "业务办理标准说明",
+                    "width": 300
+                },
+                {
                     "name": "gjsjsf",
                     "label": "关键数据算法",
                     "width": 150
                 },
                 {
-                    "name": "bzfl",
-                    "label": "标准分类",
+                    "name": "ywnrfl",
+                    "label": "业务内容分类",
                     "width": 150
                 },
                 {
@@ -333,8 +361,8 @@
                                 "body": {
                                     "type": "form",
                                     "mode": "normal",
-                                    "initApi": "get:/business-standards/${id}",
-                                    "api": "put:/business-standards/${id}",
+                                    "initApi": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/get",
+                                    "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
                                     "body": [
                                         {
                                             "type": "input-number",
@@ -364,9 +392,9 @@
                                                                     "type": "select",
                                                                     "name": "_temp_attribute_obj",
                                                                     "label": "选择属性",
-                                                                    "source": "${sxpz}",
-                                                                    "labelField": "sxmc",
-                                                                    "valueField": "sxmc"
+                                                                    "source": "${ywblbzsxz}",
+                                                                    "labelField": "ywblbzsx",
+                                                                    "valueField": "ywblbzsx"
                                                                 }
                                                             ]
                                                         },
@@ -398,9 +426,16 @@
                                             ]
                                         },
                                         {
-                                            "type": "input-text",
+                                            "type": "select",
                                             "name": "ywbzz",
-                                            "label": "业务标准值"
+                                            "label": "业务标准值",
+                                            "clearable": true,
+                                            "placeholder": "请选择业务标准值",
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${business_standard_value_api}",
+                                                "data": "${business_standard_value_params}"
+                                            }
                                         },
                                         {
                                             "type": "textarea",
@@ -419,43 +454,61 @@
                                         },
                                         {
                                             "type": "select",
+                                            "name": "ywnrfl",
+                                            "label": "业务内容分类",
+                                            "placeholder": "请选择业务内容分类",
+                                            "clearable": true,
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${business_content_class_api}",
+                                                "data": "${business_content_class_params}"
+                                            }
+                                        },
+                                        {
+                                            "type": "select",
                                             "name": "bzfl",
                                             "label": "分类",
-                                            "options": [
-                                                {
-                                                    "label": "购买住房提取",
-                                                    "value": "购买住房提取"
-                                                },
-                                                {
-                                                    "label": "偿还贷款本息提取",
-                                                    "value": "偿还贷款本息提取"
-                                                }
-                                            ]
+                                            "source": "${standard_class_options}"
                                         },
                                         {
                                             "type": "combo",
-                                            "name": "sxpz",
-                                            "label": "要素配置",
+                                            "name": "ywblbzsxz",
+                                            "label": "业务办理标准属性组",
                                             "multiple": true,
                                             "multiLine": true,
                                             "items": [
                                                 {
                                                     "type": "select",
-                                                    "name": "fwdx",
-                                                    "label": "对象",
-                                                    "source": "/service-objects",
+                                                    "name": "ywblbzdx",
+                                                    "label": "业务办理标准对象",
+                                                    "source": {
+                                                        "method": "post",
+                                                        "url": "${service_objects_api}",
+                                                        "data": "${service_objects_params}"
+                                                    },
                                                     "autoFill": {
                                                         "fwdxbq": "${label}"
                                                     }
                                                 },
                                                 {
-                                                    "type": "input-text",
-                                                    "name": "sxmc",
-                                                    "label": "属性"
+                                                    "type": "select",
+                                                    "name": "ywblbzsx",
+                                                    "label": "业务办理标准属性",
+                                                    "placeholder": "请选择属性",
+                                                    "source": {
+                                                        "method": "post",
+                                                        "url": "${business_standard_attribute_api}",
+                                                        "data": {
+                                                            "&": "${business_standard_attribute_params}",
+                                                            "ywblbzdx": "${ywblbzdx}"
+                                                        }
+                                                    }
                                                 },
                                                 {
                                                     "type": "radios",
                                                     "name": "sxly",
+                                                    "label": "属性来源",
+                                                    "inline": true,
                                                     "options": [
                                                         {
                                                             "label": "页面",
@@ -465,7 +518,14 @@
                                                             "label": "SQL",
                                                             "value": "sql"
                                                         }
-                                                    ]
+                                                    ],
+                                                    "value": "page"
+                                                },
+                                                {
+                                                    "type": "textarea",
+                                                    "name": "ywblbzyg",
+                                                    "label": "业务办理标准语句",
+                                                    "visibleOn": "${sxly === 'sql'}"
                                                 }
                                             ]
                                         }
@@ -480,7 +540,7 @@
                             "className": "text-danger",
                             "actionType": "ajax",
                             "confirmText": "确认要删除此模板吗?",
-                            "api": "delete:/business-standards/${id}"
+                            "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
                         }
                     ]
                 }

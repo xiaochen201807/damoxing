@@ -80,6 +80,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
         const { code, user_info, role_info, success } = response.data;
 
         let jgbh = null;
+        let zjgbh = null;
         let jgmc = null;
         let grbh = null;
         let xingming = null;
@@ -93,6 +94,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
                 // 提取机构编号和机构名称
                 if (userInfoObj.zzjgxx?.results?.jgmsg?.jgbh) {
                     jgbh = userInfoObj.zzjgxx.results.jgmsg.jgbh;
+                    zjgbh = userInfoObj.zzjgxx.results.jgmsg.zjgbh;
                     jgmc = userInfoObj.zzjgxx.results.jgmsg.jgmc;
                     zzbs = userInfoObj.zzjgxx.results.jgmsg.jgbh; // 组织标识使用 jgbh
                 }
@@ -104,7 +106,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
                     xingming = person.xingming;
                 }
 
-                logger.info(`[Gateway] 解析到: jgbh=${jgbh}, jgmc=${jgmc}, grbh=${grbh}, xingming=${xingming}, zzbs=${zzbs}`);
+                logger.info(`[Gateway] 解析到: jgbh=${jgbh}, jgmc=${jgmc},zjgbh=${zjgbh}, grbh=${grbh}, xingming=${xingming}, zzbs=${zzbs}`);
             } catch (parseError) {
                 logger.warn('[Gateway] user_info 解析失败:', parseError.message);
             }
@@ -117,6 +119,7 @@ async function callGatewayValidate(ticket, tyLoginToken) {
             user_id: grbh || 'unknown-user',
             jgbh: jgbh,           // 机构编号
             jgmc: jgmc,           // 机构名称
+            zjgbh: zjgbh,           // 子机构编号
             grbh: grbh,           // 个人编号
             xingming: xingming,   // 姓名
             zzbs: zzbs,           // 组织标识
@@ -334,6 +337,7 @@ router.post('/login', async (req, res) => {
                 qycode: qycode || gatewayInfo.tenant_id,
                 jgbh: gatewayInfo.jgbh,
                 jgmc: gatewayInfo.jgmc,
+                zjgbh: gatewayInfo.zjgbh,
                 grbh: gatewayInfo.grbh,
                 xingming: gatewayInfo.xingming,
                 zzbs: gatewayInfo.zzbs,

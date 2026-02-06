@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const nunjucks = require('nunjucks');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const db = require('../../db');
 const logger = require('../../utils/logger');
 const { escapeParamsForFrontend, sanitizeParams, DOLLAR_PLACEHOLDER } = require('../../utils/amis-variable-escape');
@@ -285,7 +286,8 @@ router.post('/preview', (req, res) => {
 
             try {
                 // 渲染模板
-                const schema_json = env.render(template.template_file, params);
+                const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+                const schema_json = env.render(template.template_file, { ...params, GLOBAL_API_PREFIX });
                 const parsed = JSON.parse(schema_json);
 
                 logger.info(`[Schema API] Preview generated for template: ${template_id}`);
@@ -700,7 +702,14 @@ router.post('/save', (req, res) => {
                 // 渲染模板生成 Schema
                 // 注意：传入 page_key, title 和 app_theme 到模板上下文
                 const app_theme = sortedParams.app_theme || 'default';
-                const renderContext = { ...sortedParams, page_key, title, app_theme };
+                const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+
+                // 🔍 调试输出 (仅在开发环境)
+                console.log('--- Template Rendering Context ---');
+                console.log('ENV API_ROUTE_PREFIX:', process.env.API_ROUTE_PREFIX);
+                console.log('GLOBAL_API_PREFIX:', GLOBAL_API_PREFIX);
+
+                const renderContext = { ...sortedParams, page_key, title, app_theme, GLOBAL_API_PREFIX };
                 const schema_json = env.render(template.template_file, renderContext);
 
                 // 调试：输出生成的JSON
