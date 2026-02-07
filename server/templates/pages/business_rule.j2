@@ -74,73 +74,110 @@
                         "dialog": {
                             "title": "清册选择",
                             "size": "lg",
+                            "data": {
+                                "jgbh": "${jgbh}",
+                                "zjgbh": "${zjgbh}",
+                                "syncIds": ""
+                            },
                             "body": {
-                                "type": "crud",
+                                "id": "selection_form",
+                                "type": "form",
                                 "api": {
                                     "method": "post",
-                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/selection_list",
+                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
                                     "data": {
-                                        "gjsjsf": "${ywsf}",
-                                        "ywnrfl": "${ywnrfl}",
+                                        "ids": "${syncIds}",
                                         "jgbh": "${jgbh}",
                                         "zjgbh": "${zjgbh}"
                                     }
                                 },
-                                "syncLocation": false,
-                                "id": "crud_selection_dialog",
-                                "mode": "table2",
-                                "primaryField": "id",
-                                "selectable": true,
-                                "multiple": true,
-                                "onEvent": {
-                                    "fetchInited": {
-                                        "actions": [
-                                            {
-                                                "actionType": "select",
-                                                "componentId": "crud_selection_dialog",
-                                                "args": {
-                                                    "condition": "${checked === true}"
-                                                }
-                                            }
-                                        ]
-                                    }
-                                },
-                                "keepItemSelectionOnPageChange": true,
-                                "headerToolbar": [],
-                                "footerToolbar": [
-                                    "switch-per-page", 
-                                    "pagination",
+                                "body": [
+                                    { "type": "hidden", "name": "jgbh" },
+                                    { "type": "hidden", "name": "zjgbh" },
                                     {
-                                        "type": "bulkActions",
-                                        "align": "right"
-                                    }
-                                ],
-                                "columns": [
-                                    {
-                                        "name": "ywblbz",
-                                        "label": "业务办理标准"
-                                    }
-                                ],
-                                "bulkActions": [
-                                    {
-                                        "label": "保存",
-                                        "level": "primary",
-                                        "actionType": "ajax",
+                                        "type": "crud",
                                         "api": {
                                             "method": "post",
-                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
+                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/selection_list",
                                             "data": {
-                                                "ids": "${ids}",
-                                                "selected_ids": "${ids}",
+                                                "gjsjsf": "${ywsf}",
+                                                "ywnrfl": "${ywnrfl}",
                                                 "jgbh": "${jgbh}",
                                                 "zjgbh": "${zjgbh}"
                                             }
                                         },
-                                        "reload": "window" 
+                                        "syncLocation": false,
+                                        "id": "crud_selection_dialog",
+                                        "mode": "table",
+                                        "primaryField": "id",
+                                        "selectable": true,
+                                        "multiple": true,
+                                        "onEvent": {
+                                            "fetchInited": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "select",
+                                                        "componentId": "crud_selection_dialog",
+                                                        "args": {
+                                                            "condition": "${checked === true}"
+                                                        }
+                                                    },
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "selection_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "syncIds": "${event.data.responseData.items | filter:checked:true | pick:id | join}"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "selectedChange": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "selection_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "syncIds": "${event.data.selectedItems | pick:id | join}"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "keepItemSelectionOnPageChange": true,
+                                        "headerToolbar": [
+                                            "statistics"
+                                        ],
+                                        "footerToolbar": [
+                                            "switch-per-page", 
+                                            "pagination",
+                                            "statistics"
+                                        ],
+                                        "columns": [
+                                            {
+                                                "name": "ywblbz",
+                                                "label": "业务办理标准"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
-                            "actions": [] 
+                            "actions": [
+                                {
+                                    "type": "button",
+                                    "label": "关闭",
+                                    "actionType": "close"
+                                },
+                                {
+                                    "type": "button",
+                                    "label": "保存",
+                                    "level": "primary",
+                                    "actionType": "submit"
+                                }
+                            ]
                         }
                     },
                     {

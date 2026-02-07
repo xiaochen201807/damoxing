@@ -373,7 +373,13 @@
                                 "body": {
                                     "type": "form",
                                     "mode": "normal",
-                                    "initApi": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/get",
+                                    "initApi": {
+                                        "method": "post",
+                                        "url": "{{ GLOBAL_API_PREFIX }}/ywbzk/get",
+                                        "data": {
+                                            "id": "${id}"
+                                        }
+                                    },
                                     "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
                                     "body": [
                                         {

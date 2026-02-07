@@ -237,11 +237,27 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.post('/batch', async (req, res) => {
     logger.info(`Batch Sync Payload: ${JSON.stringify(req.body)}`);
     const { selected_ids, ids } = req.body; // 兼容 selected_ids 或 ids
-    const syncIds = selected_ids || (ids ? ids.split(',') : null);
+    let syncIds = [];
 
-    if (!syncIds || !Array.isArray(syncIds)) {
+    if (selected_ids) {
+        syncIds = Array.isArray(selected_ids) ? selected_ids : String(selected_ids).split(',');
+    } else if (ids) {
+        syncIds = Array.isArray(ids) ? ids : String(ids).split(',');
+    }
+
+    // 过滤空值
+    syncIds = syncIds.filter(item => item && typeof item === 'string' && item.trim() !== '');
+
+    logger.info(`Parsed syncIds: ${JSON.stringify(syncIds)}, Type: ${typeof syncIds}, IsArray: ${Array.isArray(syncIds)}`);
+
+    if (!syncIds || syncIds.length === 0) {
+        logger.warn('Batch Sync Failed: No valid IDs found');
         return res.status(400).json({ status: 1, msg: "请选择同步项" });
     }
+
+    // 处理 jgbh 和 zjgbh 的默认值
+    const jgbh = req.body.jgbh || '';
+    const zjgbh = req.body.zjgbh || '';
 
     try {
         const runQuery = (sql, params) => new Promise((resolve, reject) => {
@@ -259,19 +275,27 @@ router.post('/batch', async (req, res) => {
             });
         });
 
+        // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
+        logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}'`);
+        const deleteSql = `DELETE FROM gjj_ywbz WHERE IFNULL(jgbh, '') = ? AND IFNULL(zjgbh, '') = ?`;
+        const deleteResult = await runQuery(deleteSql, [jgbh, zjgbh]);
+        logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.changes}`);
+
         const templates = await getStandards(syncIds);
+        let syncCount = 0;
 
         for (const tpl of templates) {
-            // 检查是否已同步过且规则名称一致 (避免重复，这里简单以 mbid 区分)
-            // 如果需要支持多次同步不同规则名，可以去掉此限制
+            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywblbz='${tpl.ywblbz}'`);
             const insertSql = `
                 INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy, jgbh, zjgbh)
                 VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
-            await runQuery(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, req.body.jgbh, req.body.zjgbh]);
+            await runQuery(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
+            syncCount++;
         }
 
-        res.json({ status: 0, msg: `同步成功，共导入 ${templates.length} 条规则` });
+        logger.info(`Batch Sync: Completed. Inserted ${syncCount} rules.`);
+        res.json({ status: 0, msg: `同步成功，已更新 ${syncCount} 条业务规则` });
 
     } catch (err) {
         logger.error(`Batch sync failed: ${err.message}`);
@@ -528,159 +552,176 @@ router.post('/selection_list', (req, res) => {
             });
         });
     });
+});
 
-    /**
-     * 获取规则参数配置表单 (AMIS Schema)
-     * GET /config_form?id=1&mbid=1
-     */
-    router.get('/config_form', (req, res) => {
-        const { id, mbid } = req.query;
+/**
+ * 获取规则参数配置表单 (AMIS Schema) - 支持多行配置 (Combo/Table)
+ * GET /config_form?id=1&mbid=1
+ */
+router.get('/config_form', (req, res) => {
+    const { id, mbid } = req.query;
 
-        if (!id || !mbid) {
-            return res.json({
+    if (!id || !mbid) {
+        return res.json({
+            status: 0,
+            msg: "ok",
+            data: {
+                type: "alert",
+                body: "缺少必要参数 (id 或 mbid)"
+            }
+        });
+    }
+
+    // 1. 查询标准库定义的属性 (gjj_ywbzksx)
+    const sqlSchema = `SELECT * FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC`;
+
+    // 2. 查询已保存的属性值 (gjj_ywbzsx)
+    const sqlValues = `SELECT sxmc, sxz, row_index FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC`;
+
+    db.all(sqlSchema, [mbid], (err, schemaRows) => {
+        if (err) {
+            logger.error(`Error fetching schema: ${err.message}`);
+            return res.json({ status: 1, msg: "获取参数定义失败" });
+        }
+
+        db.all(sqlValues, [id], (err, valueRows) => {
+            if (err) {
+                logger.error(`Error fetching values: ${err.message}`);
+                return res.json({ status: 1, msg: "获取参数值失败" });
+            }
+
+            // 将打平的 KV 数据重组为对象数组 (按 row_index 分组)
+            const rowsVariables = [];
+            valueRows.forEach(row => {
+                const idx = row.row_index || 0;
+                if (!rowsVariables[idx]) {
+                    rowsVariables[idx] = {};
+                }
+                rowsVariables[idx][row.sxmc] = row.sxz;
+            });
+            // 过滤掉空项 (以防万一 row_index 不连续)
+            const cleanedValues = rowsVariables.filter(v => v);
+
+            // 动态构建 Combo 的内部 items (表单列)
+            const comboItems = schemaRows.map(field => {
+                return {
+                    type: "input-text",
+                    name: field.ywblbzsx,
+                    label: field.fwdxbq || field.ywblbzsx,
+                    required: true
+                };
+            });
+
+            // 添加固定的 "结果" 列
+            comboItems.push({
+                type: "input-text",
+                name: "result",
+                label: "结果",
+                required: true
+            });
+
+            // 构建完整的 AMIS Schema
+            res.json({
                 status: 0,
                 msg: "ok",
                 data: {
                     type: "form",
-                    title: "参数配置",
-                    body: "缺少必要参数 (id 或 mbid)"
+                    title: "规则参数配置",
+                    wrapWithPanel: false,
+                    api: {
+                        method: "post",
+                        url: "{{ GLOBAL_API_PREFIX }}/ywbz/save_params",
+                        data: {
+                            id: id,
+                            rules: "$rules" // 将 Combo 的数组数据命名为 rules 提交
+                        }
+                    },
+                    body: [
+                        {
+                            type: "combo",
+                            name: "rules", // 对应提交数据的 key
+                            label: false,
+                            multiple: true,
+                            multiLine: true,
+                            addable: true,
+                            removable: true,
+                            value: cleanedValues, // 回填数据
+                            items: comboItems
+                        },
+                        {
+                            type: "hidden",
+                            name: "id",
+                            value: id
+                        }
+                    ]
                 }
             });
-        }
+        });
+    });
+});
 
-        // 1. 查询标准库定义的属性 (gjj_ywbzksx)
-        const sqlSchema = `SELECT * FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC`;
+/**
+ * 保存规则参数配置 (支持多行)
+ * POST /save_params
+ */
+router.post('/save_params', (req, res) => {
+    const { id, rules } = req.body;
 
-        // 2. 查询已保存的属性值 (gjj_ywbzsx)
-        const sqlValues = `SELECT sxmc, sxz FROM gjj_ywbzsx WHERE ywid = ?`;
+    if (!id) {
+        return res.json({ status: 1, msg: "缺少规则ID" });
+    }
 
-        db.all(sqlSchema, [mbid], (err, schemaRows) => {
+    if (!Array.isArray(rules)) {
+        return res.json({ status: 1, msg: "参数格式错误 (rules 应为数组)" });
+    }
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        // 1. 删除旧的属性值
+        db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id], (err) => {
             if (err) {
-                logger.error(`Error fetching schema: ${err.message}`);
-                return res.json({ status: 1, msg: "获取参数定义失败" });
+                db.run("ROLLBACK");
+                logger.error(`Failed to delete old attributes: ${err.message}`);
+                return res.json({ status: 1, msg: "保存失败 (清理旧数据)" });
             }
 
-            db.all(sqlValues, [id], (err, valueRows) => {
-                if (err) {
-                    logger.error(`Error fetching values: ${err.message}`);
-                    return res.json({ status: 1, msg: "获取参数值失败" });
-                }
+            // 2. 插入新属性值 (带 row_index)
+            const stmt = db.prepare("INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz, row_index) VALUES (?, ?, ?, ?)");
 
-                // 将已保存的值转换为 Map 方便查找
-                const valueMap = {};
-                valueRows.forEach(row => {
-                    valueMap[row.sxmc] = row.sxz;
-                });
+            let errorOccurred = false;
+            rules.forEach((row, index) => {
+                if (errorOccurred) return;
 
-                // 动态构建 AMIS 表单项
-                const formItems = schemaRows.map(field => {
-                    // 默认使用 input-text，未来可根据 sxly 或其他字段扩展类型
-                    return {
-                        type: "input-text",
-                        name: field.ywblbzsx, // 属性名作为表单 name
-                        label: field.fwdxbq || field.ywblbzsx, // 优先使用服务对象标签，否则用属性名
-                        value: valueMap[field.ywblbzsx] || "", // 回填已有值
-                        required: true,
-                        description: field.ywblbzdx ? `对象: ${field.ywblbzdx}` : ""
-                    };
-                });
-
-                if (formItems.length === 0) {
-                    return res.json({
-                        status: 0,
-                        msg: "ok",
-                        data: {
-                            type: "form",
-                            body: "该标准未定义可配置参数"
-                        }
-                    });
-                }
-
-                // 返回完整的 AMIS Form Schema
-                res.json({
-                    status: 0,
-                    msg: "ok",
-                    data: {
-                        type: "form",
-                        api: {
-                            method: "post",
-                            url: "{{ GLOBAL_API_PREFIX }}/ywbz/save_params",
-                            data: {
-                                id: id,
-                                "&": "$$" // 将表单所有字段作为数据提交
-                            }
-                        },
-                        body: [
-                            ...formItems,
-                            {
-                                type: "hidden",
-                                name: "id",
-                                value: id
-                            }
-                        ]
-                    }
-                });
-            });
-        });
-    });
-
-    /**
-     * 保存规则参数配置
-     * POST /save_params
-     */
-    router.post('/save_params', (req, res) => {
-        const body = req.body;
-        const id = body.id;
-
-        if (!id) {
-            return res.json({ status: 1, msg: "缺少规则ID" });
-        }
-
-        // 提取参数 (排除 id)
-        const params = { ...body };
-        delete params.id;
-
-        db.serialize(() => {
-            db.run("BEGIN TRANSACTION");
-
-            // 1. 删除旧的属性值
-            db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id], (err) => {
-                if (err) {
-                    db.run("ROLLBACK");
-                    logger.error(`Failed to delete old attributes: ${err.message}`);
-                    return res.json({ status: 1, msg: "保存失败 (清理旧数据)" });
-                }
-
-                // 2. 插入新属性值
-                const stmt = db.prepare("INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz) VALUES (?, ?, ?)");
-
-                for (const [key, value] of Object.entries(params)) {
-                    // 跳过空值或系统字段（如果有）
+                for (const [key, value] of Object.entries(row)) {
+                    // 跳过系统字段
                     if (key === '__super' || value === undefined || value === null) continue;
 
-                    stmt.run([id, key, String(value)], (err) => {
+                    stmt.run([id, key, String(value), index], (err) => {
                         if (err) {
-                            logger.error(`Failed to insert attribute ${key}: ${err.message}`);
+                            errorOccurred = true;
+                            logger.error(`Failed to insert attribute ${key} at row ${index}: ${err.message}`);
                         }
                     });
                 }
+            });
 
-                stmt.finalize((err) => {
+            stmt.finalize((err) => {
+                if (err || errorOccurred) {
+                    db.run("ROLLBACK");
+                    return res.json({ status: 1, msg: "保存失败 (写入新数据)" });
+                }
+
+                db.run("COMMIT", (err) => {
                     if (err) {
-                        db.run("ROLLBACK");
-                        return res.json({ status: 1, msg: "保存失败 (写入新数据)" });
+                        return res.json({ status: 1, msg: "提交事务失败" });
                     }
-
-                    db.run("COMMIT", (err) => {
-                        if (err) {
-                            return res.json({ status: 1, msg: "提交事务失败" });
-                        }
-                        res.json({ status: 0, msg: "保存成功" });
-                    });
+                    res.json({ status: 0, msg: "保存成功" });
                 });
             });
         });
     });
+});
 
-    return router;
-};
+module.exports = router;
+
