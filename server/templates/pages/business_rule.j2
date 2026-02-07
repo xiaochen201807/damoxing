@@ -279,34 +279,7 @@
                                 }
                             }
                         },
-                        {
-                            "type": "button",
-                            "label": "修改",
-                            "actionType": "drawer",
-                            "level": "link",
-                            "drawer": {
-                                "title": "修改业务标准",
-                                "body": {
-                                    "type": "form",
-                                    "api": "post:${rule_save_api}",
-                                    "body": [
-                                        { "type": "hidden", "name": "id" },
-                                        { "type": "input-text", "name": "ywbz", "label": "业务标准" },
-                                        { "type": "select", "name": "ywsf", "label": "关键数据算法", "source": "${algorithm_options}" },
-                                        {
-                                            "type": "select",
-                                            "name": "ywnrfl",
-                                            "label": "业务内容分类",
-                                            "source": {
-                                                "method": "post",
-                                                "url": "${business_content_class_api}",
-                                                "data": "${business_content_class_params}"
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        },
+
                         {
                             "type": "button",
                             "label": "删除",
