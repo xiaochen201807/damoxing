@@ -34,6 +34,7 @@
     },
     "body": [
         {
+            "id": "main_crud",
             "type": "crud",
             "api": "post:${rule_list_api}",
             "className": "premium-card",
@@ -89,6 +90,16 @@
                                         "ids": "${syncIds}",
                                         "jgbh": "${jgbh}",
                                         "zjgbh": "${zjgbh}"
+                                    }
+                                },
+                                "onEvent": {
+                                    "submitSucc": {
+                                        "actions": [
+                                            {
+                                                "actionType": "reload",
+                                                "componentId": "main_crud"
+                                            }
+                                        ]
                                     }
                                 },
                                 "body": [
