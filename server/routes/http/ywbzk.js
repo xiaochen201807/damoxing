@@ -7,6 +7,15 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../db');
 const logger = require('../../utils/logger');
+const multer = require('multer');
+
+const fs = require('fs');
+const path = require('path');
+const AdmZip = require('adm-zip');
+const { authenticateToken } = require('../../middleware/auth');
+
+// 配置 Multer 内存存储，用于处理文件上传
+const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * 1. 获取列表 (POST /list)
@@ -102,16 +111,12 @@ router.post('/save', async (req, res) => {
     const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
 
     try {
-        // 使用 Promise 封装数据库操作以支持 async/await 流程控制
         const runQuery = (sql, params) => new Promise((resolve, reject) => {
             db.run(sql, params, function (err) {
                 if (err) reject(err);
                 else resolve(this);
             });
         });
-
-        // 开启事务 (注意: sqlite3 不直接支持 Promise 事务管理，这里我们按顺序执行)
-        // 为简单起见，我们先处理主表，再处理子表
 
         let mbid = id;
         if (id) {
@@ -157,7 +162,7 @@ router.post('/save', async (req, res) => {
 
 /**
  * 4. 删除 (POST /delete)
- * 包含子表级联删除 (已经在数据库外键中配置为 ON DELETE CASCADE)
+ * 包含子表级联删除
  */
 router.post('/delete', (req, res) => {
     const { id } = req.body;
@@ -173,6 +178,131 @@ router.post('/delete', (req, res) => {
         }
         res.json({ status: 0, msg: "删除成功" });
     });
+});
+
+/**
+ * 5. 获取所有唯一的业务办理标准 (POST /standards)
+ */
+router.post('/standards', (req, res) => {
+    const sql = "SELECT DISTINCT ywblbz as value, ywblbz as label FROM gjj_ywbzk WHERE ywblbz IS NOT NULL";
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ status: 1, msg: err.message });
+        res.json({ status: 0, msg: "ok", data: rows });
+    });
+});
+
+// -----------------------------------------------------------------------------
+// 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
+// -----------------------------------------------------------------------------
+router.all('/export', authenticateToken, async (req, res) => {
+    try {
+        // 1. 获取所有数据
+        const standards = await new Promise((resolve, reject) => {
+            db.all("SELECT * FROM gjj_ywbzk", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        const attributes = await new Promise((resolve, reject) => {
+            db.all("SELECT * FROM gjj_ywbzksx", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        // 2. 生成 SQL 脚本 (封装在 CSV 中)
+        let sqlScript = "-- 业务标准全量导出 (包含标准表和属性表)\n";
+        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
+        sqlScript += "BEGIN TRANSACTION;\n\n";
+
+        // 清空旧数据
+        sqlScript += "DELETE FROM gjj_ywbzksx;\n";
+        sqlScript += "DELETE FROM gjj_ywbzk;\n\n";
+
+        // 插入标准表数据
+        for (const row of standards) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(val => {
+                if (val === null) return "NULL";
+                if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+                return val;
+            });
+            sqlScript += `INSERT INTO gjj_ywbzk (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+
+        // 插入属性表数据
+        for (const row of attributes) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(val => {
+                if (val === null) return "NULL";
+                if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+                return val;
+            });
+            sqlScript += `INSERT INTO gjj_ywbzksx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+
+        sqlScript += "\nCOMMIT;";
+
+        // 3. 落地到服务器磁盘
+        const exportFileName = 'ywbzk_full_export.csv';
+        const exportDir = path.join(__dirname, '../../exports');
+        const exportPath = path.join(exportDir, exportFileName);
+
+        // 确保目录存在
+        if (!fs.existsSync(exportDir)) {
+            fs.mkdirSync(exportDir, { recursive: true });
+        }
+
+        // 写入文件 (带 BOM)
+        fs.writeFileSync(exportPath, '\ufeff' + sqlScript, 'utf8');
+        logger.info(`Export CSV written to: ${exportPath}`);
+
+        // 4. 触发下载
+        return res.download(exportPath, exportFileName);
+
+    } catch (err) {
+        logger.error(`Export failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "导出失败: " + err.message });
+    }
+});
+
+// -----------------------------------------------------------------------------
+// 导入接口 (支持 CSV/SQL 单文件上传)
+// -----------------------------------------------------------------------------
+router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ status: 1, msg: "请选择文件" });
+    }
+
+    try {
+        let sqlContent = req.file.buffer.toString('utf8');
+
+        // 移除可能存在的 BOM 头
+        if (sqlContent.startsWith('\ufeff')) {
+            sqlContent = sqlContent.slice(1);
+        }
+
+        // 简单的 SQL 检查
+        if (!sqlContent.includes('INSERT INTO') && !sqlContent.includes('DELETE FROM')) {
+            return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
+        }
+
+        // 执行 SQL
+        await new Promise((resolve, reject) => {
+            db.exec(sqlContent, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        logger.info("Import successful");
+        res.json({ status: 0, msg: "导入成功" });
+
+    } catch (err) {
+        logger.error(`Import failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "导入失败: " + err.message });
+    }
 });
 
 module.exports = router;

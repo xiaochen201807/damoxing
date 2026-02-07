@@ -13,8 +13,8 @@ const API_PARAMS = {
     standard_import_api: {
         type: 'string',
         title: '全量导入接口 URL',
-        description: '全量导入业务标准 (CSV上传)',
-        default: '/business-standards/import',
+        description: '全量导入业务标准 (CSV/SQL文件上传)',
+        default: '/gjjrgzn/api/ywbzk/import',
         group: '🔗 导入导出配置',
         groupOrder: 3,
         order: 1
@@ -23,8 +23,8 @@ const API_PARAMS = {
     standard_export_api: {
         type: 'string',
         title: '全量导出接口 URL',
-        description: '全量导出业务标准 (CSV下载)',
-        default: '/business-standards/export',
+        description: '全量导出业务标准 (CSV文件下载)',
+        default: '/gjjrgzn/api/ywbzk/export',
         group: '🔗 导入导出配置',
         groupOrder: 3,
         order: 2

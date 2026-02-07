@@ -1,4 +1,4 @@
-{
+419|{
     "type": "page",
     "title": "业务办理标准库",
     "data": {
@@ -13,22 +13,20 @@
             { "label": "建造翻建大修提取", "value": "jzfjdx" },
             { "label": "偿还贷款本息提取", "value": "chdkbx" }
         ],
-        "business_content_class_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-content-classes",
+        "business_content_class_api": "/gjjrgzn/api/tools/business-content-classes",
         "business_content_class_params": {},
-        "business_standard_value_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-standard-values",
+        "business_standard_value_api": "/gjjrgzn/api/tools/business-standard-values",
         "business_standard_value_params": {},
-        "service_objects_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/service-objects",
+        "service_objects_api": "/gjjrgzn/api/tools/service-objects",
         "service_objects_params": {},
-        "business_standard_attribute_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-standard-attributes",
-        "business_standard_attribute_params": {},
-        "standard_import_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/import",
-        "standard_export_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/export"
+        "business_standard_attribute_api": "/gjjrgzn/api/tools/business-standard-attributes",
+        "business_standard_attribute_params": {}
     },
     "body": [
         {
             "type": "crud",
             "columnsTogglable": false,
-            "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/list",
+            "api": "post:/gjjrgzn/api/ywbzk/list",
             "filter": {
                 "title": "",
                 "submitText": "",
@@ -65,7 +63,7 @@
                         "clearable": true,
                         "source": {
                             "method": "post",
-                            "url": "{{ GLOBAL_API_PREFIX | default('/api') }}/ywbzk/standards"
+                            "url": "/gjjrgzn/api/ywbzk/standards"
                         }
                     },
                     {
@@ -88,7 +86,7 @@
                             "body": {
                                 "type": "form",
                                 "mode": "normal",
-                                "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
+                                "api": "post:/gjjrgzn/api/ywbzk/save",
                                 "body": [
                                     {
                                         "type": "input-number",
@@ -302,8 +300,8 @@
                                     {
                                         "type": "input-file",
                                         "name": "file",
-                                        "label": "选择CSV或SQL文件",
-                                        "accept": ".csv,.sql",
+                                        "label": "选择CSV文件",
+                                        "accept": ".csv",
                                         "asBlob": true,
                                         "required": true
                                     }
@@ -317,7 +315,7 @@
                         "level": "default",
                         "actionType": "download",
                         "api": {
-                            "method": "get",
+                            "method": "post",
                             "url": "${standard_export_api}",
                             "responseType": "blob"
                         }
@@ -373,8 +371,8 @@
                                 "body": {
                                     "type": "form",
                                     "mode": "normal",
-                                    "initApi": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/get",
-                                    "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
+                                    "initApi": "post:/gjjrgzn/api/ywbzk/get",
+                                    "api": "post:/gjjrgzn/api/ywbzk/save",
                                     "body": [
                                         {
                                             "type": "input-number",
@@ -552,7 +550,7 @@
                             "className": "text-danger",
                             "actionType": "ajax",
                             "confirmText": "确认要删除此模板吗?",
-                            "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
+                            "api": "post:/gjjrgzn/api/ywbzk/delete"
                         }
                     ]
                 }
@@ -560,3 +558,4 @@
         }
     ]
 }
+

@@ -6,6 +6,9 @@
 const db = require("../../db");
 const { authenticateToken } = require("../../middleware/auth");
 
+const express = require("express");
+const path = require("path");
+
 // 导入所有路由模块（已经在routes/http/目录下）
 const authRoutes = require("./auth");
 const aiRoutes = require("./ai");
@@ -60,7 +63,6 @@ function setupHttpRoutes(app) {
 
     // === 模块化路由 ===
 
-    // 认证相关路由（无需认证）
     app.use(`${API_PREFIX}/auth`, authRoutes);
 
     // 以下路由需要 JWT 认证
@@ -75,10 +77,19 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/schema`, authenticateToken, schemaRoutes);
     app.use(`${API_PREFIX}/themes`, authenticateToken, themesRoutes);
     app.use(`${API_PREFIX}/ywbzk`, authenticateToken, ywbzkRoutes);
+
     app.use(`${API_PREFIX}/tools`, authenticateToken, toolsRoutes);
 
     // MCP SSE Endpoints (for Dify) - 使用专门的 MCP_API_KEY 认证，不需要 JWT
     app.use(`${API_PREFIX}/mcp`, mcpSseRoutes);
+
+    // 静态文件服务 - 用于导出下载
+    // 添加 setHeaders 强制浏览器下载
+    app.use(`${API_PREFIX}/exports`, express.static(path.join(__dirname, "../../exports"), {
+        setHeaders: (res, path) => {
+            res.set('Content-Disposition', 'attachment');
+        }
+    }));
 
     console.log(`✅ API routes mounted on prefix: ${API_PREFIX}`);
     console.log(`🔒 JWT authentication enabled for protected routes`);

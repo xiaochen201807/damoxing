@@ -51,7 +51,8 @@ function setupMiddleware(app) {
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
+        allowedHeaders: ["Content-Type", "Authorization", "channel", "login-token", "jgbh", "zzbs", "zzjgdmz"],
+        exposedHeaders: ["Content-Disposition"] // 允许前端读取下载文件名
     };
 
     logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);

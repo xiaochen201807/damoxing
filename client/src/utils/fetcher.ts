@@ -130,10 +130,39 @@ export const fetcher = <T = any>({
   return axios(axiosConfig).then((response) => {
     const res = response.data;
 
+    // 处理文件下载：如果是 Blob 类型且有 Content-Disposition 响应头
+    const disposition = response.headers['content-disposition'];
+    if (res instanceof Blob && disposition) {
+      // 提取文件名
+      let fileName = 'download';
+      const filenameMatch = disposition.match(/filename=(?:["']?)(.*?)(?:["']?)(?:;|$)/);
+      if (filenameMatch && filenameMatch[1]) {
+        fileName = decodeURIComponent(filenameMatch[1]);
+      }
+
+      // 触发浏览器下载动作
+      const url = window.URL.createObjectURL(res);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // 返回成功给 AMIS，避免显示报错，同时也不需要 AMIS 再次处理下载
+      return {
+        status: 0,
+        msg: '文件已开始下载',
+        data: {}
+      } as FetcherResponse<T>;
+    }
+
     return {
       status: 0,
       msg: 'success',
-      data: res
+      data: res,
+      headers: response.headers
     } as FetcherResponse<T>;
   }).catch((error: AxiosError) => {
     // 处理 401 未授权错误
