@@ -235,6 +235,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
  * 从标准库模板同步到业务规则表
  */
 router.post('/batch', async (req, res) => {
+    logger.info(`Batch Sync Payload: ${JSON.stringify(req.body)}`);
     const { selected_ids, ids } = req.body; // 兼容 selected_ids 或 ids
     const syncIds = selected_ids || (ids ? ids.split(',') : null);
 
@@ -264,10 +265,10 @@ router.post('/batch', async (req, res) => {
             // 检查是否已同步过且规则名称一致 (避免重复，这里简单以 mbid 区分)
             // 如果需要支持多次同步不同规则名，可以去掉此限制
             const insertSql = `
-                INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy)
-                VALUES (?, ?, ?, ?, 1)
+                INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy, jgbh, zjgbh)
+                VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
-            await runQuery(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm]);
+            await runQuery(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, req.body.jgbh, req.body.zjgbh]);
         }
 
         res.json({ status: 0, msg: `同步成功，共导入 ${templates.length} 条规则` });
@@ -425,6 +426,102 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         logger.error(`Import failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: "导入失败: " + err.message });
     }
+});
+
+/**
+ * 10. 获取标准库选择清册 (POST /selection_list)
+ * 包含 check 状态反显
+ */
+router.post('/selection_list', (req, res) => {
+    const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
+    const offset = (page - 1) * perPage;
+
+    // 规范化查询参数：将 null/undefined 统一转为空字符串，防止 join 失败
+    // 假设数据库中存储的空值主要是空字符串 ''
+    const queryJgbh = jgbh || '';
+    const queryZjgbh = zjgbh || '';
+
+    // 方案二：两次查询 + 内存合并
+    // 1. 查询标准库分页列表 (Query Standards)
+    let standardsSql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
+    let countSql = "SELECT COUNT(*) as total FROM gjj_ywbzk WHERE 1=1";
+    const standardsParams = [];
+
+    // 标准库筛选条件
+    if (ywblbz) {
+        standardsSql += " AND ywblbz LIKE ?";
+        countSql += " AND ywblbz LIKE ?";
+        standardsParams.push(`%${ywblbz}%`);
+    }
+    // 注意：gjsjsf 在标准库中是属性，如果前端传了值且确实想筛选标准库类型，则保留此条件
+    // 如果前端传 gjsjsf 只是为了匹配规则表，则这里不应加条件。
+    // 根据业务语境，"关键数据算法"通常对应标准库里的 gjsjsf 分类，所以这里加上是合理的。
+    if (gjsjsf) {
+        standardsSql += " AND gjsjsf = ?";
+        countSql += " AND gjsjsf = ?";
+        standardsParams.push(gjsjsf);
+    }
+    if (ywnrfl) {
+        standardsSql += " AND ywnrfl = ?";
+        countSql += " AND ywnrfl = ?";
+        standardsParams.push(ywnrfl);
+    }
+
+    standardsSql += " ORDER BY pxh ASC, id DESC LIMIT ? OFFSET ?";
+    const standardsQueryParams = [...standardsParams, parseInt(perPage), parseInt(offset)];
+
+    // 2. 查询已选中的 mbid (Query Selected IDs)
+    // 只需要查询符合当前环境(ywsf/jgbh/zjgbh)的 mbid 列表
+    let selectedSql = `
+        SELECT DISTINCT mbid FROM gjj_ywbz 
+        WHERE 1=1
+        AND (? = '' OR IFNULL(ywsf, '') = ?)
+        AND IFNULL(jgbh, '') = ? 
+        AND IFNULL(zjgbh, '') = ?
+    `;
+    // 注意：这里的 gjsjsf 对应规则表的 ywsf
+    const selectedParams = [gjsjsf, gjsjsf, queryJgbh, queryZjgbh];
+
+    // 执行查询
+    db.get(countSql, standardsParams, (err, countRow) => {
+        if (err) {
+            logger.error(`Failed to count standards: ${err.message}`);
+            return res.status(500).json({ status: 1, msg: err.message });
+        }
+
+        db.all(standardsSql, standardsQueryParams, (err, standards) => {
+            if (err) {
+                logger.error(`Failed to query standards: ${err.message}`);
+                return res.status(500).json({ status: 1, msg: err.message });
+            }
+
+            // 获取已选 ID 列表
+            db.all(selectedSql, selectedParams, (err, selectedRows) => {
+                if (err) {
+                    logger.error(`Failed to query selected rules: ${err.message}`);
+                    return res.status(500).json({ status: 1, msg: err.message });
+                }
+
+                // 内存合并: 构建 Set 加速查找
+                const selectedIds = new Set(selectedRows.map(row => row.mbid));
+
+                // 遍历标准库列表，标记 is_selected
+                const items = standards.map(item => ({
+                    ...item,
+                    is_selected: selectedIds.has(item.id) ? 1 : 0
+                }));
+
+                res.json({
+                    status: 0,
+                    msg: "ok",
+                    data: {
+                        items: items,
+                        total: countRow ? countRow.total : 0
+                    }
+                });
+            });
+        });
+    });
 });
 
 module.exports = router;

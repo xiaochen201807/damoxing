@@ -65,7 +65,7 @@ router.post('/list', (req, res) => {
                 msg: "ok",
                 data: {
                     items: rows,
-                    total: countRow.total
+                    total: countRow ? countRow.total : 0
                 }
             });
         });

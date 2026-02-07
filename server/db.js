@@ -48,4 +48,131 @@ db.on("error", (err) => {
   logger.error(`Database error: ${err.message}`);
 });
 
-module.exports = db;
+// -----------------------------------------------------------------------------
+// SQL Logging Wrapper (MyBatis Style)
+// -----------------------------------------------------------------------------
+const formatSql = (sql, params) => {
+  if (!params || params.length === 0) return sql;
+  let i = 0;
+  return sql.replace(/\?/g, () => {
+    const val = params[i++];
+    if (val === null) return 'NULL';
+    if (typeof val === 'string') return `'${val}'`;
+    return val;
+  });
+};
+
+const wrappedDb = {
+  // 原始 db 对象引用
+  raw: db,
+
+  // 简单转发的方法
+  on: db.on.bind(db),
+  configure: db.configure.bind(db),
+  serialize: db.serialize.bind(db),
+  parallelize: db.parallelize.bind(db),
+  close: db.close.bind(db),
+
+  // 需要拦截的方法
+  run(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    const start = Date.now();
+    const sqlId = Math.random().toString(36).substring(7); // 简单的请求ID
+
+    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    if (params && params.length > 0) {
+      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+    }
+
+    return db.run(sql, params, function (err) {
+      const duration = Date.now() - start;
+      if (err) {
+        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+      } else {
+        logger.info(`[SQL-${sqlId}] <==    Updates: ${this.changes} (LastID: ${this.lastID}) (${duration}ms)`);
+      }
+      if (callback) callback.call(this, err);
+    });
+  },
+
+  get(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    const start = Date.now();
+    const sqlId = Math.random().toString(36).substring(7);
+
+    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    if (params && params.length > 0) {
+      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+    }
+
+    return db.get(sql, params, function (err, row) {
+      const duration = Date.now() - start;
+      if (err) {
+        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+      } else {
+        logger.info(`[SQL-${sqlId}] <==      Total: ${row ? 1 : 0} (${duration}ms)`);
+        if (row) {
+          logger.info(`[SQL-${sqlId}] <==        H: ${JSON.stringify(row)}`);
+        }
+      }
+      if (callback) callback.call(this, err, row);
+    });
+  },
+
+  all(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    const start = Date.now();
+    const sqlId = Math.random().toString(36).substring(7);
+
+    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    if (params && params.length > 0) {
+      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+    }
+
+    return db.all(sql, params, function (err, rows) {
+      const duration = Date.now() - start;
+      if (err) {
+        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+      } else {
+        logger.info(`[SQL-${sqlId}] <==      Total: ${rows ? rows.length : 0} (${duration}ms)`);
+        // 如果结果集不大，可以打印出来；太大就不打印了，或者只打印前几条
+        if (rows && rows.length > 0) {
+          if (rows.length <= 5) {
+            rows.forEach(row => logger.info(`[SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
+          } else {
+            logger.info(`[SQL-${sqlId}] <==        R: (First 5 of ${rows.length})`);
+            rows.slice(0, 5).forEach(row => logger.info(`[SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
+          }
+        }
+      }
+      if (callback) callback.call(this, err, rows);
+    });
+  },
+
+  exec(sql, callback) {
+    const start = Date.now();
+    const sqlId = Math.random().toString(36).substring(7);
+    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`);
+
+    return db.exec(sql, function (err) {
+      const duration = Date.now() - start;
+      if (err) {
+        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+      } else {
+        logger.info(`[SQL-${sqlId}] <==    Success (${duration}ms)`);
+      }
+      if (callback) callback.call(this, err);
+    });
+  }
+};
+
+module.exports = wrappedDb;

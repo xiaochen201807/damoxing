@@ -46,102 +46,145 @@
                 "className": "p-4",
                 "body": [
                     {
-                        "type": "flex",
-                        "justify": "start",
-                        "alignItems": "center",
-                        "className": "w-full",
-                        "items": [
-                            {
-                                "type": "tpl",
-                                "tpl": "关键数据算法：",
-                                "className": "mr-1"
-                            },
-                            {
-                                "type": "select",
-                                "name": "ywsf",
-                                "placeholder": "请选择",
-                                "source": "${ywsf_options}",
-                                "clearable": true,
-                                "className": "mr-4"
-                            },
-                            {
-                                "type": "tpl",
-                                "tpl": "业务内容分类：",
-                                "className": "mr-1"
-                            },
-                            {
-                                "type": "select",
-                                "name": "ywnrfl",
-                                "placeholder": "请选择",
-                                "source": {
+                        "type": "select",
+                        "name": "ywsf",
+                        "label": "关键数据算法",
+                        "placeholder": "请选择",
+                        "source": "${ywsf_options}",
+                        "clearable": true
+                    },
+                    {
+                        "type": "select",
+                        "name": "ywnrfl",
+                        "label": "业务内容分类",
+                        "placeholder": "请选择",
+                        "source": {
+                            "method": "post",
+                            "url": "${business_content_class_api}",
+                            "data": "${business_content_class_params}"
+                        },
+                        "clearable": true
+                    },
+                    {
+                        "type": "button",
+                        "icon": "fa fa-check",
+                        "level": "link",
+                        "className": "p-2 mr-4",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "清册选择",
+                            "size": "lg",
+                            "body": {
+                                "type": "crud",
+                                "api": {
                                     "method": "post",
-                                    "url": "${business_content_class_api}",
-                                    "data": "${business_content_class_params}"
+                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/selection_list",
+                                    "data": {
+                                        "gjsjsf": "${ywsf}",
+                                        "ywnrfl": "${ywnrfl}",
+                                        "jgbh": "${jgbh}",
+                                        "zjgbh": "${zjgbh}"
+                                    }
                                 },
-                                "clearable": true,
-                                "className": "mr-4"
-                            },
-                            {
-                                "type": "button",
-                                "icon": "fa fa-check",
-                                "level": "link",
-                                "className": "p-2 mr-4",
-                                "actionType": "dialog",
-                                "dialog": {
-                                    "title": "确认为生效标准",
-                                    "body": "勾选功能开发中..."
-                                }
-                            },
-                            {
-                                "type": "submit",
-                                "label": "查询",
-                                "level": "primary",
-                                "className": "mr-2"
-                            },
-                            {
-                                "type": "tpl",
-                                "tpl": "<div style='flex:1'></div>"
-                            },
-                            {
-                                "type": "button",
-                                "label": "全量导入",
-                                "level": "primary",
-                                "className": "mr-2",
-                                "actionType": "dialog",
-                                "dialog": {
-                                    "title": "全量导入业务规则",
-                                    "body": {
-                                        "type": "form",
+                                "syncLocation": false,
+                                "primaryField": "id",
+                                "checkOnItem": "this.is_selected === 1",
+                                "selectable": true,
+                                "multiple": true,
+                                "keepItemSelectionOnPageChange": true,
+                                "defaultParams": {
+                                    "orderBy": "is_selected",
+                                    "orderDir": "desc"
+                                },
+                                "headerToolbar": [],
+                                "footerToolbar": [
+                                    "switch-per-page", 
+                                    "pagination",
+                                    {
+                                        "type": "bulkActions",
+                                        "align": "right"
+                                    }
+                                ],
+                                "columns": [
+                                    {
+                                        "name": "is_selected",
+                                        "label": "状态",
+                                        "type": "mapping",
+                                        "map": {
+                                            "1": "<span class='label label-success'>已选</span>",
+                                            "0": "<span class='label label-default'>未选</span>"
+                                        },
+                                        "width": 80
+                                    },
+                                    {
+                                        "name": "ywblbz",
+                                        "label": "业务办理标准"
+                                    }
+                                ],
+                                "bulkActions": [
+                                    {
+                                        "label": "保存",
+                                        "level": "primary",
+                                        "actionType": "ajax",
                                         "api": {
                                             "method": "post",
-                                            "url": "${rule_import_api}",
-                                            "dataType": "form-data"
-                                        },
-                                        "body": [
-                                            {
-                                                "type": "input-file",
-                                                "name": "file",
-                                                "label": "选择CSV或SQL文件",
-                                                "accept": ".csv,.sql",
-                                                "asBlob": true,
-                                                "required": true
+                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
+                                            "data": {
+                                                "ids": "${ids}",
+                                                "selected_ids": "${ids}",
+                                                "jgbh": "${jgbh}",
+                                                "zjgbh": "${zjgbh}"
                                             }
-                                        ]
+                                        },
+                                        "reload": "window" 
                                     }
-                                }
+                                ]
                             },
-                            {
-                                "type": "button",
-                                "label": "全量导出",
-                                "level": "default",
-                                "actionType": "download",
+                            "actions": [] 
+                        }
+                    },
+                    {
+                        "type": "submit",
+                        "label": "查询",
+                        "level": "primary"
+                    },
+                    {
+                        "type": "button",
+                        "label": "全量导入",
+                        "level": "primary",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "全量导入业务规则",
+                            "body": {
+                                "type": "form",
                                 "api": {
-                                    "method": "get",
-                                    "url": "${rule_export_api}",
-                                    "responseType": "blob"
-                                }
+                                    "method": "post",
+                                    "url": "${rule_import_api}",
+                                    "dataType": "form-data"
+                                },
+                                "body": [
+                                    {
+                                        "type": "input-file",
+                                        "name": "file",
+                                        "label": "选择CSV或SQL文件",
+                                        "accept": ".csv,.sql",
+                                        "asBlob": true,
+                                        "required": true
+                                    }
+                                ]
                             }
-                        ]
+                        }
+                    },
+                    {
+                        "type": "button",
+                        "label": "全量导出",
+                        "level": "default",
+                        "actionType": "download",
+                        "api": {
+                            "method": "post",
+                            "url": "${rule_export_api}",
+                            "responseType": "blob"
+                        }
                     }
                 ]
             },
