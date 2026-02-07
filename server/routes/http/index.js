@@ -25,6 +25,8 @@ const routesApi = require("./routes");
 const mcpSseRoutes = require("./mcp-sse");
 const ywbzkRoutes = require("./ywbzk");
 const toolsRoutes = require("./tools");
+const ywbzRoutes = require("./ywbz");
+
 
 // API 路由前缀（从环境变量读取，默认 /api）
 const API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
@@ -77,8 +79,15 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/schema`, authenticateToken, schemaRoutes);
     app.use(`${API_PREFIX}/themes`, authenticateToken, themesRoutes);
     app.use(`${API_PREFIX}/ywbzk`, authenticateToken, ywbzkRoutes);
+    app.use(`${API_PREFIX}/ywbz`, authenticateToken, ywbzRoutes);
+
+    // 别名，兼容 LoanBusinessStandard.json
+    app.use(`${API_PREFIX}/loan-standards`, authenticateToken, ywbzRoutes);
+    // 为批量同步提供标准库列表
+    app.use(`${API_PREFIX}/business-standards`, authenticateToken, ywbzkRoutes);
 
     app.use(`${API_PREFIX}/tools`, authenticateToken, toolsRoutes);
+
 
     // MCP SSE Endpoints (for Dify) - 使用专门的 MCP_API_KEY 认证，不需要 JWT
     app.use(`${API_PREFIX}/mcp`, mcpSseRoutes);

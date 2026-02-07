@@ -1,0 +1,195 @@
+{
+    "type": "page",
+    "title": "业务规则配置管理",
+    "body": [
+        {
+            "type": "crud",
+            "api": "/loan-standards",
+            "filter": {
+                "title": "",
+                "submitText": "查询",
+                "type": "form",
+                "mode": "inline",
+                "body": [
+                    {
+                        "type": "select",
+                        "name": "ywsf",
+                        "label": "业务算法",
+                        "placeholder": "按算法搜索",
+                        "clearable": true,
+                        "options": [
+                            {
+                                "label": "可贷款金额",
+                                "value": "可贷款金额"
+                            },
+                            {
+                                "label": "可提取金额",
+                                "value": "可提取金额"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "select",
+                        "name": "ywnrfl",
+                        "label": "业务分类",
+                        "placeholder": "按分类搜索",
+                        "clearable": true,
+                        "source": "/loan-standards/options/categories"
+                    }
+                ]
+            },
+            "headerToolbar": [
+                {
+                    "type": "button",
+                    "label": "批量同步模板",
+                    "actionType": "dialog",
+                    "level": "info",
+                    "dialog": {
+                        "title": "选择业务标准模板同步",
+                        "size": "lg",
+                        "body": {
+                            "type": "form",
+                            "api": "post:/loan-standards/batch",
+                            "body": [
+                                {
+                                    "type": "checkboxes",
+                                    "name": "selected_ids",
+                                    "label": "标准模板列表",
+                                    "source": "/business-standards",
+                                    "labelField": "ywblbz",
+                                    "valueField": "id",
+                                    "multiple": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                "bulkActions"
+            ],
+            "columns": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "width": 50
+                },
+                {
+                    "name": "gzmc",
+                    "label": "规则名称",
+                    "width": 250
+                },
+                {
+                    "name": "template_name",
+                    "label": "对应模板",
+                    "width": 200
+                },
+                {
+                    "name": "ywsf",
+                    "label": "业务算法",
+                    "width": 120
+                },
+                {
+                    "name": "sfqy",
+                    "label": "启用状态",
+                    "width": 80,
+                    "type": "mapping",
+                    "map": {
+                        "1": "<span class=\"label label-success\">启用</span>",
+                        "0": "<span class=\"label label-default\">禁用</span>",
+                        "true": "<span class=\"label label-success\">启用</span>",
+                        "false": "<span class=\"label label-default\">禁用</span>"
+                    }
+                },
+                {
+                    "name": "yxj",
+                    "label": "优先级",
+                    "width": 80,
+                    "sortable": true
+                },
+                {
+                    "type": "operation",
+                    "label": "操作",
+                    "width": 150,
+                    "buttons": [
+                        {
+                            "type": "button",
+                            "label": "配置详情",
+                            "level": "link",
+                            "actionType": "drawer",
+                            "drawer": {
+                                "title": "规则明细配置",
+                                "size": "lg",
+                                "body": {
+                                    "type": "form",
+                                    "initApi": "get:/loan-standards/${id}",
+                                    "api": "put:/loan-standards/${id}",
+                                    "body": [
+                                        {
+                                            "type": "group",
+                                            "body": [
+                                                {
+                                                    "type": "static",
+                                                    "name": "gzmc",
+                                                    "label": "规则名称"
+                                                },
+                                                {
+                                                    "type": "select",
+                                                    "name": "sfqy",
+                                                    "label": "启动状态",
+                                                    "options": [
+                                                        {
+                                                            "label": "启用",
+                                                            "value": 1
+                                                        },
+                                                        {
+                                                            "label": "禁用",
+                                                            "value": 0
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "gzljsm",
+                                            "label": "规则逻辑说明",
+                                            "rows": 3
+                                        },
+                                        {
+                                            "type": "combo",
+                                            "name": "rule_params",
+                                            "label": "业务参数配置 (gjj_ywbzsx)",
+                                            "description": "此处参数将通过 ywid 关联存储于属性配置表",
+                                            "multiple": false,
+                                            "asFormItem": true,
+                                            "body": [
+                                                {
+                                                    "type": "input-kv",
+                                                    "name": "rule_params",
+                                                    "label": ""
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "input-number",
+                                            "name": "yxj",
+                                            "label": "优先级"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "label": "删除",
+                            "level": "link",
+                            "className": "text-danger",
+                            "actionType": "ajax",
+                            "confirmText": "确认删除此配置吗?",
+                            "api": "delete:/loan-standards/${id}"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

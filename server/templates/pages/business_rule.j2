@@ -1,0 +1,248 @@
+{
+    "type": "page",
+    "title": "关键数据计算模型",
+    "css": {
+        ".premium-card": {
+            "boxShadow": "0 4px 20px rgba(0,0,0,0.08)",
+            "borderRadius": "12px",
+            "overflow": "hidden"
+        },
+        ".page-header-gradient": {
+            "background": "linear-gradient(90deg, #1890ff 0%, #096dd9 100%)",
+            "padding": "16px 24px",
+            "color": "#fff",
+            "marginBottom": "0px",
+            "borderRadius": "12px 12px 0 0"
+        }
+    },
+    "data": {
+        "rule_list_api": "{{ GLOBAL_API_PREFIX }}/ywbz/list",
+        "rule_save_api": "{{ GLOBAL_API_PREFIX }}/ywbz/save",
+        "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/ywbz/delete",
+        "rule_batch_api": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
+        "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
+        "rule_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/import",
+        "rule_export_api": "{{ GLOBAL_API_PREFIX }}/ywbz/export",
+        "ywsf_options": [
+            { "label": "可提取金额", "value": "ktqje" },
+            { "label": "可贷款金额", "value": "kdkje" },
+            { "label": "可贷款年限", "value": "kdknx" },
+            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
+        ],
+        "business_content_class_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-content-classes",
+        "business_content_class_params": {}
+    },
+    "body": [
+        {
+            "type": "crud",
+            "api": "post:${rule_list_api}",
+            "className": "premium-card",
+            "filter": {
+                "title": "",
+                "submitText": "",
+                "type": "form",
+                "mode": "inline",
+                "wrapWithPanel": false,
+                "className": "p-4",
+                "body": [
+                    {
+                        "type": "flex",
+                        "justify": "start",
+                        "alignItems": "center",
+                        "className": "w-full",
+                        "items": [
+                            {
+                                "type": "tpl",
+                                "tpl": "关键数据算法：",
+                                "className": "mr-1"
+                            },
+                            {
+                                "type": "select",
+                                "name": "ywsf",
+                                "placeholder": "请选择",
+                                "source": "${ywsf_options}",
+                                "clearable": true,
+                                "className": "mr-4"
+                            },
+                            {
+                                "type": "tpl",
+                                "tpl": "业务内容分类：",
+                                "className": "mr-1"
+                            },
+                            {
+                                "type": "select",
+                                "name": "ywnrfl",
+                                "placeholder": "请选择",
+                                "source": {
+                                    "method": "post",
+                                    "url": "${business_content_class_api}",
+                                    "data": "${business_content_class_params}"
+                                },
+                                "clearable": true,
+                                "className": "mr-4"
+                            },
+                            {
+                                "type": "button",
+                                "icon": "fa fa-check",
+                                "level": "link",
+                                "className": "p-2 mr-4",
+                                "actionType": "dialog",
+                                "dialog": {
+                                    "title": "确认为生效标准",
+                                    "body": "勾选功能开发中..."
+                                }
+                            },
+                            {
+                                "type": "submit",
+                                "label": "查询",
+                                "level": "primary",
+                                "className": "mr-2"
+                            },
+                            {
+                                "type": "tpl",
+                                "tpl": "<div style='flex:1'></div>"
+                            },
+                            {
+                                "type": "button",
+                                "label": "全量导入",
+                                "level": "primary",
+                                "className": "mr-2",
+                                "actionType": "dialog",
+                                "dialog": {
+                                    "title": "全量导入业务规则",
+                                    "body": {
+                                        "type": "form",
+                                        "api": {
+                                            "method": "post",
+                                            "url": "${rule_import_api}",
+                                            "dataType": "form-data"
+                                        },
+                                        "body": [
+                                            {
+                                                "type": "input-file",
+                                                "name": "file",
+                                                "label": "选择CSV或SQL文件",
+                                                "accept": ".csv,.sql",
+                                                "asBlob": true,
+                                                "required": true
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "type": "button",
+                                "label": "全量导出",
+                                "level": "default",
+                                "actionType": "download",
+                                "api": {
+                                    "method": "get",
+                                    "url": "${rule_export_api}",
+                                    "responseType": "blob"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "headerToolbar": [
+                "bulkActions"
+            ],
+            "footerToolbar": ["statistics", "pagination"],
+            "columns": [
+                {
+                    "name": "ywsf",
+                    "label": "关键数据算法",
+                    "type": "mapping",
+                    "map": {
+                        "ktqje": "可提取金额",
+                        "kdkje": "可贷款金额",
+                        "kdknx": "可贷款年限",
+                        "dkhkskdcje": "贷款还款时可对冲金额",
+                        "*": "${ywsf}"
+                    }
+                },
+                {
+                    "name": "template_name",
+                    "label": "业务办理标准"
+                },
+                {
+                    "name": "ywbz",
+                    "label": "业务标准描述说明"
+                },
+                {
+                    "type": "operation",
+                    "label": "操作",
+                    "buttons": [
+                        {
+                            "type": "button",
+                            "label": "规则参数配置",
+                            "actionType": "drawer",
+                            "level": "link",
+                            "drawer": {
+                                "title": "节点详细参数设置",
+                                "size": "md",
+                                "body": {
+                                    "type": "form",
+                                    "api": "post:${rule_save_api}",
+                                    "body": [
+                                        { "type": "hidden", "name": "id" },
+                                        { "type": "static", "name": "ywbz", "label": "业务标准" },
+                                        { "type": "divider" },
+                                        {
+                                            "type": "combo",
+                                            "name": "attributes",
+                                            "label": "规则参数列表",
+                                            "multiple": true,
+                                            "multiLine": true,
+                                            "items": [
+                                                { "type": "input-text", "name": "sxmc", "label": "参数名", "required": true },
+                                                { "type": "input-text", "name": "sxz", "label": "值", "required": true }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "label": "修改",
+                            "actionType": "drawer",
+                            "level": "link",
+                            "drawer": {
+                                "title": "修改业务标准",
+                                "body": {
+                                    "type": "form",
+                                    "api": "post:${rule_save_api}",
+                                    "body": [
+                                        { "type": "hidden", "name": "id" },
+                                        { "type": "input-text", "name": "ywbz", "label": "业务标准" },
+                                        { "type": "select", "name": "ywsf", "label": "关键数据算法", "options": "${ywsf_options}" },
+                                        {
+                                            "type": "select",
+                                            "name": "ywnrfl",
+                                            "label": "业务内容分类",
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${business_content_class_api}",
+                                                "data": "${business_content_class_params}"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "label": "删除",
+                            "actionType": "ajax",
+                            "api": "post:${rule_delete_api}?id=${id}",
+                            "confirmText": "确定要删除这条规则吗？",
+                            "level": "danger"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

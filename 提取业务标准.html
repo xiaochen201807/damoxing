@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="GBK">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型业务算法配置</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+body { background-color: #f8f9fa; color: #333; padding: 24px; }
+.container { max-width: 1600px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+
+/* 头部标题 */
+.page-header { 
+    padding: 24px 32px; 
+    background: linear-gradient(135deg, #1890ff 0%, #0c66c2 100%); 
+    color: white; 
+}
+.page-header h1 { 
+    font-size: 24px; 
+    font-weight: 600; 
+}
+
+/* 查询区域 */
+.query-section { 
+    padding: 24px 32px; 
+    background: #fafafa; 
+    border-bottom: 1px solid #eaeaea; 
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.form-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px;
+}
+.form-item label { 
+    width: 140px; 
+    text-align: right; 
+    font-size: 14px; 
+    color: #555; 
+    font-weight: 500; 
+}
+.form-item select { 
+    width: 320px; 
+    height: 40px; 
+    padding: 0 16px; 
+    border: 1px solid #d9d9d9; 
+    border-radius: 8px; 
+    font-size: 14px; 
+    background: #fff; 
+    transition: all 0.3s;
+}
+.form-item select:focus { 
+    border-color: #1890ff; 
+    outline: none; 
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.25); 
+}
+
+/* 齿轮按钮 */
+.gear-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f0f7ff;
+    border: 1px solid #d0e4ff;
+    color: #1890ff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.gear-btn:hover {
+    background: #e6f4ff;
+    transform: scale(1.05);
+}
+
+/* 清册容器 */
+.list-container { 
+    padding: 0 0 24px;
+}
+.list-wrapper { 
+    border: 1px solid #e0e0e0; 
+    border-radius: 10px; 
+    overflow: hidden; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin: 0 24px;
+}
+
+/* 表格 */
+.table-container { 
+    width: 100%; 
+    overflow-x: auto; 
+}
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    table-layout: fixed; 
+}
+th, td { 
+    padding: 16px 20px;
+    text-align: left; 
+    font-size: 14px; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap; 
+    transition: background-color 0.2s;
+}
+th { 
+    background-color: #f0f7ff; 
+    font-weight: 600; 
+    color: #1890ff; 
+    border-bottom: 2px solid #d0e4ff;
+}
+tr:hover td { 
+    background-color: #f9fbfd; 
+}
+tr.selected-row {
+    background-color: #e6f4ff !important;
+}
+
+.expand-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px;
+    cursor: pointer;
+}
+
+/* 卡片区域 */
+.card-row {
+    display: none;
+}
+.card-wrapper {
+    padding: 16px 24px;
+}
+.param-card {
+    background: #ffffff;
+    border: 1px solid #1890ff;
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(24, 144, 255, 0.1);
+    font-size: 14px;
+    max-width: calc(100% - 48px);
+    margin: 0 auto;
+}
+
+.param-fields-container {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.param-field {
+    flex: none;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+}
+.param-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.param-select, .param-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    height: 36px;
+}
+.param-select:focus,
+.param-input:focus {
+    border-color: #1890ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 增加按钮 */
+.add-param-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f7ff;
+    color: #1890ff;
+    border: 1px dashed #1890ff;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+.add-param-btn:hover {
+    background: #e6f4ff;
+}
+
+/* 删除行按钮 */
+.delete-row-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff1f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    flex-shrink: 0;
+}
+.delete-row-btn:hover {
+    background: #ff4d4f;
+    color: white;
+}
+
+/* 保存按钮 */
+.save-param-btn {
+    display: inline-block;
+    background: #1890ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+}
+.save-param-btn:hover {
+    background: #40a9ff;
+}
+
+.action-delete { 
+    color: #ff4d4f; 
+    cursor: pointer; 
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+.action-delete:hover { 
+    background: #fff1f0; 
+    text-decoration: none;
+}
+
+/* 模态框通用 */
+.modal-mask {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.modal-content {
+    background: #fff;
+    width: 800px;
+    max-width: 90vw;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+.modal-header {
+    padding: 18px 24px;
+    background: #f0f7ff;
+    border-bottom: 1px solid #d0e4ff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h2 {
+    font-size: 18px;
+    color: #1890ff;
+    font-weight: 600;
+    margin: 0;
+}
+.modal-close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+.modal-close:hover {
+    background: #e6f4ff;
+    color: #1890ff;
+}
+.modal-body {
+    padding: 24px;
+}
+
+/* 选择子页面表格 */
+.selection-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+}
+.selection-table th,
+.selection-table td {
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+}
+.selection-table th {
+    background: #f0f7ff;
+}
+.selection-table .checkbox-cell {
+    text-align: center;
+    width: 80px;
+}
+.confirm-btn {
+    display: block;
+    margin: 20px auto 0;
+    padding: 10px 24px;
+    background: #1890ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.confirm-btn:hover {
+    background: #40a9ff;
+}
+
+/* 算法设置弹窗 */
+.algorithm-setting-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+    font-size: 14px;
+}
+.form-group input,
+.form-group select {
+    padding: 10px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    font-size: 14px;
+    height: 40px;
+}
+
+/* 算法设置底部按钮 */
+.algorithm-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 24px 24px;
+    gap: 12px;
+}
+.footer-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+}
+.save-algorithm-btn {
+    background: #1890ff;
+    color: white;
+}
+.save-algorithm-btn:hover {
+    background: #40a9ff;
+}
+.cancel-algorithm-btn {
+    background: #f5f5f5;
+    color: #333;
+}
+.cancel-algorithm-btn:hover {
+    background: #e6e6e6;
+}
+
+/* 结果字段样式 */
+.result-field {
+    background-color: #f5f5f5;
+    color: #333;
+    cursor: not-allowed;
+}
+
+/* 卡片初始状态提示 */
+.empty-card {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <h1>模型业务算法配置</h1>
+    </div>
+
+    <!-- 查询区域 -->
+    <div class="query-section">
+        <div class="form-item">
+            <label for="bizAlgorithm">业务算法：</label>
+            <select id="bizAlgorithm">
+                <option value="algo1">可提取金额</option>
+                <option value="algo2">可贷款金额</option>
+                <option value="algo3">可贷款年限</option>
+                <option value="algo5">贷款还款可对冲支取金额</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label for="bizCategory">业务内容分类：</label>
+            <select id="bizCategory">
+                <option value="">请选择</option>
+                <option value="buy_house">购买住房提取</option>
+                <option value="build_repair">建造翻建大修提取</option>
+                <option value="repay_loan">偿还贷款本息提取</option>
+                <option value="elevator">既有住宅增设电梯提取</option>
+                <option value="rent">租房提取</option>
+                <option value="medical">大病医疗提取</option>
+                <option value="retire">离休退休提取</option>
+                <option value="disable">完全丧失劳动能力并终止劳动关系提取</option>
+                <option value="abroad">出境国定居提取</option>
+                <option value="flexible_part">灵活就业人员部分提取</option>
+                <option value="flexible_close">灵活就业人员销户提取</option>
+                <option value="low_income">享受城镇居民最低生活保障提取</option>
+                <option value="half_year">封存满半年未再缴存提取</option>
+                <option value="disaster">重大灾害提取</option>
+                <option value="property_fee">缴纳物业管理费提取</option>
+                <option value="repair_fund">缴纳房屋维修基金提取</option>
+            </select>
+        </div>
+        <!-- 齿轮按钮 -->
+        <button class="gear-btn" onclick="openAlgorithmSettingModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+        <!-- 新增选择按钮 -->
+        <button class="gear-btn" onclick="openSelectionModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 清册（无标题） -->
+    <div class="list-container">
+        <div class="list-wrapper">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">展开</th>
+                            <th>业务办理标准</th>
+                        </tr>
+                    </thead>
+                    <tbody id="conditionTableBody">
+                        <!-- 第1项 -->
+                        <tr id="row-0">
+                            <td class="expand-cell" onclick="toggleCard(0)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取金额为缴存人实时账户余额</td>
+                        </tr>
+                        
+
+                        <!-- 第2项 -->
+                        <tr id="row-1">
+                            <td class="expand-cell" onclick="toggleCard(1)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取金额为缴存人上月缴存余额</td>
+                        </tr>
+                        
+
+                        <!-- 第3项 -->
+                        <tr id="row-2">
+                            <td class="expand-cell" onclick="toggleCard(2)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取金额为缴存人购房登记日期时账户余额</td>
+                        </tr>
+                        
+
+                        <!-- 第4项 -->
+                        <tr id="row-3">
+                            <td class="expand-cell" onclick="toggleCard(3)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>缴存人账户冻结金额不可进行提取</td>
+                        </tr>
+                        
+
+                        <!-- 第5项 -->
+                        <tr id="row-4">
+                            <td class="expand-cell" onclick="toggleCard(4)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取后账户余额需保留X元</td>
+                        </tr>
+                        
+                        <!-- 第6项 -->
+                        <tr id="row-5">
+                            <td class="expand-cell" onclick="toggleCard(5)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>缴存人公积金贷款情况为A，提取后账户余额需保留X月缴存额</td>
+                        </tr>
+                        <tr class="card-row" id="cardRow-5">
+                            <td colspan="2" style="padding: 12px 0; background: #f9fbfd;">
+                                <div class="card-wrapper">
+                                    <div class="param-card" id="paramCard-5">
+                                        <div id="dynamicRows-5" class="empty-card">点击下方"增加"按钮添加业务执行标准</div>
+                                        <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                            <div class="add-param-btn" onclick="addParamRow(5, [
+                                                {type: 'select', label: '贷款情况', options: ['', '无贷款', '有贷款']},
+                                                {type: 'input', label: '结果'}
+                                            ])">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                增加
+                                            </div>
+                                            <button class="save-param-btn" onclick="saveParamRows(5)">保存</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- 第7项 -->
+                        <tr id="row-6">
+                            <td class="expand-cell" onclick="toggleCard(6)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>缴存人公积金贷款状态为A，且贷款对冲签约状态为B，提取后账户余额需保留X元</td>
+                        </tr>
+                        <tr class="card-row" id="cardRow-6">
+                            <td colspan="2" style="padding: 12px 0; background: #f9fbfd;">
+                                <div class="card-wrapper">
+                                    <div class="param-card" id="paramCard-6">
+                                        <div id="dynamicRows-6" class="empty-card">点击下方"增加"按钮添加业务执行标准</div>
+                                        <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                            <div class="add-param-btn" onclick="addParamRow(6, [
+                                                {type: 'select', label: '贷款状态', options: ['', '无贷款', '有贷款']},
+                                                {type: 'select', label: '贷款对冲签约状态', options: ['', '已签约', '未签约']},
+                                                {type: 'input', label: '结果'}
+                                            ])">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                增加
+                                            </div>
+                                            <button class="save-param-btn" onclick="saveParamRows(6)">保存</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- 第8项 -->
+                        <tr id="row-7">
+                            <td class="expand-cell" onclick="toggleCard(7)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取方式为A，可提取比例为B,最大可提取额为X元</td>
+                        </tr>
+                        <tr class="card-row" id="cardRow-7">
+                            <td colspan="2" style="padding: 12px 0; background: #f9fbfd;">
+                                <div class="card-wrapper">
+                                    <div class="param-card" id="paramCard-7">
+                                        <div id="dynamicRows-7" class="empty-card">点击下方"增加"按钮添加业务执行标准</div>
+                                        <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                            <div class="add-param-btn" onclick="addParamRow(7, [
+                                              	{type: 'select', label: '提取方式', options: ['', '先提先得', '按份提取']},
+                                                {type: 'number', label: '可提取比例', placeholder: '请输入首付款比例'},
+                                                {type: 'input', label: '结果'}
+                                            ])">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                增加
+                                            </div>
+                                            <button class="save-param-btn" onclick="saveParamRows(7)">保存</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- 第9项 -->
+                        <tr id="row-8">
+                            <td class="expand-cell" onclick="toggleCard(8)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取方式为A，可提取比例为B,最大可提取额不得超过房屋的累计提取金额</td>
+                        </tr>
+                        <tr class="card-row" id="cardRow-8">
+                            <td colspan="2" style="padding: 12px 0; background: #f9fbfd;">
+                                <div class="card-wrapper">
+                                    <div class="param-card" id="paramCard-8">
+                                        <div id="dynamicRows-8" class="empty-card">点击下方"增加"按钮添加业务执行标准</div>
+                                        <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                            <div class="add-param-btn" onclick="addParamRow(8, [
+                                                {type: 'select', label: '提取方式', options: ['', '先提先得', '按份提取']},
+                                                {type: 'number', label: '可提取比例', placeholder: '请输入首付款比例'},
+                                                {type: 'input', label: '结果'}
+                                            ])">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                增加
+                                            </div>
+                                            <button class="save-param-btn" onclick="saveParamRows(8)">保存</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- 第10项 -->
+                        <tr id="row-9">
+                            <td class="expand-cell" onclick="toggleCard(9)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </td>
+                            <td>提取精度：个位、十位、百位、两位小数</td>
+                        </tr>
+                        <tr class="card-row" id="cardRow-9">
+                            <td colspan="2" style="padding: 12px 0; background: #f9fbfd;">
+                                <div class="card-wrapper">
+                                    <div class="param-card" id="paramCard-9">
+                                        <div id="dynamicRows-9" class="empty-card">点击下方"增加"按钮添加业务执行标准</div>
+                                        <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                            <div class="add-param-btn" onclick="addParamRow(9, [
+                                                {type: 'select', label: '提取精度', options: ['', '个位', '十位', '百位', '两位小数']}
+                                            ])">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                增加
+                                            </div>
+                                            <button class="save-param-btn" onclick="saveParamRows(9)">保存</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        
+
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 选择子页面模态框 -->
+<div id="selectionModal" class="modal-mask">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>清册选择</h2>
+            <div class="modal-close" onclick="closeSelectionModal()">×</div>
+        </div>
+        <div class="modal-body">
+            <table class="selection-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">选择</th>
+                        <th>业务办理标准</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取金额为缴存人实时账户余额</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取金额为缴存人上月缴存余额</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取金额为缴存人购房登记日期时账户余额</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>缴存人账户冻结金额不可进行提取</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取后账户余额需保留X元</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>缴存人公积金贷款情况为A，提取后账户余额需保留X月缴存额</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>缴存人公积金贷款状态为A，且贷款对冲签约状态为B，提取后账户余额需保留X元</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取方式为A，可提取比例为B,最大可提取额为X元</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取方式为A，可提取比例为B,最大可提取额不得超过房屋的累计提取金额</td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox"></td>
+                        <td>提取精度：个位、十位、百位、两位小数</td>
+                    </tr>
+                    
+                    
+                </tbody>
+            </table>
+            <button class="confirm-btn" onclick="closeSelectionModal()">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 算法设置弹窗 -->
+<div id="algorithmSettingModal" class="modal-mask">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>算法设置</h2>
+            <div class="modal-close" onclick="closeAlgorithmSettingModal()">×</div>
+        </div>
+        <div class="modal-body">
+            <div class="algorithm-setting-form">
+                <div class="form-group">
+                    <label>算法名称</label>
+                    <input type="text" id="settingAlgorithmName" readonly>
+                </div>
+                <div class="form-group">
+                    <label>算法描述</label>
+                    <input type="text" value="基于职工缴存情况、购房情况、房屋提取情况、公积金贷款情况等多维度因素，综合计算最高可提取额" readonly>
+                </div>
+                <div class="form-group">
+                    <label>内容分类</label>
+                    <select id="settingBizCategory">
+                        <option value="">请选择</option>
+                        <option value="buy_house">购买住房提取</option>
+                        <option value="build_repair">建造翻建大修提取</option>
+                        <option value="repay_loan">偿还贷款本息提取</option>
+                        <option value="elevator">既有住宅增设电梯提取</option>
+                        <option value="rent">租房提取</option>
+                        <option value="medical">大病医疗提取</option>
+                        <option value="retire">离休退休提取</option>
+                        <option value="disable">完全丧失劳动能力并终止劳动关系提取</option>
+                        <option value="abroad">出境国定居提取</option>
+                        <option value="flexible_part">灵活就业人员部分提取</option>
+                        <option value="flexible_close">灵活就业人员销户提取</option>
+                        <option value="low_income">享受城镇居民最低生活保障提取</option>
+                        <option value="half_year">封存满半年未再缴存提取</option>
+                        <option value="disaster">重大灾害提取</option>
+                        <option value="property_fee">缴纳物业管理费提取</option>
+                        <option value="repair_fund">缴纳房屋维修基金提取</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="algorithm-footer">
+            <button class="footer-btn cancel-algorithm-btn" onclick="closeAlgorithmSettingModal()">取消</button>
+            <button class="footer-btn save-algorithm-btn" onclick="saveAlgorithmSettings()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 初始化表格
+    document.addEventListener('DOMContentLoaded', function() {
+        // 同步算法名称到设置弹窗
+        const algoSelect = document.getElementById('bizAlgorithm');
+        const settingAlgoInput = document.getElementById('settingAlgorithmName');
+        settingAlgoInput.value = algoSelect.options[algoSelect.selectedIndex].text;
+
+        algoSelect.addEventListener('change', function() {
+            settingAlgoInput.value = this.options[this.selectedIndex].text;
+        });
+    });
+
+    // 切换卡片显示/隐藏
+    function toggleCard(index) {
+        const cardRow = document.getElementById(`cardRow-${index}`);
+        if (cardRow.style.display === 'table-row') {
+            cardRow.style.display = 'none';
+        } else {
+            cardRow.style.display = 'table-row';
+        }
+    }
+
+    // 动态添加参数行
+    function addParamRow(index, fields) {
+        const container = document.getElementById(`dynamicRows-${index}`);
+        if (!container) return;
+        
+        // 移除空状态提示
+        if (container.classList.contains('empty-card')) {
+            container.innerHTML = '';
+            container.classList.remove('empty-card');
+        }
+        
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'param-fields-container';
+        
+        // 添加字段
+        fields.forEach(field => {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'param-field';
+            
+            const label = document.createElement('label');
+            label.className = 'param-label';
+            label.textContent = field.label;
+            fieldDiv.appendChild(label);
+            
+            if (field.type === 'select') {
+                const select = document.createElement('select');
+                select.className = 'param-select';
+                
+                field.options.forEach(option => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = option === '' ? '' : option;
+                    optionEl.textContent = option || '请选择';
+                    select.appendChild(optionEl);
+                });
+                
+                fieldDiv.appendChild(select);
+            } else if (field.type === 'number') {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'param-input';
+                input.placeholder = field.placeholder || '';
+                if (field.step) input.step = field.step;
+                fieldDiv.appendChild(input);
+            } else {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = field.readonly ? 'param-input result-field' : 'param-input';
+                if (field.value) input.value = field.value;
+                if (field.readonly) input.readOnly = true;
+                fieldDiv.appendChild(input);
+            }
+            
+            rowDiv.appendChild(fieldDiv);
+        });
+        
+        // 添加删除按钮
+        const deleteBtn = document.createElement('div');
+        deleteBtn.className = 'delete-row-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = function() {
+            rowDiv.remove();
+            
+            // 如果没有行了，显示空状态
+            if (container.children.length === 0) {
+                container.innerHTML = '点击下方"增加"按钮添加业务执行标准';
+                container.classList.add('empty-card');
+            }
+        };
+        rowDiv.appendChild(deleteBtn);
+        
+        container.appendChild(rowDiv);
+    }
+
+    // 保存参数行
+    function saveParamRows(index) {
+        const container = document.getElementById(`dynamicRows-${index}`);
+        if (!container || container.classList.contains('empty-card')) {
+            alert('请先添加至少一行数据再保存！');
+            return;
+        }
+
+        const rows = [];
+        Array.from(container.children).forEach(row => {
+            const inputs = row.querySelectorAll('.param-input, .param-select');
+            const values = {};
+            inputs.forEach(input => {
+                const label = input.previousElementSibling?.textContent || '未知';
+                values[label] = input.value;
+            });
+            rows.push(values);
+        });
+
+        console.log(`第${index+1}项保存的数据:`, rows);
+        alert('保存成功！\n（数据已输出到控制台）');
+    }
+
+    // 打开/关闭选择子页面
+    function openSelectionModal() {
+        document.getElementById('selectionModal').style.display = 'flex';
+    }
+    function closeSelectionModal() {
+        document.getElementById('selectionModal').style.display = 'none';
+    }
+
+    // 打开/关闭算法设置弹窗
+    function openAlgorithmSettingModal() {
+        document.getElementById('algorithmSettingModal').style.display = 'flex';
+    }
+    function closeAlgorithmSettingModal() {
+        document.getElementById('algorithmSettingModal').style.display = 'none';
+    }
+
+    // 保存算法设置
+    function saveAlgorithmSettings() {
+        const category = document.getElementById('settingBizCategory').value;
+        console.log('保存的算法设置:', { category });
+        alert('算法设置已保存！');
+        closeAlgorithmSettingModal();
+    }
+
+    // 点击蒙层关闭
+    document.querySelectorAll('.modal-mask').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    });
+</script>
+</body>
+</html>
