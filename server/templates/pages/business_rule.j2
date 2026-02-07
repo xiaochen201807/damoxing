@@ -23,7 +23,7 @@
         "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
         "rule_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/import",
         "rule_export_api": "{{ GLOBAL_API_PREFIX }}/ywbz/export",
-        "ywsf_options": [
+        "algorithm_options": [
             { "label": "可提取金额", "value": "ktqje" },
             { "label": "可贷款金额", "value": "kdkje" },
             { "label": "可贷款年限", "value": "kdknx" },
@@ -50,7 +50,7 @@
                         "name": "ywsf",
                         "label": "关键数据算法",
                         "placeholder": "请选择",
-                        "source": "${ywsf_options}",
+                        "source": "${algorithm_options}",
                         "clearable": true
                     },
                     {
@@ -87,15 +87,25 @@
                                     }
                                 },
                                 "syncLocation": false,
+                                "id": "crud_selection_dialog",
+                                "mode": "table2",
                                 "primaryField": "id",
-                                "checkOnItem": "this.is_selected === 1",
                                 "selectable": true,
                                 "multiple": true,
-                                "keepItemSelectionOnPageChange": true,
-                                "defaultParams": {
-                                    "orderBy": "is_selected",
-                                    "orderDir": "desc"
+                                "onEvent": {
+                                    "fetchInited": {
+                                        "actions": [
+                                            {
+                                                "actionType": "select",
+                                                "componentId": "crud_selection_dialog",
+                                                "args": {
+                                                    "condition": "${checked === true}"
+                                                }
+                                            }
+                                        ]
+                                    }
                                 },
+                                "keepItemSelectionOnPageChange": true,
                                 "headerToolbar": [],
                                 "footerToolbar": [
                                     "switch-per-page", 
@@ -106,16 +116,6 @@
                                     }
                                 ],
                                 "columns": [
-                                    {
-                                        "name": "is_selected",
-                                        "label": "状态",
-                                        "type": "mapping",
-                                        "map": {
-                                            "1": "<span class='label label-success'>已选</span>",
-                                            "0": "<span class='label label-default'>未选</span>"
-                                        },
-                                        "width": 80
-                                    },
                                     {
                                         "name": "ywblbz",
                                         "label": "业务办理标准"
@@ -226,24 +226,8 @@
                                 "title": "节点详细参数设置",
                                 "size": "md",
                                 "body": {
-                                    "type": "form",
-                                    "api": "post:${rule_save_api}",
-                                    "body": [
-                                        { "type": "hidden", "name": "id" },
-                                        { "type": "static", "name": "ywbz", "label": "业务标准" },
-                                        { "type": "divider" },
-                                        {
-                                            "type": "combo",
-                                            "name": "attributes",
-                                            "label": "规则参数列表",
-                                            "multiple": true,
-                                            "multiLine": true,
-                                            "items": [
-                                                { "type": "input-text", "name": "sxmc", "label": "参数名", "required": true },
-                                                { "type": "input-text", "name": "sxz", "label": "值", "required": true }
-                                            ]
-                                        }
-                                    ]
+                                    "type": "service",
+                                    "schemaApi": "get:{{ GLOBAL_API_PREFIX }}/ywbz/config_form?id=${id}&mbid=${mbid}"
                                 }
                             }
                         },
@@ -260,7 +244,7 @@
                                     "body": [
                                         { "type": "hidden", "name": "id" },
                                         { "type": "input-text", "name": "ywbz", "label": "业务标准" },
-                                        { "type": "select", "name": "ywsf", "label": "关键数据算法", "options": "${ywsf_options}" },
+                                        { "type": "select", "name": "ywsf", "label": "关键数据算法", "source": "${algorithm_options}" },
                                         {
                                             "type": "select",
                                             "name": "ywnrfl",
