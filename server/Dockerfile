@@ -2,7 +2,7 @@
 # 后端 Dockerfile
 # ============================================
 
-FROM node:18-alpine
+FROM node:20-alpine
 
 # 安装 SQLite (如果需要 CLI 工具)
 RUN apk add --no-cache sqlite

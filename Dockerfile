@@ -3,7 +3,7 @@
 # ============================================
 
 # 阶段 1: 构建前端
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/client
 
@@ -28,7 +28,7 @@ RUN npm run build
 # ============================================
 # 阶段 2: 生产环境 (Nginx + Node.js)
 # ============================================
-FROM node:18-alpine
+FROM node:20-alpine
 
 # 安装 Nginx、SQLite、cronie 和 gettext (envsubst)
 RUN apk add --no-cache nginx sqlite supervisor dcron gettext
