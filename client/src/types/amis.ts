@@ -3,16 +3,10 @@
  * 基于 AMIS 官方文档的常用组件类型
  */
 
+import type { Schema } from 'amis-core';
+
 // AMIS 基础类型
-export type AmisSchema =
-    | PageSchema
-    | GridSchema
-    | CardSchema
-    | ChartSchema
-    | TplSchema
-    | FormSchema
-    | TableSchema
-    | any; // 兜底类型，AMIS 组件类型众多
+export type AmisSchema = Schema;
 
 // 页面 Schema
 export interface PageSchema {
@@ -23,7 +17,7 @@ export interface PageSchema {
     aside?: AmisSchema | AmisSchema[];
     toolbar?: AmisSchema | AmisSchema[];
     initApi?: string | ApiConfig;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 网格布局 Schema
@@ -33,10 +27,10 @@ export interface GridSchema {
         body?: AmisSchema | AmisSchema[];
         md?: number;
         sm?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     }>;
     gap?: string | number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 卡片 Schema
@@ -45,27 +39,27 @@ export interface CardSchema {
     header?: {
         title?: string;
         subTitle?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     body?: AmisSchema | AmisSchema[];
     actions?: AmisSchema[];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 图表 Schema
 export interface ChartSchema {
     type: 'chart';
-    config?: any; // ECharts 配置
+    config?: unknown;
     api?: string | ApiConfig;
     height?: number | string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 模板 Schema
 export interface TplSchema {
     type: 'tpl';
     tpl: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 表单 Schema
@@ -75,7 +69,7 @@ export interface FormSchema {
     body?: AmisSchema[];
     api?: string | ApiConfig;
     submitText?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // 表格 Schema
@@ -85,25 +79,25 @@ export interface TableSchema {
         name: string;
         label: string;
         type?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     }>;
     api?: string | ApiConfig;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // API 配置
 export interface ApiConfig {
     url: string;
     method?: 'get' | 'post' | 'put' | 'delete';
-    data?: any;
+    data?: unknown;
     headers?: Record<string, string>;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // AMIS 渲染器 Props
 export interface AmisRendererProps {
     schema: AmisSchema;
-    data?: any;
+    data?: unknown;
     locale?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }

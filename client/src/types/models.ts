@@ -15,18 +15,20 @@ export interface RouteParams {
     pageId?: string;
 }
 
+import type { AxiosRequestConfig } from 'axios';
+
 // Fetcher 配置
 export interface FetcherConfig {
     url: string;
     method?: 'get' | 'post' | 'put' | 'delete' | 'patch';
-    data?: any;
-    responseType?: string;
-    config?: any;
+    data?: unknown;
+    responseType?: AxiosRequestConfig['responseType'];
+    config?: AxiosRequestConfig & { cancelExecutor?: (cancel: (message?: string) => void) => void };
     headers?: Record<string, string>;
 }
 
 // Fetcher 响应
-export interface FetcherResponse<T = any> {
+export interface FetcherResponse<T = unknown> {
     data: T;
     status?: number;
     msg?: string;

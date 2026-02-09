@@ -39,13 +39,12 @@ apiClient.interceptors.request.use(
 
 // 响应拦截器
 apiClient.interceptors.response.use(
-    (response: AxiosResponse<ApiResponse>) => {
+    (response: AxiosResponse<ApiResponse<unknown>>) => {
         if (env.DEV) {
             console.log('📥 API Response:', response.config.url, response.data);
         }
 
-        // 直接返回 data，简化调用
-        return response.data as any;
+        return response;
     },
     (error: AxiosError<ApiResponse>) => {
         console.error('❌ Response Error:', error);

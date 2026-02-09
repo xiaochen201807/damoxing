@@ -11,27 +11,35 @@ export const menuApi = {
      * 获取菜单列表
      */
     getAll: (params?: MenuQueryParams): Promise<ApiResponse<MenuItem[]>> => {
-        return apiClient.get(API_ENDPOINTS.MENU, { params });
+        return apiClient
+            .get<ApiResponse<MenuItem[]>>(API_ENDPOINTS.MENU, { params })
+            .then(res => res.data);
     },
 
     /**
      * 创建菜单
      */
     create: (data: CreateMenuParams): Promise<ApiResponse<MenuItem>> => {
-        return apiClient.post(API_ENDPOINTS.MENU, data);
+        return apiClient
+            .post<ApiResponse<MenuItem>>(API_ENDPOINTS.MENU, data)
+            .then(res => res.data);
     },
 
     /**
      * 更新菜单
      */
     update: (id: number, data: Partial<CreateMenuParams>): Promise<ApiResponse> => {
-        return apiClient.put(`${API_ENDPOINTS.MENU}/${id}`, data);
+        return apiClient
+            .put<ApiResponse>(`${API_ENDPOINTS.MENU}/${id}`, data)
+            .then(res => res.data);
     },
 
     /**
      * 删除菜单
      */
     delete: (id: number): Promise<ApiResponse> => {
-        return apiClient.delete(`${API_ENDPOINTS.MENU}/${id}`);
+        return apiClient
+            .delete<ApiResponse>(`${API_ENDPOINTS.MENU}/${id}`)
+            .then(res => res.data);
     },
 };

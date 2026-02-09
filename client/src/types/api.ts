@@ -3,7 +3,7 @@
  */
 
 // 通用 API 响应格式
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
     status: number;
     msg: string;
     data?: T;
@@ -62,5 +62,5 @@ export interface AiGenerateRequest {
 export interface AiGenerateResponse {
     status: number;
     msg: string;
-    data: any; // AMIS Schema，类型复杂，暂时使用 any
+    data: unknown;
 }

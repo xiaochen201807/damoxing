@@ -7,6 +7,11 @@ import type { MenuItem, ApiResponse } from '../types/api';
 import MenuList from '../components/Menu/MenuList';
 import './MainLayout.css';
 
+interface RouteInfo {
+  route_name?: string;
+  layout_type?: string;
+}
+
 const MainLayout: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [routeTitle, setRouteTitle] = useState('管理系统'); // 默认标题
@@ -23,7 +28,7 @@ const MainLayout: React.FC = () => {
     // 同时获取路由信息和菜单数据
     Promise.all([
       // 获取路由信息（包含标题）
-      fetcher<ApiResponse<any>>({
+      fetcher<ApiResponse<RouteInfo>>({
         url: API_ENDPOINTS.ROUTES_BY_KEY(routeKey),
         method: 'get'
       }),

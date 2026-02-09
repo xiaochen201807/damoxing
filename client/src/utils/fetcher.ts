@@ -1,5 +1,6 @@
 // client/src/utils/fetcher.ts
 import axios, { AxiosError } from 'axios';
+import type { AxiosRequestConfig, Method } from 'axios';
 import type { FetcherConfig, FetcherResponse } from '../types/models';
 
 // 后端服务地址（从环境变量读取，默认为空字符串依赖 Vite proxy）
@@ -15,7 +16,7 @@ const API_PREFIX = window.__APP_CONFIG__?.API_ROUTE_PREFIX || import.meta.env.VI
  * @param data 请求数据
  * @param config 额外配置
  */
-export const fetcher = <T = any>({
+export const fetcher = <T = unknown>({
   url,
   method,
   data,
@@ -24,20 +25,30 @@ export const fetcher = <T = any>({
   headers
 }: FetcherConfig): Promise<FetcherResponse<T>> => {
 
-  config = config || {};
-  config.withCredentials = true;
-  responseType && (config.responseType = responseType);
+  const baseConfig = config ?? {};
+  const { cancelExecutor, ...restConfig } = baseConfig;
+  const requestConfig: AxiosRequestConfig = {
+    ...restConfig,
+    withCredentials: true,
+  };
 
-  if (config.cancelExecutor) {
-    config.cancelToken = new axios.CancelToken(config.cancelExecutor);
+  if (responseType) {
+    requestConfig.responseType = responseType;
   }
 
-  config.headers = headers || {};
+  if (cancelExecutor) {
+    requestConfig.cancelToken = new axios.CancelToken(cancelExecutor);
+  }
+
+  requestConfig.headers = {
+    ...(headers ?? {}),
+    ...((requestConfig.headers ?? {}) as Record<string, string>),
+  };
 
   // 自动携带 JWT Token（所有请求都携带）
   const token = localStorage.getItem('auth_token');
   if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+    (requestConfig.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
   // 第三方网关信息透传（所有请求都携带）
@@ -51,27 +62,27 @@ export const fetcher = <T = any>({
       if (info.login_token) {
         const parts = info.login_token.split(':');
         if (parts.length > 1) {
-          config.headers['channel'] = parts[1];
+          (requestConfig.headers as Record<string, string>)['channel'] = parts[1];
         }
-        config.headers['login-token'] = info.login_token;
+        (requestConfig.headers as Record<string, string>)['login-token'] = info.login_token;
       }
 
       // 机构编号
       if (info.jgbh) {
-        config.headers['jgbh'] = info.jgbh;
+        (requestConfig.headers as Record<string, string>)['jgbh'] = info.jgbh;
       }
 
       // 组织标识
       if (info.zzbs) {
-        config.headers['zzbs'] = info.zzbs;
+        (requestConfig.headers as Record<string, string>)['zzbs'] = info.zzbs;
       }
 
       // 组织机构代码证
       if (info.zzjgdmz) {
-        config.headers['zzjgdmz'] = info.zzjgdmz;
+        (requestConfig.headers as Record<string, string>)['zzjgdmz'] = info.zzjgdmz;
       }
-    } catch (e) {
-      console.warn('Failed to parse gateway_info:', e);
+    } catch (_e) {
+      console.warn('Failed to parse gateway_info:', _e);
     }
   }
 
@@ -99,10 +110,10 @@ export const fetcher = <T = any>({
   // GET 和 DELETE 不应该有 data，应该放在 params 中（如果有的话）
   const requestMethod = method?.toLowerCase() || 'get'; // 默认为 GET
 
-  const axiosConfig: any = {
-    method: requestMethod,
+  const axiosConfig: AxiosRequestConfig = {
+    method: requestMethod as Method,
     url: requestUrl,
-    ...config
+    ...requestConfig
   };
 
   // 只有 POST、PUT、PATCH 才在 body 中发送 data
@@ -113,7 +124,7 @@ export const fetcher = <T = any>({
       try {
         const info = JSON.parse(gatewayInfo);
         axiosConfig.data = { ...info, ...axiosConfig.data };
-      } catch (e) { /* ignore */ }
+      } catch (_e) { /* ignore */ }
     }
   } else {
     // GET、DELETE 等方法如果有数据，放到 params（查询字符串）
@@ -123,7 +134,7 @@ export const fetcher = <T = any>({
       try {
         const info = JSON.parse(gatewayInfo);
         axiosConfig.params = { ...info, ...axiosConfig.params };
-      } catch (e) { /* ignore */ }
+      } catch (_e) { /* ignore */ }
     }
   }
 
@@ -181,16 +192,18 @@ export const fetcher = <T = any>({
     }
 
     if (error.response) {
+      type ErrorBody = { msg?: string } & Record<string, unknown>;
+      const errorBody = error.response.data as ErrorBody;
       return {
         status: error.response.status,
-        msg: (error.response.data as any)?.msg || '网络请求错误',
+        msg: errorBody?.msg || '网络请求错误',
         data: error.response.data as T
       } as FetcherResponse<T>;
     }
     return {
       status: 500,
       msg: error.message,
-      data: null as T
+      data: null as unknown as T
     } as FetcherResponse<T>;
   });
 };

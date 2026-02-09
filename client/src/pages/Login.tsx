@@ -3,7 +3,7 @@
  * 用户身份验证入口
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getGatewayParamsWithFallback, saveUrlParamsToSession, getUrlParam } from '../utils/urlParams';
@@ -29,6 +29,70 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [ssoMode, setSsoMode] = useState(() => checkInitialSsoMode()); // 有网关参数时初始就进入 SSO 模式
     const navigate = useNavigate();
+
+    type GatewayParams = ReturnType<typeof getGatewayParamsWithFallback>;
+
+    /**
+     * 获取登录后的跳转路径
+     * - 有网关参数（cheque + tyLoginToken）时：返回原始路径或默认路径
+     * - 无网关参数时：返回默认路径
+     */
+    const getRedirectPath = (hasGatewayParams: boolean): string => {
+        if (hasGatewayParams) {
+            // 网关登录：优先返回原始路径
+            const returnUrl = getUrlParam('returnUrl');
+            if (returnUrl && returnUrl !== '/' && returnUrl !== '/login') {
+                return returnUrl;
+            }
+        }
+        // 默认跳转到系统配置页面
+        return DEFAULT_REDIRECT_PATH;
+    };
+
+    // SSO 自动登录
+    const performSsoLogin = useCallback(async (gatewayParams: GatewayParams) => {
+        setLoading(true);
+        setError('正在通过网关验证登录...');
+
+        try {
+            const response = await axios.post(`${API_PREFIX}/auth/login`, {
+                // SSO 模式下不需要 username/password
+                // 如果 ticket 是 "nothing" 则使用 cheque 参数
+                ticket: gatewayParams.ticket === 'nothing' ? gatewayParams.cheque : gatewayParams.ticket,
+                tyLoginToken: gatewayParams.tyLoginToken,
+                qycode: gatewayParams.qycode
+            });
+
+            if (response.data.status === 0) {
+                // 存储 token 和用户信息
+                localStorage.setItem('auth_token', response.data.data.token);
+                localStorage.setItem('user_info', JSON.stringify(response.data.data.user));
+
+                // 存储网关信息（包含 qycode）
+                if (response.data.data.gateway_info) {
+                    localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
+                }
+
+                // 网关登录成功，跳转到原始路径或默认路径
+                const redirectPath = getRedirectPath(true);
+                console.log('[SSO] 登录成功，跳转到:', redirectPath);
+                navigate(redirectPath);
+            } else {
+                setError(response.data.msg || 'SSO 登录失败');
+                setSsoMode(false); // 失败后显示表单
+            }
+        } catch (err: unknown) {
+            console.error('[SSO] 自动登录失败:', err);
+            if (axios.isAxiosError(err)) {
+                setError((err.response?.data as { msg?: string } | undefined)?.msg || 'SSO 登录失败，请联系管理员');
+            } else {
+                setError(err instanceof Error ? err.message : '网络错误，请稍后重试');
+            }
+            setSsoMode(false); // 失败后显示表单
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate]);
 
     // 组件加载时保存 URL 参数到 sessionStorage，并尝试 SSO 自动登录
     useEffect(() => {
@@ -64,69 +128,7 @@ const Login: React.FC = () => {
             }, 100);
             return () => clearTimeout(timer);
         }
-    }, []);
-
-    /**
-     * 获取登录后的跳转路径
-     * - 有网关参数（cheque + tyLoginToken）时：返回原始路径或默认路径
-     * - 无网关参数时：返回默认路径
-     */
-    const getRedirectPath = (hasGatewayParams: boolean): string => {
-        if (hasGatewayParams) {
-            // 网关登录：优先返回原始路径
-            const returnUrl = getUrlParam('returnUrl');
-            if (returnUrl && returnUrl !== '/' && returnUrl !== '/login') {
-                return returnUrl;
-            }
-        }
-        // 默认跳转到系统配置页面
-        return DEFAULT_REDIRECT_PATH;
-    };
-
-    // SSO 自动登录
-    const performSsoLogin = async (gatewayParams: any) => {
-        setLoading(true);
-        setError('正在通过网关验证登录...');
-
-        try {
-            const response = await axios.post(`${API_PREFIX}/auth/login`, {
-                // SSO 模式下不需要 username/password
-                // 如果 ticket 是 "nothing" 则使用 cheque 参数
-                ticket: gatewayParams.ticket === 'nothing' ? gatewayParams.cheque : gatewayParams.ticket,
-                tyLoginToken: gatewayParams.tyLoginToken,
-                qycode: gatewayParams.qycode
-            });
-
-            if (response.data.status === 0) {
-                // 存储 token 和用户信息
-                localStorage.setItem('auth_token', response.data.data.token);
-                localStorage.setItem('user_info', JSON.stringify(response.data.data.user));
-
-                // 存储网关信息（包含 qycode）
-                if (response.data.data.gateway_info) {
-                    localStorage.setItem('gateway_info', JSON.stringify(response.data.data.gateway_info));
-                }
-
-                // 网关登录成功，跳转到原始路径或默认路径
-                const redirectPath = getRedirectPath(true);
-                console.log('[SSO] 登录成功，跳转到:', redirectPath);
-                navigate(redirectPath);
-            } else {
-                setError(response.data.msg || 'SSO 登录失败');
-                setSsoMode(false); // 失败后显示表单
-            }
-        } catch (err: any) {
-            console.error('[SSO] 自动登录失败:', err);
-            if (err.response) {
-                setError(err.response.data?.msg || 'SSO 登录失败，请联系管理员');
-            } else {
-                setError('网络错误，请稍后重试');
-            }
-            setSsoMode(false); // 失败后显示表单
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [performSsoLogin]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -165,11 +167,11 @@ const Login: React.FC = () => {
             } else {
                 setError(response.data.msg || '登录失败');
             }
-        } catch (err: any) {
-            if (err.response) {
-                setError(err.response.data?.msg || '登录失败，请检查用户名和密码');
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                setError((err.response?.data as { msg?: string } | undefined)?.msg || '登录失败，请检查用户名和密码');
             } else {
-                setError('网络错误，请稍后重试');
+                setError(err instanceof Error ? err.message : '网络错误，请稍后重试');
             }
         } finally {
             setLoading(false);

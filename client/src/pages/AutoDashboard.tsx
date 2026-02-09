@@ -24,7 +24,7 @@ const AutoDashboard: React.FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!pageId) return;
+    if (!pageId || !routeKey) return;
 
     setLoading(true);
     setError('');
@@ -80,7 +80,7 @@ const AutoDashboard: React.FC = () => {
         setLoading(false);
       });
 
-  }, [pageId]);
+  }, [pageId, routeKey]);
 
   if (loading) {
     return (

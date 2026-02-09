@@ -3,7 +3,7 @@
  * 获取菜单数据
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { menuService } from '@/services';
 import type { MenuItem } from '@/types';
 
@@ -19,7 +19,7 @@ export function useMenu(routeKey: string): UseMenuResult {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetchMenus = async (forceRefresh = false) => {
+    const fetchMenus = useCallback(async (forceRefresh = false) => {
         if (!routeKey) {
             setMenus([]);
             setLoading(false);
@@ -38,11 +38,11 @@ export function useMenu(routeKey: string): UseMenuResult {
         } finally {
             setLoading(false);
         }
-    };
+    }, [routeKey]);
 
     useEffect(() => {
         fetchMenus();
-    }, [routeKey]);
+    }, [fetchMenus]);
 
     const refresh = async () => {
         await fetchMenus(true);

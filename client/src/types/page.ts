@@ -20,8 +20,8 @@ export interface PageConfig {
 export interface PageSchema {
     type: string;
     title?: string;
-    body?: any[];
-    [key: string]: any;
+    body?: unknown[];
+    [key: string]: unknown;
 }
 
 // 模板定义

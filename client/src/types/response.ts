@@ -3,7 +3,7 @@
  */
 
 // 标准 API 响应
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
     status: number;
     msg: string;
     data?: T;
@@ -11,7 +11,7 @@ export interface ApiResponse<T = any> {
 }
 
 // 分页响应
-export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
     total?: number;
     page?: number;
     perPage?: number;
@@ -21,6 +21,6 @@ export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
 export interface RequestConfig {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
-    params?: Record<string, any>;
-    data?: any;
+    params?: Record<string, unknown>;
+    data?: unknown;
 }
