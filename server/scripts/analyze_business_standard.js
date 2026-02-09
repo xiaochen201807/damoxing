@@ -14,7 +14,7 @@ const API_PARAMS = {
         type: 'string',
         title: '全量导入接口 URL',
         description: '全量导入业务标准 (CSV/SQL文件上传)',
-        default: '/gjjrgzn/api/ywbzk/import',
+        default: '/api/ywbzk/import',
         group: '🔗 导入导出配置',
         groupOrder: 3,
         order: 1
@@ -24,7 +24,7 @@ const API_PARAMS = {
         type: 'string',
         title: '全量导出接口 URL',
         description: '全量导出业务标准 (CSV文件下载)',
-        default: '/gjjrgzn/api/ywbzk/export',
+        default: '/api/ywbzk/export',
         group: '🔗 导入导出配置',
         groupOrder: 3,
         order: 2
@@ -75,7 +75,7 @@ const API_PARAMS = {
         type: 'string',
         title: '业务内容分类接口 URL',
         description: '获取业务内容分类的 API 地址',
-        default: '/business-content-classes',
+        default: '/api/tools/business-content-classes',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 5,
@@ -96,7 +96,7 @@ const API_PARAMS = {
         type: 'string',
         title: '业务标准值接口 URL',
         description: '获取业务标准值的 API 地址',
-        default: '/business-standard-values',
+        default: '/api/tools/business-standard-values',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 7
@@ -116,7 +116,7 @@ const API_PARAMS = {
         type: 'string',
         title: '业务办理标准对象接口 URL',
         description: '获取业务办理标准对象列表的 API 地址',
-        default: '/service-objects',
+        default: '/api/tools/service-objects',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 9
@@ -136,7 +136,7 @@ const API_PARAMS = {
         type: 'string',
         title: '业务办理标准属性接口 URL',
         description: '获取业务办理标准属性列表的 API 地址',
-        default: '/business-standard-attributes',
+        default: '/api/tools/business-standard-attributes',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 11
