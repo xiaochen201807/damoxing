@@ -275,7 +275,15 @@
                                 "size": "md",
                                 "body": {
                                     "type": "service",
-                                    "schemaApi": "get:{{ GLOBAL_API_PREFIX }}/ywbz/config_form?id=${id}&mbid=${mbid}"
+                                    "schemaApi": {
+                                        "method": "post",
+                                        "url": "{{ GLOBAL_API_PREFIX }}/ywbz/config_form",
+                                        "dataType": "json",
+                                        "data": {
+                                            "id": "${id}",
+                                            "mbid": "${mbid}"
+                                        }
+                                    }
                                 }
                             }
                         },
