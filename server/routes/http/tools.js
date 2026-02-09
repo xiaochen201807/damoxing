@@ -58,7 +58,7 @@ router.post('/service-objects', (req, res) => {
  * 从 ywbzksx 表中提取唯一的标准属性 (ywblbzsx)
  */
 router.post('/business-standard-attributes', (req, res) => {
-    const sql = "SELECT DISTINCT ywblbzsx as value, ywblbzsx as label FROM gjj_ywbzksx WHERE ywblbzsx IS NOT NULL";
+    const sql = "SELECT DISTINCT ywblbzsx as value, ywblbzsx as label, sxbm FROM gjj_ywbzksx WHERE ywblbzsx IS NOT NULL";
     db.all(sql, [], (err, rows) => {
         if (err) {
             logger.error(`[Tools API] Failed to fetch business standard attributes: ${err.message}`);

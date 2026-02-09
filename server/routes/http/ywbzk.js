@@ -145,10 +145,10 @@ router.post('/save', async (req, res) => {
         if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
             for (const sx of ywblbzsxz) {
                 const sxInsertSql = `
-                    INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, ywblbzsx, sxly, ywblbzyg)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 `;
-                await runQuery(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
+                await runQuery(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
             }
         }
 

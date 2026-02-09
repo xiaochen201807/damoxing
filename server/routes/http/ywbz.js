@@ -157,6 +157,14 @@ router.post('/config_form', (req, res) => {
             return res.json({ status: 1, msg: "获取参数定义失败" });
         }
 
+        // 构建映射表：属性名称 -> 属性编码
+        const nameToCodeMap = {};
+        schemaRows.forEach(row => {
+            if (row.sxbm && row.ywblbzsx) {
+                nameToCodeMap[row.ywblbzsx] = row.sxbm;
+            }
+        });
+
         db.all(sqlValues, [id], (err, valueRows) => {
             if (err) {
                 logger.error(`Error fetching values: ${err.message}`);
@@ -175,7 +183,11 @@ router.post('/config_form', (req, res) => {
                     const k = row[`k${i}`];
                     const v = row[`v${i}`];
                     if (k) {
-                        item[k] = v;
+                        // 尝试将中文名称转换为编码，以匹配表单的 name
+                        // 如果 k 已经在 map 中（说明是中文名称且有对应的编码），使用编码
+                        // 否则（可能是已经存为编码，或者没有对应关系），保持原样
+                        const key = nameToCodeMap[k] || k;
+                        item[key] = v;
                     }
                 }
                 return item;
@@ -185,7 +197,7 @@ router.post('/config_form', (req, res) => {
             const comboItems = schemaRows.map(field => {
                 return {
                     type: "input-text",
-                    name: field.ywblbzsx,
+                    name: field.sxbm || field.ywblbzsx, // 优先使用属性编码作为 key
                     label: field.ywblbzsx,
                     required: true
                 };

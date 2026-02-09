@@ -33,6 +33,7 @@ CREATE TABLE gjj_ywbzksx (
     mbid INTEGER NOT NULL, -- 关联业务标准库的ID
     ywblbzdx VARCHAR(100), -- 业务办理标准对象
     fwdxbq VARCHAR(100), -- 服务对象标签 (Label)
+    sxbm VARCHAR(50), -- 属性编码
     ywblbzsx VARCHAR(100), -- 业务办理标准属性 (如:贷款状态)
     sxly VARCHAR(20), -- 属性来源 (page/sql)
     ywblbzyg TEXT, -- 业务办理标准语句 (当来源为sql时)
@@ -126,6 +127,7 @@ INSERT INTO
         ywblbzdx,
         fwdxbq,
         ywblbzsx,
+        sxbm,
         sxly
     )
 VALUES (
@@ -133,6 +135,7 @@ VALUES (
         'depositor',
         '缴存人',
         '职工类型',
+        'zglx',
         'page'
     ),
     (
@@ -140,6 +143,7 @@ VALUES (
         'depositor',
         '缴存人',
         '最高可贷额度',
+        'zgkded',
         'page'
     ),
     (
@@ -147,6 +151,7 @@ VALUES (
         'depositor',
         '缴存人',
         '职工类型',
+        'zglx',
         'page'
     ),
     (
@@ -154,6 +159,7 @@ VALUES (
         'depositor',
         '缴存人',
         '子女数量',
+        'znsl',
         'page'
     ),
     (
@@ -161,6 +167,7 @@ VALUES (
         'depositor',
         '缴存人',
         '最高可贷额度',
+        'zgkded',
         'page'
     );
 
