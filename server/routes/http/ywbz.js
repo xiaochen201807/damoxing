@@ -54,11 +54,11 @@ router.post('/list', async (req, res) => {
     }
 
     sql += " ORDER BY t1.yxj DESC, t1.id DESC";
-    sql = SqlHelper.paginate(sql, perPage, offset);
+    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
         const countRow = await db.get(countSql, params);
-        const rows = await db.all(sql, params);
+        const rows = await db.all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -371,7 +371,7 @@ router.post('/save_params', async (req, res) => {
 /**
  * 3. 获取详情 (GET /:id) - 兼容 LoanBusinessStandard.json
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -633,6 +633,9 @@ router.get('/options/categories', async (req, res) => {
 // 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
+    if (req.user?.role !== 'admin') {
+        return res.status(403).json({ status: 403, msg: "无导出权限" });
+    }
     try {
         // 1. 获取所有数据
         const rules = await db.all("SELECT * FROM gjj_ywbz");

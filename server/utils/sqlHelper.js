@@ -3,6 +3,11 @@ const isOracle = process.env.ORACLE_ENABLE === 'true';
 const SqlHelper = {
     isOracle,
 
+    toInt(value, fallback) {
+        const n = Number.parseInt(String(value), 10);
+        return Number.isFinite(n) ? n : fallback;
+    },
+
     /**
      * 生成分页 SQL
      * @param {string} sql 原始 SQL (不包含 LIMIT/OFFSET)
@@ -10,11 +15,30 @@ const SqlHelper = {
      * @param {number} offset 偏移量
      */
     paginate(sql, limit, offset) {
+        const safeLimit = Math.max(1, this.toInt(limit, 10));
+        const safeOffset = Math.max(0, this.toInt(offset, 0));
         if (this.isOracle) {
             // Oracle 12c+ syntax
-            return `${sql} OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`;
+            return `${sql} OFFSET ${safeOffset} ROWS FETCH NEXT ${safeLimit} ROWS ONLY`;
         }
-        return `${sql} LIMIT ${limit} OFFSET ${offset}`;
+        return `${sql} LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+    },
+
+    paginateQuery(sql, params, limit, offset) {
+        const safeLimit = Math.max(1, this.toInt(limit, 10));
+        const safeOffset = Math.max(0, this.toInt(offset, 0));
+
+        const nextParams = Array.isArray(params) ? [...params] : [];
+        if (this.isOracle) {
+            return {
+                sql: `${sql} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`,
+                params: [...nextParams, safeOffset, safeLimit],
+            };
+        }
+        return {
+            sql: `${sql} LIMIT ? OFFSET ?`,
+            params: [...nextParams, safeLimit, safeOffset],
+        };
     },
 
     /**

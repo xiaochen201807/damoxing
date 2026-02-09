@@ -64,6 +64,7 @@ describe('事务回滚：子表失败不残留主表', () => {
 
     process.env.DB_PATH = dbPath;
     process.env.SQLITE_READONLY = 'false';
+    process.env.ORACLE_ENABLE = 'false';
 
     jest.resetModules();
     const db = require('../db');
@@ -121,6 +122,7 @@ describe('事务回滚：子表失败不残留主表', () => {
 
     process.env.DB_PATH = dbPath;
     process.env.SQLITE_READONLY = 'false';
+    process.env.ORACLE_ENABLE = 'false';
 
     jest.resetModules();
     const ywbzRouter = require('../routes/http/ywbz');
@@ -148,4 +150,3 @@ describe('事务回滚：子表失败不残留主表', () => {
     expect(row.c).toBe(0);
   });
 });
-
