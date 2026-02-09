@@ -413,66 +413,64 @@ router.post('/save', async (req, res) => {
     const attributes = rule_params;
 
     try {
-        let ywid = id;
-        if (id) {
-            // 更新
-            const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=?`;
-            
-            await db.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
-
-            // 清理旧属性
-            await db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
-        } else {
-            // 新增
-            if (db.isOracle) {
-                // Oracle Insert with returning ID workaround (Select Max)
-                await db.run(`INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`, 
-                    [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
-                
-                const lastRow = await db.get("SELECT MAX(id) as id FROM gjj_ywbz");
-                ywid = lastRow.id;
+        const { id: savedId } = await db.transaction(async (tx) => {
+            let ywid = id;
+            if (id) {
+                const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=?`;
+                await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
+                await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
-                const result = await db.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
-                ywid = result.lastID;
-            }
-        }
-
-        // 插入新属性
-        const attrs = attributes;
-        if (attrs && typeof attrs === 'object') {
-            const columns = ['ywid', 'row_index', 'result'];
-            for (let i = 1; i <= 10; i++) {
-                columns.push(`k${i}`);
-                columns.push(`v${i}`);
-            }
-            const placeholders = columns.map(() => '?').join(',');
-            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
-
-            const insertRow = async (rowIndex, rowData) => {
-                const params = [ywid, rowIndex, rowData.result || ''];
-                let kIndex = 1;
-                Object.keys(rowData).forEach(key => {
-                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                        params.push(key);
-                        params.push(rowData[key]);
-                        kIndex++;
-                    }
-                });
-                while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
-                await db.run(insSql, params);
-            };
-
-            if (Array.isArray(attrs)) {
-                for (let i = 0; i < attrs.length; i++) {
-                    await insertRow(i, attrs[i]);
+                if (db.isOracle) {
+                    await tx.run(
+                        `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`,
+                        [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]
+                    );
+                    const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
+                    ywid = lastRow?.id ?? lastRow?.ID;
+                } else {
+                    const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
+                    const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
+                    ywid = result.lastID;
                 }
-            } else {
-                await insertRow(0, attrs);
             }
-        }
 
-        res.json({ status: 0, msg: "保存成功", data: { id: ywid } });
+            const attrs = attributes;
+            if (attrs && typeof attrs === 'object') {
+                const columns = ['ywid', 'row_index', 'result'];
+                for (let i = 1; i <= 10; i++) {
+                    columns.push(`k${i}`);
+                    columns.push(`v${i}`);
+                }
+                const placeholders = columns.map(() => '?').join(',');
+                const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+
+                const insertRow = async (rowIndex, rowData) => {
+                    const params = [ywid, rowIndex, rowData.result || ''];
+                    let kIndex = 1;
+                    Object.keys(rowData).forEach(key => {
+                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                            params.push(key);
+                            params.push(rowData[key]);
+                            kIndex++;
+                        }
+                    });
+                    while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+                    await tx.run(insSql, params);
+                };
+
+                if (Array.isArray(attrs)) {
+                    for (let i = 0; i < attrs.length; i++) {
+                        await insertRow(i, attrs[i]);
+                    }
+                } else {
+                    await insertRow(0, attrs);
+                }
+            }
+
+            return { id: ywid };
+        });
+
+        res.json({ status: 0, msg: "保存成功", data: { id: savedId } });
 
     } catch (err) {
         logger.error(`Failed to save ywbz: ${err.message}`);
@@ -488,38 +486,38 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { mbid, gzmc, ywsf, gzljsm, yxj, sfqy, rule_params } = req.body;
 
     try {
-        const updateSql = `
-            UPDATE gjj_ywbz SET 
-            mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
-            WHERE id = ?
-        `;
-        await db.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
+        await db.transaction(async (tx) => {
+            const updateSql = `
+                UPDATE gjj_ywbz SET 
+                mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
+                WHERE id = ?
+            `;
+            await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
 
-        await db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
 
-        if (rule_params && typeof rule_params === 'object') {
-            // 宽表插入逻辑
-            const columns = ['ywid', 'row_index', 'result'];
-            for (let i = 1; i <= 10; i++) {
-                columns.push(`k${i}`);
-                columns.push(`v${i}`);
-            }
-            const placeholders = columns.map(() => '?').join(',');
-            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
-
-            // 单对象插入一行
-            const params = [id, 0, rule_params.result || ''];
-            let kIndex = 1;
-            Object.keys(rule_params).forEach(key => {
-                if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                    params.push(key);
-                    params.push(rule_params[key]);
-                    kIndex++;
+            if (rule_params && typeof rule_params === 'object') {
+                const columns = ['ywid', 'row_index', 'result'];
+                for (let i = 1; i <= 10; i++) {
+                    columns.push(`k${i}`);
+                    columns.push(`v${i}`);
                 }
-            });
-            while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
-            await db.run(insSql, params);
-        }
+                const placeholders = columns.map(() => '?').join(',');
+                const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+
+                const params = [id, 0, rule_params.result || ''];
+                let kIndex = 1;
+                Object.keys(rule_params).forEach(key => {
+                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                        params.push(key);
+                        params.push(rule_params[key]);
+                        kIndex++;
+                    }
+                });
+                while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+                await tx.run(insSql, params);
+            }
+        });
 
         res.json({ status: 0, msg: "更新成功" });
     } catch (err) {

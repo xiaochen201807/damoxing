@@ -66,6 +66,46 @@ function prepareOracleQuery(sql, params) {
     let paramIndex = 0;
     let inQuote = false;
 
+    // If SQL already contains Oracle-style numeric binds (:1, :2, ...),
+    // start numbering after the max to avoid collisions when mixing styles.
+    let maxExistingBind = 0;
+    {
+        let scanInQuote = false;
+        for (let i = 0; i < sql.length; i++) {
+            const ch = sql[i];
+            if (ch === "'") {
+                if (i + 1 < sql.length && sql[i + 1] === "'") {
+                    i++;
+                } else {
+                    scanInQuote = !scanInQuote;
+                }
+                continue;
+            }
+            if (scanInQuote) continue;
+            if (ch === ':') {
+                let j = i + 1;
+                let num = '';
+                while (j < sql.length) {
+                    const dj = sql[j];
+                    if (dj >= '0' && dj <= '9') {
+                        num += dj;
+                        j++;
+                        continue;
+                    }
+                    break;
+                }
+                if (num.length) {
+                    const n = Number(num);
+                    if (Number.isFinite(n) && n > maxExistingBind) {
+                        maxExistingBind = n;
+                    }
+                    i = j - 1;
+                }
+            }
+        }
+    }
+    paramIndex = maxExistingBind;
+
     for (let i = 0; i < sql.length; i++) {
         const char = sql[i];
         if (char === "'") {
@@ -235,5 +275,6 @@ module.exports = {
     get,
     run,
     withConnection,
+    prepareOracleQuery,
     pool // exposed for advanced usage
 };

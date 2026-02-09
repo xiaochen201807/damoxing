@@ -8,7 +8,8 @@
         "dev": "nodemon index.js",
         "migrate": "node data/migrations/migrate.js",
         "init-db": "node data/migrations/init_database.js",
-        "mcp": "node mcp-server.js"
+        "mcp": "node mcp-server.js",
+        "test": "jest"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.4",
@@ -35,7 +36,9 @@
         "winston-daily-rotate-file": "^5.0.0"
     },
     "devDependencies": {
-        "nodemon": "^3.1.9"
+        "jest": "^29.7.0",
+        "nodemon": "^3.1.9",
+        "supertest": "^7.1.1"
     },
     "engines": {
         "node": ">=18.0.0"

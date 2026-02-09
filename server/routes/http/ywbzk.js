@@ -101,44 +101,44 @@ router.post('/save', async (req, res) => {
     const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
 
     try {
-        let mbid = id;
-        if (id) {
-            // 更新
-            const updateSql = `UPDATE gjj_ywbzk SET pxh=?, ywblbz=?, ywbzz=?, ywbzjg=?, ywblbzsm=?, gjsjsf=?, ywnrfl=?, bzfl=?, gxsj=${SqlHelper.now()} WHERE id=?`;
-            
-            await db.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
-
-            // 删除原有关联属性
-            await db.run("DELETE FROM gjj_ywbzksx WHERE mbid = ?", [id]);
-        } else {
-            // 新增
-            if (db.isOracle) {
-                 // Oracle Insert + Select Max ID (Simulated returning)
-                 await db.run(`INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
-                 const lastRow = await db.get("SELECT MAX(id) as id FROM gjj_ywbzk");
-                 mbid = lastRow.id || lastRow.ID;
+        const { id: savedId } = await db.transaction(async (tx) => {
+            let mbid = id;
+            if (id) {
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=?, ywblbz=?, ywbzz=?, ywbzjg=?, ywblbzsm=?, gjsjsf=?, ywnrfl=?, bzfl=?, gxsj=${SqlHelper.now()} WHERE id=?`;
+                await tx.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
+                await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = ?", [id]);
             } else {
-                 const insertSql = `
-                    INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `;
-                const result = await db.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
-                mbid = result.lastID;
+                if (db.isOracle) {
+                    await tx.run(
+                        `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]
+                    );
+                    const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
+                    mbid = lastRow?.id ?? lastRow?.ID;
+                } else {
+                    const insertSql = `
+                        INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `;
+                    const result = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
+                    mbid = result.lastID;
+                }
             }
-        }
 
-        // 插入属性组
-        if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
-            for (const sx of ywblbzsxz) {
-                const sxInsertSql = `
-                    INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                `;
-                await db.run(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
+            if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
+                for (const sx of ywblbzsxz) {
+                    const sxInsertSql = `
+                        INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `;
+                    await tx.run(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
+                }
             }
-        }
 
-        res.json({ status: 0, msg: "保存成功", data: { id: mbid } });
+            return { id: mbid };
+        });
+
+        res.json({ status: 0, msg: "保存成功", data: { id: savedId } });
 
     } catch (err) {
         logger.error(`Failed to save ywbzk: ${err.message}`);
