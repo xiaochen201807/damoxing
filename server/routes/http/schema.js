@@ -35,14 +35,11 @@ env.addFilter('fromjson', function (str) {
 });
 
 // GET /api/schema/templates - 获取所有模板
-router.get('/templates', (req, res) => {
+router.get('/templates', async (req, res) => {
     logger.info('[Schema API] Fetching templates');
 
-    db.all('SELECT * FROM sys_page_templates_config ORDER BY created_at DESC', (err, rows) => {
-        if (err) {
-            logger.error('[Schema API] Database error:', err);
-            return res.status(500).json({ status: 1, msg: '查询失败', data: [] });
-        }
+    try {
+        const rows = await db.all('SELECT * FROM sys_page_templates_config ORDER BY created_at DESC');
 
         // 解析 JSON 字段
         const templates = rows.map(row => ({
@@ -54,11 +51,14 @@ router.get('/templates', (req, res) => {
 
         logger.info(`[Schema API] Found ${templates.length} templates`);
         res.json({ status: 0, data: templates });
-    });
+    } catch (err) {
+        logger.error('[Schema API] Database error:', err);
+        return res.status(500).json({ status: 1, msg: '查询失败', data: [] });
+    }
 });
 
 // 提取处理函数，同时支持 GET 和 POST
-const handleTemplateForm = (req, res) => {
+const handleTemplateForm = async (req, res) => {
     const { templateId } = req.params;
 
     // 🔍 调试输出
@@ -72,8 +72,10 @@ const handleTemplateForm = (req, res) => {
 
     logger.info(`[Schema API] Generating form for template: ${templateId}`);
 
-    db.get('SELECT params_schema, default_params FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
-        if (err || !row) {
+    try {
+        const row = await db.get('SELECT params_schema, default_params FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
+
+        if (!row) {
             logger.error('[Schema API] Template not found:', templateId);
             return res.status(404).json({ status: 1, msg: '模板不存在' });
         }
@@ -243,7 +245,10 @@ const handleTemplateForm = (req, res) => {
             logger.error('[Schema API] Error generating form:', error);
             res.status(500).json({ status: 1, msg: '生成表单失败' });
         }
-    });
+    } catch (err) {
+        logger.error('[Schema API] Database error:', err);
+        return res.status(500).json({ status: 1, msg: '查询失败' });
+    }
 };
 
 // 注册路由，同时支持 GET 和 POST
@@ -253,7 +258,7 @@ router.post('/template-form/:templateId', handleTemplateForm);
 
 
 // POST /api/schema/preview - 预览生成（不保存）
-router.post('/preview', (req, res) => {
+router.post('/preview', async (req, res) => {
     const { template_id, params } = req.body;
 
     if (!template_id || !params) {
@@ -264,114 +269,112 @@ router.post('/preview', (req, res) => {
     }
 
     // 查询模板配置
-    db.get(
-        'SELECT * FROM sys_page_templates_config WHERE template_id = ? AND is_active = 1',
-        [template_id],
-        (err, template) => {
-            if (err) {
-                logger.error('[Schema API] Failed to query template:', err);
-                return res.status(500).json({
-                    status: 500,
-                    msg: '查询模板失败',
-                    error: err.message
-                });
-            }
+    try {
+        const template = await db.get(
+            'SELECT * FROM sys_page_templates_config WHERE template_id = ? AND is_active = 1',
+            [template_id]
+        );
 
-            if (!template) {
-                return res.status(404).json({
-                    status: 404,
-                    msg: '模板不存在'
-                });
-            }
-
-            try {
-                // 渲染模板
-                const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
-                const schema_json = env.render(template.template_file, { ...params, GLOBAL_API_PREFIX });
-                const parsed = JSON.parse(schema_json);
-
-                logger.info(`[Schema API] Preview generated for template: ${template_id}`);
-                res.json({
-                    status: 0,
-                    msg: '预览生成成功',
-                    data: parsed
-                });
-            } catch (error) {
-                logger.error('[Schema API] Template rendering failed:', error);
-                res.status(400).json({
-                    status: 400,
-                    msg: '模板渲染失败',
-                    error: error.message
-                });
-            }
+        if (!template) {
+            return res.status(404).json({
+                status: 404,
+                msg: '模板不存在'
+            });
         }
-    );
+
+        try {
+            // 渲染模板
+            const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+            const schema_json = env.render(template.template_file, { ...params, GLOBAL_API_PREFIX });
+            const parsed = JSON.parse(schema_json);
+
+            logger.info(`[Schema API] Preview generated for template: ${template_id}`);
+            res.json({
+                status: 0,
+                msg: '预览生成成功',
+                data: parsed
+            });
+        } catch (error) {
+            logger.error('[Schema API] Template rendering failed:', error);
+            res.status(400).json({
+                status: 400,
+                msg: '模板渲染失败',
+                error: error.message
+            });
+        }
+    } catch (err) {
+        logger.error('[Schema API] Failed to query template:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '查询模板失败',
+            error: err.message
+        });
+    }
 });
 
 // GET /api/schema/load-config/:pageKey - 加载页面历史配置（用于编辑）
-router.get('/load-config/:pageKey', (req, res) => {
+router.get('/load-config/:pageKey', async (req, res) => {
     const { pageKey } = req.params;
 
     logger.info(`[Schema API] Loading config for page: ${pageKey}`);
 
-    db.get(
-        'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1',
-        [pageKey],
-        (err, page) => {
-            if (err) {
-                logger.error('[Schema API] Failed to load config:', err);
-                return res.status(500).json({
-                    status: 500,
-                    msg: '加载配置失败',
-                    error: err.message
-                });
-            }
+    try {
+        const page = await db.get(
+            'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1',
+            [pageKey]
+        );
 
-            if (!page) {
-                return res.status(404).json({
-                    status: 404,
-                    msg: '页面不存在'
-                });
-            }
-
-            // 检查是否有源数据（source_template_id 和 source_params）
-            if (!page.source_template_id || !page.source_params) {
-                return res.status(404).json({
-                    status: 404,
-                    msg: '该页面没有保存源配置信息，无法重新编辑',
-                    data: {
-                        page_key: pageKey,
-                        title: page.title,
-                        version: page.version
-                    }
-                });
-            }
-
-            try {
-                const params = JSON.parse(page.source_params);
-
-                logger.info(`[Schema API] Config loaded successfully for ${pageKey}`);
-                res.json({
-                    status: 0,
-                    msg: '配置加载成功',
-                    data: {
-                        template_id: page.source_template_id,
-                        params: params,
-                        page_key: pageKey,
-                        page_title: page.title,
-                        version: page.version
-                    }
-                });
-            } catch (error) {
-                logger.error('[Schema API] Failed to parse source_params:', error);
-                res.status(500).json({
-                    status: 500,
-                    msg: '配置数据格式错误',
-                    error: error.message
-                });
-            }
+        if (!page) {
+            return res.status(404).json({
+                status: 404,
+                msg: '页面不存在'
+            });
         }
-    );
+
+        // 检查是否有源数据（source_template_id 和 source_params）
+        if (!page.source_template_id || !page.source_params) {
+            return res.status(404).json({
+                status: 404,
+                msg: '该页面没有保存源配置信息，无法重新编辑',
+                data: {
+                    page_key: pageKey,
+                    title: page.title,
+                    version: page.version
+                }
+            });
+        }
+
+        try {
+            const params = JSON.parse(page.source_params);
+
+            logger.info(`[Schema API] Config loaded successfully for ${pageKey}`);
+            res.json({
+                status: 0,
+                msg: '配置加载成功',
+                data: {
+                    template_id: page.source_template_id,
+                    params: params,
+                    page_key: pageKey,
+                    page_title: page.title,
+                    version: page.version
+                }
+            });
+        } catch (error) {
+            logger.error('[Schema API] Failed to parse source_params:', error);
+            res.status(500).json({
+                status: 500,
+                msg: '配置数据格式错误',
+                error: error.message
+            });
+        }
+    } catch (err) {
+        logger.error('[Schema API] Failed to load config:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '加载配置失败',
+            error: err.message
+        });
+    }
 });
 
 
@@ -384,22 +387,12 @@ const handleWizardRequest = async (req, res) => {
 
     try {
         // 获取所有模板
-        const templates = await new Promise((resolve, reject) => {
-            db.all('SELECT * FROM sys_page_templates_config WHERE is_active = 1', (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        const templates = await db.all('SELECT * FROM sys_page_templates_config WHERE is_active = 1');
 
         // 如果是编辑模式，加载历史配置
         let initData = null;
         if (mode === 'edit' && page_key) {
-            const pageData = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [page_key], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
+            const pageData = await db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [page_key]);
 
             if (pageData && pageData.source_template_id && pageData.source_params) {
                 const parsedParams = JSON.parse(pageData.source_params);
@@ -644,7 +637,7 @@ router.post('/echo', (req, res) => {
 
 
 // POST /api/schema/save - 保存页面到数据库 (支持新建和更新绑定)
-router.post('/save', (req, res) => {
+router.post('/save', async (req, res) => {
     // 接收参数：
     // target_page_key: 绑定的已有页面标识 (可选)
     // manual_page_key: 手动输入的新页面标识 (仅当 target_page_key 为空时使用)
@@ -672,154 +665,133 @@ router.post('/save', (req, res) => {
         });
     }
 
-    // 查询模板配置
-    db.get(
-        'SELECT * FROM sys_page_templates_config WHERE template_id = ? AND is_active = 1',
-        [template_id],
-        (err, template) => {
-            if (err) {
-                logger.error('[Schema API] Failed to query template:', err);
-                return res.status(500).json({ status: 500, msg: '查询模板失败', error: err.message });
+    try {
+        const template = await db.get(
+            'SELECT * FROM sys_page_templates_config WHERE template_id = ? AND is_active = 1',
+            [template_id]
+        );
+
+        if (!template) {
+            return res.status(404).json({ status: 404, msg: '模板不存在' });
+        }
+
+        try {
+            const sortedParams = { ...params };
+            for (const key of Object.keys(sortedParams)) {
+                if (Array.isArray(sortedParams[key])) {
+                    sortedParams[key] = [...sortedParams[key]].sort((a, b) => {
+                        const orderA = a.sortOrder !== undefined ? a.sortOrder : 999;
+                        const orderB = b.sortOrder !== undefined ? b.sortOrder : 999;
+                        return orderA - orderB;
+                    });
+                }
             }
 
-            if (!template) {
-                return res.status(404).json({ status: 404, msg: '模板不存在' });
-            }
+            const app_theme = sortedParams.app_theme || 'default';
+            const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+
+            console.log('--- Template Rendering Context ---');
+            console.log('ENV API_ROUTE_PREFIX:', process.env.API_ROUTE_PREFIX);
+            console.log('GLOBAL_API_PREFIX:', GLOBAL_API_PREFIX);
+
+            const renderContext = { ...sortedParams, page_key, title, app_theme, GLOBAL_API_PREFIX };
+            const schema_json = env.render(template.template_file, renderContext);
+
+            console.log('=== 生成的JSON（前2000字符）===');
+            console.log(schema_json.substring(0, 2000));
+            console.log('=== 位置1950-2000附近 ===');
+            console.log(schema_json.substring(1950, 2000));
+
+            JSON.parse(schema_json);
+
+            let current = null;
+            let newVersion = 1;
+            let result = null;
 
             try {
-                // 对 params 中的数组按 sortOrder 排序
-                const sortedParams = { ...params };
-                for (const key of Object.keys(sortedParams)) {
-                    if (Array.isArray(sortedParams[key])) {
-                        sortedParams[key] = [...sortedParams[key]].sort((a, b) => {
-                            const orderA = a.sortOrder !== undefined ? a.sortOrder : 999;
-                            const orderB = b.sortOrder !== undefined ? b.sortOrder : 999;
-                            return orderA - orderB;
-                        });
+                await db.run('BEGIN TRANSACTION');
+
+                current = await db.get(
+                    'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1',
+                    [page_key]
+                );
+
+                if (current) {
+                    newVersion = current.version + 1;
+                    await db.run(
+                        "UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?",
+                        [current.id]
+                    );
+                } else {
+                    const row = await db.get(
+                        'SELECT MAX(version) as max_ver FROM sys_page_template WHERE page_key = ?',
+                        [page_key]
+                    );
+                    const maxVer = row?.max_ver ?? row?.MAX_VER ?? row?.MAX_VER;
+                    if (maxVer) {
+                        newVersion = maxVer + 1;
                     }
                 }
 
-                // 渲染模板生成 Schema
-                // 注意：传入 page_key, title 和 app_theme 到模板上下文
-                const app_theme = sortedParams.app_theme || 'default';
-                const GLOBAL_API_PREFIX = process.env.API_ROUTE_PREFIX || '/api';
+                const sql = `
+                    INSERT INTO sys_page_template 
+                    (page_key, title, schema_json, version, is_active, created_at, updated_at, source_template_id, source_params)
+                    VALUES (?, ?, ?, ?, 1, datetime('now', '+08:00'), datetime('now', '+08:00'), ?, ?)
+                `;
 
-                // 🔍 调试输出 (仅在开发环境)
-                console.log('--- Template Rendering Context ---');
-                console.log('ENV API_ROUTE_PREFIX:', process.env.API_ROUTE_PREFIX);
-                console.log('GLOBAL_API_PREFIX:', GLOBAL_API_PREFIX);
+                result = await db.run(sql, [page_key, title, schema_json, newVersion, template_id, JSON.stringify(params)]);
 
-                const renderContext = { ...sortedParams, page_key, title, app_theme, GLOBAL_API_PREFIX };
-                const schema_json = env.render(template.template_file, renderContext);
+                if (current) {
+                    await db.run(`
+                        DELETE FROM sys_page_template 
+                        WHERE page_key = ? AND is_active = 0 
+                        AND id NOT IN (
+                            SELECT id FROM sys_page_template 
+                            WHERE page_key = ? AND is_active = 0 
+                            ORDER BY version DESC 
+                            LIMIT 5
+                        )
+                    `, [page_key, page_key]);
+                }
 
-                // 调试：输出生成的JSON
-                console.log('=== 生成的JSON（前2000字符）===');
-                console.log(schema_json.substring(0, 2000));
-                console.log('=== 位置1950-2000附近 ===');
-                console.log(schema_json.substring(1950, 2000));
-
-                JSON.parse(schema_json); // 验证 JSON 格式
-
-                // 开始事务处理保存/更新逻辑
-                db.serialize(() => {
-                    db.run('BEGIN TRANSACTION');
-
-                    // 1. 检查是否存在已有活动页面
-                    db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [page_key], (err, current) => {
-                        if (err) {
-                            db.run('ROLLBACK');
-                            return res.status(500).json({ status: 500, error: err.message });
-                        }
-
-                        let newVersion = 1;
-
-                        if (current) {
-                            // 更新模式：归档旧版本
-                            newVersion = current.version + 1;
-                            db.run("UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?", [current.id], (err) => {
-                                if (err) {
-                                    logger.error('Failed to archive old version', err);
-                                    // 即使归档失败也最好不要继续，为了数据一致性
-                                    // 但在此为了简化，我们假设 rollback 会处理
-                                }
-                            });
-                        } else {
-                            // 新建模式：检查是否真的没有（可能只有被软删除的历史版本）
-                            // 查询最大版本号以防冲突
-                            db.get('SELECT MAX(version) as max_ver FROM sys_page_template WHERE page_key = ?', [page_key], (err, row) => {
-                                if (row && row.max_ver) {
-                                    newVersion = row.max_ver + 1;
-                                }
-                            });
-                        }
-
-                        // 2. 插入新版本
-                        const sql = `
-                            INSERT INTO sys_page_template 
-                            (page_key, title, schema_json, version, is_active, created_at, updated_at, source_template_id, source_params)
-                            VALUES (?, ?, ?, ?, 1, datetime('now', '+08:00'), datetime('now', '+08:00'), ?, ?)
-                        `;
-
-                        db.run(sql, [page_key, title, schema_json, newVersion, template_id, JSON.stringify(params)], function (err) {
-                            if (err) {
-                                db.run('ROLLBACK');
-                                logger.error('[Schema API] Failed to save page:', err);
-                                const msg = err.message.includes('UNIQUE') ? '页面标识已存在或版本冲突' : '保存页面失败';
-                                return res.status(500).json({
-                                    status: 500,
-                                    msg: msg,
-                                    error: err.message
-                                });
-                            }
-
-                            db.run('COMMIT');
-
-                            // 3. 清理旧备份 (保留最近5个)
-                            if (current) {
-                                db.run(`
-                                    DELETE FROM sys_page_template 
-                                    WHERE page_key = ? AND is_active = 0 
-                                    AND id NOT IN (
-                                        SELECT id FROM sys_page_template 
-                                        WHERE page_key = ? AND is_active = 0 
-                                        ORDER BY version DESC 
-                                        LIMIT 5
-                                    )
-                                `, [page_key, page_key], (err) => {
-                                    if (err) logger.error('Failed to clean old backups', err);
-                                });
-                            }
-
-                            logger.info(`[Schema API] Page saved: ${page_key} v${newVersion} (id: ${this.lastID})`);
-                            res.json({
-                                status: 0,
-                                msg: '保存成功',
-                                data: {
-                                    id: this.lastID,
-                                    page_key,
-                                    title,
-                                    version: newVersion,
-                                    mode: current ? 'update' : 'create'
-                                }
-                            });
-                        });
-                    });
-                });
-
-            } catch (error) {
-                logger.error('[Schema API] Failed to save page:', error);
-                res.status(400).json({
-                    status: 400,
-                    msg: '保存失败: 模板渲染或JSON格式错误',
-                    error: error.message
-                });
+                await db.run('COMMIT');
+            } catch (err) {
+                try {
+                    await db.run('ROLLBACK');
+                } catch (rollbackErr) {
+                    logger.error('[Schema API] Rollback failed:', rollbackErr);
+                }
+                throw err;
             }
+
+            logger.info(`[Schema API] Page saved: ${page_key} v${newVersion} (id: ${result?.lastID || null})`);
+            res.json({
+                status: 0,
+                msg: '保存成功',
+                data: {
+                    id: result?.lastID || null,
+                    page_key,
+                    title,
+                    version: newVersion,
+                    mode: current ? 'update' : 'create'
+                }
+            });
+        } catch (error) {
+            logger.error('[Schema API] Failed to save page:', error);
+            res.status(400).json({
+                status: 400,
+                msg: '保存失败: 模板渲染或JSON格式错误',
+                error: error.message
+            });
         }
-    );
+    } catch (err) {
+        logger.error('[Schema API] Failed to query template:', err);
+        return res.status(500).json({ status: 500, msg: '查询模板失败', error: err.message });
+    }
 });
 
 // GET /api/schema/components - 获取组件列表
-router.get('/components', (req, res) => {
+router.get('/components', async (req, res) => {
     const { category } = req.query;
 
     let sql = 'SELECT * FROM sys_component_library WHERE is_active = 1';
@@ -830,17 +802,8 @@ router.get('/components', (req, res) => {
         params.push(category);
     }
 
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            logger.error('[Schema API] Failed to query components:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询组件失败',
-                error: err.message
-            });
-        }
-
-        // 解析 JSON 字段
+    try {
+        const rows = await db.all(sql, params);
         const components = rows.map(row => ({
             ...row,
             params_schema: row.params_schema ? JSON.parse(row.params_schema) : {},
@@ -849,7 +812,14 @@ router.get('/components', (req, res) => {
 
         logger.info(`[Schema API] Found ${components.length} components`);
         res.json({ status: 0, data: components });
-    });
+    } catch (err) {
+        logger.error('[Schema API] Failed to query components:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '查询组件失败',
+            error: err.message
+        });
+    }
 });
 
 

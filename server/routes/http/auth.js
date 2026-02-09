@@ -213,12 +213,12 @@ router.post('/login', async (req, res) => {
             }
 
             // 直接使用 grbh 作为用户名查找
-            user = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
+            try {
+                user = await db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity]);
+            } catch (err) {
+                logger.error('[SSO] 查询用户失败:', err);
+                return res.status(500).json({ status: 500, msg: 'Database error' });
+            }
 
             if (!user) {
                 logger.info(`[SSO] 用户不存在，自动创建: ${userIdentity}`);
@@ -226,25 +226,24 @@ router.post('/login', async (req, res) => {
                 const newNickname = gatewayInfo.xingming || userIdentity;
                 const newPassword = 'sso_auto_' + Math.random().toString(36).slice(-8);
 
-                await new Promise((resolve, reject) => {
-                    db.run(
+                try {
+                    await db.run(
                         `INSERT INTO sys_user (username, password, nickname, role, is_active) 
                          VALUES (?, ?, ?, 'user', 1)`,
-                        [newUsername, newPassword, newNickname],
-                        function (err) {
-                            if (err) reject(err);
-                            else resolve(this.lastID);
-                        }
+                        [newUsername, newPassword, newNickname]
                     );
-                });
+                } catch (err) {
+                    logger.error('[SSO] 创建用户失败:', err);
+                    return res.status(500).json({ status: 500, msg: 'Failed to create user' });
+                }
 
                 // 重新查询新创建的用户
-                user = await new Promise((resolve, reject) => {
-                    db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity], (err, row) => {
-                        if (err) reject(err);
-                        else resolve(row);
-                    });
-                });
+                try {
+                    user = await db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity]);
+                } catch (err) {
+                    logger.error('[SSO] 查询新用户失败:', err);
+                    return res.status(500).json({ status: 500, msg: 'Database error' });
+                }
             }
         }
         // ==========================================
@@ -260,12 +259,12 @@ router.post('/login', async (req, res) => {
             }
 
             // 2. 查询用户
-            user = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM sys_user WHERE username = ? AND is_active = 1', [username], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
+            try {
+                user = await db.get('SELECT * FROM sys_user WHERE username = ? AND is_active = 1', [username]);
+            } catch (err) {
+                logger.error('[Auth] Login query failed:', err);
+                return res.status(500).json({ status: 500, msg: 'Database error' });
+            }
 
             if (!user) {
                 logger.warn(`登录失败 - 用户不存在: ${username}`);
@@ -313,7 +312,8 @@ router.post('/login', async (req, res) => {
         });
 
         // 更新最后登录时间
-        db.run('UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+        db.run('UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id])
+            .catch(err => logger.error('[Auth] Failed to update last_login:', err));
 
         logger.info(`用户登录成功: ${user.username} (${user.role}) [SSO:${skipLocalAuth}]`);
 

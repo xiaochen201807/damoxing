@@ -41,15 +41,12 @@ function setupHttpRoutes(app) {
     // === 遗留的内联路由（TODO: 重构到独立文件） ===
 
     // 根据 pageKey 获取页面模板
-    app.get(`${API_PREFIX}/page/:pageKey`, authenticateToken, (req, res) => {
+    app.get(`${API_PREFIX}/page/:pageKey`, authenticateToken, async (req, res) => {
         const pageKey = req.params.pageKey;
         const sql = "SELECT * FROM sys_page_template WHERE page_key = ? and is_active = 1";
 
-        db.get(sql, [pageKey], (err, row) => {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
+        try {
+            const row = await db.get(sql, [pageKey]);
             if (row) {
                 try {
                     const schema = JSON.parse(row.schema_json);
@@ -60,7 +57,9 @@ function setupHttpRoutes(app) {
             } else {
                 res.status(404).json({ error: "Page template not found" });
             }
-        });
+        } catch (err) {
+            res.status(400).json({ error: err.message });
+        }
     });
 
     // === 模块化路由 ===

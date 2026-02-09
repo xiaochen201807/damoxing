@@ -11,7 +11,7 @@ const { validate, schemas } = require('../../middleware/validator');
 
 
 // 获取所有配置 (支持按 page_key 过滤)
-router.get('/config', (req, res) => {
+router.get('/config', async (req, res) => {
     const { page_key } = req.query;
 
     const sql = page_key
@@ -20,39 +20,30 @@ router.get('/config', (req, res) => {
 
     const params = page_key ? [page_key] : [];
 
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            logger.error('[Dify Config] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询配置失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const rows = await db.all(sql, params);
         res.json({
             status: 0,
             msg: 'success',
             data: rows
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 根据 id 获取单个配置
-router.get('/config/:id', (req, res) => {
+router.get('/config/:id', async (req, res) => {
     const { id } = req.params;
     const sql = 'SELECT * FROM sys_dify_config WHERE id = ?';
 
-    db.get(sql, [id], (err, row) => {
-        if (err) {
-            logger.error('[Dify Config] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询配置失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const row = await db.get(sql, [id]);
         if (!row) {
             return res.status(404).json({
                 status: 404,
@@ -65,11 +56,18 @@ router.get('/config/:id', (req, res) => {
             msg: 'success',
             data: row
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 创建配置 (支持 workflow_type)
-router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
+router.post('/config', validate(schemas.difyConfigCreate), async (req, res) => {
     const { page_key, workflow_name, workflow_type, api_url, api_key, enabled, description } = req.body;
 
     // 参数验证
@@ -96,29 +94,13 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
         description || ''
     ];
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            logger.error('[Dify Config] 创建失败:', err);
-
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(409).json({
-                    status: 409,
-                    msg: '该页面已存在同名工作流'
-                });
-            }
-
-            return res.status(500).json({
-                status: 500,
-                msg: '创建配置失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const result = await db.run(sql, params);
         res.json({
             status: 0,
             msg: 'success',
             data: {
-                id: this.lastID,
+                id: result.lastID,
                 page_key,
                 workflow_name,
                 api_url,
@@ -126,26 +108,34 @@ router.post('/config', validate(schemas.difyConfigCreate), (req, res) => {
                 description
             }
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 创建失败:', err);
+
+        if (err.message.includes('UNIQUE constraint failed')) {
+            return res.status(409).json({
+                status: 409,
+                msg: '该页面已存在同名工作流'
+            });
+        }
+
+        res.status(500).json({
+            status: 500,
+            msg: '创建配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 删除配置 (物理删除) - 根据 id
-router.delete('/config/:id', (req, res) => {
+router.delete('/config/:id', async (req, res) => {
     const { id } = req.params;
 
     const sql = 'DELETE FROM sys_dify_config WHERE id = ?';
 
-    db.run(sql, [id], function (err) {
-        if (err) {
-            logger.error('[Dify Config] 删除失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除配置失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [id]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '配置不存在'
@@ -159,26 +149,26 @@ router.delete('/config/:id', (req, res) => {
             msg: 'success',
             data: { id, deleted: true }
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 删除失败:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '删除配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 删除配置 (POST 方式) - AMIS 兼容
-router.post('/config/:id/delete', (req, res) => {
+router.post('/config/:id/delete', async (req, res) => {
     const { id } = req.params;
 
     const sql = 'DELETE FROM sys_dify_config WHERE id = ?';
 
-    db.run(sql, [id], function (err) {
-        if (err) {
-            logger.error('[Dify Config] 删除失败 (POST):', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除配置失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [id]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '配置不存在'
@@ -192,7 +182,14 @@ router.post('/config/:id/delete', (req, res) => {
             msg: 'success',
             data: { id, deleted: true }
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 删除失败 (POST):', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '删除配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 更新配置 (PUT) - 根据 id
@@ -202,7 +199,7 @@ router.put('/config/:id', validate(schemas.difyConfigUpdate), updateDifyConfig);
 router.post('/config/:id', validate(schemas.difyConfigUpdate), updateDifyConfig);
 
 // 更新配置的实际处理函数
-function updateDifyConfig(req, res) {
+async function updateDifyConfig(req, res) {
     const { id } = req.params;
     const { workflow_name, workflow_type, api_url, api_key, enabled, description } = req.body;
 
@@ -247,17 +244,10 @@ function updateDifyConfig(req, res) {
 
     const sql = `UPDATE sys_dify_config SET ${updates.join(', ')} WHERE id = ?`;
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            logger.error('[Dify Config] 更新失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '更新配置失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, params);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '配置不存在'
@@ -269,7 +259,14 @@ function updateDifyConfig(req, res) {
             msg: 'success',
             data: { id, updated: true }
         });
-    });
+    } catch (err) {
+        logger.error('[Dify Config] 更新失败:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '更新配置失败',
+            error: err.message
+        });
+    }
 }
 
 module.exports = router;

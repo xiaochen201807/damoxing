@@ -53,6 +53,40 @@ async function close() {
 }
 
 /**
+ * Helper to convert SQL with '?' parameters to Oracle ':n' syntax
+ * Handles basic string literal escaping
+ */
+function prepareOracleQuery(sql, params) {
+    if (!Array.isArray(params) || params.length === 0 || !sql.includes('?')) {
+        return { sql, params };
+    }
+
+    let newSql = '';
+    let lastIndex = 0;
+    let paramIndex = 0;
+    let inQuote = false;
+
+    for (let i = 0; i < sql.length; i++) {
+        const char = sql[i];
+        if (char === "'") {
+            // Handle escaped quotes (two single quotes)
+            if (i + 1 < sql.length && sql[i+1] === "'") {
+                i++; // Skip next quote
+            } else {
+                inQuote = !inQuote;
+            }
+        } else if (char === '?' && !inQuote) {
+            paramIndex++;
+            newSql += sql.substring(lastIndex, i) + `:${paramIndex}`;
+            lastIndex = i + 1;
+        }
+    }
+    newSql += sql.substring(lastIndex);
+
+    return { sql: newSql, params };
+}
+
+/**
  * Execute a query and return all rows (similar to sqlite3 db.all)
  * @param {string} sql The SQL query
  * @param {Array|Object} params Parameters for the query
@@ -67,21 +101,10 @@ async function all(sql, params = []) {
     try {
         connection = await pool.getConnection();
         
-        // Convert '?' to ':n' for Oracle if params is array and SQL uses '?'
-        let finalSql = sql;
-        let finalParams = params;
-
-        if (Array.isArray(params) && sql.includes('?')) {
-            let index = 0;
-            finalSql = sql.replace(/\?/g, () => {
-                index++;
-                return `:${index}`;
-            });
-        }
+        const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
 
         logger.info(`[Oracle] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
         if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
-            // Avoid JSON.stringify on circular structures or simple logging
             try {
                 logger.info(`[Oracle] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
             } catch (jsonErr) {
@@ -148,21 +171,10 @@ async function run(sql, params = []) {
     try {
         connection = await pool.getConnection();
         
-        // Convert '?' to ':n' for Oracle if params is array and SQL uses '?'
-        let finalSql = sql;
-        let finalParams = params;
-
-        if (Array.isArray(params) && sql.includes('?')) {
-            let index = 0;
-            finalSql = sql.replace(/\?/g, () => {
-                index++;
-                return `:${index}`;
-            });
-        }
+        const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
         
         logger.info(`[Oracle] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
         if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
-            // Avoid JSON.stringify on circular structures or simple logging
             try {
                 logger.info(`[Oracle] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
             } catch (jsonErr) {
@@ -177,8 +189,7 @@ async function run(sql, params = []) {
         
         return {
             rowsAffected: result.rowsAffected,
-            // lastID is not automatically available in Oracle like SQLite.
-            // Needs RETURNING clause in SQL and bind variable.
+            lastID: null // Oracle doesn't return lastID automatically without RETURNING clause
         };
     } catch (err) {
         const duration = Date.now() - start;

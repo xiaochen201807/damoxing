@@ -9,7 +9,7 @@ const db = require('../../db');
 const logger = require('../../utils/logger');
 
 // GET /api/routes - 获取所有路由配置
-router.get('/routes', (req, res) => {
+router.get('/routes', async (req, res) => {
     logger.info('[Routes API] Fetching all routes');
 
     const sql = `
@@ -18,41 +18,33 @@ router.get('/routes', (req, res) => {
         ORDER BY order_num ASC, created_at DESC
     `;
 
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            logger.error('[Routes API] Failed to fetch routes:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询路由失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const rows = await db.all(sql, []);
         logger.info(`[Routes API] Found ${rows.length} active routes`);
         res.json({
             status: 0,
             msg: 'success',
             data: rows
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to fetch routes:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询路由失败',
+            error: err.message
+        });
+    }
 });
 
 // GET /api/routes/:routeKey - 获取单个路由配置
-router.get('/routes/:routeKey', (req, res) => {
+router.get('/routes/:routeKey', async (req, res) => {
     const { routeKey } = req.params;
     logger.info(`[Routes API] Fetching route: ${routeKey}`);
 
     const sql = 'SELECT * FROM sys_routes WHERE route_key = ?';
 
-    db.get(sql, [routeKey], (err, row) => {
-        if (err) {
-            logger.error('[Routes API] Failed to fetch route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const row = await db.get(sql, [routeKey]);
 
         if (!row) {
             return res.status(404).json({
@@ -66,25 +58,25 @@ router.get('/routes/:routeKey', (req, res) => {
             msg: 'success',
             data: row
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to fetch route:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询路由失败',
+            error: err.message
+        });
+    }
 });
 
 // POST /api/routes/:routeKey - 同样支持 POST 方式获取（兼容 AMIS）
-router.post('/routes/:routeKey', (req, res) => {
+router.post('/routes/:routeKey', async (req, res) => {
     const { routeKey } = req.params;
     logger.info(`[Routes API] Fetching route (POST): ${routeKey}`);
 
     const sql = 'SELECT * FROM sys_routes WHERE route_key = ?';
 
-    db.get(sql, [routeKey], (err, row) => {
-        if (err) {
-            logger.error('[Routes API] Failed to fetch route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const row = await db.get(sql, [routeKey]);
 
         if (!row) {
             return res.status(404).json({
@@ -98,11 +90,18 @@ router.post('/routes/:routeKey', (req, res) => {
             msg: 'success',
             data: row
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to fetch route:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询路由失败',
+            error: err.message
+        });
+    }
 });
 
 // POST /api/routes - 创建新路由
-router.post('/routes', (req, res) => {
+router.post('/routes', async (req, res) => {
     const {
         route_key,
         route_name,
@@ -133,37 +132,36 @@ router.post('/routes', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    db.run(
-        sql,
-        [route_key, route_path, route_name, icon, component_type, component_path, layout_type, order_num, description],
-        function (err) {
-            if (err) {
-                logger.error('[Routes API] Failed to create route:', err);
-                const msg = err.message.includes('UNIQUE') ? '路由标识已存在' : '创建路由失败';
-                return res.status(500).json({
-                    status: 500,
-                    msg: msg,
-                    error: err.message
-                });
-            }
+    try {
+        const result = await db.run(
+            sql,
+            [route_key, route_path, route_name, icon, component_type, component_path, layout_type, order_num, description]
+        );
 
-            logger.info(`[Routes API] Route created: ${route_key} (ID: ${this.lastID})`);
-            res.json({
-                status: 0,
-                msg: '创建成功',
-                data: {
-                    id: this.lastID,
-                    route_key,
-                    route_path,
-                    route_name
-                }
-            });
-        }
-    );
+        logger.info(`[Routes API] Route created: ${route_key} (ID: ${result.lastID})`);
+        res.json({
+            status: 0,
+            msg: '创建成功',
+            data: {
+                id: result.lastID,
+                route_key,
+                route_path,
+                route_name
+            }
+        });
+    } catch (err) {
+        logger.error('[Routes API] Failed to create route:', err);
+        const msg = err.message.includes('UNIQUE') ? '路由标识已存在' : '创建路由失败';
+        res.status(500).json({
+            status: 500,
+            msg: msg,
+            error: err.message
+        });
+    }
 });
 
 // PUT /api/routes/:routeKey - 更新路由配置
-router.put('/routes/:routeKey', (req, res) => {
+router.put('/routes/:routeKey', async (req, res) => {
     const { routeKey } = req.params;
     const {
         route_name,
@@ -230,17 +228,10 @@ router.put('/routes/:routeKey', (req, res) => {
 
     const sql = `UPDATE sys_routes SET ${updates.join(', ')} WHERE route_key = ?`;
 
-    db.run(sql, values, function (err) {
-        if (err) {
-            logger.error('[Routes API] Failed to update route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '更新路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, values);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '路由不存在'
@@ -251,13 +242,20 @@ router.put('/routes/:routeKey', (req, res) => {
         res.json({
             status: 0,
             msg: '更新成功',
-            data: { route_key: routeKey, changes: this.changes }
+            data: { route_key: routeKey, changes: result.rowsAffected }
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to update route:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '更新路由失败',
+            error: err.message
+        });
+    }
 });
 
 // POST /api/routes/:routeKey/update - 更新路由（POST 方式，AMIS 兼容）
-router.post('/routes/:routeKey/update', (req, res) => {
+router.post('/routes/:routeKey/update', async (req, res) => {
     const { routeKey } = req.params;
     const {
         route_name,
@@ -324,17 +322,10 @@ router.post('/routes/:routeKey/update', (req, res) => {
 
     const sql = `UPDATE sys_routes SET ${updates.join(', ')} WHERE route_key = ?`;
 
-    db.run(sql, values, function (err) {
-        if (err) {
-            logger.error('[Routes API] Failed to update route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '更新路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, values);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '路由不存在'
@@ -345,13 +336,20 @@ router.post('/routes/:routeKey/update', (req, res) => {
         res.json({
             status: 0,
             msg: '更新成功',
-            data: { route_key: routeKey, changes: this.changes }
+            data: { route_key: routeKey, changes: result.rowsAffected }
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to update route:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '更新路由失败',
+            error: err.message
+        });
+    }
 });
 
 // DELETE /api/routes/:routeKey - 删除路由（软删除）
-router.delete('/routes/:routeKey', (req, res) => {
+router.delete('/routes/:routeKey', async (req, res) => {
     const { routeKey } = req.params;
 
     // 防止删除系统核心路由
@@ -366,17 +364,10 @@ router.delete('/routes/:routeKey', (req, res) => {
 
     const sql = `UPDATE sys_routes SET is_active = 0, updated_at = datetime('now', '+08:00') WHERE route_key = ?`;
 
-    db.run(sql, [routeKey], function (err) {
-        if (err) {
-            logger.error('[Routes API] Failed to delete route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [routeKey]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '路由不存在'
@@ -389,11 +380,18 @@ router.delete('/routes/:routeKey', (req, res) => {
             msg: '删除成功',
             data: { route_key: routeKey }
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to delete route:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '删除路由失败',
+            error: err.message
+        });
+    }
 });
 
 // POST /api/routes/:routeKey/delete - 删除路由（软删除，POST 方式，AMIS 兼容）
-router.post('/routes/:routeKey/delete', (req, res) => {
+router.post('/routes/:routeKey/delete', async (req, res) => {
     const { routeKey } = req.params;
 
     // 防止删除系统核心路由
@@ -408,17 +406,10 @@ router.post('/routes/:routeKey/delete', (req, res) => {
 
     const sql = `UPDATE sys_routes SET is_active = 0, updated_at = datetime('now', '+08:00') WHERE route_key = ?`;
 
-    db.run(sql, [routeKey], function (err) {
-        if (err) {
-            logger.error('[Routes API] Failed to delete route:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除路由失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [routeKey]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '路由不存在'
@@ -431,7 +422,14 @@ router.post('/routes/:routeKey/delete', (req, res) => {
             msg: '删除成功',
             data: { route_key: routeKey }
         });
-    });
+    } catch (err) {
+        logger.error('[Routes API] Failed to delete route:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '删除路由失败',
+            error: err.message
+        });
+    }
 });
 
 module.exports = router;

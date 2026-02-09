@@ -37,12 +37,7 @@ router.get('/health/detailed', async (req, res) => {
 
     // 1. 检查数据库连接
     try {
-        await new Promise((resolve, reject) => {
-            db.get('SELECT 1 as test', (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        await db.get('SELECT 1 as test');
         healthStatus.checks.database = {
             status: 'healthy',
             message: 'Database connection OK',
@@ -135,12 +130,7 @@ router.get('/health/detailed', async (req, res) => {
 router.get('/health/ready', async (req, res) => {
     try {
         // 检查数据库是否可用
-        await new Promise((resolve, reject) => {
-            db.get('SELECT 1', (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
+        await db.get('SELECT 1');
 
         res.status(200).json({
             ready: true,

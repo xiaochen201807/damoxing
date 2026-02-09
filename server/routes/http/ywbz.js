@@ -5,21 +5,13 @@
 
 const express = require('express');
 const router = express.Router();
-const dbSqlite = require('../../db');
-const dbOracle = require('../../db_oracle');
+const db = require('../../db');
+const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
 const { authenticateToken } = require('../../middleware/auth');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-
-// Determine which DB to use based on env (helper function)
-const getDb = () => {
-    if (process.env.ORACLE_ENABLE === 'true') {
-        return dbOracle;
-    }
-    return dbSqlite;
-};
 
 // 配置 Multer 内存存储，用于处理文件上传
 const upload = multer({ storage: multer.memoryStorage() });
@@ -31,9 +23,6 @@ router.post('/list', async (req, res) => {
     const { page = 1, perPage = 10, gzmc, ywsf, ywnrfl } = req.body;
     const offset = (page - 1) * perPage;
     
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-
     let sql = `
         SELECT t1.*, t2.ywblbz as template_name 
         FROM gjj_ywbz t1
@@ -64,38 +53,19 @@ router.post('/list', async (req, res) => {
         params.push(ywnrfl);
     }
 
-    let queryParams = [...params];
-
-    if (isOracle) {
-        sql += " ORDER BY t1.yxj DESC, t1.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        queryParams.push(offset);
-        queryParams.push(perPage);
-    } else {
-        sql += " ORDER BY t1.yxj DESC, t1.id DESC LIMIT ? OFFSET ?";
-        queryParams.push(perPage);
-        queryParams.push(offset);
-    }
-
-    const query = (method, s, p) => {
-        if (isOracle) return db[method](s, p);
-        return new Promise((resolve, reject) => {
-            db[method](s, p, (err, res) => {
-                if (err) reject(err);
-                else resolve(res);
-            });
-        });
-    };
+    sql += " ORDER BY t1.yxj DESC, t1.id DESC";
+    sql = SqlHelper.paginate(sql, perPage, offset);
 
     try {
-        const countRow = await query('get', countSql, params);
-        const rows = await query('all', sql, queryParams);
+        const countRow = await db.get(countSql, params);
+        const rows = await db.all(sql, params);
 
         res.json({
             status: 0,
             msg: "ok",
             data: {
                 items: rows,
-                total: countRow ? countRow.total : 0
+                total: countRow ? (countRow.total || countRow.TOTAL) : 0
             }
         });
     } catch (err) {
@@ -111,27 +81,14 @@ router.post('/get', async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-    
-    const query = (method, s, p) => {
-        if (isOracle) return db[method](s, p);
-        return new Promise((resolve, reject) => {
-            db[method](s, p, (err, res) => {
-                if (err) reject(err);
-                else resolve(res);
-            });
-        });
-    };
-
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await query('get', sql, [id]);
+        const row = await db.get(sql, [id]);
         
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ?";
-        const sxRows = await query('all', sxSql, [id]);
+        const sxRows = await db.all(sxSql, [id]);
 
         const attributes = [];
         sxRows.forEach(row => {
@@ -171,19 +128,6 @@ router.post('/config_form', async (req, res) => {
         });
     }
 
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-    
-    const query = (method, s, p) => {
-        if (isOracle) return db[method](s, p);
-        return new Promise((resolve, reject) => {
-            db[method](s, p, (err, res) => {
-                if (err) reject(err);
-                else resolve(res);
-            });
-        });
-    };
-
     try {
         // 1. 查询标准库定义的属性 (gjj_ywbzksx)
         const sqlSchema = `SELECT * FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC`;
@@ -195,7 +139,7 @@ router.post('/config_form', async (req, res) => {
             ORDER BY row_index ASC, id ASC
         `;
 
-        const schemaRows = await query('all', sqlSchema, [mbid]);
+        const schemaRows = await db.all(sqlSchema, [mbid]);
 
         // 构建映射表：属性名称 -> 属性编码
         const nameToCodeMap = {};
@@ -208,7 +152,7 @@ router.post('/config_form', async (req, res) => {
             }
         });
 
-        const valueRows = await query('all', sqlValues, [id]);
+        const valueRows = await db.all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
         const cleanedValues = valueRows.map(row => {
@@ -307,13 +251,13 @@ router.post('/save_params', async (req, res) => {
         return res.json({ status: 1, msg: "参数格式错误 (rules 应为数组)" });
     }
 
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-
-    if (isOracle) {
+    if (db.isOracle) {
         // Oracle Transaction Logic
         try {
-            await db.withConnection(async (connection) => {
+            // 使用 raw.getConnection() 直接获取连接 (注意：需要手动管理连接)
+            const connection = await db.raw.getConnection();
+            
+            try {
                 // 1. 删除旧属性
                 const delSql = "DELETE FROM gjj_ywbzsx WHERE ywid = :1";
                 await connection.execute(delSql, [id], { autoCommit: false });
@@ -350,7 +294,13 @@ router.post('/save_params', async (req, res) => {
                 }
 
                 await connection.commit();
-            });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                await connection.close();
+            }
+
             res.json({ status: 0, msg: "保存成功" });
         } catch (err) {
             logger.error(`Error in save_params (Oracle): ${err.message}`);
@@ -358,14 +308,14 @@ router.post('/save_params', async (req, res) => {
         }
     } else {
         // SQLite Transaction Logic
-        db.serialize(() => {
-            db.run("BEGIN TRANSACTION");
+        db.raw.serialize(() => {
+            db.raw.run("BEGIN TRANSACTION");
 
             // 1. 删除旧属性
             const delSql = "DELETE FROM gjj_ywbzsx WHERE ywid = ?";
-            db.run(delSql, [id], function (err) {
+            db.raw.run(delSql, [id], function (err) {
                 if (err) {
-                    db.run("ROLLBACK");
+                    db.raw.run("ROLLBACK");
                     return res.json({ status: 1, msg: "清理旧参数失败" });
                 }
 
@@ -378,7 +328,7 @@ router.post('/save_params', async (req, res) => {
                 const placeholders = columns.map(() => '?').join(',');
                 const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
-                const stmt = db.prepare(insSql);
+                const stmt = db.raw.prepare(insSql);
 
                 try {
                     rules.forEach((row, rowIndex) => {
@@ -402,14 +352,14 @@ router.post('/save_params', async (req, res) => {
                         stmt.run(params);
                     });
                     stmt.finalize();
-                    db.run("COMMIT", (err) => {
+                    db.raw.run("COMMIT", (err) => {
                         if (err) {
                             return res.json({ status: 1, msg: "提交事务失败" });
                         }
                         res.json({ status: 0, msg: "保存成功" });
                     });
                 } catch (e) {
-                    db.run("ROLLBACK");
+                    db.raw.run("ROLLBACK");
                     logger.error(`Error in save_params: ${e.message}`);
                     res.json({ status: 1, msg: "保存参数失败: " + e.message });
                 }
@@ -424,27 +374,14 @@ router.post('/save_params', async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-    
-    const query = (method, s, p) => {
-        if (isOracle) return db[method](s, p);
-        return new Promise((resolve, reject) => {
-            db[method](s, p, (err, res) => {
-                if (err) reject(err);
-                else resolve(res);
-            });
-        });
-    };
-
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await query('get', sql, [id]);
+        const row = await db.get(sql, [id]);
         
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC";
-        const sxRows = await query('all', sxSql, [id]);
+        const sxRows = await db.all(sxSql, [id]);
 
         const rule_params = {};
         sxRows.forEach(row => {
@@ -475,46 +412,28 @@ router.post('/save', async (req, res) => {
     // rule_params alias for compatibility
     const attributes = rule_params;
 
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-
     try {
-        const runQuery = (sql, params) => {
-            if (isOracle) return db.run(sql, params);
-            return new Promise((resolve, reject) => {
-                db.run(sql, params, function (err) {
-                    if (err) reject(err);
-                    else resolve(this);
-                });
-            });
-        };
-
         let ywid = id;
         if (id) {
             // 更新
-            const updateSql = isOracle
-                ? `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=SYSTIMESTAMP WHERE id=?`
-                : `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=CURRENT_TIMESTAMP WHERE id=?`;
+            const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=?`;
             
-            await runQuery(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
+            await db.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
 
             // 清理旧属性
-            await runQuery("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
         } else {
             // 新增
-            if (isOracle) {
+            if (db.isOracle) {
                 // Oracle Insert with returning ID workaround (Select Max)
-                // Or better: use a BEGIN block with RETURNING into bind
-                // But wrapper db.run doesn't support output binds easily.
-                // Fallback to Select Max for now.
-                await runQuery(`INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`, 
+                await db.run(`INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`, 
                     [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
                 
                 const lastRow = await db.get("SELECT MAX(id) as id FROM gjj_ywbz");
                 ywid = lastRow.id;
             } else {
                 const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
-                const result = await runQuery(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
+                const result = await db.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
                 ywid = result.lastID;
             }
         }
@@ -541,7 +460,7 @@ router.post('/save', async (req, res) => {
                     }
                 });
                 while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
-                await runQuery(insSql, params);
+                await db.run(insSql, params);
             };
 
             if (Array.isArray(attrs)) {
@@ -569,21 +488,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { mbid, gzmc, ywsf, gzljsm, yxj, sfqy, rule_params } = req.body;
 
     try {
-        const runQuery = (sql, params) => new Promise((resolve, reject) => {
-            db.run(sql, params, function (err) {
-                if (err) reject(err);
-                else resolve(this);
-            });
-        });
-
         const updateSql = `
             UPDATE gjj_ywbz SET 
-            mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = CURRENT_TIMESTAMP
+            mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
             WHERE id = ?
         `;
-        await runQuery(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
+        await db.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
 
-        await runQuery("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+        await db.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
 
         if (rule_params && typeof rule_params === 'object') {
             // 宽表插入逻辑
@@ -606,7 +518,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
                 }
             });
             while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
-            await runQuery(insSql, params);
+            await db.run(insSql, params);
         }
 
         res.json({ status: 0, msg: "更新成功" });
@@ -645,26 +557,16 @@ router.post('/batch', async (req, res) => {
     const zjgbh = req.body.zjgbh || '';
 
     try {
-        const runQuery = (sql, params) => new Promise((resolve, reject) => {
-            db.run(sql, params, function (err) {
-                if (err) reject(err);
-                else resolve(this);
-            });
-        });
-
-        const getStandards = (ids) => new Promise((resolve, reject) => {
+        const getStandards = (ids) => {
             const placeholders = ids.map(() => '?').join(',');
-            db.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+            return db.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
+        };
 
         // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
         logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}'`);
         const deleteSql = `DELETE FROM gjj_ywbz WHERE IFNULL(jgbh, '') = ? AND IFNULL(zjgbh, '') = ?`;
-        const deleteResult = await runQuery(deleteSql, [jgbh, zjgbh]);
-        logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.changes}`);
+        const deleteResult = await db.run(deleteSql, [jgbh, zjgbh]);
+        logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
 
         const templates = await getStandards(syncIds);
         let syncCount = 0;
@@ -675,7 +577,7 @@ router.post('/batch', async (req, res) => {
                 INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy, jgbh, zjgbh)
                 VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
-            await runQuery(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
+            await db.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
             syncCount++;
         }
 
@@ -691,36 +593,42 @@ router.post('/batch', async (req, res) => {
 /**
  * 7. 删除 (POST /delete)
  */
-router.post('/delete', (req, res) => {
+router.post('/delete', async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
-    db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id], function (err) {
-        if (err) return res.status(500).json({ status: 1, msg: err.message });
+    try {
+        await db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         res.json({ status: 0, msg: "删除成功" });
-    });
+    } catch (err) {
+        res.status(500).json({ status: 1, msg: err.message });
+    }
 });
 
 /**
  * 8. DELETE /:id - 兼容接口
  */
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-    db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id], function (err) {
-        if (err) return res.status(500).json({ status: 1, msg: err.message });
+    try {
+        await db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         res.json({ status: 0, msg: "删除成功" });
-    });
+    } catch (err) {
+        res.status(500).json({ status: 1, msg: err.message });
+    }
 });
 
 /**
  * 9. 获取分类选项 (GET /options/categories)
  */
-router.get('/options/categories', (req, res) => {
+router.get('/options/categories', async (req, res) => {
     const sql = "SELECT DISTINCT ywnrfl as value, ywnrfl as label FROM gjj_ywbzk WHERE ywnrfl IS NOT NULL";
-    db.all(sql, [], (err, rows) => {
-        if (err) return res.status(500).json({ status: 1, msg: err.message });
+    try {
+        const rows = await db.all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
-    });
+    } catch (err) {
+        res.status(500).json({ status: 1, msg: err.message });
+    }
 });
 
 // -----------------------------------------------------------------------------
@@ -729,19 +637,8 @@ router.get('/options/categories', (req, res) => {
 router.all('/export', authenticateToken, async (req, res) => {
     try {
         // 1. 获取所有数据
-        const rules = await new Promise((resolve, reject) => {
-            db.all("SELECT * FROM gjj_ywbz", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
-
-        const attributes = await new Promise((resolve, reject) => {
-            db.all("SELECT * FROM gjj_ywbzsx", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        const rules = await db.all("SELECT * FROM gjj_ywbz");
+        const attributes = await db.all("SELECT * FROM gjj_ywbzsx");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务规则全量导出 (包含规则表和属性表)\n";

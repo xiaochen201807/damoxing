@@ -9,19 +9,11 @@ const db = require('../../db');
 const logger = require('../../utils/logger');
 
 // 获取所有后端配置
-router.get('/backend-config', (req, res) => {
+router.get('/backend-config', async (req, res) => {
     const sql = 'SELECT * FROM sys_backend_config ORDER BY config_key ASC';
 
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            logger.error('[Backend Config] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询后端配置失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const rows = await db.all(sql, []);
         // 转换数据类型
         const configs = rows.map(row => ({
             ...row,
@@ -33,23 +25,23 @@ router.get('/backend-config', (req, res) => {
             msg: 'success',
             data: configs
         });
-    });
+    } catch (err) {
+        logger.error('[Backend Config] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询后端配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 获取单个配置
-router.get('/backend-config/:key', (req, res) => {
+router.get('/backend-config/:key', async (req, res) => {
     const { key } = req.params;
     const sql = 'SELECT * FROM sys_backend_config WHERE config_key = ?';
 
-    db.get(sql, [key], (err, row) => {
-        if (err) {
-            logger.error('[Backend Config] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询配置失败',
-                error: err.message
-            });
-        }
+    try {
+        const row = await db.get(sql, [key]);
 
         if (!row) {
             return res.status(404).json({
@@ -66,7 +58,14 @@ router.get('/backend-config/:key', (req, res) => {
                 config_value: parseConfigValue(row.config_value, row.config_type)
             }
         });
-    });
+    } catch (err) {
+        logger.error('[Backend Config] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询配置失败',
+            error: err.message
+        });
+    }
 });
 
 // 更新配置 (PUT method)
@@ -76,7 +75,7 @@ router.put('/backend-config/:key', updateBackendConfig);
 router.post('/backend-config/:key', updateBackendConfig);
 
 // 更新配置的实际处理函数
-function updateBackendConfig(req, res) {
+async function updateBackendConfig(req, res) {
     const { key } = req.params;
     const { config_value } = req.body;
 
@@ -102,17 +101,10 @@ function updateBackendConfig(req, res) {
     WHERE config_key = ?
   `;
 
-    db.run(sql, [String(config_value), key], function (err) {
-        if (err) {
-            logger.error('[Backend Config] 更新失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '更新配置失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [String(config_value), key]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '配置不存在'
@@ -131,7 +123,14 @@ function updateBackendConfig(req, res) {
                 restart_required: true // 提示需要重启服务器
             }
         });
-    });
+    } catch (err) {
+        logger.error('[Backend Config] 更新失败:', err);
+        return res.status(500).json({
+            status: 500,
+            msg: '更新配置失败',
+            error: err.message
+        });
+    }
 }
 
 // 辅助函数：解析配置值

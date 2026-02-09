@@ -9,7 +9,7 @@ const db = require('../../db');
 const logger = require('../../utils/logger');
 
 // 获取所有页面模板 (仅返回当前活动版本) + 备份数量
-router.get('/template', (req, res) => {
+router.get('/template', async (req, res) => {
     const { route_key, menu_id } = req.query;
     const params = [];
 
@@ -41,39 +41,30 @@ router.get('/template', (req, res) => {
 
     sql += ' GROUP BY t.id ORDER BY t.id ASC';
 
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            logger.error('[Template] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询页面模板失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const rows = await db.all(sql, params);
         res.json({
             status: 0,
             msg: 'success',
             data: rows
         });
-    });
+    } catch (err) {
+        logger.error('[Template] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询页面模板失败',
+            error: err.message
+        });
+    }
 });
 
 // 获取单个页面模板 (当前活动版本)
-router.get('/template/:pageKey', (req, res) => {
+router.get('/template/:pageKey', async (req, res) => {
     const { pageKey } = req.params;
     const sql = 'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1';
 
-    db.get(sql, [pageKey], (err, row) => {
-        if (err) {
-            logger.error('[Template] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询页面模板失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const row = await db.get(sql, [pageKey]);
         if (!row) {
             return res.status(404).json({
                 status: 404,
@@ -86,11 +77,18 @@ router.get('/template/:pageKey', (req, res) => {
             msg: 'success',
             data: row
         });
-    });
+    } catch (err) {
+        logger.error('[Template] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询页面模板失败',
+            error: err.message
+        });
+    }
 });
 
 // 获取页面的备份列表
-router.get('/template/:pageKey/backups', (req, res) => {
+router.get('/template/:pageKey/backups', async (req, res) => {
     const { pageKey } = req.params;
     const sql = `
         SELECT id, version, title, backup_time, length(schema_json) as size, created_at 
@@ -99,16 +97,16 @@ router.get('/template/:pageKey/backups', (req, res) => {
         ORDER BY version DESC
     `;
 
-    db.all(sql, [pageKey], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ status: 500, msg: '查询备份失败', error: err.message });
-        }
+    try {
+        const rows = await db.all(sql, [pageKey]);
         res.json({ status: 0, data: rows });
-    });
+    } catch (err) {
+        res.status(500).json({ status: 500, msg: '查询备份失败', error: err.message });
+    }
 });
 
 // 创建页面模板
-router.post('/template', (req, res) => {
+router.post('/template', async (req, res) => {
     const { page_key, title, schema_json } = req.body;
 
     if (!page_key || !title || !schema_json) {
@@ -127,25 +125,24 @@ router.post('/template', (req, res) => {
     const schemaStr = typeof schema_json === 'string' ? schema_json : JSON.stringify(schema_json);
     const sql = `INSERT INTO sys_page_template (page_key, title, schema_json, version, is_active) VALUES (?, ?, ?, 1, 1)`;
 
-    db.run(sql, [page_key, title, schemaStr], function (err) {
-        if (err) {
-            logger.error('[Template] 创建失败:', err);
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(409).json({ status: 409, msg: '该页面标识已存在' });
-            }
-            return res.status(500).json({ status: 500, msg: '创建页面模板失败', error: err.message });
-        }
-
+    try {
+        const result = await db.run(sql, [page_key, title, schemaStr]);
         res.json({
             status: 0,
             msg: 'success',
-            data: { id: this.lastID, page_key, title, version: 1 }
+            data: { id: result.lastID, page_key, title, version: 1 }
         });
-    });
+    } catch (err) {
+        logger.error('[Template] 创建失败:', err);
+        if (err.message.includes('UNIQUE constraint failed')) {
+            return res.status(409).json({ status: 409, msg: '该页面标识已存在' });
+        }
+        res.status(500).json({ status: 500, msg: '创建页面模板失败', error: err.message });
+    }
 });
 
 // 删除页面模板 (软删除) - 从 body 中获取 page_key
-router.post('/template/delete', (req, res) => {
+router.post('/template/delete', async (req, res) => {
     const { page_key } = req.body;
 
     if (!page_key) {
@@ -158,17 +155,10 @@ router.post('/template/delete', (req, res) => {
     // 软删除：将当前活动版本的 is_active 设置为 0
     const sql = 'UPDATE sys_page_template SET is_active = 0 WHERE page_key = ? AND is_active = 1';
 
-    db.run(sql, [page_key], function (err) {
-        if (err) {
-            logger.error('[Template] 软删除失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '删除页面模板失败',
-                error: err.message
-            });
-        }
+    try {
+        const result = await db.run(sql, [page_key]);
 
-        if (this.changes === 0) {
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '页面模板不存在或已被删除'
@@ -182,20 +172,27 @@ router.post('/template/delete', (req, res) => {
             msg: 'success',
             data: { page_key, deleted: true, soft_delete: true }
         });
-    });
+    } catch (err) {
+        logger.error('[Template] 软删除失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '删除页面模板失败',
+            error: err.message
+        });
+    }
 });
 
 // 更新页面模板 (自动备份)
 router.put('/template/:pageKey', updateTemplate);
 router.post('/template/:pageKey', updateTemplate);
 
-function updateTemplate(req, res) {
+async function updateTemplate(req, res) {
     const { pageKey } = req.params;
     const { title, schema_json } = req.body;
 
-    // 1. 获取当前活动版本
-    db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [pageKey], (err, current) => {
-        if (err) return res.status(500).json({ status: 500, error: err.message });
+    try {
+        // 1. 获取当前活动版本
+        const current = await db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [pageKey]);
         if (!current) return res.status(404).json({ status: 404, msg: '页面模板不存在' });
 
         const newTitle = title !== undefined ? title : current.title;
@@ -212,119 +209,119 @@ function updateTemplate(req, res) {
 
         const newVersion = current.version + 1;
 
+        // Transaction start
+        await db.run('BEGIN TRANSACTION');
 
-        db.serialize(() => {
-            db.run('BEGIN TRANSACTION');
-
+        try {
             // 2. 将当前版本标记为备份
-            db.run("UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?", [current.id]);
+            await db.run("UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?", [current.id]);
 
             // 3. 插入新版本
-            db.run(
+            await db.run(
                 'INSERT INTO sys_page_template (page_key, title, schema_json, version, is_active) VALUES (?, ?, ?, ?, 1)',
-                [pageKey, newTitle, newSchema, newVersion],
-                function (err) {
-                    if (err) {
-                        db.run('ROLLBACK');
-                        return res.status(500).json({ status: 500, msg: '更新失败', error: err.message });
-                    }
-
-                    // 4. 清理旧备份 (保留最近5个)
-                    db.run(`
-                        DELETE FROM sys_page_template 
-                        WHERE page_key = ? AND is_active = 0 
-                        AND id NOT IN (
-                            SELECT id FROM sys_page_template 
-                            WHERE page_key = ? AND is_active = 0 
-                            ORDER BY version DESC 
-                            LIMIT 5
-                        )
-                    `, [pageKey, pageKey]);
-
-                    db.run('COMMIT');
-                    res.json({
-                        status: 0,
-                        msg: 'success',
-                        data: { page_key: pageKey, version: newVersion, updated: true }
-                    });
-                }
+                [pageKey, newTitle, newSchema, newVersion]
             );
-        });
-    });
+
+            // 4. 清理旧备份 (保留最近5个)
+            await db.run(`
+                DELETE FROM sys_page_template 
+                WHERE page_key = ? AND is_active = 0 
+                AND id NOT IN (
+                    SELECT id FROM sys_page_template 
+                    WHERE page_key = ? AND is_active = 0 
+                    ORDER BY version DESC 
+                    LIMIT 5
+                )
+            `, [pageKey, pageKey]);
+
+            await db.run('COMMIT');
+            res.json({
+                status: 0,
+                msg: 'success',
+                data: { page_key: pageKey, version: newVersion, updated: true }
+            });
+        } catch (err) {
+            await db.run('ROLLBACK');
+            logger.error('[Template] Update transaction failed:', err);
+            return res.status(500).json({ status: 500, msg: '更新失败', error: err.message });
+        }
+    } catch (err) {
+        logger.error('[Template] Update failed:', err);
+        res.status(500).json({ status: 500, error: err.message });
+    }
 }
 
 // 恢复备份
-router.post('/template/:pageKey/restore', (req, res) => {
+router.post('/template/:pageKey/restore', async (req, res) => {
     const { pageKey } = req.params;
     const { version } = req.body;
 
     if (!version) return res.status(400).json({ status: 400, msg: '缺少 version 参数' });
 
-    // 1. 获取目标备份版本
-    db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND version = ?', [pageKey, version], (err, targetVersion) => {
-        if (err) return res.status(500).json({ status: 500, error: err.message });
+    try {
+        // 1. 获取目标备份版本
+        const targetVersion = await db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND version = ?', [pageKey, version]);
         if (!targetVersion) return res.status(404).json({ status: 404, msg: '指定版本不存在' });
 
         // 2. 获取当前活动版本
-        db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [pageKey], (err, current) => {
-            if (err) return res.status(500).json({ status: 500, error: err.message });
+        const current = await db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [pageKey]);
 
-            // 如果没有活动版本（可能被意外删除了），则直接插入新版本，version 取最大+1
-            // 这里简单处理：如果有活动版本，版本号+1；如果没有，版本号取 targetVersion.version + 1 (或者查询最大版本)
-            // 为了安全，查询最大版本
-            db.get('SELECT MAX(version) as max_ver FROM sys_page_template WHERE page_key = ?', [pageKey], (err, verRow) => {
-                const newVersion = (verRow ? verRow.max_ver : targetVersion.version) + 1;
+        // 3. 获取最大版本
+        const verRow = await db.get('SELECT MAX(version) as max_ver FROM sys_page_template WHERE page_key = ?', [pageKey]);
+        const newVersion = (verRow ? verRow.max_ver : targetVersion.version) + 1;
 
-                db.serialize(() => {
-                    db.run('BEGIN TRANSACTION');
+        // Transaction
+        await db.run('BEGIN TRANSACTION');
 
-                    if (current) {
-                        // 归档当前版本
-                        db.run("UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?", [current.id]);
-                    }
+        try {
+            if (current) {
+                // 归档当前版本
+                await db.run("UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?", [current.id]);
+            }
 
-                    // 插入恢复的版本作为新版本
-                    db.run(
-                        'INSERT INTO sys_page_template (page_key, title, schema_json, version, is_active) VALUES (?, ?, ?, ?, 1)',
-                        [pageKey, targetVersion.title, targetVersion.schema_json, newVersion],
-                        function (err) {
-                            if (err) {
-                                db.run('ROLLBACK');
-                                return res.status(500).json({ status: 500, msg: '恢复失败', error: err.message });
-                            }
-                            db.run('COMMIT');
-                            res.json({
-                                status: 0,
-                                msg: 'success',
-                                data: { page_key: pageKey, restored_from: version, new_version: newVersion }
-                            });
-                        }
-                    );
-                });
+            // 插入恢复的版本作为新版本
+            await db.run(
+                'INSERT INTO sys_page_template (page_key, title, schema_json, version, is_active) VALUES (?, ?, ?, ?, 1)',
+                [pageKey, targetVersion.title, targetVersion.schema_json, newVersion]
+            );
+
+            await db.run('COMMIT');
+            res.json({
+                status: 0,
+                msg: 'success',
+                data: { page_key: pageKey, restored_from: version, new_version: newVersion }
             });
-        });
-    });
+        } catch (err) {
+            await db.run('ROLLBACK');
+            return res.status(500).json({ status: 500, msg: '恢复失败', error: err.message });
+        }
+    } catch (err) {
+        logger.error('[Template] Restore failed:', err);
+        res.status(500).json({ status: 500, error: err.message });
+    }
 });
 
 // 删除备份
-router.delete('/template/:pageKey/backups/:version', (req, res) => {
+router.delete('/template/:pageKey/backups/:version', async (req, res) => {
     const { pageKey, version } = req.params;
 
     // 不允许删除活动版本
     const sql = 'DELETE FROM sys_page_template WHERE page_key = ? AND version = ? AND is_active = 0';
 
-    db.run(sql, [pageKey, version], function (err) {
-        if (err) return res.status(500).json({ status: 500, error: err.message });
-        if (this.changes === 0) return res.status(404).json({ status: 404, msg: '备份不存在或为活动版本不可删除' });
+    try {
+        const result = await db.run(sql, [pageKey, version]);
+        if (result.rowsAffected === 0) return res.status(404).json({ status: 404, msg: '备份不存在或为活动版本不可删除' });
 
         res.json({ status: 0, msg: 'success', deleted: true });
-    });
+    } catch (err) {
+        res.status(500).json({ status: 500, error: err.message });
+    }
 });
 
 // ========== 模板定义管理 (sys_page_templates_config) ==========
 
 // 获取所有模板定义
-router.get('/template-definitions', (req, res) => {
+router.get('/template-definitions', async (req, res) => {
     const sql = `
         SELECT 
             template_id, 
@@ -338,26 +335,25 @@ router.get('/template-definitions', (req, res) => {
         ORDER BY template_id ASC
     `;
 
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            logger.error('[Template Definitions] 查询失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '查询模板定义失败',
-                error: err.message
-            });
-        }
-
+    try {
+        const rows = await db.all(sql, []);
         res.json({
             status: 0,
             msg: 'success',
             data: rows
         });
-    });
+    } catch (err) {
+        logger.error('[Template Definitions] 查询失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '查询模板定义失败',
+            error: err.message
+        });
+    }
 });
 
 // 更新模板定义元数据
-router.put('/template-definitions/:templateId', (req, res) => {
+router.put('/template-definitions/:templateId', async (req, res) => {
     const { templateId } = req.params;
     const { template_name, description, preview_image, is_active } = req.body;
 
@@ -391,17 +387,9 @@ router.put('/template-definitions/:templateId', (req, res) => {
     params.push(templateId);
     const sql = `UPDATE sys_page_templates_config SET ${updates.join(', ')} WHERE template_id = ?`;
 
-    db.run(sql, params, function (err) {
-        if (err) {
-            logger.error('[Template Definitions] 更新失败:', err);
-            return res.status(500).json({
-                status: 500,
-                msg: '更新模板定义失败',
-                error: err.message
-            });
-        }
-
-        if (this.changes === 0) {
+    try {
+        const result = await db.run(sql, params);
+        if (result.rowsAffected === 0) {
             return res.status(404).json({
                 status: 404,
                 msg: '模板定义不存在'
@@ -413,7 +401,14 @@ router.put('/template-definitions/:templateId', (req, res) => {
             msg: 'success',
             data: { template_id: templateId, updated: true }
         });
-    });
+    } catch (err) {
+        logger.error('[Template Definitions] 更新失败:', err);
+        res.status(500).json({
+            status: 500,
+            msg: '更新模板定义失败',
+            error: err.message
+        });
+    }
 });
 
 // 触发模板分析 - 支持全部分析或单个模板分析

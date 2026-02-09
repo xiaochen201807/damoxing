@@ -5,32 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const dbSqlite = require('../../db');
-const dbOracle = require('../../db_oracle');
+const db = require('../../db');
 const logger = require('../../utils/logger');
-
-// Determine which DB to use based on env (helper function)
-const getDb = () => {
-    if (process.env.ORACLE_ENABLE === 'true') {
-        return dbOracle;
-    }
-    return dbSqlite;
-};
-
-// Helper for unified query execution
-const queryAll = (sql, params = []) => {
-    const isOracle = process.env.ORACLE_ENABLE === 'true';
-    const db = getDb();
-    
-    if (isOracle) return db.all(sql, params);
-    
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-};
 
 /**
  * 1. 获取业务内容分类 (POST /business-content-classes)
@@ -39,7 +15,7 @@ const queryAll = (sql, params = []) => {
 router.post('/business-content-classes', async (req, res) => {
     const sql = "SELECT DISTINCT ywnrfl as value, ywnrfl as label FROM gjj_ywbzk WHERE ywnrfl IS NOT NULL";
     try {
-        const rows = await queryAll(sql);
+        const rows = await db.all(sql);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         logger.error(`[Tools API] Failed to fetch business content classes: ${err.message}`);
@@ -54,7 +30,7 @@ router.post('/business-content-classes', async (req, res) => {
 router.post('/business-standard-values', async (req, res) => {
     const sql = "SELECT DISTINCT ywbzz as value, ywbzz as label FROM gjj_ywbzk WHERE ywbzz IS NOT NULL";
     try {
-        const rows = await queryAll(sql);
+        const rows = await db.all(sql);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         logger.error(`[Tools API] Failed to fetch business standard values: ${err.message}`);
@@ -69,7 +45,7 @@ router.post('/business-standard-values', async (req, res) => {
 router.post('/service-objects', async (req, res) => {
     const sql = "SELECT DISTINCT fwdxbq as value, fwdxbq as label FROM gjj_ywbzksx WHERE fwdxbq IS NOT NULL";
     try {
-        const rows = await queryAll(sql);
+        const rows = await db.all(sql);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         logger.error(`[Tools API] Failed to fetch service objects: ${err.message}`);
@@ -84,7 +60,7 @@ router.post('/service-objects', async (req, res) => {
 router.post('/business-standard-attributes', async (req, res) => {
     const sql = "SELECT DISTINCT ywblbzsx as value, ywblbzsx as label, sxbm FROM gjj_ywbzksx WHERE ywblbzsx IS NOT NULL";
     try {
-        const rows = await queryAll(sql);
+        const rows = await db.all(sql);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         logger.error(`[Tools API] Failed to fetch business standard attributes: ${err.message}`);
