@@ -47,5 +47,24 @@ echo "========================================="
 echo "Starting services..."
 echo "========================================="
 
+# 6. 生成前端运行时配置
+echo "[Init] Generating frontend runtime config..."
+# 设置默认值
+export API_ROUTE_PREFIX=${API_ROUTE_PREFIX:-/api}
+export APP_BASE_PATH=${APP_BASE_PATH:-/}
+
+cat > /usr/share/nginx/html/config.js <<EOF
+window.__APP_CONFIG__ = {
+  API_ROUTE_PREFIX: "${API_ROUTE_PREFIX}",
+  BASE_PATH: "${APP_BASE_PATH}"
+};
+EOF
+
+# 7. 生成 Nginx 配置
+echo "[Init] Generating Nginx configuration..."
+# 使用 envsubst 替换模板中的变量
+# 注意：只替换 ${API_ROUTE_PREFIX} 和 ${APP_BASE_PATH}，避免替换 $host 等 Nginx 变量
+envsubst '${API_ROUTE_PREFIX} ${APP_BASE_PATH}' < /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
+
 # 6. 启动 supervisord（管理 nginx、node、crond）
 exec "$@"

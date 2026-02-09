@@ -56,8 +56,8 @@ COPY server/data/database.sqlite /app/database.sqlite.template
 # 从构建阶段复制前端构建产物
 COPY --from=frontend-builder /app/client/dist /usr/share/nginx/html
 
-# 复制 Nginx 配置
-COPY nginx-single.conf /etc/nginx/http.d/default.conf
+# 复制 Nginx 配置模板
+COPY nginx.conf.template /etc/nginx/http.d/default.conf.template
 
 # 复制 Supervisor 配置 (管理多进程)
 COPY supervisord.conf /etc/supervisord.conf

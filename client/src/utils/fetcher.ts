@@ -5,8 +5,8 @@ import type { FetcherConfig, FetcherResponse } from '../types/models';
 // 后端服务地址（从环境变量读取，默认为空字符串依赖 Vite proxy）
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-// API 路由前缀（从环境变量读取，默认 /api）
-const API_PREFIX = import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
+// API 路由前缀（优先读取运行时配置，其次环境变量，默认 /api）
+const API_PREFIX = window.__APP_CONFIG__?.API_ROUTE_PREFIX || import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
 
 /**
  * AMIS 请求适配器

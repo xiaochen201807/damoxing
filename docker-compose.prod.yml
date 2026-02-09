@@ -37,7 +37,8 @@ services:
       # ============================================
       # API 路由前缀配置
       # ============================================
-      - API_ROUTE_PREFIX=/gjjrgzn/api
+      - API_ROUTE_PREFIX=/gjjrgzngs/api
+      - APP_BASE_PATH=/gjjrgzngs/
 
       # ============================================
       # JWT 配置
