@@ -22,7 +22,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post('/list', async (req, res) => {
     const { page = 1, perPage = 10, gzmc, ywsf, ywnrfl } = req.body;
     const offset = (page - 1) * perPage;
-    
+
     let sql = `
         SELECT t1.*, t2.ywblbz as template_name 
         FROM gjj_ywbz t1
@@ -84,7 +84,7 @@ router.post('/get', async (req, res) => {
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
         const row = await db.get(sql, [id]);
-        
+
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ?";
@@ -146,7 +146,7 @@ router.post('/config_form', async (req, res) => {
         schemaRows.forEach(row => {
             const sxbm = row.sxbm || row.SXBM;
             const ywblbzsx = row.ywblbzsx || row.YWBLBZSX;
-            
+
             if (sxbm && ywblbzsx) {
                 nameToCodeMap[ywblbzsx] = sxbm;
             }
@@ -157,7 +157,7 @@ router.post('/config_form', async (req, res) => {
         // 将宽表结构 (k1,v1...) 还原为对象数组
         const cleanedValues = valueRows.map(row => {
             const item = {
-                id: row.id || row.ID, 
+                id: row.id || row.ID,
                 result: row.result || row.RESULT
             };
 
@@ -177,59 +177,59 @@ router.post('/config_form', async (req, res) => {
         const comboItems = schemaRows.map(field => {
             const sxbm = field.sxbm || field.SXBM;
             const ywblbzsx = field.ywblbzsx || field.YWBLBZSX;
-            
+
             return {
                 type: "input-text",
                 name: sxbm || ywblbzsx, // 优先使用属性编码作为 key
-                    label: field.ywblbzsx,
-                    required: true
-                };
-            });
-
-            // 添加固定的 "结果" 列
-            comboItems.push({
-                type: "input-text",
-                name: "result",
-                label: "结果",
+                label: field.ywblbzsx,
                 required: true
-            });
+            };
+        });
 
-            // 构建完整的 AMIS Schema
-            res.json({
-                status: 0,
-                msg: "ok",
-                data: {
-                    type: "form",
-                    title: "规则参数配置",
-                    wrapWithPanel: false,
-                    api: {
-                        method: "post",
-                        url: `${process.env.API_ROUTE_PREFIX || '/api'}/ywbz/save_params`,
-                        data: {
-                            id: id,
-                            rules: "$rules" // 将 Combo 的数组数据命名为 rules 提交
-                        }
+        // 添加固定的 "结果" 列
+        comboItems.push({
+            type: "input-text",
+            name: "result",
+            label: "结果",
+            required: true
+        });
+
+        // 构建完整的 AMIS Schema
+        res.json({
+            status: 0,
+            msg: "ok",
+            data: {
+                type: "form",
+                title: "规则参数配置",
+                wrapWithPanel: false,
+                api: {
+                    method: "post",
+                    url: `${process.env.API_ROUTE_PREFIX || '/api'}/ywbz/save_params`,
+                    data: {
+                        id: id,
+                        rules: "$rules" // 将 Combo 的数组数据命名为 rules 提交
+                    }
+                },
+                body: [
+                    {
+                        type: "combo",
+                        name: "rules", // 对应提交数据的 key
+                        label: false,
+                        multiple: true,
+                        multiLine: true,
+                        addable: true,
+                        removable: true,
+                        value: cleanedValues, // 回填数据
+                        items: comboItems
                     },
-                    body: [
-                        {
-                            type: "combo",
-                            name: "rules", // 对应提交数据的 key
-                            label: false,
-                            multiple: true,
-                            multiLine: true,
-                            addable: true,
-                            removable: true,
-                            value: cleanedValues, // 回填数据
-                            items: comboItems
-                        },
-                        {
-                            type: "hidden",
-                            name: "id",
-                            value: id
-                        }
-                    ]
-                }
-            });
+                    {
+                        type: "hidden",
+                        name: "id",
+                        value: id
+                    }
+                ]
+            }
+        });
     } catch (err) {
         logger.error(err);
         res.status(500).json({ status: 1, msg: err.message });
@@ -251,120 +251,46 @@ router.post('/save_params', async (req, res) => {
         return res.json({ status: 1, msg: "参数格式错误 (rules 应为数组)" });
     }
 
-    if (db.isOracle) {
-        // Oracle Transaction Logic
-        try {
-            // 使用 raw.getConnection() 直接获取连接 (注意：需要手动管理连接)
-            const connection = await db.raw.getConnection();
-            
-            try {
-                // 1. 删除旧属性
-                const delSql = "DELETE FROM gjj_ywbzsx WHERE ywid = :1";
-                await connection.execute(delSql, [id], { autoCommit: false });
+    try {
+        await db.transaction(async (tx) => {
+            // 1. 删除旧属性
+            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
 
-                // 2. 插入新属性
-                const columns = ['ywid', 'row_index', 'result'];
-                for (let i = 1; i <= 10; i++) {
-                    columns.push(`k${i}`);
-                    columns.push(`v${i}`);
-                }
-                const placeholders = columns.map((_, idx) => `:${idx + 1}`).join(',');
-                const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+            // 2. 插入新属性 (宽表结构：k1,v1...k10,v10)
+            const columns = ['ywid', 'row_index', 'result'];
+            for (let i = 1; i <= 10; i++) {
+                columns.push(`k${i}`, `v${i}`);
+            }
+            const placeholders = columns.map(() => '?').join(',');
+            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
-                for (let rowIndex = 0; rowIndex < rules.length; rowIndex++) {
-                    const row = rules[rowIndex];
-                    const params = [id, rowIndex, row.result || ''];
-                    let kIndex = 1;
+            for (let rowIndex = 0; rowIndex < rules.length; rowIndex++) {
+                const row = rules[rowIndex];
+                const params = [id, rowIndex, row.result || ''];
+                let kIndex = 1;
 
-                    Object.keys(row).forEach(key => {
-                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                            params.push(key);
-                            params.push(row[key]);
-                            kIndex++;
-                        }
-                    });
-
-                    while (kIndex <= 10) {
-                        params.push(null);
-                        params.push(null);
+                // 提取除 result 和 id 以外的字段填充到 k, v 对中
+                Object.keys(row).forEach(key => {
+                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                        params.push(key, row[key]);
                         kIndex++;
                     }
+                });
 
-                    await connection.execute(insSql, params, { autoCommit: false });
+                // 补齐剩余的 k, v 为空
+                while (kIndex <= 10) {
+                    params.push(null, null);
+                    kIndex++;
                 }
 
-                await connection.commit();
-            } catch (err) {
-                await connection.rollback();
-                throw err;
-            } finally {
-                await connection.close();
+                await tx.run(insSql, params);
             }
-
-            res.json({ status: 0, msg: "保存成功" });
-        } catch (err) {
-            logger.error(`Error in save_params (Oracle): ${err.message}`);
-            res.json({ status: 1, msg: "保存参数失败: " + err.message });
-        }
-    } else {
-        // SQLite Transaction Logic
-        db.raw.serialize(() => {
-            db.raw.run("BEGIN TRANSACTION");
-
-            // 1. 删除旧属性
-            const delSql = "DELETE FROM gjj_ywbzsx WHERE ywid = ?";
-            db.raw.run(delSql, [id], function (err) {
-                if (err) {
-                    db.raw.run("ROLLBACK");
-                    return res.json({ status: 1, msg: "清理旧参数失败" });
-                }
-
-                // 2. 插入新属性 (宽表结构)
-                const columns = ['ywid', 'row_index', 'result'];
-                for (let i = 1; i <= 10; i++) {
-                    columns.push(`k${i}`);
-                    columns.push(`v${i}`);
-                }
-                const placeholders = columns.map(() => '?').join(',');
-                const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
-
-                const stmt = db.raw.prepare(insSql);
-
-                try {
-                    rules.forEach((row, rowIndex) => {
-                        const params = [id, rowIndex, row.result || ''];
-                        let kIndex = 1;
-
-                        Object.keys(row).forEach(key => {
-                            if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                                params.push(key);
-                                params.push(row[key]);
-                                kIndex++;
-                            }
-                        });
-
-                        while (kIndex <= 10) {
-                            params.push(null);
-                            params.push(null);
-                            kIndex++;
-                        }
-
-                        stmt.run(params);
-                    });
-                    stmt.finalize();
-                    db.raw.run("COMMIT", (err) => {
-                        if (err) {
-                            return res.json({ status: 1, msg: "提交事务失败" });
-                        }
-                        res.json({ status: 0, msg: "保存成功" });
-                    });
-                } catch (e) {
-                    db.raw.run("ROLLBACK");
-                    logger.error(`Error in save_params: ${e.message}`);
-                    res.json({ status: 1, msg: "保存参数失败: " + e.message });
-                }
-            });
         });
+
+        res.json({ status: 0, msg: "保存成功" });
+    } catch (err) {
+        logger.error(`Failed to save_params: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "保存参数失败: " + err.message });
     }
 });
 
@@ -377,7 +303,7 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
         const row = await db.get(sql, [id]);
-        
+
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC";
@@ -420,16 +346,13 @@ router.post('/save', async (req, res) => {
                 await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
                 await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
             } else {
+                const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
+                const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
+
                 if (db.isOracle) {
-                    await tx.run(
-                        `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`,
-                        [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]
-                    );
                     const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
                     ywid = lastRow?.id ?? lastRow?.ID;
                 } else {
-                    const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
-                    const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
                     ywid = result.lastID;
                 }
             }

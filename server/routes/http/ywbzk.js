@@ -78,14 +78,14 @@ router.post('/get', async (req, res) => {
     try {
         const sql = "SELECT * FROM gjj_ywbzk WHERE id = ?";
         const row = await db.get(sql, [id]);
-        
+
         if (!row) {
             return res.status(404).json({ status: 1, msg: "Record not found" });
         }
 
         const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
         const sxRows = await db.all(sxSql, [id]);
-        
+
         row.ywblbzsxz = sxRows;
         res.json({ status: 0, msg: "ok", data: row });
     } catch (err) {
@@ -108,19 +108,13 @@ router.post('/save', async (req, res) => {
                 await tx.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = ?", [id]);
             } else {
+                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                const result = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
+
                 if (db.isOracle) {
-                    await tx.run(
-                        `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                        [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]
-                    );
                     const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
                     mbid = lastRow?.id ?? lastRow?.ID;
                 } else {
-                    const insertSql = `
-                        INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    `;
-                    const result = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
                     mbid = result.lastID;
                 }
             }
@@ -155,7 +149,7 @@ router.post('/delete', async (req, res) => {
     if (!id) {
         return res.status(400).json({ status: 1, msg: "ID is required" });
     }
-    
+
     try {
         const sql = "DELETE FROM gjj_ywbzk WHERE id = ?";
         await db.run(sql, [id]);
