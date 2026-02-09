@@ -162,7 +162,7 @@ router.post('/config_form', (req, res) => {
                 return {
                     type: "input-text",
                     name: field.ywblbzsx,
-                    label: field.fwdxbq || field.ywblbzsx,
+                    label: field.ywblbzsx,
                     required: true
                 };
             });
