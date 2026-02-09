@@ -62,9 +62,11 @@ EOF
 
 # 7. 生成 Nginx 配置
 echo "[Init] Generating Nginx configuration..."
-# 使用 envsubst 替换模板中的变量
-# 注意：只替换 ${API_ROUTE_PREFIX} 和 ${APP_BASE_PATH}，避免替换 $host 等 Nginx 变量
-envsubst '${API_ROUTE_PREFIX} ${APP_BASE_PATH}' < /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
+# 使用 sed 替换模板中的变量 (替代 envsubst 以避免依赖 gettext)
+# 使用 | 作为分隔符避免路径中的 / 冲突
+sed -e "s|\${API_ROUTE_PREFIX}|${API_ROUTE_PREFIX}|g" \
+    -e "s|\${APP_BASE_PATH}|${APP_BASE_PATH}|g" \
+    /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
 
 # 6. 启动 supervisord（管理 nginx、node、crond）
 exec "$@"

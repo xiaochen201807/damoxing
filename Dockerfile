@@ -30,8 +30,8 @@ RUN npm run build
 # ============================================
 FROM node:18-alpine
 
-# 安装 Nginx、SQLite 和 cronie（定时任务）
-RUN apk add --no-cache nginx sqlite supervisor dcron
+# 安装 Nginx、SQLite、cronie 和 gettext (envsubst)
+RUN apk add --no-cache nginx sqlite supervisor dcron gettext
 
 WORKDIR /app
 

@@ -37,8 +37,8 @@ services:
       # ============================================
       # API 路由前缀配置
       # ============================================
-      - API_ROUTE_PREFIX=/gjjrgzn/api
-      - APP_BASE_PATH=/gjjrgzn/
+      - API_ROUTE_PREFIX=/gjj_gjsjjxmx/api
+      - APP_BASE_PATH=/gjj_gjsjjxmx/
 
       # ============================================
       # JWT 配置
@@ -68,6 +68,10 @@ services:
       - ./data:/app/data
       # 环境变量文件 (可选)
       # - ./server/.env:/app/.env:ro
+      # 前端运行时配置文件 (可选，用于覆盖自动生成的配置)
+      # - ./client/public/config.js:/usr/share/nginx/html/config.js:ro
+      # 挂载修复版启动脚本 (解决 envsubst not found 问题)
+      - ./docker-entrypoint.sh:/docker-entrypoint.sh
 
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
