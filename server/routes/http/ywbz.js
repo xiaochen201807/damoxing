@@ -91,16 +91,30 @@ router.post('/get', (req, res) => {
         if (err) return res.status(500).json({ status: 1, msg: err.message });
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
-        // 查询关联的属性 (KV)
-        const sxSql = "SELECT sxmc, sxz FROM gjj_ywbzsx WHERE ywid = ?";
+        // 查询关联的属性 (KV) - 这里的接口用途似乎是返回详情给 AMIS 使用
+        // 宽表重构后，attributes 字段可能不再适用原来的 [{sxmc, sxz}] 格式
+        // 但为了兼容，我们尝试转换一下？或者直接返回空，视前端是否还在用attributes字段。
+        // 从代码看，attributes 是给 AMIS combo 用的，格式是 [{sxmc, sxz}]?
+        // 不，看 99 行注释：转换为 数组 格式供 AMIS combo 使用
+        // 其实这里的 get 接口和 /config_form 的数据源是一样的。
+        // 为保持一致性，重构为类似 config_form 的对象数组结构可能更好。
+        // 但如果不改变前端，按原样返回 [{sxmc: 'k', sxz: 'v'}] 结构：
+
+        const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ?";
         db.all(sxSql, [id], (err, sxRows) => {
             if (err) return res.status(500).json({ status: 1, msg: err.message });
 
-            // 转换为 数组 格式供 AMIS combo 使用 (更符合当前模板)
-            const attributes = sxRows.map(item => ({
-                sxmc: item.sxmc,
-                sxz: item.sxz
-            }));
+            const attributes = [];
+            sxRows.forEach(row => {
+                for (let i = 1; i <= 10; i++) {
+                    if (row[`k${i}`]) {
+                        attributes.push({
+                            sxmc: row[`k${i}`],
+                            sxz: row[`v${i}`]
+                        });
+                    }
+                }
+            });
 
             row.attributes = attributes;
             res.json({ status: 0, msg: "ok", data: row });
@@ -130,8 +144,12 @@ router.post('/config_form', (req, res) => {
     // 1. 查询标准库定义的属性 (gjj_ywbzksx)
     const sqlSchema = `SELECT * FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC`;
 
-    // 2. 查询已保存的属性值 (gjj_ywbzsx)
-    const sqlValues = `SELECT sxmc, sxz, row_index FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC`;
+    // 2. 查询已保存的属性值 (gjj_ywbzsx 宽表)
+    const sqlValues = `
+        SELECT * FROM gjj_ywbzsx 
+        WHERE ywid = ? 
+        ORDER BY row_index ASC, id ASC
+    `;
 
     db.all(sqlSchema, [mbid], (err, schemaRows) => {
         if (err) {
@@ -145,17 +163,23 @@ router.post('/config_form', (req, res) => {
                 return res.json({ status: 1, msg: "获取参数值失败" });
             }
 
-            // 将打平的 KV 数据重组为对象数组 (按 row_index 分组)
-            const rowsVariables = [];
-            valueRows.forEach(row => {
-                const idx = row.row_index || 0;
-                if (!rowsVariables[idx]) {
-                    rowsVariables[idx] = {};
+            // 将宽表结构 (k1,v1...) 还原为对象数组
+            const cleanedValues = valueRows.map(row => {
+                const item = {
+                    id: row.id, // 保留 ID 方便调试或更新
+                    result: row.result
+                };
+
+                // 遍历 k1-k10
+                for (let i = 1; i <= 10; i++) {
+                    const k = row[`k${i}`];
+                    const v = row[`v${i}`];
+                    if (k) {
+                        item[k] = v;
+                    }
                 }
-                rowsVariables[idx][row.sxmc] = row.sxz;
+                return item;
             });
-            // 过滤掉空项 (以防万一 row_index 不连续)
-            const cleanedValues = rowsVariables.filter(v => v);
 
             // 动态构建 Combo 的内部 items (表单列)
             const comboItems = schemaRows.map(field => {
@@ -185,7 +209,7 @@ router.post('/config_form', (req, res) => {
                     wrapWithPanel: false,
                     api: {
                         method: "post",
-                        url: "{{ GLOBAL_API_PREFIX }}/ywbz/save_params",
+                        url: `${process.env.API_ROUTE_PREFIX || '/api'}/ywbz/save_params`,
                         data: {
                             id: id,
                             rules: "$rules" // 将 Combo 的数组数据命名为 rules 提交
@@ -241,15 +265,41 @@ router.post('/save_params', (req, res) => {
                 return res.json({ status: 1, msg: "清理旧参数失败" });
             }
 
-            // 2. 插入新属性 (多行数据)
-            const insSql = "INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz, row_index) VALUES (?, ?, ?, ?)";
-            const stmt = db.prepare(insSql);
+            // 2. 插入新属性 (宽表结构)
+            // 支持 k1, v1 ... k10, v10, result
+            const columns = ['ywid', 'row_index', 'result'];
+            for (let i = 1; i <= 10; i++) {
+                columns.push(`k${i}`);
+                columns.push(`v${i}`);
+            }
+            const placeholders = columns.map(() => '?').join(',');
+            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+
+            // fix: db is a wrapper, use db.raw to access original sqlite3 object for prepare()
+            const stmt = db.raw.prepare(insSql);
 
             try {
                 rules.forEach((row, rowIndex) => {
+                    const params = [id, rowIndex, row.result || ''];
+                    let kIndex = 1;
+
+                    // 遍历对象的 key，排除 result 和 id 加到 k/v 列中
                     Object.keys(row).forEach(key => {
-                        stmt.run([id, key, row[key], rowIndex]);
+                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                            params.push(key);      // k
+                            params.push(row[key]); // v
+                            kIndex++;
+                        }
                     });
+
+                    // 补全剩余的 k/v 为 null
+                    while (kIndex <= 10) {
+                        params.push(null);
+                        params.push(null);
+                        kIndex++;
+                    }
+
+                    stmt.run(params);
                 });
                 stmt.finalize();
                 db.run("COMMIT", (err) => {
@@ -278,13 +328,29 @@ router.get('/:id', authenticateToken, (req, res) => {
         if (err) return res.status(500).json({ status: 1, msg: err.message });
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
-        const sxSql = "SELECT sxmc, sxz FROM gjj_ywbzsx WHERE ywid = ?";
+        const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC";
         db.all(sxSql, [id], (err, sxRows) => {
             if (err) return res.status(500).json({ status: 1, msg: err.message });
 
+            // 宽表转对象 (注意：GET /:id 原逻辑是返回单个对象 rule_params，
+            // 但如果宽表有多行，兼容性上可能需要调整。
+            // 假设这里只取第一行，或者根据业务需求调整。
+            // 原逻辑是: 扁平的 KV 对合并到一个 rule_params 对象中。
+            // 新逻辑: 如果有多行，怎么合并？暂时保留原行为：全部合并到一个对象。
+
             const rule_params = {};
-            sxRows.forEach(item => {
-                rule_params[item.sxmc] = item.sxz;
+            sxRows.forEach(row => {
+                for (let i = 1; i <= 10; i++) {
+                    const k = row[`k${i}`];
+                    const v = row[`v${i}`];
+                    if (k) {
+                        rule_params[k] = v;
+                    }
+                }
+                // result 怎么处理？原逻辑没有 result 字段的特殊处理。
+                if (row.result) {
+                    rule_params.result = row.result;
+                }
             });
 
             row.rule_params = rule_params;
@@ -329,19 +395,40 @@ router.post('/save', async (req, res) => {
             ywid = result.lastID;
         }
 
-        // 插入新属性 (支持数组 attributes 或对象 rule_params)
+        // 插入新属性 (支持以对象形式传入的 rule_params, 视为一行数据)
         const attrs = attributes || rule_params;
-        if (attrs) {
-            if (Array.isArray(attrs)) {
-                for (const attr of attrs) {
-                    if (attr.sxmc && attr.sxz) {
-                        await runQuery("INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz) VALUES (?, ?, ?)", [ywid, attr.sxmc, attr.sxz]);
+        if (attrs && typeof attrs === 'object') {
+            // 宽表插入逻辑
+            const columns = ['ywid', 'row_index', 'result'];
+            for (let i = 1; i <= 10; i++) {
+                columns.push(`k${i}`);
+                columns.push(`v${i}`);
+            }
+            const placeholders = columns.map(() => '?').join(',');
+            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+
+            const insertRow = async (rowIndex, rowData) => {
+                const params = [ywid, rowIndex, rowData.result || ''];
+                let kIndex = 1;
+                Object.keys(rowData).forEach(key => {
+                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                        params.push(key);
+                        params.push(rowData[key]);
+                        kIndex++;
                     }
+                });
+                while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+                await runQuery(insSql, params);
+            };
+
+            if (Array.isArray(attrs)) {
+                // 如果是数组，插入多行
+                for (let i = 0; i < attrs.length; i++) {
+                    await insertRow(i, attrs[i]);
                 }
-            } else if (typeof attrs === 'object') {
-                for (const [key, value] of Object.entries(attrs)) {
-                    await runQuery("INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz) VALUES (?, ?, ?)", [ywid, key, value]);
-                }
+            } else {
+                // 如果是单对象，插入一行
+                await insertRow(0, attrs);
             }
         }
 
@@ -378,9 +465,27 @@ router.put('/:id', authenticateToken, async (req, res) => {
         await runQuery("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
 
         if (rule_params && typeof rule_params === 'object') {
-            for (const [key, value] of Object.entries(rule_params)) {
-                await runQuery("INSERT INTO gjj_ywbzsx (ywid, sxmc, sxz) VALUES (?, ?, ?)", [id, key, value]);
+            // 宽表插入逻辑
+            const columns = ['ywid', 'row_index', 'result'];
+            for (let i = 1; i <= 10; i++) {
+                columns.push(`k${i}`);
+                columns.push(`v${i}`);
             }
+            const placeholders = columns.map(() => '?').join(',');
+            const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
+
+            // 单对象插入一行
+            const params = [id, 0, rule_params.result || ''];
+            let kIndex = 1;
+            Object.keys(rule_params).forEach(key => {
+                if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                    params.push(key);
+                    params.push(rule_params[key]);
+                    kIndex++;
+                }
+            });
+            while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+            await runQuery(insSql, params);
         }
 
         res.json({ status: 0, msg: "更新成功" });

@@ -60,8 +60,28 @@ CREATE TABLE gjj_ywbz (
 CREATE TABLE gjj_ywbzsx (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ywid INTEGER NOT NULL, -- 关联业务标准主表的ID
-    sxmc VARCHAR(100) NOT NULL, -- 属性名称
-    sxz TEXT, -- 属性值
+    row_index INTEGER DEFAULT 0, -- 行索引(排序)
+    k1 TEXT,
+    v1 TEXT,
+    k2 TEXT,
+    v2 TEXT,
+    k3 TEXT,
+    v3 TEXT,
+    k4 TEXT,
+    v4 TEXT,
+    k5 TEXT,
+    v5 TEXT,
+    k6 TEXT,
+    v6 TEXT,
+    k7 TEXT,
+    v7 TEXT,
+    k8 TEXT,
+    v8 TEXT,
+    k9 TEXT,
+    v9 TEXT,
+    k10 TEXT,
+    v10 TEXT,
+    result TEXT, -- 结果列
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
@@ -198,13 +218,41 @@ VALUES (
     );
 
 -- 4. 业务标准属性示例 (规则参数值 - 替代 JSON)
+-- 4. 业务标准属性示例 (规则参数值 - 宽表结构)
 INSERT INTO
-    gjj_ywbzsx (ywid, sxmc, sxz)
-VALUES (1, '职工类型', '正式员工'),
-    (1, '最高可贷额度', '500000'),
-    (2, '职工类型', '正式员工'),
-    (2, '子女数量', '2'),
-    (2, '最高可贷额度', '800000');
+    gjj_ywbzsx (
+        ywid,
+        row_index,
+        k1,
+        v1,
+        k2,
+        v2,
+        k3,
+        v3,
+        result
+    )
+VALUES (
+        1,
+        0,
+        '职工类型',
+        '正式员工',
+        '最高可贷额度',
+        '500000',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        2,
+        0,
+        '职工类型',
+        '正式员工',
+        '子女数量',
+        '2',
+        '最高可贷额度',
+        '800000',
+        NULL
+    );
 
 -- ============================================
 -- 创建索引
@@ -226,4 +274,4 @@ CREATE INDEX IF NOT EXISTS idx_gjj_ywbz_yxj ON gjj_ywbz (yxj);
 -- 业务属性表索引
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_yw ON gjj_ywbzsx (ywid);
 
-CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_mc ON gjj_ywbzsx (sxmc);
+CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_mc ON gjj_ywbzsx (k1);
