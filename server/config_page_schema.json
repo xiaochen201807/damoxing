@@ -204,6 +204,21 @@
                                                             "min": 0
                                                         },
                                                         {
+                                                            "type": "select",
+                                                            "name": "layout_type",
+                                                            "label": "布局模式",
+                                                            "options": [
+                                                                {
+                                                                    "label": "默认（显示侧边栏）",
+                                                                    "value": "default"
+                                                                },
+                                                                {
+                                                                    "label": "隐藏侧边栏 (全屏)",
+                                                                    "value": "no_sidebar"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
                                                             "type": "textarea",
                                                             "name": "description",
                                                             "label": "\u63cf\u8ff0",

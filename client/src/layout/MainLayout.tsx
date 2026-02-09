@@ -10,6 +10,7 @@ import './MainLayout.css';
 const MainLayout: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [routeTitle, setRouteTitle] = useState('管理系统'); // 默认标题
+  const [layoutType, setLayoutType] = useState('default'); // 布局类型
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
@@ -35,6 +36,7 @@ const MainLayout: React.FC = () => {
       // 设置路由标题
       if (routeRes.data && routeRes.data.status === 0 && routeRes.data.data) {
         setRouteTitle(routeRes.data.data.route_name || '管理系统');
+        setLayoutType(routeRes.data.data.layout_type || 'default');
       }
 
       // 设置菜单 - 构建树形结构
@@ -54,25 +56,28 @@ const MainLayout: React.FC = () => {
   return (
     <div className="main-layout">
       {/* 侧边栏 */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2>{routeTitle}</h2>
-        </div>
+      {layoutType !== 'no_sidebar' && (
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <h2>{routeTitle}</h2>
+          </div>
 
-        <nav className="sidebar-nav">
-          {loading ? (
-            <div className="menu-loading">加载菜单中...</div>
-          ) : (
-            <MenuList items={menus} routeKey={routeKey} />
-          )}
-        </nav>
-      </aside>
+          <nav className="sidebar-nav">
+            {loading ? (
+              <div className="menu-loading">加载菜单中...</div>
+            ) : (
+              <MenuList items={menus} routeKey={routeKey} />
+            )}
+          </nav>
+        </aside>
+      )}
+
 
       {/* 主内容区域 */}
       <main className="main-content">
         <Outlet />
       </main>
-    </div>
+    </div >
   );
 };
 
