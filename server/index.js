@@ -4,6 +4,10 @@
  */
 
 const { startHttpServer } = require('./services/http-server');
+const dbOracle = require('./db_oracle');
+
+// 初始化 Oracle 连接池
+dbOracle.initialize();
 
 startHttpServer()
     .then(() => {

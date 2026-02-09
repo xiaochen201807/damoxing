@@ -82,17 +82,17 @@ const wrappedDb = {
     const start = Date.now();
     const sqlId = Math.random().toString(36).substring(7); // 简单的请求ID
 
-    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    logger.info(`[SQLite] [SQL-${sqlId}] ==>  Preparing: ${sql}`);
     if (params && params.length > 0) {
-      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+      logger.info(`[SQLite] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
     }
 
     return db.run(sql, params, function (err) {
       const duration = Date.now() - start;
       if (err) {
-        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+        logger.error(`[SQLite] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
       } else {
-        logger.info(`[SQL-${sqlId}] <==    Updates: ${this.changes} (LastID: ${this.lastID}) (${duration}ms)`);
+        logger.info(`[SQLite] [SQL-${sqlId}] <==    Updates: ${this.changes} (LastID: ${this.lastID}) (${duration}ms)`);
       }
       if (callback) callback.call(this, err);
     });
@@ -106,19 +106,19 @@ const wrappedDb = {
     const start = Date.now();
     const sqlId = Math.random().toString(36).substring(7);
 
-    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    logger.info(`[SQLite] [SQL-${sqlId}] ==>  Preparing: ${sql}`);
     if (params && params.length > 0) {
-      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+      logger.info(`[SQLite] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
     }
 
     return db.get(sql, params, function (err, row) {
       const duration = Date.now() - start;
       if (err) {
-        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+        logger.error(`[SQLite] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
       } else {
-        logger.info(`[SQL-${sqlId}] <==      Total: ${row ? 1 : 0} (${duration}ms)`);
+        logger.info(`[SQLite] [SQL-${sqlId}] <==      Total: ${row ? 1 : 0} (${duration}ms)`);
         if (row) {
-          logger.info(`[SQL-${sqlId}] <==        H: ${JSON.stringify(row)}`);
+          logger.info(`[SQLite] [SQL-${sqlId}] <==        H: ${JSON.stringify(row)}`);
         }
       }
       if (callback) callback.call(this, err, row);
@@ -133,24 +133,24 @@ const wrappedDb = {
     const start = Date.now();
     const sqlId = Math.random().toString(36).substring(7);
 
-    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql}`);
+    logger.info(`[SQLite] [SQL-${sqlId}] ==>  Preparing: ${sql}`);
     if (params && params.length > 0) {
-      logger.info(`[SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
+      logger.info(`[SQLite] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(params)}`);
     }
 
     return db.all(sql, params, function (err, rows) {
       const duration = Date.now() - start;
       if (err) {
-        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+        logger.error(`[SQLite] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
       } else {
-        logger.info(`[SQL-${sqlId}] <==      Total: ${rows ? rows.length : 0} (${duration}ms)`);
+        logger.info(`[SQLite] [SQL-${sqlId}] <==      Total: ${rows ? rows.length : 0} (${duration}ms)`);
         // 如果结果集不大，可以打印出来；太大就不打印了，或者只打印前几条
         if (rows && rows.length > 0) {
           if (rows.length <= 5) {
-            rows.forEach(row => logger.info(`[SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
+            rows.forEach(row => logger.info(`[SQLite] [SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
           } else {
-            logger.info(`[SQL-${sqlId}] <==        R: (First 5 of ${rows.length})`);
-            rows.slice(0, 5).forEach(row => logger.info(`[SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
+            logger.info(`[SQLite] [SQL-${sqlId}] <==        R: (First 5 of ${rows.length})`);
+            rows.slice(0, 5).forEach(row => logger.info(`[SQLite] [SQL-${sqlId}] <==        R: ${JSON.stringify(row)}`));
           }
         }
       }
@@ -161,14 +161,14 @@ const wrappedDb = {
   exec(sql, callback) {
     const start = Date.now();
     const sqlId = Math.random().toString(36).substring(7);
-    logger.info(`[SQL-${sqlId}] ==>  Preparing: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`);
+    logger.info(`[SQLite] [SQL-${sqlId}] ==>  Preparing: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`);
 
     return db.exec(sql, function (err) {
       const duration = Date.now() - start;
       if (err) {
-        logger.error(`[SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+        logger.error(`[SQLite] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
       } else {
-        logger.info(`[SQL-${sqlId}] <==    Success (${duration}ms)`);
+        logger.info(`[SQLite] [SQL-${sqlId}] <==    Success (${duration}ms)`);
       }
       if (callback) callback.call(this, err);
     });

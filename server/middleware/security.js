@@ -98,7 +98,8 @@ const sqlInjectionProtection = (req, res, next) => {
 
         // 多个 SQL 关键字的组合（更可能是攻击）
         /\bunion[\s]+select\b/gi,                // UNION SELECT
-        /\bselect[\s]+.*[\s]+from\b/gi,          // SELECT ... FROM
+        // 移除过于宽泛的 SELECT FROM 检测，避免误报
+        // /\bselect[\s]+.*[\s]+from\b/gi,       // SELECT ... FROM
         /\bdrop[\s]+table\b/gi,                  // DROP TABLE
         /\binsert[\s]+into\b/gi,                 // INSERT INTO
         /\bdelete[\s]+from\b/gi,                 // DELETE FROM
