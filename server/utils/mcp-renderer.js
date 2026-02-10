@@ -67,7 +67,7 @@ function renderPdfExportButton(options = {}) {
             pdf_filename: pdf_filename || '页面导出',
             pdf_target_selector: '.cxd-Page-body',
             pdf_button_position: 'center',
-            app_base_path: process.env.APP_BASE_PATH || '/gjjrgzn/'
+            app_base_path: process.env.APP_BASE_PATH || '/gjj_gjsjjsmx/'
         });
         return buttonSchema;
     } catch (error) {

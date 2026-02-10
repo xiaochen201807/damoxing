@@ -13,20 +13,20 @@
             { "label": "建造翻建大修提取", "value": "jzfjdx" },
             { "label": "偿还贷款本息提取", "value": "chdkbx" }
         ],
-        "business_content_class_api": "/gjjrgzn/api/tools/business-content-classes",
+        "business_content_class_api": "/gjj_gjsjjsmx/api/tools/business-content-classes",
         "business_content_class_params": {},
-        "business_standard_value_api": "/gjjrgzn/api/tools/business-standard-values",
+        "business_standard_value_api": "/gjj_gjsjjsmx/api/tools/business-standard-values",
         "business_standard_value_params": {},
-        "service_objects_api": "/gjjrgzn/api/tools/service-objects",
+        "service_objects_api": "/gjj_gjsjjsmx/api/tools/service-objects",
         "service_objects_params": {},
-        "business_standard_attribute_api": "/gjjrgzn/api/tools/business-standard-attributes",
+        "business_standard_attribute_api": "/gjj_gjsjjsmx/api/tools/business-standard-attributes",
         "business_standard_attribute_params": {}
     },
     "body": [
         {
             "type": "crud",
             "columnsTogglable": false,
-            "api": "post:/gjjrgzn/api/ywbzk/list",
+            "api": "post:/gjj_gjsjjsmx/api/ywbzk/list",
             "filter": {
                 "title": "",
                 "submitText": "",
@@ -63,7 +63,7 @@
                         "clearable": true,
                         "source": {
                             "method": "post",
-                            "url": "/gjjrgzn/api/ywbzk/standards"
+                            "url": "/gjj_gjsjjsmx/api/ywbzk/standards"
                         }
                     },
                     {
@@ -86,7 +86,7 @@
                             "body": {
                                 "type": "form",
                                 "mode": "normal",
-                                "api": "post:/gjjrgzn/api/ywbzk/save",
+                                "api": "post:/gjj_gjsjjsmx/api/ywbzk/save",
                                 "body": [
                                     {
                                         "type": "input-number",
