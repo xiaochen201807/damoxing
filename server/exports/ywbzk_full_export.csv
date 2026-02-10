@@ -1,18 +1,14 @@
 ﻿-- 业务标准全量导出 (包含标准表和属性表)
--- 导出时间: 2026/2/10 18:03:58
-
-BEGIN TRANSACTION;
+-- 导出时间: 2026/2/10 18:33:34
 
 DELETE FROM gjj_ywbzksx;
 DELETE FROM gjj_ywbzk;
 
-INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (1, 10, '业务办理标准内容', NULL, 'select * from dual;', '这个是业务办理标准说明', 'ktqje', NULL, 'gmzftq', Mon Feb 09 2026 17:01:13 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:31:03 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (21, 1, '1231231dasdasd啊打算打算的dasda', '1001210430270', 'select dasd from dx_156321_dxsl', '打算打爱仕达啊', 'kdknx', '2', 'zhblje', Tue Feb 10 2026 16:52:00 GMT+0800 (中国标准时间), Tue Feb 10 2026 16:52:00 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (23, 0, 'eqweqwe', '1001210430270', NULL, 'eqweqweqwe', 'kdkje', '2', 'zhblje', Tue Feb 10 2026 17:11:31 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:15:33 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (24, 10, '这里是业务办理标准要用于搜索的', '1_bz_1770608738515', 'select * from dasda；', '这里就是个补充说明', 'ktqje', '2', 'jcrzhye', Tue Feb 10 2026 17:30:33 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:51:36 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (10, 24, '03124', '缴存人', '归集银行', 'dx_03124_gjyh', 'page', NULL, Tue Feb 10 2026 17:51:36 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:51:36 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (11, 24, '03601', '缴存人信用账户', '平台任务分类名称', 'dx_03601_ptrwflmc', 'page', NULL, Tue Feb 10 2026 17:51:36 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:51:36 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (4, 23, '缴存人信用账户', '缴存人信用账户', '凭证分录名称', 'dx_09018_dxmc', 'page', NULL, Tue Feb 10 2026 17:15:33 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:15:33 GMT+0800 (中国标准时间));
-INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (5, 23, '缴存人信用账户', '缴存人信用账户', '凭证分录id', 'dx_09018_id', 'page', NULL, Tue Feb 10 2026 17:15:33 GMT+0800 (中国标准时间), Tue Feb 10 2026 17:15:33 GMT+0800 (中国标准时间));
-
-COMMIT;
+INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (1, 10, '业务办理标准内容', NULL, 'select * from dual;', '这个是业务办理标准说明', 'ktqje', NULL, 'gmzftq', TO_DATE('20260209170113', 'YYYYMMDDHH24MISS'), TO_DATE('20260210173103', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (21, 1, '1231231dasdasd啊打算打算的dasda', '1001210430270', 'select dasd from dx_156321_dxsl', '打算打爱仕达啊', 'kdknx', '2', 'zhblje', TO_DATE('20260210165200', 'YYYYMMDDHH24MISS'), TO_DATE('20260210165200', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (23, 0, 'eqweqwe', '1001210430270', NULL, 'eqweqweqwe', 'kdkje', '2', 'zhblje', TO_DATE('20260210171131', 'YYYYMMDDHH24MISS'), TO_DATE('20260210171533', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (24, 10, '这里是业务办理标准要用于搜索的', '1_bz_1770608738515', 'select * from dasda；', '这里就是个补充说明', 'ktqje', '2', 'jcrzhye', TO_DATE('20260210173033', 'YYYYMMDDHH24MISS'), TO_DATE('20260210175136', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (10, 24, '03124', '缴存人', '归集银行', 'dx_03124_gjyh', 'page', NULL, TO_DATE('20260210175136', 'YYYYMMDDHH24MISS'), TO_DATE('20260210175136', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (11, 24, '03601', '缴存人信用账户', '平台任务分类名称', 'dx_03601_ptrwflmc', 'page', NULL, TO_DATE('20260210175136', 'YYYYMMDDHH24MISS'), TO_DATE('20260210175136', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (4, 23, '缴存人信用账户', '缴存人信用账户', '凭证分录名称', 'dx_09018_dxmc', 'page', NULL, TO_DATE('20260210171533', 'YYYYMMDDHH24MISS'), TO_DATE('20260210171533', 'YYYYMMDDHH24MISS'));
+INSERT INTO gjj_ywbzksx (id, mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg, cjsj, gxsj) VALUES (5, 23, '缴存人信用账户', '缴存人信用账户', '凭证分录id', 'dx_09018_id', 'page', NULL, TO_DATE('20260210171533', 'YYYYMMDDHH24MISS'), TO_DATE('20260210171533', 'YYYYMMDDHH24MISS'));

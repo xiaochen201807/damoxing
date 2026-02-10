@@ -161,14 +161,46 @@ export const fetcher = <T = unknown>({
   return axios(axiosConfig).then((response) => {
     const res = response.data;
 
-    // 处理文件下载：如果是 Blob 类型且有 Content-Disposition 响应头
+    // 处理文件下载：如果是 Blob 类型
+    // 注意：有时候 CORS 配置问题会导致无法读取 Content-Disposition，此时降级使用默认文件名
     const disposition = response.headers['content-disposition'];
-    if (res instanceof Blob && disposition) {
+    if (res instanceof Blob) {
       // 提取文件名
       let fileName = 'download';
-      const filenameMatch = disposition.match(/filename=(?:["']?)(.*?)(?:["']?)(?:;|$)/);
-      if (filenameMatch && filenameMatch[1]) {
-        fileName = decodeURIComponent(filenameMatch[1]);
+      if (disposition) {
+        console.log('Download Disposition:', disposition);
+        const filenameMatch = disposition.match(/filename=(?:["']?)(.*?)(?:["']?)(?:;|$)/);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = decodeURIComponent(filenameMatch[1]);
+        }
+      } else {
+        // 尝试从 URL 中提取文件名，或者使用当前时间戳
+        try {
+            const urlParts = response.config.url?.split('/') || [];
+            const lastPart = urlParts[urlParts.length - 1];
+            if (lastPart && !lastPart.includes('?')) {
+                fileName = lastPart;
+            } else {
+                fileName = `download_${new Date().getTime()}`;
+            }
+            // 如果是 csv
+            if (res.type === 'text/csv' || res.type === 'application/csv') {
+                fileName += '.csv';
+            }
+        } catch (e) {
+            // ignore
+        }
+      }
+
+      // 补全扩展名（如果缺失）
+      // 某些情况下浏览器或正则可能截断了扩展名，或者 MIME 类型对应的扩展名未自动添加
+      console.log('Download File Type:', res.type);
+      console.log('Extracted FileName:', fileName);
+      
+      const isCsv = res.type.includes('csv') || res.type.includes('excel') || res.type === 'application/vnd.ms-excel';
+      if (isCsv && !fileName.toLowerCase().endsWith('.csv')) {
+          fileName += '.csv';
+          console.log('Appended .csv extension. New FileName:', fileName);
       }
 
       // 触发浏览器下载动作

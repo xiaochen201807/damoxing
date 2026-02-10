@@ -21,6 +21,7 @@ const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
       url: apiObj.url,
       method: (apiObj.method ?? 'get') as 'get' | 'post' | 'put' | 'delete' | 'patch',
       data: apiData ?? apiObj.data ?? apiObj.body ?? apiObj.query,
+      responseType: (apiObj as any).responseType,
       config: apiObj.config,
       headers: apiObj.headers as Record<string, string> | undefined
     });
@@ -34,8 +35,9 @@ const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
       ok: status === 0,
       status,
       msg,
-      data: payloadData
-    };
+      data: payloadData,
+      headers: response.headers // 关键修复：必须返回 headers，否则 amis 无法获取 Content-Disposition
+    } as any;
   };
 
   return (

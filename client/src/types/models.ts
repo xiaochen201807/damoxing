@@ -32,6 +32,7 @@ export interface FetcherResponse<T = unknown> {
     data: T;
     status?: number;
     msg?: string;
+    headers?: Record<string, any>;
 }
 
 // 环境变量
