@@ -622,7 +622,10 @@ const handleWizardRequest = async (req, res) => {
                     manual_page_key: "${manual_page_key}",
                     page_title: "${page_title}",
                     app_theme: "${app_theme}",
-                    params: "$$"
+                    params: "$"
+                },
+                messages: {
+                    success: "保存配置成功"
                 }
             }
         };
