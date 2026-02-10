@@ -5,33 +5,196 @@
 
 const fs = require('fs');
 const path = require('path');
+const db = require('../db');
 
-const metadata = {
-    name: "关键数据计算模型",
-    description: "用于配置具体的业务规则，支持从标准库批量同步模板，并配置关键数据算法与业务内容分类。",
-    author: "System",
-    version: "1.1.0",
-    category: "业务管理",
-    variables: [
-        {
-            name: "business_content_class_api",
-            label: "业务内容分类 API",
-            type: "string",
-            default: "/api/tools/business-content-classes",
-            description: "获取动态业务内容分类列表的接口"
-        }
-    ]
+// API 参数配置定义
+const API_PARAMS = {
+    // 导入接口
+    rule_import_api: {
+        type: 'string',
+        title: '全量导入接口 URL',
+        description: '全量导入业务规则 (CSV/SQL文件上传)',
+        default: '/api/ywbz/import',
+        group: '🔗 导入导出配置',
+        groupOrder: 3,
+        order: 1
+    },
+    // 导出接口
+    rule_export_api: {
+        type: 'string',
+        title: '全量导出接口 URL',
+        description: '全量导出业务规则 (CSV文件下载)',
+        default: '/api/ywbz/export',
+        group: '🔗 导入导出配置',
+        groupOrder: 3,
+        order: 2
+    },
+    // 关键数据算法选项配置
+    algorithm_options: {
+        type: 'combo',
+        title: '关键数据算法选项',
+        description: '配置关键数据算法的下拉选项 (Key为中文拼音首字母)',
+        multiple: true,
+        items: [
+            { type: 'input-text', name: 'label', label: '显示名称', required: true },
+            { type: 'input-text', name: 'value', label: '值 (Key)', required: true }
+        ],
+        default: [
+            { "label": "可提取金额", "value": "ktqje" },
+            { "label": "可贷款金额", "value": "kdkje" },
+            { "label": "可贷款年限", "value": "kdknx" },
+            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
+        ],
+        placeholder: '例如：[{"label":"显示名称", "value":"值"}]',
+        group: '⚙️ 选项配置',
+        groupOrder: 4,
+        order: 1
+    },
+    // 业务内容分类接口
+    business_content_class_api: {
+        type: 'string',
+        title: '业务内容分类接口 URL',
+        description: '获取业务内容分类的 API 地址',
+        default: '/api/tools/business-content-classes',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 5,
+        required: true
+    },
+    // 业务内容分类参数
+    business_content_class_params: {
+        type: 'json-editor',
+        title: '业务内容分类接口参数',
+        description: '获取业务内容分类的请求参数 (JSON格式)',
+        default: {},
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 6
+    }
 };
 
-/**
- * 解析模板内容并返回元数据
- */
-function analyze(templateContent) {
-    // 这里可以根据模板内容动态调整元数据，目前返回预定义配置
-    return metadata;
+async function analyzeBusinessRule() {
+    const templateId = 'business_rule';
+    console.log(`\n🔍 分析模板: ${templateId}\n`);
+
+    try {
+        // 构建 params_schema
+        const paramsSchema = {
+            type: 'object',
+            properties: {},
+            required: []
+        };
+        const defaultParams = {};
+
+        // 添加 API 参数
+        Object.entries(API_PARAMS).forEach(([name, config]) => {
+            const { group, groupOrder, order, default: defaultValue, required, ...otherProps } = config;
+
+            if (required) {
+                paramsSchema.required.push(name);
+            }
+
+            paramsSchema.properties[name] = {
+                ...otherProps,
+                'ui:group': group,
+                'ui:groupOrder': groupOrder,
+                'ui:order': order,
+                default: defaultValue
+            };
+            defaultParams[name] = defaultValue;
+        });
+
+        // 统计分组
+        const groups = {};
+        Object.values(API_PARAMS).forEach(config => {
+            if (!groups[config.group]) groups[config.group] = 0;
+            groups[config.group]++;
+        });
+
+        console.log(`   └─ 分组数: ${Object.keys(groups).length}`);
+        Object.entries(groups).forEach(([group, count]) => {
+            console.log(`      - ${group}: ${count}个参数`);
+        });
+
+        await new Promise((resolve, reject) => {
+            // Check if template exists
+            db.get('SELECT template_id FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
+                if (err) {
+                    console.error(`   ❌ 查询失败:`, err.message);
+                    return resolve();
+                }
+
+                if (row) {
+                    // Update existing
+                    db.run(
+                        `UPDATE sys_page_templates_config 
+                         SET params_schema = ?, default_params = ? 
+                         WHERE template_id = ?`,
+                        [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
+                        (err) => {
+                            if (!err) {
+                                console.log(`   ✅ 已更新: ${templateId}`);
+                            } else {
+                                console.error(`   ❌ 更新失败:`, err.message);
+                            }
+                            resolve();
+                        }
+                    );
+                } else {
+                    // Insert new
+                    console.log(`   ✨ 模板不存在，创建新记录: ${templateId}`);
+                    db.run(
+                        `INSERT INTO sys_page_templates_config 
+                         (template_id, template_name, description, template_file, params_schema, default_params, is_active, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now', '+08:00'))`,
+                        [
+                            templateId, 
+                            '业务规则配置', 
+                            '关键数据计算模型与业务规则配置页面', 
+                            'pages/business_rule.j2',
+                            JSON.stringify(paramsSchema), 
+                            JSON.stringify(defaultParams)
+                        ],
+                        (err) => {
+                            if (!err) {
+                                console.log(`   ✅ 已创建: ${templateId}`);
+                            } else {
+                                console.error(`   ❌ 创建失败:`, err.message);
+                            }
+                            resolve();
+                        }
+                    );
+                }
+            });
+        });
+
+        // Verification Step
+        await new Promise((resolve) => {
+            db.get('SELECT params_schema FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
+                if (err) {
+                    console.error('   🔍 验证失败: 无法读取数据库');
+                } else if (row && row.params_schema) {
+                    const schema = JSON.parse(row.params_schema);
+                    const paramCount = Object.keys(schema.properties || {}).length;
+                    console.log(`   🔍 验证成功: 数据库中已存在配置，包含 ${paramCount} 个参数`);
+                } else {
+                    console.error('   🔍 验证失败: 数据库中未找到配置');
+                }
+                resolve();
+            });
+        });
+
+        console.log(`\n🎉 ${templateId} 分析完成！\n`);
+        return { success: true, message: `${templateId} 分析完成` };
+    } catch (error) {
+        console.error(`   └─ ❌ 分析失败:`, error);
+        return { success: false, message: error.message };
+    }
 }
 
-module.exports = {
-    metadata,
-    analyze
-};
+// 支持直接运行和模块导出
+if (require.main === module) {
+    analyzeBusinessRule().then(() => process.exit(0));
+}
+
+module.exports = analyzeBusinessRule;
