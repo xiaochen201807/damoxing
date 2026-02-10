@@ -8,6 +8,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BASE_PATH: ${APP_BASE_PATH:-/}
+        VITE_API_ROUTE_PREFIX: ${API_ROUTE_PREFIX:-/api}
     container_name: damoxing-app
     restart: unless-stopped
     ports:

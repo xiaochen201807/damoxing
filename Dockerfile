@@ -22,7 +22,15 @@ RUN npm config set registry https://registry.npmmirror.com && \
 COPY client/ ./
 
 # 构建前端 (增加 Node.js 内存限制)
+ARG VITE_BASE_PATH=/
+ARG VITE_API_ROUTE_PREFIX=/api
+ARG VITE_APP_NAME=Damoxing
+ARG VITE_APP_VERSION=1.0.0
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+ENV VITE_API_ROUTE_PREFIX=${VITE_API_ROUTE_PREFIX}
+ENV VITE_APP_NAME=${VITE_APP_NAME}
+ENV VITE_APP_VERSION=${VITE_APP_VERSION}
 RUN npm run build
 
 # ============================================
