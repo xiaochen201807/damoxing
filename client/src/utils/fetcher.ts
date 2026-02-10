@@ -118,12 +118,32 @@ export const fetcher = <T = unknown>({
 
   // 只有 POST、PUT、PATCH 才在 body 中发送 data
   if (['post', 'put', 'patch'].includes(requestMethod)) {
-    axiosConfig.data = data || {};
+    let requestData = data || {};
+
+    // 特殊处理：如果 data 是 JSON 字符串，尝试解析为对象
+    // 防止后续 spread 操作 (...) 将字符串打散成字符数组 {"0":"{", "1":"n", ...}
+    if (typeof requestData === 'string') {
+      try {
+        const parsed = JSON.parse(requestData);
+        if (typeof parsed === 'object' && parsed !== null) {
+          requestData = parsed;
+        }
+      } catch (e) {
+        // 解析失败，说明可能只是普通字符串，保持原样
+      }
+    }
+
+    axiosConfig.data = requestData;
+
     // 将网关信息合并到请求体中 (如果存在)
     if (gatewayInfo) {
       try {
         const info = JSON.parse(gatewayInfo);
-        axiosConfig.data = { ...info, ...axiosConfig.data };
+        // 只有当 requestData 是普通对象时才进行合并
+        // 避免影响 FormData、Blob、Buffer 或原始字符串请求
+        if (Object.prototype.toString.call(axiosConfig.data) === '[object Object]') {
+          axiosConfig.data = { ...info, ...axiosConfig.data };
+        }
       } catch (_e) { /* ignore */ }
     }
   } else {
