@@ -90,8 +90,10 @@ const db = {
      * 执行查询并返回所有行 (SQLite)
      */
     async all(sql, params = []) {
+        logger.info('[DB] all called');
         return new Promise((resolve, reject) => {
             dbSqlite.all(sql, params, (err, rows) => {
+                logger.info(`[DB] all callback. Error: ${err ? err.message : 'none'}`);
                 if (err) reject(err);
                 else resolve(rows);
             });
