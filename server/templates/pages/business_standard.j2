@@ -233,6 +233,7 @@
                                                 "name": "ywblbzdx",
                                                 "label": "业务办理标准对象",
                                                 "required": true,
+                                                "valueField": "syObjectNumber",
                                                 "source": {
                                                     "method": "post",
                                                     "url": "${service_objects_api}",
@@ -258,13 +259,15 @@
                                                 },
                                                 "label": "业务办理标准属性",
                                                 "placeholder": "请选择属性",
+                                                "clearValueOnOptionsChange": true,
                                                 "source": {
                                                     "method": "post",
                                                     "url": "${business_standard_attribute_api}",
                                                     "data": {
                                                         "&": "${business_standard_attribute_params}",
-                                                        "ywblbzdx": "${ywblbzdx}"
-                                                    }
+                                                        "syObjectNumber": "${ywblbzdx}"
+                                                    },
+                                                    "trackExpression": "${ywblbzdx}"
                                                 }
                                             },
                                             {
@@ -511,6 +514,7 @@
                                                     "type": "select",
                                                     "name": "ywblbzdx",
                                                     "label": "业务办理标准对象",
+                                                    "valueField": "syObjectNumber",
                                                     "source": {
                                                         "method": "post",
                                                         "url": "${service_objects_api}",
@@ -532,13 +536,15 @@
                                                     },
                                                     "label": "业务办理标准属性",
                                                     "placeholder": "请选择属性",
+                                                    "clearValueOnOptionsChange": true,
                                                     "source": {
                                                         "method": "post",
                                                         "url": "${business_standard_attribute_api}",
                                                         "data": {
                                                             "&": "${business_standard_attribute_params}",
-                                                            "ywblbzdx": "${ywblbzdx}"
-                                                        }
+                                                            "syObjectNumber": "${ywblbzdx}"
+                                                        },
+                                                        "trackExpression": "${ywblbzdx}"
                                                     }
                                                 },
                                                 {
