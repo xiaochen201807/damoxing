@@ -9,9 +9,14 @@
             { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
         ],
         "standard_class_options": [
-            { "label": "购买住房提取", "value": "gmzftq" },
-            { "label": "建造翻建大修提取", "value": "jzfjdx" },
-            { "label": "偿还贷款本息提取", "value": "chdkbx" }
+            { "label": "缴存人账户余额", "value": "jcrzhye" },
+            { "label": "冻结金额", "value": "djje" },
+            { "label": "账户保留金额", "value": "zhblje" },
+            { "label": "实际支付购房款", "value": "sjzfgfk" },
+            { "label": "累计提取金额", "value": "ljtqje" },
+            { "label": "精度值", "value": "jdz" },
+            { "label": "保留方式", "value": "blfs" },
+            { "label": "在途提取金额", "value": "zttqje" }
         ],
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }},

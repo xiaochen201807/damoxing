@@ -54,7 +54,23 @@ router.post('/business-content-classes', async (req, res) => {
         logger.info(`[Tools API] Gateway response data: ${JSON.stringify(gatewayData)}`);       
         // 兼容处理：有些网关直接返回数组，有些返回 { code, data, msg }
         // 这里的处理逻辑可能需要根据实际网关返回结构进行调整
-        const resultData = Array.isArray(gatewayData) ? gatewayData : (gatewayData.data || []);
+        // 根据最新的日志，网关返回结构为 { success: true, results: [...] }
+        let list = [];
+        if (Array.isArray(gatewayData)) {
+            list = gatewayData;
+        } else if (Array.isArray(gatewayData.results)) {
+            list = gatewayData.results;
+        } else if (Array.isArray(gatewayData.data)) {
+            list = gatewayData.data;
+        }
+
+        // 转换数据格式为 AMIS 下拉框所需的 { label, value }
+        const resultData = list.map(item => ({
+            label: item.name,
+            value: item.coding,
+            ...item // 保留原始数据以备不时之需
+        }));
+
         res.json({ status: 0, msg: "ok", data: resultData });
 
     } catch (err) {
