@@ -203,49 +203,18 @@ router.post('/login', async (req, res) => {
                 });
             }
 
-            // 2. 根据 grbh (个人编号) 查找或自动创建用户
-            // 注意：网关返回的 grbh 作为系统用户的 username 使用
-            const userIdentity = gatewayInfo.grbh;
-            if (!userIdentity) {
-                return res.status(401).json({
-                    status: 401,
-                    msg: '网关返回用户信息不完整(缺少个人编号)'
-                });
-            }
-
-            // 直接使用 grbh 作为用户名查找
-            try {
-                user = await db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity]);
-            } catch (err) {
-                logger.error('[SSO] 查询用户失败:', err);
-                return res.status(500).json({ status: 500, msg: 'Database error' });
-            }
-
-            if (!user) {
-                logger.info(`[SSO] 用户不存在，自动创建: ${userIdentity}`);
-                const newUsername = userIdentity; // 使用个人编号作为用户名
-                const newNickname = gatewayInfo.xingming || userIdentity;
-                const newPassword = 'sso_auto_' + Math.random().toString(36).slice(-8);
-
-                try {
-                    await db.run(
-                        `INSERT INTO sys_user (username, password, nickname, role, is_active) 
-                         VALUES (?, ?, ?, 'user', 1)`,
-                        [newUsername, newPassword, newNickname]
-                    );
-                } catch (err) {
-                    logger.error('[SSO] 创建用户失败:', err);
-                    return res.status(500).json({ status: 500, msg: 'Failed to create user' });
-                }
-
-                // 重新查询新创建的用户
-                try {
-                    user = await db.get('SELECT * FROM sys_user WHERE username = ?', [userIdentity]);
-                } catch (err) {
-                    logger.error('[SSO] 查询新用户失败:', err);
-                    return res.status(500).json({ status: 500, msg: 'Database error' });
-                }
-            }
+            // 2. 根据网关信息构造虚拟用户（直接信任网关结果）
+            const userIdentity = gatewayInfo.grbh || 'unknown_user';
+            
+            user = {
+                id: 0, // 虚拟 ID，表示非数据库用户
+                username: userIdentity,
+                nickname: gatewayInfo.xingming || userIdentity,
+                role: 'user',
+                is_active: 1
+            };
+            
+            logger.info(`[SSO] 网关验证通过，使用虚拟用户登录: ${userIdentity}`);
         }
         // ==========================================
         // 模式 2: 本地双重验证 (SKIP_LOCAL_AUTH=false)
@@ -312,11 +281,20 @@ router.post('/login', async (req, res) => {
             role: user.role
         });
 
-        // 更新最后登录时间
-        db.run('UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id])
-            .catch(err => logger.error('[Auth] Failed to update last_login:', err));
+        // 更新最后登录时间 (仅当是真实用户 ID > 0 时)
+        if (user.id > 0) {
+            db.run('UPDATE sys_user SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id])
+                .catch(err => {
+                    // 如果是表不存在错误，且 SKIP_LOCAL_AUTH=true，则忽略
+                    if (process.env.SKIP_LOCAL_AUTH === 'true' && err.message.includes('no such table')) {
+                        // ignore
+                    } else {
+                        logger.error('[Auth] Failed to update last_login:', err);
+                    }
+                });
+        }
 
-        logger.info(`用户登录成功: ${user.username} (${user.role}) [SSO:${skipLocalAuth}]`);
+        logger.info(`用户登录成功: ${user.username} (${user.role}) [SSO:${isSsoRequest}]`);
 
         // 构建返回数据
         const responseData = {
