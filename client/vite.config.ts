@@ -5,6 +5,10 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  console.log('🔧 [Vite Config] Loading env:', mode);
+  console.log('   - VITE_BASE_PATH:', env.VITE_BASE_PATH);
+  console.log('   - VITE_API_ROUTE_PREFIX:', env.VITE_API_ROUTE_PREFIX);
+
   const isProd = mode === 'production'
   const isAnalyze = process.env.ANALYZE === 'true'
 

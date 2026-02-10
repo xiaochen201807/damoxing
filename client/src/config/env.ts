@@ -6,6 +6,9 @@ export const env = {
     // API 基础地址
     API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
 
+    // API 路由前缀（优先读取运行时配置）
+    API_ROUTE_PREFIX: window.__APP_CONFIG__?.API_ROUTE_PREFIX || import.meta.env.VITE_API_ROUTE_PREFIX || '/api',
+
     // 运行模式
     MODE: import.meta.env.MODE,
     DEV: import.meta.env.DEV,

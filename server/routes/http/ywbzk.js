@@ -48,8 +48,8 @@ router.post('/list', async (req, res) => {
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
-        const countRow = await db.get(countSql, params);
-        const rows = await db.all(paged.sql, paged.params);
+        const countRow = await db.oracle.get(countSql, params);
+        const rows = await db.oracle.all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -101,29 +101,26 @@ router.post('/save', async (req, res) => {
     const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
 
     try {
-        const { id: savedId } = await db.transaction(async (tx) => {
+        const { id: savedId } = await db.oracle.transaction(async (tx) => {
             let mbid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbzk SET pxh=?, ywblbz=?, ywbzz=?, ywbzjg=?, ywblbzsm=?, gjsjsf=?, ywnrfl=?, bzfl=?, gxsj=${SqlHelper.now()} WHERE id=?`;
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, ywbzz=:3, ywbzjg=:4, ywblbzsm=:5, gjsjsf=:6, ywnrfl=:7, bzfl=:8, gxsj=${SqlHelper.now()} WHERE id=:9`;
                 await tx.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
-                await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = ?", [id]);
+                await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                const result = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
+                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8)`;
+                await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
 
-                if (db.isOracle) {
-                    const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
-                    mbid = lastRow?.id ?? lastRow?.ID;
-                } else {
-                    mbid = result.lastID;
-                }
+                // Oracle 获取自增 ID
+                const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
+                mbid = lastRow?.id ?? lastRow?.ID;
             }
 
             if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
                 for (const sx of ywblbzsxz) {
                     const sxInsertSql = `
                         INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        VALUES (:1, :2, :3, :4, :5, :6, :7)
                     `;
                     await tx.run(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
                 }
@@ -152,7 +149,7 @@ router.post('/delete', async (req, res) => {
 
     try {
         const sql = "DELETE FROM gjj_ywbzk WHERE id = ?";
-        await db.run(sql, [id]);
+        await db.oracle.run(sql, [id]);
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         logger.error(`Failed to delete ywbzk: ${err.message}`);
@@ -263,7 +260,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         }
 
         // 执行 SQL
-        await db.exec(sqlContent);
+        await db.oracle.exec(sqlContent);
 
         logger.info("Import successful");
         res.json({ status: 0, msg: "导入成功" });

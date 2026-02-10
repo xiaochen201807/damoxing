@@ -7,13 +7,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getGatewayParamsWithFallback, saveUrlParamsToSession, getUrlParam } from '../utils/urlParams';
+import { env } from '../config/env';
 import '../styles/Login.css';
 
 // 默认跳转路径
 const DEFAULT_REDIRECT_PATH = '/system/config';
 
-// API 路由前缀（从环境变量读取，默认 /api）
-const API_PREFIX = import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
+// API 路由前缀
+const API_PREFIX = env.API_ROUTE_PREFIX;
 
 // 在组件渲染前检测是否有网关参数（避免登录页面闪烁）
 const checkInitialSsoMode = (): boolean => {

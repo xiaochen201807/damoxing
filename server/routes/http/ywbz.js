@@ -57,8 +57,8 @@ router.post('/list', async (req, res) => {
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
-        const countRow = await db.get(countSql, params);
-        const rows = await db.all(paged.sql, paged.params);
+        const countRow = await db.oracle.get(countSql, params);
+        const rows = await db.oracle.all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -83,12 +83,12 @@ router.post('/get', async (req, res) => {
 
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await db.get(sql, [id]);
+        const row = await db.oracle.get(sql, [id]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ?";
-        const sxRows = await db.all(sxSql, [id]);
+        const sxRows = await db.oracle.all(sxSql, [id]);
 
         const attributes = [];
         sxRows.forEach(row => {
@@ -252,16 +252,19 @@ router.post('/save_params', async (req, res) => {
     }
 
     try {
-        await db.transaction(async (tx) => {
+        await db.oracle.transaction(async (tx) => {
             // 1. 删除旧属性
-            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = :1", [id]);
 
             // 2. 插入新属性 (宽表结构：k1,v1...k10,v10)
             const columns = ['ywid', 'row_index', 'result'];
             for (let i = 1; i <= 10; i++) {
                 columns.push(`k${i}`, `v${i}`);
             }
-            const placeholders = columns.map(() => '?').join(',');
+            // Oracle 参数占位符是 :n
+            // 这里我们需要动态构建 :1, :2, ...
+            let paramIndex = 1;
+            const placeholders = columns.map(() => `:${paramIndex++}`).join(',');
             const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
             for (let rowIndex = 0; rowIndex < rules.length; rowIndex++) {

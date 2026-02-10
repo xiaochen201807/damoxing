@@ -11,10 +11,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getGatewayParamsWithFallback, clearGatewayParamsSession } from '../utils/urlParams';
 import SkeletonLayout from './SkeletonLayout';
+import { env } from '../config/env';
 import '../styles/AuthGuard.css';
 
 // API 路由前缀
-const API_PREFIX = import.meta.env.VITE_API_ROUTE_PREFIX || '/api';
+const API_PREFIX = env.API_ROUTE_PREFIX;
 
 interface AuthGuardProps {
     children: ReactNode;
