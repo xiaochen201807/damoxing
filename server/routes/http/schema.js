@@ -536,14 +536,20 @@ const handleWizardRequest = async (req, res) => {
                                 url: "/api/schema/template-form/${template_id}",
                                 sendOn: "this.template_id",
                                 adaptor: `
-                                    // 尝试从不同的位置获取 payload，兼容不同的 AMIS 版本或上下文
-                                    const responseData = payload || (api && api.body) || (context && context.payload);
+                                    // 尝试从 response 中获取（部分版本 AMIS response 即为 payload）
+                                    // 优先使用 response，其次 payload，再次 api.body
+                                    var data = null;
+                                    try {
+                                        if (typeof response !== 'undefined') data = response;
+                                        else if (typeof payload !== 'undefined') data = payload;
+                                        else if (typeof event !== 'undefined' && event.data) data = event.data;
+                                    } catch(e) {}
                                     
-                                    if (!responseData || !responseData.data) {
+                                    if (!data || !data.data) {
                                         return {
                                             type: 'alert',
                                             level: 'warning',
-                                            body: '⚠️ 无法获取表单配置: ' + (responseData?.msg || '未知错误') + ' (Template ID: ' + (context.template_id || 'undefined') + ')',
+                                            body: '⚠️ 无法获取表单配置 (Template ID: ' + (context.template_id || 'undefined') + ')',
                                             actions: [
                                                 {
                                                     type: 'button',
@@ -555,7 +561,7 @@ const handleWizardRequest = async (req, res) => {
                                     }
                                     return {
                                         type: 'container',
-                                        body: responseData.data.formFields || [{ type: 'alert', level: 'info', body: '此模板没有配置参数' }]
+                                        body: data.data.formFields || [{ type: 'alert', level: 'info', body: '此模板没有配置参数' }]
                                     };
                                 `
                             }
