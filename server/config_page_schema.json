@@ -251,7 +251,6 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
-                            "loadDataOnce": true,
                             "perPage": 10,
                             "api": "/api/system/menu?include_inactive=true",
                             "filter": {
@@ -265,9 +264,10 @@
                                         "clearable": true,
                                         "source": {
                                             "method": "get",
-                                            "url": "/api/routes",
-                                            "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                        }
+                                            "url": "/api/routes"
+                                        },
+                                        "labelField": "route_name",
+                                        "valueField": "route_key"
                                     }
                                 ]
                             },
@@ -318,9 +318,10 @@
                                                     "value": "dashboard",
                                                     "source": {
                                                         "method": "get",
-                                                        "url": "/api/routes",
-                                                        "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
+                                                        "url": "/api/routes"
                                                     },
+                                                    "labelField": "route_name",
+                                                    "valueField": "route_key",
                                                     "description": "\u9009\u62e9\u83dc\u5355\u6240\u5c5e\u7684\u4e3b\u8def\u6a21\u5757"
                                                 },
                                                 {
@@ -445,9 +446,10 @@
                                                             "required": true,
                                                             "source": {
                                                                 "method": "get",
-                                                                "url": "/api/routes",
-                                                                "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                                            }
+                                                                "url": "/api/routes"
+                                                            },
+                                                            "labelField": "route_name",
+                                                            "valueField": "route_key"
                                                         },
                                                         {
                                                             "type": "select",
@@ -532,7 +534,6 @@
                         {
                             "type": "crud",
                             "syncLocation": false,
-                            "loadDataOnce": true,
                             "api": "/api/system/template",
                             "filter": {
                                 "title": "筛选",
@@ -545,9 +546,10 @@
                                         "clearable": true,
                                         "source": {
                                             "method": "get",
-                                            "url": "/api/routes",
-                                            "adaptor": "return { options: (payload.data || []).map(item => ({ label: item.route_name, value: item.route_key })) };"
-                                        }
+                                            "url": "/api/routes"
+                                        },
+                                        "labelField": "route_name",
+                                        "valueField": "route_key"
                                     },
                                     {
                                         "type": "select",
@@ -917,6 +919,10 @@
                                                 "data": {
                                                     "template_id": "${template_id}"
                                                 }
+                                            },
+                                            "messages": {
+                                                "success": "分析成功！",
+                                                "failed": "分析失败，请检查日志"
                                             }
                                         }
                                     ]

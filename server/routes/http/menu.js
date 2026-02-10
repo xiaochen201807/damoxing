@@ -12,8 +12,11 @@ const cache = require('../../utils/cache');
 // 获取所有菜单
 router.get('/menu', async (req, res) => {
     try {
-        // 获取查询参数
-        const { route_key, include_inactive } = req.query;
+        // 获取查询参数 (处理重复参数的情况，取第一个)
+        const getQueryParam = (param) => Array.isArray(param) ? param[0] : param;
+        const route_key = getQueryParam(req.query.route_key);
+        const include_inactive = getQueryParam(req.query.include_inactive);
+
         logger.info(`[Menu API] Request received. query: ${JSON.stringify(req.query)}`);
 
         // 是否包含未关联有效页面的菜单（用于管理后台）

@@ -478,7 +478,7 @@ const handleWizardRequest = async (req, res) => {
                             source: {
                                 "method": "get",
                                 "url": "/api/system/template",
-                                "adaptor": "return { status: 0, msg: '', options: payload.data.map(item => ({ label: item.title + ' (' + item.page_key + ')', value: item.page_key })) }"
+                                "adaptor": "return { status: 0, msg: '', options: (payload.data || []).map(item => ({ label: item.title + ' (' + item.page_key + ')', value: item.page_key })) }"
                             }
                         },
                         {
@@ -518,6 +518,7 @@ const handleWizardRequest = async (req, res) => {
                     initApi: {
                         method: "get",
                         url: "/api/schema/template-form/${template_id}",
+                        sendOn: "this.template_id",
                         adaptor: "return { ...payload.data, __debug: 'adaptor executed' };"
                     },
                     body: [
@@ -529,20 +530,32 @@ const handleWizardRequest = async (req, res) => {
                         },
                         {
                             type: "service",
+                            visibleOn: "this.template_id",
                             schemaApi: {
                                 method: "get",
                                 url: "/api/schema/template-form/${template_id}",
+                                sendOn: "this.template_id",
                                 adaptor: `
-                                    if (!payload || !payload.data) {
+                                    // 尝试从不同的位置获取 payload，兼容不同的 AMIS 版本或上下文
+                                    const responseData = payload || (api && api.body) || (context && context.payload);
+                                    
+                                    if (!responseData || !responseData.data) {
                                         return {
                                             type: 'alert',
                                             level: 'warning',
-                                            body: '⚠️ 无法获取表单配置: ' + (payload?.msg || '未知错误')
+                                            body: '⚠️ 无法获取表单配置: ' + (responseData?.msg || '未知错误') + ' (Template ID: ' + (context.template_id || 'undefined') + ')',
+                                            actions: [
+                                                {
+                                                    type: 'button',
+                                                    label: '重试',
+                                                    actionType: 'reload'
+                                                }
+                                            ]
                                         };
                                     }
                                     return {
                                         type: 'container',
-                                        body: payload.data.formFields || [{ type: 'alert', level: 'info', body: '此模板没有配置参数' }]
+                                        body: responseData.data.formFields || [{ type: 'alert', level: 'info', body: '此模板没有配置参数' }]
                                     };
                                 `
                             }

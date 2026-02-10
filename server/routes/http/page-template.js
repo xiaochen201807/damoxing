@@ -10,7 +10,11 @@ const logger = require('../../utils/logger');
 
 // 获取所有页面模板 (仅返回当前活动版本) + 备份数量
 router.get('/template', async (req, res) => {
-    const { route_key, menu_id } = req.query;
+    // 处理可能的重复参数
+    const getQueryParam = (param) => Array.isArray(param) ? param[0] : param;
+    const route_key = getQueryParam(req.query.route_key);
+    const menu_id = getQueryParam(req.query.menu_id);
+    
     const params = [];
 
     let sql = `
