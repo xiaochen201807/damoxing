@@ -77,14 +77,14 @@ router.post('/get', async (req, res) => {
 
     try {
         const sql = "SELECT * FROM gjj_ywbzk WHERE id = ?";
-        const row = await db.get(sql, [id]);
+        const row = await db.oracle.get(sql, [id]);
 
         if (!row) {
             return res.status(404).json({ status: 1, msg: "Record not found" });
         }
 
         const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
-        const sxRows = await db.all(sxSql, [id]);
+        const sxRows = await db.oracle.all(sxSql, [id]);
 
         row.ywblbzsxz = sxRows;
         res.json({ status: 0, msg: "ok", data: row });
@@ -163,7 +163,7 @@ router.post('/delete', async (req, res) => {
 router.post('/standards', async (req, res) => {
     try {
         const sql = "SELECT DISTINCT ywblbz as value, ywblbz as label FROM gjj_ywbzk WHERE ywblbz IS NOT NULL";
-        const rows = await db.all(sql, []);
+        const rows = await db.oracle.all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -174,13 +174,13 @@ router.post('/standards', async (req, res) => {
 // 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
-    if (req.user?.role !== 'admin') {
-        return res.status(403).json({ status: 403, msg: "无导出权限" });
-    }
+    // if (req.user?.role !== 'admin') {
+    //     return res.status(403).json({ status: 403, msg: "无导出权限" });
+    // }
     try {
         // 1. 获取所有数据
-        const standards = await db.all("SELECT * FROM gjj_ywbzk");
-        const attributes = await db.all("SELECT * FROM gjj_ywbzksx");
+        const standards = await db.oracle.all("SELECT * FROM gjj_ywbzk");
+        const attributes = await db.oracle.all("SELECT * FROM gjj_ywbzksx");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务标准全量导出 (包含标准表和属性表)\n";
@@ -230,7 +230,11 @@ router.all('/export', authenticateToken, async (req, res) => {
         logger.info(`Export CSV written to: ${exportPath}`);
 
         // 4. 触发下载
-        return res.download(exportPath, exportFileName);
+        return res.download(exportPath, exportFileName, {
+            headers: {
+                'Access-Control-Expose-Headers': 'Content-Disposition'
+            }
+        });
 
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);

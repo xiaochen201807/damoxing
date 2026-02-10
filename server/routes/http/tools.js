@@ -143,7 +143,7 @@ router.post('/business-standard-values', async (req, res) => {
         // 转换数据格式为 AMIS 下拉框所需的 { label, value }
         const resultData = list.map(item => ({
             label: item.name,
-            value: item.id || item.publicParamId, // 优先使用 id，没有则使用 publicParamId
+            value: item.publicParamId, 
             ...item
         }));
 
@@ -220,7 +220,7 @@ router.post('/service-objects', async (req, res) => {
         // 转换数据格式为 AMIS 下拉框所需的 { label, value }
         const resultData = list.map(item => ({
             label: item.syObjectName,
-            value: item.syObjectName, // 保持原逻辑，使用名称作为 value
+            value: item.syObjectNumber, // 保持原逻辑，使用名称作为 value
             ...item
         }));
 

@@ -233,20 +233,25 @@
                                                 "name": "ywblbzdx",
                                                 "label": "业务办理标准对象",
                                                 "required": true,
-                                                "valueField": "syObjectNumber",
                                                 "source": {
                                                     "method": "post",
                                                     "url": "${service_objects_api}",
                                                     "data": "${service_objects_params}"
                                                 },
                                                 "autoFill": {
-                                                    "fwdxbq": "${label}"
+                                                    "fwdxbq": "${label}",
+                                                    "_syObjectNumber": "${syObjectNumber}",
+                                                    "_coding": "${coding}",
+                                                    "_id": "${id}"
                                                 }
                                             },
                                             {
                                                 "type": "hidden",
                                                 "name": "fwdxbq"
                                             },
+                                            { "type": "hidden", "name": "_syObjectNumber" },
+                                            { "type": "hidden", "name": "_coding" },
+                                            { "type": "hidden", "name": "_id" },
                                             {
                                                 "type": "hidden",
                                                 "name": "sxbm"
@@ -265,7 +270,7 @@
                                                     "url": "${business_standard_attribute_api}",
                                                     "data": {
                                                         "&": "${business_standard_attribute_params}",
-                                                        "syObjectNumber": "${ywblbzdx}"
+                                                        "syObjectNumber": "${_syObjectNumber || _coding || _id}"
                                                     },
                                                     "trackExpression": "${ywblbzdx}"
                                                 }
@@ -332,7 +337,7 @@
                         "level": "default",
                         "actionType": "download",
                         "api": {
-                            "method": "get",
+                            "method": "post",
                             "url": "${standard_export_api}",
                             "responseType": "blob"
                         }
@@ -400,7 +405,8 @@
                                         {
                                             "type": "input-number",
                                             "name": "pxh",
-                                            "label": "排序号"
+                                            "label": "排序号",
+                                            "value": 0
                                         },
                                         {
                                             "type": "input-group",
@@ -410,28 +416,41 @@
                                                     "type": "input-text",
                                                     "name": "ywblbz",
                                                     "required": true,
+                                                    "placeholder": "请输入描述，使用按钮插入属性引用",
                                                     "id": "u:edit_standard_name_input"
                                                 },
                                                 {
                                                     "type": "button",
                                                     "label": "插入属性",
+                                                    "icon": "fa fa-link",
+                                                    "level": "default",
                                                     "actionType": "dialog",
                                                     "dialog": {
-                                                        "title": "插入属性",
+                                                        "title": "选择属性插入",
+                                                        "size": "md",
                                                         "body": {
                                                             "type": "form",
+                                                            "wrapWithPanel": false,
                                                             "body": [
                                                                 {
                                                                     "type": "select",
                                                                     "name": "_temp_attribute_obj",
                                                                     "label": "选择属性",
+                                                                    "placeholder": "请选择要插入的属性",
                                                                     "source": "${ywblbzsxz}",
                                                                     "labelField": "ywblbzsx",
-                                                                    "valueField": "ywblbzsx"
+                                                                    "valueField": "ywblbzsx",
+                                                                    "menuTpl": "<div>${fwdxbq} - ${ywblbzsx}</div>",
+                                                                    "required": true
                                                                 }
                                                             ]
                                                         },
                                                         "actions": [
+                                                            {
+                                                                "type": "button",
+                                                                "label": "取消",
+                                                                "actionType": "cancel"
+                                                            },
                                                             {
                                                                 "type": "button",
                                                                 "label": "插入",
@@ -459,31 +478,16 @@
                                             ]
                                         },
                                         {
-                                            "type": "select",
-                                            "name": "ywbzz",
-                                            "label": "业务标准值",
-                                            "clearable": true,
-                                            "placeholder": "请选择业务标准值",
-                                            "source": {
-                                                "method": "post",
-                                                "url": "${business_standard_value_api}",
-                                                "data": "${business_standard_value_params}"
-                                            }
-                                        },
-                                        {
-                                            "type": "textarea",
-                                            "name": "ywbzjg",
-                                            "label": "业务标准结果SQL"
-                                        },
-                                        {
-                                            "type": "textarea",
-                                            "name": "ywblbzsm",
-                                            "label": "核心解释说明"
-                                        },
-                                        {
                                             "type": "input-text",
+                                            "name": "ywblbzsm",
+                                            "label": "业务办理标准说明",
+                                            "placeholder": "请输入业务办理标准说明"
+                                        },
+                                        {
+                                            "type": "select",
                                             "name": "gjsjsf",
-                                            "label": "关键数据算法"
+                                            "label": "关键数据算法",
+                                            "source": "${algorithm_options}"
                                         },
                                         {
                                             "type": "select",
@@ -500,8 +504,27 @@
                                         {
                                             "type": "select",
                                             "name": "bzfl",
-                                            "label": "分类",
+                                            "label": "标准分类",
+                                            "required": true,
                                             "source": "${standard_class_options}"
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "ywbzz",
+                                            "label": "业务标准值",
+                                            "clearable": true,
+                                            "placeholder": "请选择业务标准值",
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${business_standard_value_api}",
+                                                "data": "${business_standard_value_params}"
+                                            }
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "ywbzjg",
+                                            "label": "业务标准结果SQL",
+                                            "placeholder": "请输入 SQL"
                                         },
                                         {
                                             "type": "combo",
@@ -509,21 +532,33 @@
                                             "label": "业务办理标准属性组",
                                             "multiple": true,
                                             "multiLine": true,
+                                            "addable": true,
+                                            "removable": true,
                                             "items": [
                                                 {
                                                     "type": "select",
                                                     "name": "ywblbzdx",
                                                     "label": "业务办理标准对象",
-                                                    "valueField": "syObjectNumber",
+                                                    "required": true,
                                                     "source": {
                                                         "method": "post",
                                                         "url": "${service_objects_api}",
                                                         "data": "${service_objects_params}"
                                                     },
                                                     "autoFill": {
-                                                        "fwdxbq": "${label}"
+                                                        "fwdxbq": "${label}",
+                                                        "_syObjectNumber": "${syObjectNumber}",
+                                                        "_coding": "${coding}",
+                                                        "_id": "${id}"
                                                     }
                                                 },
+                                                {
+                                                    "type": "hidden",
+                                                    "name": "fwdxbq"
+                                                },
+                                                { "type": "hidden", "name": "_syObjectNumber" },
+                                                { "type": "hidden", "name": "_coding" },
+                                                { "type": "hidden", "name": "_id" },
                                                 {
                                                     "type": "hidden",
                                                     "name": "sxbm"
@@ -542,7 +577,7 @@
                                                         "url": "${business_standard_attribute_api}",
                                                         "data": {
                                                             "&": "${business_standard_attribute_params}",
-                                                            "syObjectNumber": "${ywblbzdx}"
+                                                            "syObjectNumber": "${_syObjectNumber || _coding || _id}"
                                                         },
                                                         "trackExpression": "${ywblbzdx}"
                                                     }
