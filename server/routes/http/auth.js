@@ -176,15 +176,16 @@ router.post('/login', async (req, res) => {
         logger.info('[Auth Debug] Login API received body:', JSON.stringify(req.body));
 
         const { username, password, ticket, tyLoginToken, qycode } = req.body;
-        const skipLocalAuth = process.env.SKIP_LOCAL_AUTH === 'true';
+        // 自动检测模式：如果配置了跳过本地验证，或者请求中包含网关参数且没有提供账号密码，则走 SSO 流程
+        const isSsoRequest = (ticket && tyLoginToken && !username && !password) || (process.env.SKIP_LOCAL_AUTH === 'true');
 
         let user = null;
         let gatewayInfo = null;
 
         // ==========================================
-        // 模式 1: 网关单点登录 (SKIP_LOCAL_AUTH=true)
+        // 模式 1: 网关单点登录 (SSO)
         // ==========================================
-        if (skipLocalAuth) {
+        if (isSsoRequest) {
             if (!ticket || !tyLoginToken) {
                 return res.status(400).json({
                     status: 400,

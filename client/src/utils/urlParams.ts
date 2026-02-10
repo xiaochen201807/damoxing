@@ -80,32 +80,33 @@ export function getUrlParamsFromSession() {
 /**
  * 获取网关参数
  * - 优先从 URL 读取
- * - 只有当 URL 中有参数时，才 fallback 到 sessionStorage
- * - 如果 URL 中没有任何网关参数，返回空值（不使用缓存）
+ * - 如果 URL 中没有，尝试从 sessionStorage 读取（支持页面刷新或跳转场景）
  */
 export function getGatewayParamsWithFallback() {
     const urlParams = getGatewayParams();
 
     // 检查 URL 中是否有任何网关参数
     const urlHasParams = !!(urlParams.ticket || urlParams.tyLoginToken || urlParams.cheque);
-
-    if (!urlHasParams) {
-        // URL 中没有网关参数，不使用缓存，返回空值
-        return {
-            ticket: null,
-            tyLoginToken: null,
-            qycode: null,
-            cheque: null
-        };
-    }
-
-    // URL 中有部分参数，可以从 sessionStorage 补充缺失的参数
+    
+    // 从 sessionStorage 读取
     const sessionParams = getUrlParamsFromSession();
 
-    return {
-        ticket: urlParams.ticket || sessionParams?.ticket || null,
-        tyLoginToken: urlParams.tyLoginToken || sessionParams?.tyLoginToken || null,
-        qycode: urlParams.qycode || sessionParams?.qycode || null,
-        cheque: urlParams.cheque || sessionParams?.cheque || null
-    };
+    if (urlHasParams) {
+        // 如果 URL 中有参数，以 URL 为主，Session 为辅
+        return {
+            ticket: urlParams.ticket || sessionParams?.ticket || null,
+            tyLoginToken: urlParams.tyLoginToken || sessionParams?.tyLoginToken || null,
+            qycode: urlParams.qycode || sessionParams?.qycode || null,
+            cheque: urlParams.cheque || sessionParams?.cheque || null
+        };
+    } else {
+        // 如果 URL 中没有任何网关参数，尝试使用 Session 中的参数
+        // 这在 SSO 登录过程中页面刷新，或者路由跳转丢失参数时很有用
+        return {
+            ticket: sessionParams?.ticket || null,
+            tyLoginToken: sessionParams?.tyLoginToken || null,
+            qycode: sessionParams?.qycode || null,
+            cheque: sessionParams?.cheque || null
+        };
+    }
 }
