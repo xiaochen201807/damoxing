@@ -19,6 +19,10 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  VITE_BASE_PATH: ${{ vars.APP_BASE_PATH || '/' }}
+  VITE_API_ROUTE_PREFIX: ${{ vars.API_ROUTE_PREFIX || '/api' }}
+  VITE_APP_NAME: ${{ vars.VITE_APP_NAME || 'Damoxing' }}
+  VITE_APP_VERSION: ${{ vars.VITE_APP_VERSION || '1.0.0' }}
 
 jobs:
   # 并行构建不同架构的镜像
@@ -86,6 +90,11 @@ jobs:
           cache-from: type=gha,scope=build-${{ steps.platform.outputs.tag }}
           cache-to: type=gha,mode=max,scope=build-${{ steps.platform.outputs.tag }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          build-args: |
+            VITE_BASE_PATH=${{ env.VITE_BASE_PATH }}
+            VITE_API_ROUTE_PREFIX=${{ env.VITE_API_ROUTE_PREFIX }}
+            VITE_APP_NAME=${{ env.VITE_APP_NAME }}
+            VITE_APP_VERSION=${{ env.VITE_APP_VERSION }}
 
       - name: Export digest
         if: ${{ github.event_name != 'pull_request' && steps.build.conclusion == 'success' }}
