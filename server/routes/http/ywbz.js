@@ -139,7 +139,7 @@ router.post('/config_form', async (req, res) => {
             ORDER BY row_index ASC, id ASC
         `;
 
-        const schemaRows = await db.all(sqlSchema, [mbid]);
+        const schemaRows = await db.oracle.all(sqlSchema, [mbid]);
 
         // 构建映射表：属性名称 -> 属性编码
         const nameToCodeMap = {};
@@ -152,7 +152,7 @@ router.post('/config_form', async (req, res) => {
             }
         });
 
-        const valueRows = await db.all(sqlValues, [id]);
+        const valueRows = await db.oracle.all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
         const cleanedValues = valueRows.map(row => {
@@ -305,12 +305,12 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
 
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await db.get(sql, [id]);
+        const row = await db.oracle.get(sql, [id]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC";
-        const sxRows = await db.all(sxSql, [id]);
+        const sxRows = await db.oracle.all(sxSql, [id]);
 
         const rule_params = {};
         sxRows.forEach(row => {
@@ -342,7 +342,7 @@ router.post('/save', async (req, res) => {
     const attributes = rule_params;
 
     try {
-        const { id: savedId } = await db.transaction(async (tx) => {
+        const { id: savedId } = await db.oracle.transaction(async (tx) => {
             let ywid = id;
             if (id) {
                 const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=?`;
@@ -412,7 +412,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { mbid, gzmc, ywsf, gzljsm, yxj, sfqy, rule_params } = req.body;
 
     try {
-        await db.transaction(async (tx) => {
+        await db.oracle.transaction(async (tx) => {
             const updateSql = `
                 UPDATE gjj_ywbz SET 
                 mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
@@ -483,13 +483,13 @@ router.post('/batch', async (req, res) => {
     try {
         const getStandards = (ids) => {
             const placeholders = ids.map(() => '?').join(',');
-            return db.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
+            return db.oracle.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
         };
 
         // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
         logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}'`);
         const deleteSql = `DELETE FROM gjj_ywbz WHERE IFNULL(jgbh, '') = ? AND IFNULL(zjgbh, '') = ?`;
-        const deleteResult = await db.run(deleteSql, [jgbh, zjgbh]);
+        const deleteResult = await db.oracle.run(deleteSql, [jgbh, zjgbh]);
         logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
 
         const templates = await getStandards(syncIds);
@@ -501,7 +501,7 @@ router.post('/batch', async (req, res) => {
                 INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy, jgbh, zjgbh)
                 VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
-            await db.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
+            await db.oracle.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
             syncCount++;
         }
 
@@ -522,7 +522,7 @@ router.post('/delete', async (req, res) => {
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
     try {
-        await db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        await db.oracle.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -535,7 +535,7 @@ router.post('/delete', async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
-        await db.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        await db.oracle.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -548,7 +548,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.get('/options/categories', async (req, res) => {
     const sql = "SELECT DISTINCT ywnrfl as value, ywnrfl as label FROM gjj_ywbzk WHERE ywnrfl IS NOT NULL";
     try {
-        const rows = await db.all(sql, []);
+        const rows = await db.oracle.all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -564,8 +564,8 @@ router.all('/export', authenticateToken, async (req, res) => {
     }
     try {
         // 1. 获取所有数据
-        const rules = await db.all("SELECT * FROM gjj_ywbz");
-        const attributes = await db.all("SELECT * FROM gjj_ywbzsx");
+        const rules = await db.oracle.all("SELECT * FROM gjj_ywbz");
+        const attributes = await db.oracle.all("SELECT * FROM gjj_ywbzsx");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务规则全量导出 (包含规则表和属性表)\n";
@@ -644,12 +644,24 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
         }
 
-        // 执行 SQL
-        await new Promise((resolve, reject) => {
-            db.exec(sqlContent, (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
+        // 执行 SQL - Oracle 不支持 exec，需要拆分执行
+        const statements = sqlContent
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('--'));
+
+        await db.oracle.transaction(async (tx) => {
+            for (const stmt of statements) {
+                const upperStmt = stmt.toUpperCase();
+                // 跳过注释和查询语句
+                if (upperStmt.startsWith('SELECT') || 
+                    upperStmt.startsWith('SHOW') ||
+                    upperStmt.startsWith('BEGIN') ||
+                    upperStmt.startsWith('COMMIT')) {
+                    continue;
+                }
+                await tx.run(stmt, []);
+            }
         });
 
         logger.info("Import successful");
@@ -665,7 +677,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
  * 10. 获取标准库选择清册 (POST /selection_list)
  * 包含 check 状态反显
  */
-router.post('/selection_list', (req, res) => {
+router.post('/selection_list', async (req, res) => {
     const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
     const offset = (page - 1) * perPage;
 
@@ -715,52 +727,35 @@ router.post('/selection_list', (req, res) => {
     // 注意：这里的 gjsjsf 对应规则表的 ywsf
     const selectedParams = [gjsjsf, gjsjsf, queryJgbh, queryZjgbh];
 
-    // 执行查询
-    db.get(countSql, standardsParams, (err, countRow) => {
-        if (err) {
-            logger.error(`Failed to count standards: ${err.message}`);
-            return res.status(500).json({ status: 1, msg: err.message });
-        }
+    // 执行查询 - 改为 Promise 方式
+    try {
+        const countRow = await db.oracle.get(countSql, standardsParams);
+        const standards = await db.oracle.all(standardsSql, standardsQueryParams);
+        const selectedRows = await db.oracle.all(selectedSql, selectedParams);
 
-        db.all(standardsSql, standardsQueryParams, (err, standards) => {
-            if (err) {
-                logger.error(`Failed to query standards: ${err.message}`);
-                return res.status(500).json({ status: 1, msg: err.message });
+        // 内存合并: 构建 Set 加速查找
+        const selectedIds = new Set(selectedRows.map(row => Number(row.mbid)));
+        logger.info(`[Selection Fix] Selected IDs: ${Array.from(selectedIds).join(',')}`);
+
+        // 遍历标准库列表，标记 checked
+        const items = standards.map(item => ({
+            ...item,
+            checked: selectedIds.has(Number(item.id))
+        }));
+
+        res.json({
+            status: 0,
+            msg: "ok",
+            data: {
+                items: items,
+                selectedIds: Array.from(selectedIds),
+                total: countRow ? countRow.total : 0
             }
-
-            // 获取已选 ID 列表
-            db.all(selectedSql, selectedParams, (err, selectedRows) => {
-                if (err) {
-                    logger.error(`Failed to query selected rules: ${err.message}`);
-                    return res.status(500).json({ status: 1, msg: err.message });
-                }
-
-                // 内存合并: 构建 Set 加速查找 (统一转为字符串比较，防止类型不一致)
-                const selectedIds = new Set(selectedRows.map(row => Number(row.mbid)));
-                logger.info(`[Selection Fix] Selected IDs: ${Array.from(selectedIds).join(',')}`);
-
-                // 遍历标准库列表，标记 checked
-                const items = standards.map(item => {
-                    const isSelected = selectedIds.has(Number(item.id));
-                    // logger.info(`[Selection Fix] Item ID: ${item.id}, Type: ${typeof item.id}, IsSelected: ${isSelected}`);
-                    return {
-                        ...item,
-                        checked: isSelected
-                    };
-                });
-
-                res.json({
-                    status: 0,
-                    msg: "ok",
-                    data: {
-                        items: items,
-                        selectedIds: Array.from(selectedIds),
-                        total: countRow ? countRow.total : 0
-                    }
-                });
-            });
         });
-    });
+    } catch (err) {
+        logger.error(`Failed to query selection_list: ${err.message}`);
+        res.status(500).json({ status: 1, msg: err.message });
+    }
 });
 
 
