@@ -178,9 +178,10 @@ router.post('/config_form', async (req, res) => {
             const sxbm = field.sxbm || field.SXBM;
             const fwdxbq = field.fwdxbq || field.FWDXBQ;
             const ywblbzdx = field.ywblbzdx || field.YWBLBZDX;
+            const ywblbzsx = field.ywblbzsx || field.YWBLBZSX;
 
-            // 标签：使用服务对象标签(fwdxbq) 作为中文名
-            const label = fwdxbq || sxbm;
+            // 标签：fwdxbq + sxbm 组合，如 "缴存人-贷款情况"
+            const label = (fwdxbq && sxbm) ? `${fwdxbq}-${sxbm}` : (fwdxbq || sxbm);
 
             // ywblbzdx 的值就是 syObjectNumber
             const syObjectNumber = ywblbzdx || '';
@@ -197,7 +198,7 @@ router.post('/config_form', async (req, res) => {
                     url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-classes`,
                     data: {
                         syObjectNumber: syObjectNumber,
-                        fieldIdentification: sxbm
+                        fieldIdentification: ywblbzsx
                     }
                 }
             };
