@@ -23,7 +23,7 @@
         "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
         "rule_import_api": "{{ rule_import_api | default(GLOBAL_API_PREFIX + '/ywbz/import') }}",
         "rule_export_api": "{{ rule_export_api | default(GLOBAL_API_PREFIX + '/ywbz/export') }}",
-        "algorithm_options": {{ algorithm_options | default([{"label":"可提取金额","value":"ktqje"},{"label":"可贷款金额","value":"kdkje"},{"label":"可贷款年限","value":"kdknx"},{"label":"贷款还款时可对冲金额","value":"dkhkskdcje"}]) | fromjson | tojson }},
+        "algorithm_options": {{ algorithm_options | default([{"label":"最大可提取额","value":"1"},{"label":"最高可贷金额","value":"2"},{"label":"最高可贷年限","value":"3"},{"label":"借款人最大可对冲支取金额","value":"4"}]) | fromjson | tojson }},
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
     },
@@ -241,10 +241,10 @@
                     "label": "关键数据算法",
                     "type": "mapping",
                     "map": {
-                        "ktqje": "可提取金额",
-                        "kdkje": "可贷款金额",
-                        "kdknx": "可贷款年限",
-                        "dkhkskdcje": "贷款还款时可对冲金额",
+                        "1": "最大可提取额",
+                        "2": "最高可贷金额",
+                        "3": "最高可贷年限",
+                        "4": "借款人最大可对冲支取金额",
                         "*": "${ywsf}"
                     }
                 },
