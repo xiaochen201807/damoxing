@@ -141,22 +141,30 @@ router.post('/config_form', async (req, res) => {
 
         const schemaRows = await db.oracle.all(sqlSchema, [mbid]);
 
-        // 构建映射表：中文属性名(sxbm) -> fieldIdentification(ywblbzsx)
-        // 用于回显时将宽表存储的中文 key 转换回 ywblbzsx
-        const sxbmToFieldMap = {};
-        schemaRows.forEach(row => {
-            const sxbm = row.sxbm || row.SXBM;
-            const ywblbzsx = row.ywblbzsx || row.YWBLBZSX;
+        // ============================================================
+        // gjj_ywbzksx 表字段实际含义说明（与字段名不完全一致）：
+        //   sxbm       -> 实际存储：中文名称（如 "贷款情况"），用于显示
+        //   ywblbzsx   -> 实际存储：程序化标识 / fieldIdentification（如 "page"），用于表单 name
+        //   fwdxbq     -> 服务对象标签（如 "缴存人"），用于显示
+        //   ywblbzdx   -> syObjectNumber，用于调用网关 API
+        // ============================================================
 
-            if (sxbm && ywblbzsx) {
-                sxbmToFieldMap[sxbm] = ywblbzsx;
+        // 构建映射表：中文名称(sxbm) -> 程序化标识(ywblbzsx)
+        // 用于回显时兼容旧数据（宽表 k 列可能存的是中文名称）
+        const chineseNameToFieldId = {};
+        schemaRows.forEach(row => {
+            const chineseName = row.sxbm || row.SXBM;         // 中文名称
+            const fieldId = row.ywblbzsx || row.YWBLBZSX;     // 程序化标识
+
+            if (chineseName && fieldId) {
+                chineseNameToFieldId[chineseName] = fieldId;
             }
         });
 
         const valueRows = await db.oracle.all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
-        // k 列存储的可能是旧的中文名(sxbm)或新的 fieldIdentification(ywblbzsx)
+        // 宽表 k 列可能存的是旧的中文名(sxbm)或新的程序化标识(ywblbzsx)
         // 统一转换为 ywblbzsx 作为 key，与表单 name 对应
         const cleanedValues = valueRows.map(row => {
             const item = {
@@ -164,13 +172,12 @@ router.post('/config_form', async (req, res) => {
                 result: row.result || row.RESULT
             };
 
-            // 遍历 k1-k10
             for (let i = 1; i <= 10; i++) {
                 const k = row[`k${i}`] || row[`K${i}`];
                 const v = row[`v${i}`] || row[`V${i}`];
                 if (k) {
-                    // 如果 k 是中文(sxbm)，转换为 ywblbzsx；否则原样使用
-                    const key = sxbmToFieldMap[k] || k;
+                    // 如果 k 是中文名称，转换为程序化标识；否则原样使用
+                    const key = chineseNameToFieldId[k] || k;
                     item[key] = v;
                 }
             }
@@ -179,20 +186,19 @@ router.post('/config_form', async (req, res) => {
 
         // 动态构建 Combo 的内部 items (表单列)
         const comboItems = schemaRows.map(field => {
-            const sxbm = field.sxbm || field.SXBM;
-            const fwdxbq = field.fwdxbq || field.FWDXBQ;
-            const ywblbzdx = field.ywblbzdx || field.YWBLBZDX;
-            const ywblbzsx = field.ywblbzsx || field.YWBLBZSX;
+            const chineseName = field.sxbm || field.SXBM;           // 中文名称，如 "贷款情况"
+            const displayLabel = field.fwdxbq || field.FWDXBQ;      // 服务对象标签，如 "缴存人"
+            const syObjectNumber = field.ywblbzdx || field.YWBLBZDX; // syObjectNumber
+            const fieldId = field.ywblbzsx || field.YWBLBZSX;       // 程序化标识 / fieldIdentification
 
-            // 标签：fwdxbq + sxbm 组合，如 "缴存人-贷款情况"
-            const label = (fwdxbq && sxbm) ? `${fwdxbq}-${sxbm}` : (fwdxbq || sxbm);
-
-            // ywblbzdx 的值就是 syObjectNumber
-            const syObjectNumber = ywblbzdx || '';
+            // 标签组合：如 "缴存人-贷款情况"
+            const label = (displayLabel && chineseName)
+                ? `${displayLabel}-${chineseName}`
+                : (displayLabel || chineseName || fieldId);
 
             return {
                 type: "select",
-                name: ywblbzsx || sxbm,
+                name: fieldId,                   // 用程序化标识作为表单字段 name
                 label: label,
                 required: true,
                 searchable: true,
@@ -201,8 +207,8 @@ router.post('/config_form', async (req, res) => {
                     method: "post",
                     url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-classes`,
                     data: {
-                        syObjectNumber: syObjectNumber,
-                        fieldIdentification: ywblbzsx
+                        syObjectNumber: syObjectNumber || '',
+                        fieldIdentification: fieldId   // 传给网关的 fieldIdentification
                     }
                 }
             };
