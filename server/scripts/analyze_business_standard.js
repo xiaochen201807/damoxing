@@ -199,22 +199,17 @@ async function analyzeBusinessStandard() {
             console.log(`      - ${group}: ${count}个参数`);
         });
 
-        await new Promise((resolve) => {
-            db.run(
+        try {
+            await db.run(
                 `UPDATE sys_page_templates_config 
                  SET params_schema = ?, default_params = ? 
                  WHERE template_id = ?`,
-                [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
-                (err) => {
-                    if (!err) {
-                        console.log(`   ✅ 已更新: ${templateId}`);
-                    } else {
-                        console.error(`   ❌ 更新失败:`, err.message);
-                    }
-                    resolve();
-                }
+                [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId]
             );
-        });
+            console.log(`   ✅ 已更新: ${templateId}`);
+        } catch (err) {
+            console.error(`   ❌ 更新失败:`, err.message);
+        }
 
         console.log(`\n🎉 ${templateId} 分析完成！\n`);
         return { success: true, message: `${templateId} 分析完成` };

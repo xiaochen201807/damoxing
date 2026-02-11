@@ -430,66 +430,59 @@ async function syncAllTemplates() {
                 console.log(`      - ${group}: ${count}个参数`);
             });
 
-            // 更新或插入数据库
-            await new Promise((resolve) => {
-                db.get('SELECT * FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
-                    if (row) {
-                        // 记录存在，只更新 params_schema 和 default_params，保留其他字段
-                        db.run(
-                            `UPDATE sys_page_templates_config 
-                             SET params_schema = ?, default_params = ? 
-                             WHERE template_id = ?`,
-                            [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
-                            (updateErr) => {
-                                if (!updateErr) {
-                                    console.log(`   ✅ 已更新: ${templateId}`);
-                                    updated++;
-                                }
-                                resolve();
-                            }
-                        );
-                    } else {
-                        // 记录不存在，插入新记录
-                        // 优先使用配置的元数据，否则自动生成
-                        const metadata = TEMPLATE_METADATA[templateId] || {};
+            // 更新或插入数据库 (db.get/db.run 已是 async 函数，直接 await)
+            const row = await db.get('SELECT * FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
+            if (row) {
+                // 记录存在，只更新 params_schema 和 default_params，保留其他字段
+                try {
+                    await db.run(
+                        `UPDATE sys_page_templates_config 
+                         SET params_schema = ?, default_params = ? 
+                         WHERE template_id = ?`,
+                        [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId]
+                    );
+                    console.log(`   ✅ 已更新: ${templateId}`);
+                    updated++;
+                } catch (updateErr) {
+                    console.error(`   ❌ 更新失败: ${templateId}`, updateErr.message);
+                }
+            } else {
+                // 记录不存在，插入新记录
+                // 优先使用配置的元数据，否则自动生成
+                const metadata = TEMPLATE_METADATA[templateId] || {};
 
-                        const templateName = metadata.template_name || templateId
-                            .split('_')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
+                const templateName = metadata.template_name || templateId
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
 
-                        const description = metadata.description || `自动生成的 ${templateName} 模板`;
-                        const previewImage = metadata.preview_image || null;
-                        const themeId = metadata.theme_id || 'antd';
+                const description = metadata.description || `自动生成的 ${templateName} 模板`;
+                const previewImage = metadata.preview_image || null;
+                const themeId = metadata.theme_id || 'antd';
 
-                        db.run(
-                            `INSERT INTO sys_page_templates_config 
-                             (template_id, template_name, description, template_file, components, params_schema, default_params, preview_image, theme_id, is_active)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-                            [
-                                templateId,
-                                templateName,
-                                description,
-                                `pages/${file}`,
-                                JSON.stringify(Object.keys(componentParams)),
-                                JSON.stringify(paramsSchema),
-                                JSON.stringify(defaultParams),
-                                previewImage,
-                                themeId
-                            ],
-                            (insertErr) => {
-                                if (!insertErr) {
-                                    console.log(`   🆕 已创建: ${templateId} (${templateName})`);
-                                    updated++;
-                                } else {
-                                    console.error(`   ❌ 插入失败: ${templateId}`, insertErr.message);
-                                }
-                                resolve();
-                            }
-                        );
-                    }
-                });
-            });
+                try {
+                    await db.run(
+                        `INSERT INTO sys_page_templates_config 
+                         (template_id, template_name, description, template_file, components, params_schema, default_params, preview_image, theme_id, is_active)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+                        [
+                            templateId,
+                            templateName,
+                            description,
+                            `pages/${file}`,
+                            JSON.stringify(Object.keys(componentParams)),
+                            JSON.stringify(paramsSchema),
+                            JSON.stringify(defaultParams),
+                            previewImage,
+                            themeId
+                        ]
+                    );
+                    console.log(`   🆕 已创建: ${templateId} (${templateName})`);
+                    updated++;
+                } catch (insertErr) {
+                    console.error(`   ❌ 插入失败: ${templateId}`, insertErr.message);
+                }
+            }
 
         } catch (error) {
             console.error(`   └─ ❌ 分析失败:`, error);

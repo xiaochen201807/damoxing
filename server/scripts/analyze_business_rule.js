@@ -116,73 +116,77 @@ async function analyzeBusinessRule() {
             console.log(`      - ${group}: ${count}个参数`);
         });
 
-        await new Promise((resolve, reject) => {
-            // Check if template exists
-            db.get('SELECT template_id FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
-                if (err) {
-                    console.error(`   ❌ 查询失败:`, err.message);
-                    return resolve();
-                }
+        // db.get / db.run 已经是 async 函数，直接 await 即可
+        let row;
+        try {
+            row = await db.get('SELECT template_id FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
+        } catch (err) {
+            console.error(`   ❌ 查询失败:`, err.message);
+            return;
+        }
 
-                if (row) {
-                    // Update existing
-                    db.run(
-                        `UPDATE sys_page_templates_config 
-                         SET params_schema = ?, default_params = ? 
-                         WHERE template_id = ?`,
-                        [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
-                        (err) => {
-                            if (!err) {
-                                console.log(`   ✅ 已更新: ${templateId}`);
-                            } else {
-                                console.error(`   ❌ 更新失败:`, err.message);
-                            }
-                            resolve();
-                        }
-                    );
-                } else {
-                    // Insert new
-                    console.log(`   ✨ 模板不存在，创建新记录: ${templateId}`);
-                    db.run(
-                        `INSERT INTO sys_page_templates_config 
-                         (template_id, template_name, description, template_file, params_schema, default_params, is_active, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now', '+08:00'))`,
-                        [
-                            templateId, 
-                            '业务规则配置', 
-                            '关键数据计算模型与业务规则配置页面', 
-                            'pages/business_rule.j2',
-                            JSON.stringify(paramsSchema), 
-                            JSON.stringify(defaultParams)
-                        ],
-                        (err) => {
-                            if (!err) {
-                                console.log(`   ✅ 已创建: ${templateId}`);
-                            } else {
-                                console.error(`   ❌ 创建失败:`, err.message);
-                            }
-                            resolve();
-                        }
-                    );
-                }
-            });
-        });
+        if (row) {
+            // Update existing
+            try {
+                console.log('   [SQL] UPDATE sys_page_templates_config', {
+                    params_schema: JSON.stringify(paramsSchema),
+                    default_params: JSON.stringify(defaultParams),
+                    templateId
+                });
+                await db.run(
+                    `UPDATE sys_page_templates_config 
+                     SET params_schema = ?, default_params = ? 
+                     WHERE template_id = ?`,
+                    [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId]
+                );
+                console.log(`   ✅ 已更新: ${templateId}`);
+            } catch (err) {
+                console.error(`   ❌ 更新失败:`, err.message);
+            }
+        } else {
+            // Insert new
+            console.log(`   ✨ 模板不存在，创建新记录: ${templateId}`);
+            try {
+                console.log('   [SQL] INSERT INTO sys_page_templates_config', {
+                    templateId,
+                    template_name: '业务规则配置',
+                    description: '关键数据计算模型与业务规则配置页面',
+                    template_file: 'pages/business_rule.j2',
+                    params_schema: JSON.stringify(paramsSchema),
+                    default_params: JSON.stringify(defaultParams)
+                });
+                await db.run(
+                    `INSERT INTO sys_page_templates_config 
+                     (template_id, template_name, description, template_file, params_schema, default_params, is_active, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now', '+08:00'))`,
+                    [
+                        templateId,
+                        '业务规则配置',
+                        '关键数据计算模型与业务规则配置页面',
+                        'pages/business_rule.j2',
+                        JSON.stringify(paramsSchema),
+                        JSON.stringify(defaultParams)
+                    ]
+                );
+                console.log(`   ✅ 已创建: ${templateId}`);
+            } catch (err) {
+                console.error(`   ❌ 创建失败:`, err.message);
+            }
+        }
 
         // Verification Step
-        await new Promise((resolve) => {
-            db.get('SELECT params_schema FROM sys_page_templates_config WHERE template_id = ?', [templateId], (err, row) => {
-                if (err) {
-                    console.error('   🔍 验证失败: 无法读取数据库');
-                } else if (row && row.params_schema) {
-                    const schema = JSON.parse(row.params_schema);
-                    const paramCount = Object.keys(schema.properties || {}).length;
-                    console.log(`   🔍 验证成功: 数据库中已存在配置，包含 ${paramCount} 个参数`);
-                } else {
-                    console.error('   🔍 验证失败: 数据库中未找到配置');
-                }
-                resolve();
-            });
-        });
+        try {
+            const verifyRow = await db.get('SELECT params_schema FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
+            if (verifyRow && verifyRow.params_schema) {
+                const schema = JSON.parse(verifyRow.params_schema);
+                const paramCount = Object.keys(schema.properties || {}).length;
+                console.log(`   🔍 验证成功: 数据库中已存在配置，包含 ${paramCount} 个参数`);
+            } else {
+                console.error('   🔍 验证失败: 数据库中未找到配置');
+            }
+        } catch (err) {
+            console.error('   🔍 验证失败: 无法读取数据库');
+        }
 
         console.log(`\n🎉 ${templateId} 分析完成！\n`);
         return { success: true, message: `${templateId} 分析完成` };
