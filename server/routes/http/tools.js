@@ -10,6 +10,16 @@ const logger = require('../../utils/logger');
 const axios = require('axios');
 const { info } = require('winston');
 
+// 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名
+const GATEWAY_BASE_URL = (() => {
+    try {
+        const url = new URL(process.env.GATEWAY_VALIDATE_URL || '');
+        return url.origin; // 如 https://appcs.jbysoft.com
+    } catch {
+        return 'https://appcs.jbysoft.com'; // 兜底默认值
+    }
+})();
+
 /**
  * 1. 获取业务内容分类 (POST /business-content-classes)
  * 原：从 ywbzk 表中提取唯一的业务内容分类
@@ -17,11 +27,11 @@ const { info } = require('winston');
  */
 router.post('/business-content-classes', async (req, res) => {
     // 网关接口地址
-    const gatewayUrl = "https://appcs.jbysoft.com/GLDX/business/common/objectAttributeOptionScope$m=query.service";
+    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/objectAttributeOptionScope$m=query.service`;
 
     // 1. 提取 Header 参数
     // 前端 Body 中包含了用户信息，优先使用 Body 中的参数
-    const { jgbh, login_token, zzbs, zzjgdmz } = req.body; 
+    const { jgbh, login_token, zzbs, zzjgdmz } = req.body;
 
     const headers = {
         'channel': req.headers['channel'],
@@ -37,7 +47,7 @@ router.post('/business-content-classes', async (req, res) => {
     const payload = {
         "organizationNumber": jgbh,
         "syObjectNumber": req.body.syObjectNumber,
-        "fieldIdentification": req.body.fieldIdentification ,
+        "fieldIdentification": req.body.fieldIdentification,
         "superiorCodings": "",
         "isDefault": req.body.isDefault !== undefined ? req.body.isDefault : 0
     };
@@ -46,11 +56,11 @@ router.post('/business-content-classes', async (req, res) => {
 
 
     try {
-        const response = await axios.post(gatewayUrl, payload, { headers });        
+        const response = await axios.post(gatewayUrl, payload, { headers });
         // 记录网关响应状态
-        logger.info(`[Tools API] Gateway response status: ${response.status}`);        
+        logger.info(`[Tools API] Gateway response status: ${response.status}`);
         // 处理返回数据
-        const gatewayData = response.data;  
+        const gatewayData = response.data;
         // 兼容处理：有些网关直接返回数组，有些返回 { code, data, msg }
         // 这里的处理逻辑可能需要根据实际网关返回结构进行调整
         // 根据最新的日志，网关返回结构为 { success: true, results: [...] }
@@ -88,7 +98,7 @@ router.post('/business-content-classes', async (req, res) => {
  */
 router.post('/business-standard-values', async (req, res) => {
     // 网关接口地址
-    const gatewayUrl = "https://appcs.jbysoft.com/GLDX/business/common/publicparam$m=query.service";
+    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/publicparam$m=query.service`;
 
     // 1. 预处理 Body 参数 (修复前端可能发送的畸形数据)
     let body = req.body;
@@ -105,7 +115,7 @@ router.post('/business-standard-values', async (req, res) => {
     }
 
     // 2. 提取 Header 参数
-    const { jgbh, login_token, zzbs, zzjgdmz } = body; 
+    const { jgbh, login_token, zzbs, zzjgdmz } = body;
 
     const headers = {
         'channel': req.headers['channel'],
@@ -143,7 +153,7 @@ router.post('/business-standard-values', async (req, res) => {
         // 转换数据格式为 AMIS 下拉框所需的 { label, value }
         const resultData = list.map(item => ({
             label: item.name,
-            value: item.publicParamId, 
+            value: item.publicParamId,
             ...item
         }));
 
@@ -164,7 +174,7 @@ router.post('/business-standard-values', async (req, res) => {
  */
 router.post('/service-objects', async (req, res) => {
     // 网关接口地址
-    const gatewayUrl = "https://appcs.jbysoft.com/GLDX/business/common/queryxjSxdx.service";
+    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/queryxjSxdx.service`;
 
     // 1. 预处理 Body 参数
     let body = req.body;
@@ -181,7 +191,7 @@ router.post('/service-objects', async (req, res) => {
     }
 
     // 2. 提取 Header 参数
-    const { jgbh, login_token, zzbs, zzjgdmz } = body; 
+    const { jgbh, login_token, zzbs, zzjgdmz } = body;
 
     const headers = {
         'channel': req.headers['channel'],
@@ -241,7 +251,7 @@ router.post('/service-objects', async (req, res) => {
  */
 router.post('/business-standard-attributes', async (req, res) => {
     // 网关接口地址
-    const gatewayUrl = "https://appcs.jbysoft.com/GLDX/business/common/manageObjectProperties$m=query.service";
+    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/manageObjectProperties$m=query.service`;
 
     // 1. 预处理 Body 参数
     let body = req.body;
@@ -258,7 +268,7 @@ router.post('/business-standard-attributes', async (req, res) => {
     }
 
     // 2. 提取 Header 参数
-    const { jgbh, login_token, zzbs, zzjgdmz } = body; 
+    const { jgbh, login_token, zzbs, zzjgdmz } = body;
 
     const headers = {
         'channel': req.headers['channel'],
@@ -274,7 +284,7 @@ router.post('/business-standard-attributes', async (req, res) => {
     // 这里暂时假设前端会传入 syObjectNumber，或者我们给一个默认值
     const payload = {
         "organizationNumber": jgbh,
-        "syObjectNumber": body.syObjectNumber, 
+        "syObjectNumber": body.syObjectNumber,
         "page": body.page || 1,
         "size": body.size || 1000
     };
