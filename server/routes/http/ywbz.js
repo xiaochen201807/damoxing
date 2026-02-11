@@ -568,35 +568,40 @@ router.all('/export', authenticateToken, async (req, res) => {
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务规则全量导出 (包含规则表和属性表)\n";
         sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
-        sqlScript += "BEGIN TRANSACTION;\n\n";
 
         // 清空旧数据
         sqlScript += "DELETE FROM gjj_ywbzsx;\n";
         sqlScript += "DELETE FROM gjj_ywbz;\n\n";
 
+        // 辅助函数：格式化值
+        const formatValue = (val) => {
+            if (val === null || val === undefined) return "NULL";
+            if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+            if (val instanceof Date) {
+                const yyyy = val.getFullYear();
+                const mm = String(val.getMonth() + 1).padStart(2, '0');
+                const dd = String(val.getDate()).padStart(2, '0');
+                const hh = String(val.getHours()).padStart(2, '0');
+                const mi = String(val.getMinutes()).padStart(2, '0');
+                const ss = String(val.getSeconds()).padStart(2, '0');
+                return `TO_DATE('${yyyy}${mm}${dd}${hh}${mi}${ss}', 'YYYYMMDDHH24MISS')`;
+            }
+            return val;
+        };
+
         // 插入规则表数据
         for (const row of rules) {
             const keys = Object.keys(row);
-            const values = Object.values(row).map(val => {
-                if (val === null) return "NULL";
-                if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
-                return val;
-            });
+            const values = Object.values(row).map(formatValue);
             sqlScript += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
         // 插入属性表数据
         for (const row of attributes) {
             const keys = Object.keys(row);
-            const values = Object.values(row).map(val => {
-                if (val === null) return "NULL";
-                if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
-                return val;
-            });
+            const values = Object.values(row).map(formatValue);
             sqlScript += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
-
-        sqlScript += "\nCOMMIT;";
 
         // 3. 落地到服务器磁盘
         const exportFileName = 'ywbz_full_export.csv';
