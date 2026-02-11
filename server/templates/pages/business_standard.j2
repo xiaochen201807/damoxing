@@ -9,14 +9,14 @@
             { "label": "借款人最大可对冲支取金额", "value": "4" }
         ],
         "standard_class_options": [
-            { "label": "缴存人账户余额", "value": "jcrzhye" },
-            { "label": "冻结金额", "value": "djje" },
-            { "label": "账户保留金额", "value": "zhblje" },
-            { "label": "实际支付购房款", "value": "sjzfgfk" },
-            { "label": "累计提取金额", "value": "ljtqje" },
-            { "label": "精度值", "value": "jdz" },
-            { "label": "保留方式", "value": "blfs" },
-            { "label": "在途提取金额", "value": "zttqje" }
+            { "label": "缴存人账户余额", "value": "1" },
+            { "label": "冻结金额", "value": "2" },
+            { "label": "账户保留金额", "value": "3" },
+            { "label": "实际支付购房款", "value": "4" },
+            { "label": "累计提取金额", "value": "5" },
+            { "label": "精度值", "value": "6" },
+            { "label": "保留方式", "value": "7" },
+            { "label": "在途提取金额", "value": "8" }
         ],
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }},
