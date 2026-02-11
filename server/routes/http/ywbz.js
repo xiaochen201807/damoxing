@@ -352,12 +352,9 @@ router.post('/save', async (req, res) => {
                 const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
                 const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
 
-                if (db.isOracle) {
-                    const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
-                    ywid = lastRow?.id ?? lastRow?.ID;
-                } else {
-                    ywid = result.lastID;
-                }
+                // 在 db.oracle.transaction 中必然是 Oracle 环境，直接获取 MAX(id)
+                const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
+                ywid = lastRow?.id ?? lastRow?.ID;
             }
 
             const attrs = attributes;
