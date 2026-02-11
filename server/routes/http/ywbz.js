@@ -176,13 +176,30 @@ router.post('/config_form', async (req, res) => {
         // 动态构建 Combo 的内部 items (表单列)
         const comboItems = schemaRows.map(field => {
             const sxbm = field.sxbm || field.SXBM;
-            const ywblbzsx = field.ywblbzsx || field.YWBLBZSX;
+            const fwdxbq = field.fwdxbq || field.FWDXBQ;
+            const ywblbzdx = field.ywblbzdx || field.YWBLBZDX;
+
+            // 标签：使用服务对象标签(fwdxbq) 作为中文名
+            const label = fwdxbq || sxbm;
+
+            // ywblbzdx 的值就是 syObjectNumber
+            const syObjectNumber = ywblbzdx || '';
 
             return {
-                type: "input-text",
-                name: sxbm || ywblbzsx, // 优先使用属性编码作为 key
-                label: field.ywblbzsx,
-                required: true
+                type: "select",
+                name: sxbm || fwdxbq,
+                label: label,
+                required: true,
+                searchable: true,
+                clearable: true,
+                source: {
+                    method: "post",
+                    url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-classes`,
+                    data: {
+                        syObjectNumber: syObjectNumber,
+                        fieldIdentification: sxbm
+                    }
+                }
             };
         });
 
