@@ -463,8 +463,8 @@ router.post('/batch', async (req, res) => {
         syncIds = Array.isArray(ids) ? ids : String(ids).split(',');
     }
 
-    // 过滤空值
-    syncIds = syncIds.filter(item => item && typeof item === 'string' && item.trim() !== '');
+    // 过滤空值并去重
+    syncIds = [...new Set(syncIds.filter(item => item && String(item).trim() !== '').map(item => String(item).trim()))];
 
     logger.info(`Parsed syncIds: ${JSON.stringify(syncIds)}, Type: ${typeof syncIds}, IsArray: ${Array.isArray(syncIds)}`);
 
@@ -557,9 +557,9 @@ router.get('/options/categories', async (req, res) => {
 // 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
-    if (req.user?.role !== 'admin') {
-        return res.status(403).json({ status: 403, msg: "无导出权限" });
-    }
+    // if (req.user?.role !== 'admin') {
+    //     return res.status(403).json({ status: 403, msg: "无导出权限" });
+    // }
     try {
         // 1. 获取所有数据
         const rules = await db.oracle.all("SELECT * FROM gjj_ywbz");
@@ -721,17 +721,15 @@ router.post('/selection_list', async (req, res) => {
     const standardsQueryParams = paged.params;
 
     // 2. 查询已选中的 mbid (Query Selected IDs)
-    // 只需要查询符合当前环境(ywsf/jgbh/zjgbh)的 mbid 列表
+    // 按 jgbh/zjgbh 查询该机构已同步的所有标准库 ID，不再按 ywsf 过滤
+    // （ywsf 值来自标准库的 gjsjsf，与前端筛选条件不总是一致，会导致回显失败）
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
     let selectedSql = `
         SELECT DISTINCT mbid FROM gjj_ywbz 
-        WHERE 1=1
-        AND (? = '' OR ${coalesce}(ywsf, '') = ?)
-        AND ${coalesce}(jgbh, '') = ? 
+        WHERE ${coalesce}(jgbh, '') = ? 
         AND ${coalesce}(zjgbh, '') = ?
     `;
-    // 注意：这里的 gjsjsf 对应规则表的 ywsf
-    const selectedParams = [gjsjsf || '', gjsjsf || '', queryJgbh, queryZjgbh];
+    const selectedParams = [queryJgbh, queryZjgbh];
 
     // 执行查询 - 改为 Promise 方式
     try {

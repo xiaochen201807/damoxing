@@ -125,7 +125,7 @@
                                                         "actionType": "select",
                                                         "componentId": "crud_selection_dialog",
                                                         "args": {
-                                                            "condition": "${checked === true}"
+                                                            "condition": "${ARRAYINCLUDES(event.data.responseData.selectedIds, id)}"
                                                         }
                                                     },
                                                     {
@@ -133,7 +133,7 @@
                                                         "componentId": "selection_form",
                                                         "args": {
                                                             "value": {
-                                                                "syncIds": "${event.data.responseData.items | filter:checked:true | pick:id | join}"
+                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
                                                             }
                                                         }
                                                     }
