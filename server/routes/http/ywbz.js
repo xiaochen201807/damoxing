@@ -141,20 +141,23 @@ router.post('/config_form', async (req, res) => {
 
         const schemaRows = await db.oracle.all(sqlSchema, [mbid]);
 
-        // 构建映射表：属性名称 -> 属性编码
-        const nameToCodeMap = {};
+        // 构建映射表：中文属性名(sxbm) -> fieldIdentification(ywblbzsx)
+        // 用于回显时将宽表存储的中文 key 转换回 ywblbzsx
+        const sxbmToFieldMap = {};
         schemaRows.forEach(row => {
             const sxbm = row.sxbm || row.SXBM;
             const ywblbzsx = row.ywblbzsx || row.YWBLBZSX;
 
             if (sxbm && ywblbzsx) {
-                nameToCodeMap[ywblbzsx] = sxbm;
+                sxbmToFieldMap[sxbm] = ywblbzsx;
             }
         });
 
         const valueRows = await db.oracle.all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
+        // k 列存储的可能是旧的中文名(sxbm)或新的 fieldIdentification(ywblbzsx)
+        // 统一转换为 ywblbzsx 作为 key，与表单 name 对应
         const cleanedValues = valueRows.map(row => {
             const item = {
                 id: row.id || row.ID,
@@ -166,7 +169,8 @@ router.post('/config_form', async (req, res) => {
                 const k = row[`k${i}`] || row[`K${i}`];
                 const v = row[`v${i}`] || row[`V${i}`];
                 if (k) {
-                    const key = nameToCodeMap[k] || k;
+                    // 如果 k 是中文(sxbm)，转换为 ywblbzsx；否则原样使用
+                    const key = sxbmToFieldMap[k] || k;
                     item[key] = v;
                 }
             }
@@ -188,7 +192,7 @@ router.post('/config_form', async (req, res) => {
 
             return {
                 type: "select",
-                name: sxbm || fwdxbq,
+                name: ywblbzsx || sxbm,
                 label: label,
                 required: true,
                 searchable: true,
