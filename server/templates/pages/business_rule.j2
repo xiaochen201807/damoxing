@@ -21,16 +21,11 @@
         "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/ywbz/delete",
         "rule_batch_api": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
         "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
-        "rule_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/import",
-        "rule_export_api": "{{ GLOBAL_API_PREFIX }}/ywbz/export",
-        "algorithm_options": [
-            { "label": "可提取金额", "value": "ktqje" },
-            { "label": "可贷款金额", "value": "kdkje" },
-            { "label": "可贷款年限", "value": "kdknx" },
-            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
-        ],
-        "business_content_class_api": "{{ GLOBAL_API_PREFIX | default('/api') }}/tools/business-content-classes",
-        "business_content_class_params": {}
+        "rule_import_api": "{{ rule_import_api | default(GLOBAL_API_PREFIX + '/ywbz/import') }}",
+        "rule_export_api": "{{ rule_export_api | default(GLOBAL_API_PREFIX + '/ywbz/export') }}",
+        "algorithm_options": {{ algorithm_options | default([{"label":"可提取金额","value":"ktqje"},{"label":"可贷款金额","value":"kdkje"},{"label":"可贷款年限","value":"kdknx"},{"label":"贷款还款时可对冲金额","value":"dkhkskdcje"}]) | fromjson | tojson }},
+        "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
+        "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
     },
     "body": [
         {

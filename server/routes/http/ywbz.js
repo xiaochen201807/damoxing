@@ -485,7 +485,8 @@ router.post('/batch', async (req, res) => {
 
         // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
         logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}'`);
-        const deleteSql = `DELETE FROM gjj_ywbz WHERE IFNULL(jgbh, '') = ? AND IFNULL(zjgbh, '') = ?`;
+        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+        const deleteSql = `DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
         const deleteResult = await db.oracle.run(deleteSql, [jgbh, zjgbh]);
         logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
 
@@ -651,7 +652,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             for (const stmt of statements) {
                 const upperStmt = stmt.toUpperCase();
                 // 跳过注释和查询语句
-                if (upperStmt.startsWith('SELECT') || 
+                if (upperStmt.startsWith('SELECT') ||
                     upperStmt.startsWith('SHOW') ||
                     upperStmt.startsWith('BEGIN') ||
                     upperStmt.startsWith('COMMIT')) {
@@ -709,20 +710,23 @@ router.post('/selection_list', async (req, res) => {
         standardsParams.push(ywnrfl);
     }
 
-    standardsSql += " ORDER BY pxh ASC, id DESC LIMIT ? OFFSET ?";
-    const standardsQueryParams = [...standardsParams, parseInt(perPage), parseInt(offset)];
+    standardsSql += " ORDER BY pxh ASC, id DESC";
+    const paged = SqlHelper.paginateQuery(standardsSql, standardsParams, perPage, offset);
+    standardsSql = paged.sql;
+    const standardsQueryParams = paged.params;
 
     // 2. 查询已选中的 mbid (Query Selected IDs)
     // 只需要查询符合当前环境(ywsf/jgbh/zjgbh)的 mbid 列表
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
     let selectedSql = `
         SELECT DISTINCT mbid FROM gjj_ywbz 
         WHERE 1=1
-        AND (? = '' OR IFNULL(ywsf, '') = ?)
-        AND IFNULL(jgbh, '') = ? 
-        AND IFNULL(zjgbh, '') = ?
+        AND (? = '' OR ${coalesce}(ywsf, '') = ?)
+        AND ${coalesce}(jgbh, '') = ? 
+        AND ${coalesce}(zjgbh, '') = ?
     `;
     // 注意：这里的 gjsjsf 对应规则表的 ywsf
-    const selectedParams = [gjsjsf, gjsjsf, queryJgbh, queryZjgbh];
+    const selectedParams = [gjsjsf || '', gjsjsf || '', queryJgbh, queryZjgbh];
 
     // 执行查询 - 改为 Promise 方式
     try {
