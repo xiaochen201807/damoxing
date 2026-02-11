@@ -71,8 +71,6 @@
                             "title": "清册选择",
                             "size": "lg",
                             "data": {
-                                "jgbh": "${jgbh}",
-                                "zjgbh": "${zjgbh}",
                                 "syncIds": ""
                             },
                             "body": {
@@ -82,9 +80,7 @@
                                     "method": "post",
                                     "url": "{{ GLOBAL_API_PREFIX }}/ywbz/batch",
                                     "data": {
-                                        "ids": "${syncIds}",
-                                        "jgbh": "${jgbh}",
-                                        "zjgbh": "${zjgbh}"
+                                        "ids": "${syncIds}"
                                     }
                                 },
                                 "onEvent": {
@@ -98,8 +94,7 @@
                                     }
                                 },
                                 "body": [
-                                    { "type": "hidden", "name": "jgbh" },
-                                    { "type": "hidden", "name": "zjgbh" },
+
                                     {
                                         "type": "crud",
                                         "api": {
@@ -107,9 +102,7 @@
                                             "url": "{{ GLOBAL_API_PREFIX }}/ywbz/selection_list",
                                             "data": {
                                                 "gjsjsf": "${ywsf}",
-                                                "ywnrfl": "${ywnrfl}",
-                                                "jgbh": "${jgbh}",
-                                                "zjgbh": "${zjgbh}"
+                                                "ywnrfl": "${ywnrfl}"
                                             }
                                         },
                                         "syncLocation": false,
