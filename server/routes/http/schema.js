@@ -622,7 +622,7 @@ const handleWizardRequest = async (req, res) => {
                     manual_page_key: "${manual_page_key}",
                     page_title: "${page_title}",
                     app_theme: "${app_theme}",
-                    params: "$"
+                    params: "$$"
                 },
                 messages: {
                     success: "保存配置成功"
@@ -666,26 +666,39 @@ router.post('/save', async (req, res) => {
     // page_title: 页面标题
     const { template_id, params, target_page_key, manual_page_key, page_title } = req.body;
 
-    // --- 自动修复参数逻辑 ---
-    try {
-        if (params) {
-            sanitizeParams(params);
-        }
-    } catch (e) {
-        logger.warn('[Schema API] Auto-fix params failed:', e);
-        // 不阻断保存，继续尝试
-    }
-    // ----------------------
-
+    // --- 参数校验（在修复前）---
     const page_key = target_page_key || manual_page_key;
     const title = page_title;
 
     if (!template_id || !params || !page_key || !title) {
+        const missingFields = [];
+        if (!template_id) missingFields.push('template_id');
+        if (!params) missingFields.push('params');
+        if (!page_key) missingFields.push(target_page_key ? 'page_title' : 'manual_page_key');
+        if (!title) missingFields.push('page_title');
+        
+        logger.warn(`[Schema API] Missing required fields: ${missingFields.join(', ')}`);
         return res.status(400).json({
             status: 400,
-            msg: target_page_key ? '缺少必填参数: template_id, params, page_title' : '缺少必填参数: template_id, params, manual_page_key, page_title'
+            msg: `缺少必填参数: ${missingFields.join(', ')}`
         });
     }
+
+    // --- 自动修复参数逻辑（修复时必须成功）---
+    try {
+        if (params && typeof params === 'object') {
+            sanitizeParams(params);
+            logger.info('[Schema API] Params sanitized successfully');
+        }
+    } catch (e) {
+        logger.error('[Schema API] Auto-fix params failed (BLOCKING):', e);
+        return res.status(400).json({
+            status: 400,
+            msg: '参数修复失败: ' + e.message,
+            error: process.env.NODE_ENV === 'development' ? e.message : undefined
+        });
+    }
+    // ----------------------
 
     try {
         const template = await db.get(
@@ -740,18 +753,26 @@ router.post('/save', async (req, res) => {
 
                 if (current) {
                     newVersion = current.version + 1;
+                    logger.info(`[Schema API] Found existing page, creating version ${newVersion}`);
+                    
                     await db.run(
                         "UPDATE sys_page_template SET is_active = 0, backup_time = datetime('now', '+08:00') WHERE id = ?",
                         [current.id]
                     );
                 } else {
+                    // 获取该 page_key 的最大版本号
                     const row = await db.get(
                         'SELECT MAX(version) as max_ver FROM sys_page_template WHERE page_key = ?',
                         [page_key]
                     );
-                    const maxVer = row?.max_ver ?? row?.MAX_VER ?? row?.MAX_VER;
-                    if (maxVer) {
+                    
+                    // SQLite 在某些情况下会返回 null，需要处理
+                    const maxVer = row?.max_ver ?? 0;
+                    if (maxVer && maxVer > 0) {
                         newVersion = maxVer + 1;
+                        logger.info(`[Schema API] Creating new page version ${newVersion}`);
+                    } else {
+                        logger.info(`[Schema API] Creating new page with version 1`);
                     }
                 }
 
@@ -761,9 +782,19 @@ router.post('/save', async (req, res) => {
                     VALUES (?, ?, ?, ?, 1, datetime('now', '+08:00'), datetime('now', '+08:00'), ?, ?)
                 `;
 
+                logger.debug(`[Schema API] Executing INSERT with page_key=${page_key}, version=${newVersion}`);
+                
                 result = await db.run(sql, [page_key, title, schema_json, newVersion, template_id, JSON.stringify(params)]);
 
+                // 验证插入是否成功
+                if (!result || !result.lastID) {
+                    throw new Error('Insert returned no lastID');
+                }
+
+                logger.info(`[Schema API] Successfully inserted with ID: ${result.lastID}`);
+
                 if (current) {
+                    // 清理旧备份，只保留最新 5 个版本
                     await db.run(`
                         DELETE FROM sys_page_template 
                         WHERE page_key = ? AND is_active = 0 
@@ -777,9 +808,13 @@ router.post('/save', async (req, res) => {
                 }
 
                 await db.run('COMMIT');
+                logger.info(`[Schema API] Transaction committed for page_key: ${page_key}`);
+                
             } catch (err) {
+                logger.error('[Schema API] Transaction error:', err);
                 try {
                     await db.run('ROLLBACK');
+                    logger.info('[Schema API] Transaction rolled back');
                 } catch (rollbackErr) {
                     logger.error('[Schema API] Rollback failed:', rollbackErr);
                 }
@@ -795,15 +830,24 @@ router.post('/save', async (req, res) => {
                     page_key,
                     title,
                     version: newVersion,
-                    mode: current ? 'update' : 'create'
+                    mode: current ? 'update' : 'create',
+                    timestamp: new Date().toISOString()
                 }
             });
         } catch (error) {
             logger.error('[Schema API] Failed to save page:', error);
+            // 提供详细错误信息用于调试
+            const errorMsg = error.message || JSON.stringify(error);
             res.status(400).json({
                 status: 400,
-                msg: '保存失败: 模板渲染或JSON格式错误',
-                error: error.message
+                msg: '保存失败: 模板渲染或数据库操作错误',
+                error: process.env.NODE_ENV === 'development' ? errorMsg : undefined,
+                debug_info: {
+                    page_key,
+                    template_id,
+                    schema_json_length: schema_json?.length || 0,
+                    params_keys: Object.keys(params || {})
+                }
             });
         }
     } catch (err) {
