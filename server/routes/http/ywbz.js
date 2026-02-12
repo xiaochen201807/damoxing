@@ -524,7 +524,7 @@ router.post('/batch', async (req, res) => {
         for (const tpl of templates) {
             logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywblbz='${tpl.ywblbz}'`);
             const insertSql = `
-                INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, sfqy, jgbh, zjgbh)
+                INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh)
                 VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
             await db.oracle.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
