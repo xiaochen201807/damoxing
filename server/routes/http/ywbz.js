@@ -512,6 +512,8 @@ router.post('/batch', async (req, res) => {
     // 处理 jgbh 和 zjgbh 的默认值
     const jgbh = req.body.jgbh || '';
     const zjgbh = req.body.zjgbh || '';
+    const ywsf = req.body.ywsf || '';
+    const ywnrfl = req.body.ywnrfl || '';
 
     // 构造请求头，用于网关调用
     const headers = {
@@ -528,13 +530,20 @@ router.post('/batch', async (req, res) => {
         };
 
         // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
-        logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}'`);
+        logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}', ywsf='${ywsf}', ywnrfl='${ywnrfl}'`);
         const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
-        const deleteSql = `DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-        const deleteResult = await db.oracle.run(deleteSql, [jgbh, zjgbh]);
+        const deleteSql = `
+            DELETE FROM gjj_ywbz 
+            WHERE ${coalesce}(jgbh, '') = ? 
+            AND ${coalesce}(zjgbh, '') = ?
+            AND ${coalesce}(ywsf, '') = ?
+            AND ${coalesce}(ywnrfl, '') = ?
+        `;
+        const deleteResult = await db.oracle.run(deleteSql, [jgbh, zjgbh, ywsf, ywnrfl]);
         logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
 
         const templates = await getStandards(syncIds);
+
 
         // --- 预取公共参数值 (移到循环外) ---
         const publicParamValuesMap = {};
