@@ -323,4 +323,54 @@ router.post('/business-standard-attributes', async (req, res) => {
     }
 });
 
+const { fetchPublicParamValue } = require('../../services/gatewayService');
+
+// ... (existing imports)
+
+/**
+ * 5. 获取公共参数值 (POST /public-param-values)
+ * 调用外部网关接口获取公共参数的具体值
+ */
+router.post('/public-param-values', async (req, res) => {
+    // 1. 预处理 Body 参数
+    let body = req.body;
+    if (body && body['0'] === '{') {
+        try {
+            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
+            const jsonStr = keys.map(k => body[String(k)]).join('');
+            const parsedParams = JSON.parse(jsonStr);
+            body = { ...body, ...parsedParams };
+        } catch (e) {
+            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
+        }
+    }
+
+    // 2. 提取 Header 参数
+    const { jgbh, login_token, zzbs, zzjgdmz } = body;
+    const headers = {
+        'channel': req.headers['channel'],
+        'jgbh': jgbh || req.headers['jgbh'],
+        'login-token': login_token || req.headers['login-token'],
+        'zzbs': req.headers['zzbs'],
+        'zzjgdmz': req.headers['zzjgdmz']
+    };
+
+    try {
+        const result = await fetchPublicParamValue(
+            body.publicParamId,
+            jgbh,
+            body.zjgbh,
+            headers
+        );
+
+        if (result) {
+            return res.json(result);
+        } else {
+            return res.json({ status: 0, msg: "ok", data: [] });
+        }
+    } catch (err) {
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
 module.exports = router;

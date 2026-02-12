@@ -480,6 +480,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
  * 6. 批量同步 (POST /batch)
  * 从标准库模板同步到业务规则表
  */
+const { fetchPublicParamValue } = require('../../services/gatewayService');
+
+// ... (existing imports)
+
+/**
+ * 6. 批量同步 (POST /batch)
+ * 从标准库模板同步到业务规则表
+ */
 router.post('/batch', async (req, res) => {
     logger.info(`Batch Sync Payload: ${JSON.stringify(req.body)}`);
     const { selected_ids, ids } = req.body; // 兼容 selected_ids 或 ids
@@ -505,6 +513,14 @@ router.post('/batch', async (req, res) => {
     const jgbh = req.body.jgbh || '';
     const zjgbh = req.body.zjgbh || '';
 
+    // 构造请求头，用于网关调用
+    const headers = {
+        'channel': req.headers['channel'] || '',
+        'login-token': req.headers['login-token'] || '',
+        'zzbs': req.headers['zzbs'] || '',
+        'zzjgdmz': req.headers['zzjgdmz'] || ''
+    };
+
     try {
         const getStandards = (ids) => {
             const placeholders = ids.map(() => '?').join(',');
@@ -519,15 +535,47 @@ router.post('/batch', async (req, res) => {
         logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
 
         const templates = await getStandards(syncIds);
+
+        // --- 预取公共参数值 (移到循环外) ---
+        const publicParamValuesMap = {};
+        const distinctPublicParamIds = [...new Set(templates.map(t => t.ywbzz).filter(id => id))];
+
+        if (distinctPublicParamIds.length > 0) {
+            logger.info(`Batch Sync: Fetching public param values for ${distinctPublicParamIds.length} IDs: ${distinctPublicParamIds.join(',')}`);
+            // 并行获取 (Promise.all)
+            await Promise.all(distinctPublicParamIds.map(async (paramId) => {
+                try {
+                    const result = await fetchPublicParamValue(paramId, jgbh, zjgbh, headers);
+                    if (result && result.value) {
+                        publicParamValuesMap[paramId] = result.value;
+                    }
+                } catch (e) {
+                    logger.warn(`Batch Sync: Failed to pre-fetch public param value for ${paramId}: ${e.message}`);
+                }
+            }));
+            logger.info(`Batch Sync: Fetched public param values: ${JSON.stringify(publicParamValuesMap)}`);
+        }
+        // ------------------------------------
+
         let syncCount = 0;
 
         for (const tpl of templates) {
             logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywblbz='${tpl.ywblbz}'`);
-            const insertSql = `
-                INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh)
-                VALUES (?, ?, ?, ?, 1, ?, ?)
-            `;
-            await db.oracle.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
+
+            // 获取之前预取的值
+            const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
+
+            // 插入主表 gjj_ywbz (包含 ywbzz 字段)
+            // 使用事务或单独插入
+            await db.oracle.transaction(async (tx) => {
+                const insertSql = `
+                    INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
+                    VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                `;
+                // 将 fetchedYwbzzValue 存入 ywbzz 字段
+                await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh, fetchedYwbzzValue]);
+            });
+
             syncCount++;
         }
 
