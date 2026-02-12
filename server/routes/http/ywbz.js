@@ -582,7 +582,7 @@ router.post('/batch', async (req, res) => {
                     VALUES (?, ?, ?, ?, 1, ?, ?, ?)
                 `;
                 // 将 fetchedYwbzzValue 存入 ywbzz 字段
-                await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh, fetchedYwbzzValue]);
+                await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh, fetchedYwbzzValue]);
             });
 
             syncCount++;
