@@ -36,7 +36,7 @@ async function fetchPublicParamValue(publicParamId, organizationNumber, zjgbh, h
                 'Content-Type': 'application/json',
                 ...headers
             },
-            timeout: 10000 // max-time 10s
+            timeout: 30000 // max-time 30s
         });
         const gatewayData = response.data;
 
