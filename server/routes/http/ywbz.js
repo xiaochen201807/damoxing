@@ -527,7 +527,7 @@ router.post('/batch', async (req, res) => {
                 INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh)
                 VALUES (?, ?, ?, ?, 1, ?, ?)
             `;
-            await db.oracle.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywblbzsm, jgbh, zjgbh]);
+            await db.oracle.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh]);
             syncCount++;
         }
 
