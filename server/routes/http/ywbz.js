@@ -569,7 +569,7 @@ router.post('/batch', async (req, res) => {
         let syncCount = 0;
 
         for (const tpl of templates) {
-            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywblbz='${tpl.ywblbz}'`);
+            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywbzz='${tpl.ywbzz}'`);
 
             // 获取之前预取的值
             const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
