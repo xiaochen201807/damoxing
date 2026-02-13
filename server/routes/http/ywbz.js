@@ -526,73 +526,102 @@ router.post('/batch', async (req, res) => {
     };
 
     try {
-        const getStandards = (ids) => {
-            const placeholders = ids.map(() => '?').join(',');
-            return db.oracle.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
-        };
-
-        // 开启覆盖式同步：先删除该机构下的所有规则，再重新插入选中的项
-        logger.info(`Batch Sync: Deleting existing rules for jgbh='${jgbh}', zjgbh='${zjgbh}', ywsf='${ywsf}', ywnrfl='${ywnrfl}'`);
+        // 1. 查询该范围下已存在的规则
         const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
-        const deleteSql = `
-            DELETE FROM gjj_ywbz 
+        let existingSql = `
+            SELECT id, mbid FROM gjj_ywbz 
             WHERE ${coalesce}(jgbh, '') = ? 
             AND ${coalesce}(zjgbh, '') = ?
-            AND ${coalesce}(ywsf, '') = ?
-            AND ${coalesce}(ywnrfl, '') = ?
         `;
-        const deleteResult = await db.oracle.run(deleteSql, [jgbh, zjgbh, ywsf, ywnrfl]);
-        logger.info(`Batch Sync: Deleted existing rules. Changes: ${deleteResult.rowsAffected || deleteResult.changes}`);
+        const existingParams = [jgbh, zjgbh];
 
-        const templates = await getStandards(syncIds);
+        if (ywsf && ywsf.trim() !== '') {
+            existingSql += ` AND ${coalesce}(ywsf, '') = ?`;
+            existingParams.push(ywsf);
+        }
+        if (ywnrfl && ywnrfl.trim() !== '') {
+            existingSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
+            existingParams.push(ywnrfl);
+        }
 
+        const existingRows = await db.oracle.all(existingSql, existingParams);
+        
+        const selectedMbids = new Set(syncIds.map(String));
 
-        // --- 预取公共参数值 (移到循环外) ---
-        const publicParamValuesMap = {};
-        const distinctPublicParamIds = [...new Set(templates.map(t => t.ywbzz).filter(id => id))];
+        // 2. 计算需要删除的 (已存在但未选中) - 遍历所有行以处理潜在的重复数据
+        const idsToDelete = [];
+        existingRows.forEach(row => {
+            const mbid = String(row.mbid || row.MBID);
+            if (!selectedMbids.has(mbid)) {
+                idsToDelete.push(row.id || row.ID);
+            }
+        });
 
-        if (distinctPublicParamIds.length > 0) {
-            logger.info(`Batch Sync: Fetching public param values for ${distinctPublicParamIds.length} IDs: ${distinctPublicParamIds.join(',')}`);
-            // 并行获取 (Promise.all)
-            await Promise.all(distinctPublicParamIds.map(async (paramId) => {
-                try {
-                    const result = await fetchPublicParamValue(paramId, jgbh, zjgbh, headers);
-                    if (result && result.value) {
-                        publicParamValuesMap[paramId] = result.value;
+        // 3. 计算需要新增的 (选中但不存在)
+        const existingMbids = new Set(existingRows.map(r => String(r.mbid || r.MBID)));
+        const mbidsToInsert = [];
+        for (const mbid of selectedMbids) {
+            if (!existingMbids.has(mbid)) {
+                mbidsToInsert.push(mbid);
+            }
+        }
+
+        logger.info(`Batch Sync: Existing: ${existingRows.length}, To Delete: ${idsToDelete.length}, To Insert: ${mbidsToInsert.length}`);
+
+        // 4. 执行删除
+        if (idsToDelete.length > 0) {
+            const placeholders = idsToDelete.map(() => '?').join(',');
+            // 先删除关联的属性表
+            await db.oracle.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idsToDelete);
+            // 再删除主表
+            await db.oracle.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders})`, idsToDelete);
+        }
+
+        // 5. 执行新增
+        let insertCount = 0;
+        if (mbidsToInsert.length > 0) {
+            const getStandards = (ids) => {
+                const placeholders = ids.map(() => '?').join(',');
+                return db.oracle.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
+            };
+            
+            const templates = await getStandards(mbidsToInsert);
+
+            // --- 预取公共参数值 ---
+            const publicParamValuesMap = {};
+            const distinctPublicParamIds = [...new Set(templates.map(t => t.ywbzz).filter(id => id))];
+
+            if (distinctPublicParamIds.length > 0) {
+                await Promise.all(distinctPublicParamIds.map(async (paramId) => {
+                    try {
+                        const result = await fetchPublicParamValue(paramId, jgbh, zjgbh, headers);
+                        if (result && result.value) {
+                            publicParamValuesMap[paramId] = result.value;
+                        }
+                    } catch (e) {
+                        logger.warn(`Batch Sync: Failed to pre-fetch public param value for ${paramId}: ${e.message}`);
                     }
-                } catch (e) {
-                    logger.warn(`Batch Sync: Failed to pre-fetch public param value for ${paramId}: ${e.message}`);
-                }
-            }));
-            logger.info(`Batch Sync: Fetched public param values: ${JSON.stringify(publicParamValuesMap)}`);
-        }
-        // ------------------------------------
+                }));
+            }
 
-        let syncCount = 0;
-
-        for (const tpl of templates) {
-            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywbzz='${tpl.ywbzz}'`);
-            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywnrfl='${tpl.ywnrfl}'`);
-
-            // 获取之前预取的值
-            const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
-            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywnrfl='${tpl.ywnrfl}'`);
-            // 插入主表 gjj_ywbz (包含 ywbzz 字段)
-            // 使用事务或单独插入
-            await db.oracle.transaction(async (tx) => {
-                const insertSql = `
-                    INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
-                    VALUES (?, ?, ?, ?, 1, ?, ?, ?)
-                `;
-                // 将 fetchedYwbzzValue 存入 ywbzz 字段
-                await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh, fetchedYwbzzValue]);
-            });
-
-            syncCount++;
+            for (const tpl of templates) {
+                const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
+                
+                await db.oracle.transaction(async (tx) => {
+                    const insertSql = `
+                        INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
+                        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                    `;
+                    await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh, fetchedYwbzzValue]);
+                });
+                insertCount++;
+            }
         }
 
-        logger.info(`Batch Sync: Completed. Inserted ${syncCount} rules.`);
-        res.json({ status: 0, msg: `同步成功，已更新 ${syncCount} 条业务规则` });
+        res.json({ 
+            status: 0, 
+            msg: `同步成功：新增 ${insertCount} 条，移除 ${idsToDelete.length} 条，保留 ${existingRows.length - idsToDelete.length} 条` 
+        });
 
     } catch (err) {
         logger.error(`Batch sync failed: ${err.message}`);
@@ -770,7 +799,11 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
  */
 router.post('/selection_list', async (req, res) => {
     const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
-    const offset = (page - 1) * perPage;
+    
+    // Ensure page and perPage are valid numbers (handle empty strings from frontend)
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limit = Math.max(1, parseInt(perPage) || 10);
+    const offset = (pageNum - 1) * limit;
 
     // 规范化查询参数：将 null/undefined 统一转为空字符串，防止 join 失败
     // 假设数据库中存储的空值主要是空字符串 ''
@@ -809,8 +842,9 @@ router.post('/selection_list', async (req, res) => {
     const standardsQueryParams = paged.params;
 
     // 2. 查询已选中的 mbid (Query Selected IDs)
-    // 按 jgbh/zjgbh 查询该机构已同步的所有标准库 ID，不再按 ywsf 过滤
-    // （ywsf 值来自标准库的 gjsjsf，与前端筛选条件不总是一致，会导致回显失败）
+    // 按 jgbh/zjgbh 查询该机构已同步的所有标准库 ID
+    // 逻辑修正：与 batch 接口保持一致，如果前端传了 gjsjsf/ywnrfl，则作为 ywsf/ywnrfl 条件进行过滤
+    // 这样能确保 "checked" 状态反映的是"在当前筛选条件下是否已存在"
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
     let selectedSql = `
         SELECT DISTINCT mbid FROM gjj_ywbz 
@@ -819,6 +853,15 @@ router.post('/selection_list', async (req, res) => {
     `;
     const selectedParams = [queryJgbh, queryZjgbh];
 
+    if (gjsjsf && gjsjsf.trim() !== '') {
+        selectedSql += ` AND ${coalesce}(ywsf, '') = ?`;
+        selectedParams.push(gjsjsf);
+    }
+    if (ywnrfl && ywnrfl.trim() !== '') {
+        selectedSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
+        selectedParams.push(ywnrfl);
+    }
+
     // 执行查询 - 改为 Promise 方式
     try {
         const countRow = await db.oracle.get(countSql, standardsParams);
@@ -826,7 +869,7 @@ router.post('/selection_list', async (req, res) => {
         const selectedRows = await db.oracle.all(selectedSql, selectedParams);
 
         // 内存合并: 构建 Set 加速查找
-        const selectedIds = new Set(selectedRows.map(row => Number(row.mbid)));
+        const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
         logger.info(`[Selection Fix] Selected IDs: ${Array.from(selectedIds).join(',')}`);
 
         // 遍历标准库列表，标记 checked
