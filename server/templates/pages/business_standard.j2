@@ -111,73 +111,11 @@
                                         "value": 0
                                     },
                                     {
-                                        "type": "input-group",
+                                        "type": "input-text",
+                                        "name": "ywblbz",
                                         "label": "业务办理标准",
-                                        "body": [
-                                            {
-                                                "type": "input-text",
-                                                "name": "ywblbz",
-                                                "required": true,
-                                                "placeholder": "请输入描述，使用按钮插入属性引用",
-                                                "id": "u:standard_name_input"
-                                            },
-                                            {
-                                                "type": "button",
-                                                "label": "插入属性",
-                                                "icon": "fa fa-link",
-                                                "level": "default",
-                                                "actionType": "dialog",
-                                                "dialog": {
-                                                    "title": "选择属性插入",
-                                                    "size": "md",
-                                                    "body": {
-                                                        "type": "form",
-                                                        "wrapWithPanel": false,
-                                                        "body": [
-                                                            {
-                                                                "type": "select",
-                                                                "name": "_temp_attribute_obj",
-                                                                "label": "选择属性",
-                                                                "placeholder": "请选择要插入的属性",
-                                                                "source": "${ywblbzsxz}",
-                                                                "labelField": "ywblbzsx",
-                                                                "valueField": "ywblbzsx",
-                                                                "menuTpl": "<div>${fwdxbq} - ${ywblbzsx}</div>",
-                                                                "required": true
-                                                            }
-                                                        ]
-                                                    },
-                                                    "actions": [
-                                                        {
-                                                            "type": "button",
-                                                            "label": "取消",
-                                                            "actionType": "cancel"
-                                                        },
-                                                        {
-                                                            "type": "button",
-                                                            "label": "插入",
-                                                            "level": "primary",
-                                                            "onEvent": {
-                                                                "click": {
-                                                                    "actions": [
-                                                                        {
-                                                                            "actionType": "setValue",
-                                                                            "componentId": "u:standard_name_input",
-                                                                            "args": {
-                                                                                "value": "${ywblbz + ' [/' + _temp_attribute_obj + '] '}"
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "actionType": "closeDialog"
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        ]
+                                        "required": true,
+                                        "placeholder": "请输入业务办理标准"
                                     },
                                     {
                                         "type": "input-text",
@@ -423,73 +361,11 @@
                                             "value": 0
                                         },
                                         {
-                                            "type": "input-group",
+                                            "type": "input-text",
+                                            "name": "ywblbz",
                                             "label": "业务办理标准",
-                                            "body": [
-                                                {
-                                                    "type": "input-text",
-                                                    "name": "ywblbz",
-                                                    "required": true,
-                                                    "placeholder": "请输入描述，使用按钮插入属性引用",
-                                                    "id": "u:edit_standard_name_input"
-                                                },
-                                                {
-                                                    "type": "button",
-                                                    "label": "插入属性",
-                                                    "icon": "fa fa-link",
-                                                    "level": "default",
-                                                    "actionType": "dialog",
-                                                    "dialog": {
-                                                        "title": "选择属性插入",
-                                                        "size": "md",
-                                                        "body": {
-                                                            "type": "form",
-                                                            "wrapWithPanel": false,
-                                                            "body": [
-                                                                {
-                                                                    "type": "select",
-                                                                    "name": "_temp_attribute_obj",
-                                                                    "label": "选择属性",
-                                                                    "placeholder": "请选择要插入的属性",
-                                                                    "source": "${ywblbzsxz}",
-                                                                    "labelField": "ywblbzsx",
-                                                                    "valueField": "ywblbzsx",
-                                                                    "menuTpl": "<div>${fwdxbq} - ${ywblbzsx}</div>",
-                                                                    "required": true
-                                                                }
-                                                            ]
-                                                        },
-                                                        "actions": [
-                                                            {
-                                                                "type": "button",
-                                                                "label": "取消",
-                                                                "actionType": "cancel"
-                                                            },
-                                                            {
-                                                                "type": "button",
-                                                                "label": "插入",
-                                                                "level": "primary",
-                                                                "onEvent": {
-                                                                    "click": {
-                                                                        "actions": [
-                                                                            {
-                                                                                "actionType": "setValue",
-                                                                                "componentId": "u:edit_standard_name_input",
-                                                                                "args": {
-                                                                                    "value": "${ywblbz + ' [/' + _temp_attribute_obj + '] '}"
-                                                                                }
-                                                                            },
-                                                                            {
-                                                                                "actionType": "closeDialog"
-                                                                            }
-                                                                        ]
-                                                                    }
-                                                                }
-                                                            }
-                                                        ]
-                                                    }
-                                                }
-                                            ]
+                                            "required": true,
+                                            "placeholder": "请输入业务办理标准"
                                         },
                                         {
                                             "type": "input-text",
