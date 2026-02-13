@@ -214,11 +214,15 @@
                                         "name": "ywbzz",
                                         "label": "业务标准值",
                                         "clearable": true,
+                                        "searchable": true,
                                         "placeholder": "请选择业务标准值",
                                         "source": {
                                             "method": "post",
                                             "url": "${business_standard_value_api}",
-                                            "data": "${business_standard_value_params}"
+                                            "data": {
+                                                "&": "${business_standard_value_params}",
+                                                "name": "${term}"
+                                            }
                                         }
                                     },
                                     {
@@ -519,15 +523,19 @@
                                         },
                                         {
                                             "type": "select",
-                                            "name": "ywbzz",
-                                            "label": "业务标准值",
-                                            "clearable": true,
-                                            "placeholder": "请选择业务标准值",
-                                            "source": {
-                                                "method": "post",
-                                                "url": "${business_standard_value_api}",
-                                                "data": "${business_standard_value_params}"
+                                        "name": "ywbzz",
+                                        "label": "业务标准值",
+                                        "clearable": true,
+                                        "searchable": true,
+                                        "placeholder": "请选择业务标准值",
+                                        "source": {
+                                            "method": "post",
+                                            "url": "${business_standard_value_api}",
+                                            "data": {
+                                                "&": "${business_standard_value_params}",
+                                                "name": "${term}"
                                             }
+                                        }
                                         },
                                         {
                                             "type": "textarea",
