@@ -220,8 +220,7 @@ router.post('/config_form', async (req, res) => {
         comboItems.push({
             type: "input-text",
             name: "result",
-            label: "结果",
-            required: true
+            label: "结果"
         });
 
         // 构建完整的 AMIS Schema
