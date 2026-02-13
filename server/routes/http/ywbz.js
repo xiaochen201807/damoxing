@@ -203,6 +203,8 @@ router.post('/config_form', async (req, res) => {
                 required: true,
                 searchable: true,
                 clearable: true,
+                multiple: true,
+                joinValues: true,
                 source: {
                     method: "post",
                     url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-classes`,
@@ -839,7 +841,7 @@ router.post('/selection_list', async (req, res) => {
             data: {
                 items: items,
                 selectedIds: Array.from(selectedIds),
-                total: countRow ? countRow.total : 0
+                total: countRow ? (countRow.total || countRow.TOTAL) : 0
             }
         });
     } catch (err) {
