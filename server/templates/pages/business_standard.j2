@@ -31,7 +31,16 @@
     },
     "body": [
         {
-            "type": "crud",
+            "type": "service",
+            "api": {
+                "method": "post",
+                "url": "${business_content_class_api}",
+                "data": "${business_content_class_params}",
+                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+            },
+            "body": [
+                {
+                    "type": "crud",
             "columnsTogglable": false,
             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/list",
             "filter": {
@@ -198,7 +207,6 @@
                                         "type": "select",
                                         "name": "bzfl",
                                         "label": "标准分类",
-                                        "required": true,
                                         "source": "${standard_class_options}"
                                     },
                                     {
@@ -376,7 +384,9 @@
                 {
                     "name": "ywnrfl",
                     "label": "业务内容分类",
-                    "width": 150
+                    "width": 150,
+                    "type": "mapping",
+                    "source": "${class_options}"
                 },
                 {
                     "type": "operation",
@@ -505,7 +515,6 @@
                                             "type": "select",
                                             "name": "bzfl",
                                             "label": "标准分类",
-                                            "required": true,
                                             "source": "${standard_class_options}"
                                         },
                                         {
@@ -621,6 +630,8 @@
                             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
                         }
                     ]
+                }
+            ]
                 }
             ]
         }

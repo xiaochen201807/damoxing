@@ -570,10 +570,11 @@ router.post('/batch', async (req, res) => {
 
         for (const tpl of templates) {
             logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywbzz='${tpl.ywbzz}'`);
+            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywnrfl='${tpl.ywnrfl}'`);
 
             // 获取之前预取的值
             const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
-
+            logger.info(`Batch Sync: Inserting rule for mbid=${tpl.id}, ywnrfl='${tpl.ywnrfl}'`);
             // 插入主表 gjj_ywbz (包含 ywbzz 字段)
             // 使用事务或单独插入
             await db.oracle.transaction(async (tx) => {
