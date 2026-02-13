@@ -285,6 +285,7 @@ router.post('/business-standard-attributes', async (req, res) => {
     const payload = {
         "organizationNumber": jgbh,
         "syObjectNumber": body.syObjectNumber,
+        "fieldName": body.fieldName || "",
         "page": body.page || 1,
         "size": body.size || 1000
     };
