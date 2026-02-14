@@ -281,6 +281,11 @@
                                                                 "outputVar": "debugRes"
                                                             },
                                                             {
+                                                                "actionType": "custom",
+                                                                "script": "console.log('debugRes:', event.data.debugRes); console.log('Full structure:', event.data);",
+                                                                "description": "Log debug response"
+                                                            },
+                                                            {
                                                                 "actionType": "setValue",
                                                                 "componentId": "debug_form_component",
                                                                 "args": {
