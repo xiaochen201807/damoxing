@@ -544,7 +544,7 @@ router.post('/batch', async (req, res) => {
         }
 
         const existingRows = await db.oracle.all(existingSql, existingParams);
-        
+
         const selectedMbids = new Set(syncIds.map(String));
 
         // 2. 计算需要删除的 (已存在但未选中) - 遍历所有行以处理潜在的重复数据
@@ -583,7 +583,7 @@ router.post('/batch', async (req, res) => {
                 const placeholders = ids.map(() => '?').join(',');
                 return db.oracle.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
             };
-            
+
             const templates = await getStandards(mbidsToInsert);
 
             // --- 预取公共参数值 ---
@@ -605,7 +605,7 @@ router.post('/batch', async (req, res) => {
 
             for (const tpl of templates) {
                 const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
-                
+
                 await db.oracle.transaction(async (tx) => {
                     const insertSql = `
                         INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
@@ -617,9 +617,9 @@ router.post('/batch', async (req, res) => {
             }
         }
 
-        res.json({ 
-            status: 0, 
-            msg: `同步成功：新增 ${insertCount} 条，移除 ${idsToDelete.length} 条，保留 ${existingRows.length - idsToDelete.length} 条` 
+        res.json({
+            status: 0,
+            msg: `同步成功：新增 ${insertCount} 条，移除 ${idsToDelete.length} 条，保留 ${existingRows.length - idsToDelete.length} 条`
         });
 
     } catch (err) {
@@ -857,7 +857,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
  */
 router.post('/selection_list', async (req, res) => {
     const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
-    
+
     // Ensure page and perPage are valid numbers (handle empty strings from frontend)
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limit = Math.max(1, parseInt(perPage) || 10);
@@ -952,5 +952,94 @@ router.post('/selection_list', async (req, res) => {
 });
 
 
+
+/**
+ * 11. 调试接口 (POST /debug)
+ * 转发请求至网关 HFB/business/ywbz/zhixing$m=execute.service
+ */
+const { gatewayRequest } = require('../../services/gatewayService');
+
+router.post('/debug', async (req, res) => {
+    try {
+        const payload = req.body;
+        logger.info(`Debug Payload: ${JSON.stringify(payload)}`);
+
+        // 构建网关请求参数
+        // HFB/business/ywbz/zhixing$m=execute.service
+        // 入参: ywsf, ywnrfl, jgbh, zjgbh, 及其他页面属性
+
+        // 构造请求头
+        const headers = {
+            'channel': req.headers['channel'] || '',
+            'login-token': req.headers['login-token'] || '',
+            'zzbs': req.headers['zzbs'] || '',
+            'zzjgdmz': req.headers['zzjgdmz'] || ''
+        };
+
+        // 调用网关服务
+        // 注意：gatewayRequest 需要支持自定义 path
+        // 这里假设 gatewayRequest(path, data, headers)
+        const gatewayPath = 'HFB/business/ywbz/zhixing$m=execute.service';
+        const result = await gatewayRequest(gatewayPath, payload, headers);
+
+        logger.info(`Debug Result: ${JSON.stringify(result)}`);
+
+        // 返回网关结果
+        return res.json({ status: 0, msg: "调试成功", data: result });
+
+    } catch (err) {
+        logger.error(`Debug failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "调试失败: " + err.message });
+    }
+});
+
+/**
+ * 12. 调试日志查询 (POST /debug_log)
+ * 查询 gjj_ywblbz_log 表
+ */
+router.post('/debug_log', async (req, res) => {
+    const { pcid } = req.body;
+    if (!pcid) {
+        return res.status(400).json({ status: 1, msg: "PCID is required" });
+    }
+
+    try {
+        const sql = `
+            SELECT 
+                pcid, 
+                zxyj as content, 
+                zxjg as result, 
+                cjsj as time, 
+                yjlx as type
+            FROM gjj_ywblbz_log 
+            WHERE pcid = ?
+            ORDER BY cjsj ASC
+        `;
+        const rows = await db.oracle.all(sql, [pcid]);
+
+        // 格式化数据
+        const formattedRows = rows.map((row, index) => ({
+            id: index + 1,
+            step: `步骤 ${index + 1}`,
+            content: row.content || row.CONTENT || row.zxyj,
+            result: row.result || row.RESULT || row.zxjg,
+            time: row.time || row.TIME || row.cjsj,
+            type: row.type || row.TYPE || row.yjlx === '1' ? 'SQL' : '标准结果'
+        }));
+
+        res.json({
+            status: 0,
+            msg: "ok",
+            data: {
+                rows: formattedRows
+            }
+        });
+    } catch (err) {
+        logger.error(`Debug log query failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "查询日志失败: " + err.message });
+    }
+});
+
 module.exports = router;
+
 

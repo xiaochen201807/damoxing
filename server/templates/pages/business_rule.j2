@@ -234,6 +234,141 @@
                             "url": "${rule_export_api}",
                             "responseType": "blob"
                         }
+                    },
+                    {
+                        "type": "button",
+                        "label": "调试",
+                        "icon": "fa fa-bug",
+                        "level": "primary",
+                        "className": "ml-2",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "业务规则调试",
+                            "size": "lg",
+                            "body": {
+                                "type": "form",
+                                "id": "debug_form_component",
+                                "title": "",
+                                "mode": "normal",
+                                "body": [
+                                    {
+                                        "type": "editor",
+                                        "language": "json",
+                                        "name": "debugInput",
+                                        "label": "入参 (JSON)",
+                                        "value": "{\n  \"ywsf\": \"1\",\n  \"ywnrfl\": \"1\",\n  \"jgbh\": \"\",\n  \"zjgbh\": \"\"\n}",
+                                        "minRows": 10
+                                    },
+                                    {
+                                        "type": "group",
+                                        "body": [
+                                            {
+                                                "type": "button",
+                                                "label": "调试",
+                                                "level": "primary",
+                                                "actionType": "ajax",
+                                                "api": {
+                                                    "method": "post",
+                                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
+                                                    "data": "${debugInput | fromjson}"
+                                                },
+                                                "onEvent": {
+                                                    "click": {
+                                                        "actions": [
+                                                            {
+                                                                "actionType": "ajax",
+                                                                "outputVar": "debugRes"
+                                                            },
+                                                            {
+                                                                "actionType": "setValue",
+                                                                "componentId": "debug_form_component",
+                                                                "args": {
+                                                                    "value": {
+                                                                        "debugOutput": "${event.data.debugRes}",
+                                                                        "pcid": "${event.data.debugRes.results[0].pcid}"
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "button",
+                                                "label": "查看明细",
+                                                "level": "info",
+                                                "disabledOn": "!data.pcid",
+                                                "actionType": "dialog",
+                                                "dialog": {
+                                                    "title": "调试日志明细",
+                                                    "size": "xl",
+                                                    "body": {
+                                                        "type": "crud",
+                                                        "api": {
+                                                            "method": "post",
+                                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
+                                                            "data": {
+                                                                "pcid": "${pcid}"
+                                                            }
+                                                        },
+                                                        "syncLocation": false,
+                                                        "columns": [
+                                                            {
+                                                                "name": "step",
+                                                                "label": "环节",
+                                                                "width": 80
+                                                            },
+                                                            {
+                                                                "name": "type",
+                                                                "label": "类型",
+                                                                "width": 80
+                                                            },
+                                                            {
+                                                                "name": "content",
+                                                                "label": "处理内容",
+                                                                "type": "tpl",
+                                                                "tpl": "<div style='word-break: break-all; white-space: pre-wrap;'>${content}</div>"
+                                                            },
+                                                            {
+                                                                "name": "result",
+                                                                "label": "结果",
+                                                                "type": "tpl",
+                                                                "tpl": "<div style='word-break: break-all; white-space: pre-wrap;'>${result}</div>"
+                                                            },
+                                                            {
+                                                                "name": "time",
+                                                                "label": "时间",
+                                                                "width": 150
+                                                            }
+                                                        ]
+                                                    },
+                                                    "actions": [
+                                                        {
+                                                            "type": "button",
+                                                            "label": "关闭",
+                                                            "actionType": "close"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "json",
+                                        "name": "debugOutput",
+                                        "label": "出参结果",
+                                        "level": "expand"
+                                    }
+                                ]
+                            },
+                            "actions": [
+                                {
+                                    "type": "button",
+                                    "label": "关闭",
+                                    "actionType": "close"
+                                }
+                            ]
+                        }
                     }
                 ]
             },

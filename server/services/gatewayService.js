@@ -11,6 +11,46 @@ const GATEWAY_BASE_URL = (() => {
     }
 })();
 
+
+/**
+ * 通用网关请求
+ * @param {string} path - 接口路径 (如 /GLDX/business/...)
+ * @param {object} data - 请求体
+ * @param {object} headers - 请求头
+ * @returns {Promise<object>} - 返回 data 部分
+ */
+async function gatewayRequest(path, data = {}, headers = {}) {
+    // 确保 path 以 / 开头或正确拼接
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const url = `${GATEWAY_BASE_URL}${cleanPath}`;
+
+    logger.info(`[Gateway Request] POST ${url}, Payload: ${JSON.stringify(data)}`);
+
+    try {
+        const response = await axios.post(url, data, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers
+            },
+            timeout: 30000
+        });
+
+        // 记录响应摘要
+        if (response.data) {
+            const preview = JSON.stringify(response.data).substring(0, 200);
+            logger.info(`[Gateway Response] Success: ${preview}...`);
+        }
+
+        return response.data;
+    } catch (err) {
+        logger.error(`[Gateway Request] Failed: ${err.message}`);
+        if (err.response) {
+            logger.error(`[Gateway Request] Error data: ${JSON.stringify(err.response.data)}`);
+        }
+        throw err;
+    }
+}
+
 /**
  * 获取公共参数值
  * @param {string} publicParamId - 公共参数ID
@@ -20,7 +60,7 @@ const GATEWAY_BASE_URL = (() => {
  * @returns {Promise<object>} - 返回包含 value 的结果对象
  */
 async function fetchPublicParamValue(publicParamId, organizationNumber, zjgbh, headers = {}) {
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/publicparamvalue$m=query.service`;
+    const path = '/GLDX/business/common/publicparamvalue$m=query.service';
 
     const payload = {
         "publicParamId": publicParamId,
@@ -28,26 +68,15 @@ async function fetchPublicParamValue(publicParamId, organizationNumber, zjgbh, h
         "zjgbh": zjgbh || ""
     };
 
-    logger.info(`[Gateway Service] Fetching public param value. Payload: ${JSON.stringify(payload)}`);
-
     try {
-        const response = await axios.post(gatewayUrl, payload, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...headers
-            },
-            timeout: 30000 // max-time 30s
-        });
-        const gatewayData = response.data;
+        const gatewayData = await gatewayRequest(path, payload, headers);
 
         // 特殊处理：如果返回的是单个对象且包含 paramValue
         if (gatewayData.data && !Array.isArray(gatewayData.data)) {
-            const resultData = {
+            return {
                 ...gatewayData.data,
                 value: gatewayData.data.paramValue
             };
-            logger.info(`[Gateway Service] Success: ${JSON.stringify(resultData)}`);
-            return resultData;
         }
 
         // 处理数组返回
@@ -61,27 +90,23 @@ async function fetchPublicParamValue(publicParamId, organizationNumber, zjgbh, h
         }
 
         if (list.length > 0) {
-            const item = list[0]; // 默认取第一个
-            const resultData = {
+            const item = list[0];
+            return {
                 ...item,
                 value: item.value || item.coding || item.id
             };
-            logger.info(`[Gateway Service] Success (from array): ${JSON.stringify(resultData)}`);
-            return resultData;
         }
 
         logger.warn(`[Gateway Service] No data found for publicParamId: ${publicParamId}`);
         return null;
 
     } catch (err) {
-        logger.error(`[Gateway Service] Failed: ${err.message}`);
-        if (err.response) {
-            logger.error(`[Gateway Service] Error data: ${JSON.stringify(err.response.data)}`);
-        }
+        // gatewayRequest 已经 log 了 error，这里只需抛出
         throw err;
     }
 }
 
 module.exports = {
-    fetchPublicParamValue
+    fetchPublicParamValue,
+    gatewayRequest
 };
