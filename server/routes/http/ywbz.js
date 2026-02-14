@@ -632,13 +632,47 @@ router.post('/batch', async (req, res) => {
  * 7. 删除 (POST /delete)
  */
 router.post('/delete', async (req, res) => {
-    const { id } = req.body;
+    let { id, jgbh, zjgbh } = req.body; // Use let to allow reassignment
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
+    // 从请求头获取当前机构信息 (如果 body 中没有提供)
+    if (!jgbh) {
+        jgbh = req.headers['jgbh'] || '';
+    }
+    if (!zjgbh) {
+        zjgbh = req.headers['zjgbh'] || '';
+    }
+
     try {
-        await db.oracle.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        await db.oracle.transaction(async (tx) => {
+            // 1. 验证权限：检查该记录是否属于当前机构
+            const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+            const checkSql = `
+                SELECT id FROM gjj_ywbz 
+                WHERE id = ? 
+                AND ${coalesce}(jgbh, '') = ? 
+                AND ${coalesce}(zjgbh, '') = ?
+            `;
+            // 如果 jgbh/zjgbh 为空字符串，也能匹配到数据库中为空的公共记录（如果有的话）
+            // 但通常业务上应该严格匹配当前登录人的机构
+            const record = await tx.get(checkSql, [id, jgbh, zjgbh]);
+            
+            logger.error(`Delete Check: id=${id}, jgbh=${jgbh}, zjgbh=${zjgbh}, record=${JSON.stringify(record)}`);
+            
+            if (!record) {
+                throw new Error("无权删除此记录或记录不存在");
+            }
+
+            // 2. 先删除关联属性表
+            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            
+            // 3. 再删除主表
+            await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        });
+
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
+        logger.error(`Delete failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
     }
 });
@@ -648,10 +682,35 @@ router.post('/delete', async (req, res) => {
  */
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
+    
+    // 从请求头获取当前机构信息
+    const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+
     try {
-        await db.oracle.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        await db.oracle.transaction(async (tx) => {
+            // 1. 验证权限
+            const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+            const checkSql = `
+                SELECT id FROM gjj_ywbz 
+                WHERE id = ? 
+                AND ${coalesce}(jgbh, '') = ? 
+                AND ${coalesce}(zjgbh, '') = ?
+            `;
+            const record = await tx.get(checkSql, [id, jgbh, zjgbh]);
+            
+            if (!record) {
+                throw new Error("无权删除此记录或记录不存在");
+            }
+
+            // 2. 级联删除
+            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+        });
+        
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
+        logger.error(`Delete failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
     }
 });
