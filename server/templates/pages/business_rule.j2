@@ -285,7 +285,7 @@
                                                                 "componentId": "debug_form_component",
                                                                 "args": {
                                                                     "value": {
-                                                                        "debugOutput": "${event.data.debugRes.results}",
+                                                                        "debugOutput": "${event.data.debugRes.results[0].result}",
                                                                         "pcid": "${event.data.debugRes.results[0].pcid}"
                                                                     }
                                                                 }
@@ -355,10 +355,15 @@
                                         ]
                                     },
                                     {
-                                        "type": "json",
+                                        "type": "static",
                                         "name": "debugOutput",
-                                        "label": "出参结果",
-                                        "level": "expand"
+                                        "label": "结果"
+                                    },
+                                    {
+                                        "type": "static",
+                                        "name": "pcid",
+                                        "label": "PCID",
+                                        "copyable": true
                                     }
                                 ]
                             },
