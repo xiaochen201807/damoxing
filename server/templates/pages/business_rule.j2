@@ -23,6 +23,8 @@
         "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
         "rule_import_api": "{{ rule_import_api | default(GLOBAL_API_PREFIX + '/ywbz/import') }}",
         "rule_export_api": "{{ rule_export_api | default(GLOBAL_API_PREFIX + '/ywbz/export') }}",
+        "rule_debug_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
+        "rule_debug_log_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
         "algorithm_options": {{ algorithm_options | default([{"label":"最大可提取额","value":"1"},{"label":"最高可贷金额","value":"2"},{"label":"最高可贷年限","value":"3"},{"label":"借款人最大可对冲支取金额","value":"4"}]) | fromjson | tojson }},
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
@@ -269,7 +271,7 @@
                                                 "actionType": "ajax",
                                                 "api": {
                                                     "method": "post",
-                                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
+                                                    "url": "${rule_debug_api}",
                                                     "data": "${debugInput | fromjson}"
                                                 },
                                                 "onEvent": {
@@ -306,7 +308,7 @@
                                                         "type": "crud",
                                                         "api": {
                                                             "method": "post",
-                                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
+                                                            "url": "${rule_debug_log_api}",
                                                             "data": {
                                                                 "pcid": "${pcid}"
                                                             }
