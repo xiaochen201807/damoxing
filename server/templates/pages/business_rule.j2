@@ -282,7 +282,7 @@
                                                             },
                                                             {
                                                                 "actionType": "custom",
-                                                                "script": "console.log('debugRes:', event.data.debugRes); console.log('Full structure:', event.data);",
+                                                                "script": "console.log('debugRes:', event.data.debugRes); console.log('responseResult:', event.data.responseResult); console.log('Full event:', event);",
                                                                 "description": "Log debug response"
                                                             },
                                                             {
@@ -290,8 +290,8 @@
                                                                 "componentId": "debug_form_component",
                                                                 "args": {
                                                                     "value": {
-                                                                        "debugOutput": "${debugRes.data.results[0].result}",
-                                                                        "pcid": "${debugRes.data.results[0].pcid}"
+                                                                        "debugOutput": "${debugRes.items[0].result}",
+                                                                        "pcid": "${debugRes.items[0].pcid}"
                                                                     }
                                                                 }
                                                             }
