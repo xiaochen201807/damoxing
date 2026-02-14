@@ -268,17 +268,16 @@
                                                 "type": "button",
                                                 "label": "调试",
                                                 "level": "primary",
-                                                "actionType": "ajax",
-                                                "api": {
-                                                    "method": "post",
-                                                    "url": "${rule_debug_api}",
-                                                    "data": "${debugInput | fromjson}"
-                                                },
                                                 "onEvent": {
                                                     "click": {
                                                         "actions": [
                                                             {
                                                                 "actionType": "ajax",
+                                                                "api": {
+                                                                    "method": "post",
+                                                                    "url": "${rule_debug_api}",
+                                                                    "data": "${debugInput | fromjson}"
+                                                                },
                                                                 "outputVar": "debugRes"
                                                             },
                                                             {
