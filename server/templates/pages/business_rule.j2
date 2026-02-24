@@ -13,6 +13,9 @@
             "color": "#fff",
             "marginBottom": "0px",
             "borderRadius": "12px 12px 0 0"
+        },
+        ".wider-select .cxd-Select": {
+            "minWidth": "250px"
         }
     },
     "data": {
@@ -56,8 +59,7 @@
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择",
-                        "className": "w-full",
-                        "inputClassName": "min-w-xs",
+                        "className": "wider-select",
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
