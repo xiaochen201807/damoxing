@@ -107,32 +107,32 @@
                                     {
                                         "type": "input-number",
                                         "name": "pxh",
-                                        "label": "排序号",
+                                        "label": "排序号：",
                                         "value": 0
                                     },
                                     {
                                         "type": "input-text",
                                         "name": "ywblbz",
-                                        "label": "业务办理标准",
+                                        "label": "业务办理标准：",
                                         "required": true,
                                         "placeholder": "请输入业务办理标准"
                                     },
                                     {
                                         "type": "input-text",
                                         "name": "ywblbzsm",
-                                        "label": "业务办理标准说明",
-                                        "placeholder": "请输入业务办理标准说明"
+                                        "label": "业务办理标准描述：",
+                                        "placeholder": "请输入业务办理标准描述"
                                     },
                                     {
                                         "type": "select",
                                         "name": "gjsjsf",
-                                        "label": "关键数据算法",
+                                        "label": "关键数据算法：",
                                         "source": "${algorithm_options}"
                                     },
                                     {
                                         "type": "select",
                                         "name": "ywnrfl",
-                                        "label": "业务内容分类",
+                                        "label": "业务内容分类：",
                                         "placeholder": "请选择业务内容分类",
                                         "clearable": true,
                                         "source": {
@@ -144,13 +144,13 @@
                                     {
                                         "type": "select",
                                         "name": "bzfl",
-                                        "label": "标准分类",
+                                        "label": "业务办理标准分类：",
                                         "source": "${standard_class_options}"
                                     },
                                     {
                                         "type": "select",
                                         "name": "ywbzz",
-                                        "label": "业务标准值",
+                                        "label": "业务标准值：",
                                         "clearable": true,
                                         "searchable": true,
                                         "placeholder": "请选择业务标准值",
@@ -166,34 +166,60 @@
                                     {
                                         "type": "textarea",
                                         "name": "ywbzjg",
-                                        "label": "业务标准结果SQL",
-                                        "placeholder": "请输入 SQL"
+                                        "label": "业务办理标准结果执行语句：",
+                                        "placeholder": "请输入执行语句"
                                     },
                                     {
                                         "type": "combo",
                                         "name": "ywblbzsxz",
-                                        "label": "业务办理标准属性组",
+                                        "label": "业务办理标准属性组：",
                                         "multiple": true,
                                         "multiLine": true,
                                         "addable": true,
                                         "removable": true,
                                         "items": [
                                             {
-                                                "type": "select",
-                                                "name": "ywblbzdx",
-                                                "label": "业务办理标准对象",
-                                                "required": true,
-                                                "source": {
-                                                    "method": "post",
-                                                    "url": "${service_objects_api}",
-                                                    "data": "${service_objects_params}"
-                                                },
-                                                "autoFill": {
-                                                    "fwdxbq": "${label}",
-                                                    "_syObjectNumber": "${syObjectNumber}",
-                                                    "_coding": "${coding}",
-                                                    "_id": "${id}"
-                                                }
+                                                "type": "group",
+                                                "body": [
+                                                    {
+                                                        "type": "select",
+                                                        "name": "ywblbzdx",
+                                                        "label": "业务办理标准属性所属对象：",
+                                                        "required": true,
+                                                        "source": {
+                                                            "method": "post",
+                                                            "url": "${service_objects_api}",
+                                                            "data": "${service_objects_params}"
+                                                        },
+                                                        "autoFill": {
+                                                            "fwdxbq": "${label}",
+                                                            "_syObjectNumber": "${syObjectNumber}",
+                                                            "_coding": "${coding}",
+                                                            "_id": "${id}"
+                                                        }
+                                                    },
+                                                    {
+                                                        "type": "select",
+                                                        "name": "ywblbzsx",
+                                                        "autoFill": {
+                                                            "sxbm": "${sxbm}"
+                                                        },
+                                                        "label": "业务办理标准属性：",
+                                                        "placeholder": "请选择属性",
+                                                        "clearValueOnOptionsChange": true,
+                                                        "searchable": true,
+                                                        "source": {
+                                                            "method": "post",
+                                                            "url": "${business_standard_attribute_api}",
+                                                            "data": {
+                                                                "&": "${business_standard_attribute_params}",
+                                                                "syObjectNumber": "${_syObjectNumber || _coding || _id}",
+                                                                "fieldName": "${term}"
+                                                            },
+                                                            "trackExpression": "${ywblbzdx}"
+                                                        }
+                                                    }
+                                                ]
                                             },
                                             {
                                                 "type": "hidden",
@@ -207,30 +233,9 @@
                                                 "name": "sxbm"
                                             },
                                             {
-                                                "type": "select",
-                                                "name": "ywblbzsx",
-                                                "autoFill": {
-                                                    "sxbm": "${sxbm}"
-                                                },
-                                                "label": "业务办理标准属性",
-                                                "placeholder": "请选择属性",
-                                                "clearValueOnOptionsChange": true,
-                                                "searchable": true,
-                                                "source": {
-                                                    "method": "post",
-                                                    "url": "${business_standard_attribute_api}",
-                                                    "data": {
-                                                        "&": "${business_standard_attribute_params}",
-                                                        "syObjectNumber": "${_syObjectNumber || _coding || _id}",
-                                                        "fieldName": "${term}"
-                                                    },
-                                                    "trackExpression": "${ywblbzdx}"
-                                                }
-                                            },
-                                            {
                                                 "type": "radios",
                                                 "name": "sxly",
-                                                "label": "属性来源",
+                                                "label": "属性来源：",
                                                 "inline": true,
                                                 "options": [
                                                     {
@@ -247,7 +252,7 @@
                                             {
                                                 "type": "textarea",
                                                 "name": "ywblbzyg",
-                                                "label": "业务办理标准语句",
+                                                "label": "业务办理标准属性来源执行语句：",
                                                 "visibleOn": "${sxly === 'sql'}"
                                             }
                                         ]
@@ -310,7 +315,7 @@
                 },
                 {
                     "name": "ywblbzsm",
-                    "label": "业务办理标准说明",
+                    "label": "业务办理标准描述",
                     "width": 300
                 },
                 {
@@ -328,7 +333,7 @@
                 {
                     "name": "ywnrfl",
                     "label": "业务内容分类",
-                    "width": 150,
+                    "width": 250,
                     "type": "mapping",
                     "source": "${class_options}"
                 },
@@ -359,32 +364,32 @@
                                         {
                                             "type": "input-number",
                                             "name": "pxh",
-                                            "label": "排序号",
+                                            "label": "排序号：",
                                             "value": 0
                                         },
                                         {
                                             "type": "input-text",
                                             "name": "ywblbz",
-                                            "label": "业务办理标准",
+                                            "label": "业务办理标准：",
                                             "required": true,
                                             "placeholder": "请输入业务办理标准"
                                         },
                                         {
                                             "type": "input-text",
                                             "name": "ywblbzsm",
-                                            "label": "业务办理标准说明",
-                                            "placeholder": "请输入业务办理标准说明"
+                                            "label": "业务办理标准描述：",
+                                            "placeholder": "请输入业务办理标准描述"
                                         },
                                         {
                                             "type": "select",
                                             "name": "gjsjsf",
-                                            "label": "关键数据算法",
+                                            "label": "关键数据算法：",
                                             "source": "${algorithm_options}"
                                         },
                                         {
                                             "type": "select",
                                             "name": "ywnrfl",
-                                            "label": "业务内容分类",
+                                            "label": "业务内容分类：",
                                             "placeholder": "请选择业务内容分类",
                                             "clearable": true,
                                             "source": {
@@ -396,56 +401,82 @@
                                         {
                                             "type": "select",
                                             "name": "bzfl",
-                                            "label": "标准分类",
+                                            "label": "业务办理标准分类：",
                                             "source": "${standard_class_options}"
                                         },
                                         {
                                             "type": "select",
-                                        "name": "ywbzz",
-                                        "label": "业务标准值",
-                                        "clearable": true,
-                                        "searchable": true,
-                                        "placeholder": "请选择业务标准值",
-                                        "source": {
-                                            "method": "post",
-                                            "url": "${business_standard_value_api}",
-                                            "data": {
-                                                "&": "${business_standard_value_params}",
-                                                "name": "${term}"
+                                            "name": "ywbzz",
+                                            "label": "业务标准值：",
+                                            "clearable": true,
+                                            "searchable": true,
+                                            "placeholder": "请选择业务标准值",
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${business_standard_value_api}",
+                                                "data": {
+                                                    "&": "${business_standard_value_params}",
+                                                    "name": "${term}"
+                                                }
                                             }
-                                        }
                                         },
                                         {
                                             "type": "textarea",
                                             "name": "ywbzjg",
-                                            "label": "业务标准结果SQL",
-                                            "placeholder": "请输入 SQL"
+                                            "label": "业务办理标准结果执行语句：",
+                                            "placeholder": "请输入执行语句"
                                         },
                                         {
                                             "type": "combo",
                                             "name": "ywblbzsxz",
-                                            "label": "业务办理标准属性组",
+                                            "label": "业务办理标准属性组：",
                                             "multiple": true,
                                             "multiLine": true,
                                             "addable": true,
                                             "removable": true,
                                             "items": [
                                                 {
-                                                    "type": "select",
-                                                    "name": "ywblbzdx",
-                                                    "label": "业务办理标准对象",
-                                                    "required": true,
-                                                    "source": {
-                                                        "method": "post",
-                                                        "url": "${service_objects_api}",
-                                                        "data": "${service_objects_params}"
-                                                    },
-                                                    "autoFill": {
-                                                        "fwdxbq": "${label}",
-                                                        "_syObjectNumber": "${syObjectNumber}",
-                                                        "_coding": "${coding}",
-                                                        "_id": "${id}"
-                                                    }
+                                                    "type": "group",
+                                                    "body": [
+                                                        {
+                                                            "type": "select",
+                                                            "name": "ywblbzdx",
+                                                            "label": "业务办理标准属性所属对象：",
+                                                            "required": true,
+                                                            "source": {
+                                                                "method": "post",
+                                                                "url": "${service_objects_api}",
+                                                                "data": "${service_objects_params}"
+                                                            },
+                                                            "autoFill": {
+                                                                "fwdxbq": "${label}",
+                                                                "_syObjectNumber": "${syObjectNumber}",
+                                                                "_coding": "${coding}",
+                                                                "_id": "${id}"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "select",
+                                                            "name": "ywblbzsx",
+                                                            "autoFill": {
+                                                                "sxbm": "${sxbm}"
+                                                            },
+                                                            "label": "业务办理标准属性：",
+                                                            "placeholder": "请选择属性",
+                                                            "clearValueOnOptionsChange": true,
+                                                            "searchable": true,
+                                                            "source": {
+                                                                "method": "post",
+                                                                "url": "${business_standard_attribute_api}",
+                                                                "data": {
+                                                                    "&": "${business_standard_attribute_params}",
+                                                                    "syObjectNumber": "${_syObjectNumber || _coding || _id}",
+                                                                    "fieldName": "${term}"
+                                                                },
+                                                                "trackExpression": "${ywblbzdx}"
+                                                            }
+                                                        }
+                                                    ]
                                                 },
                                                 {
                                                     "type": "hidden",
@@ -459,30 +490,9 @@
                                                     "name": "sxbm"
                                                 },
                                                 {
-                                                    "type": "select",
-                                                    "name": "ywblbzsx",
-                                                    "autoFill": {
-                                                        "sxbm": "${sxbm}"
-                                                    },
-                                                    "label": "业务办理标准属性",
-                                                    "placeholder": "请选择属性",
-                                                    "clearValueOnOptionsChange": true,
-                                                    "searchable": true,
-                                                    "source": {
-                                                        "method": "post",
-                                                        "url": "${business_standard_attribute_api}",
-                                                        "data": {
-                                                            "&": "${business_standard_attribute_params}",
-                                                            "syObjectNumber": "${_syObjectNumber || _coding || _id}",
-                                                            "fieldName": "${term}"
-                                                        },
-                                                        "trackExpression": "${ywblbzdx}"
-                                                    }
-                                                },
-                                                {
                                                     "type": "radios",
                                                     "name": "sxly",
-                                                    "label": "属性来源",
+                                                    "label": "属性来源：",
                                                     "inline": true,
                                                     "options": [
                                                         {
@@ -499,7 +509,7 @@
                                                 {
                                                     "type": "textarea",
                                                     "name": "ywblbzyg",
-                                                    "label": "业务办理标准语句",
+                                                    "label": "业务办理标准属性来源执行语句：",
                                                     "visibleOn": "${sxly === 'sql'}"
                                                 }
                                             ]
@@ -514,7 +524,7 @@
                             "level": "link",
                             "className": "text-danger",
                             "actionType": "ajax",
-                            "confirmText": "确认要删除此模板吗?",
+                            "confirmText": "业务办理标准删除后会导致项目引用错误，请谨慎操作，确认是否删除？",
                             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
                         }
                     ]

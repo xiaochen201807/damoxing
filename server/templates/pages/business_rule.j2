@@ -27,7 +27,17 @@
         "rule_debug_log_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
         "algorithm_options": {{ algorithm_options | default([{"label":"最大可提取额","value":"1"},{"label":"最高可贷金额","value":"2"},{"label":"最高可贷年限","value":"3"},{"label":"借款人最大可对冲支取金额","value":"4"}]) | fromjson | tojson }},
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
-        "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
+        "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }},
+        "standard_class_options": [
+            { "label": "缴存人账户余额", "value": "1" },
+            { "label": "冻结金额", "value": "2" },
+            { "label": "账户保留金额", "value": "3" },
+            { "label": "材料提取限额", "value": "4" },
+            { "label": "累计提取金额", "value": "5" },
+            { "label": "精度值", "value": "6" },
+            { "label": "保留方式", "value": "7" },
+            { "label": "在途提取金额", "value": "8" }
+        ]
     },
     "body": [
         {
@@ -56,6 +66,8 @@
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择",
+                        "className": "w-xs",
+                        "style": { "minWidth": "250px" },
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
@@ -66,8 +78,11 @@
                     {
                         "type": "button",
                         "icon": "fa fa-check",
+                        "label": "勾选",
                         "level": "link",
                         "className": "p-2 mr-4",
+                        "disabledOn": "!ywsf || !ywnrfl",
+                        "tooltip": "请先选择关键数据算法和业务内容分类",
                         "actionType": "dialog",
                         "dialog": {
                             "title": "清册选择",
@@ -173,6 +188,10 @@
                                             {
                                                 "name": "ywblbz",
                                                 "label": "业务办理标准"
+                                            },
+                                            {
+                                                "name": "ywblbzsm",
+                                                "label": "业务办理标准描述"
                                             }
                                         ]
                                     }
@@ -200,11 +219,11 @@
                     },
                     {
                         "type": "button",
-                        "label": "全量导入",
+                        "label": "导入",
                         "level": "primary",
                         "actionType": "dialog",
                         "dialog": {
-                            "title": "全量导入业务规则",
+                            "title": "导入业务规则",
                             "body": {
                                 "type": "form",
                                 "api": {
@@ -227,7 +246,7 @@
                     },
                     {
                         "type": "button",
-                        "label": "全量导出",
+                        "label": "导出",
                         "level": "default",
                         "actionType": "download",
                         "api": {
@@ -246,12 +265,44 @@
                         "dialog": {
                             "title": "业务规则调试",
                             "size": "lg",
-                            "body": {
+                            "headerClassName": "flex items-center",
+                            "body": [
+                                {
+                                    "type": "alert",
+                                    "body": "<b>调试使用说明：</b><br/>（1）业务运行配置工具中通过调用场景 <code>HFB/business/ywbz/zhixing$m=execute.service</code> 方法计算算法结果。<br/>（2）可通过公积金业务后台找到对应的API，复制入参。<br/>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。<br/>（4）也可直接查看算法计算过程中应用的SQL及结果：<code>select * from gjj_ywblbz_log order by cjsj;</code>",
+                                    "level": "info",
+                                    "showIcon": true,
+                                    "visibleOn": "${showDebugHelp}",
+                                    "className": "mb-3"
+                                },
+                                {
                                 "type": "form",
                                 "id": "debug_form_component",
                                 "title": "",
                                 "mode": "normal",
                                 "body": [
+                                    {
+                                        "type": "button",
+                                        "icon": "fa fa-question-circle",
+                                        "level": "link",
+                                        "className": "mb-2",
+                                        "label": "调试使用说明",
+                                        "onEvent": {
+                                            "click": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "debug_form_component",
+                                                        "args": {
+                                                            "value": {
+                                                                "showDebugHelp": "${!showDebugHelp}"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
                                     {
                                         "type": "editor",
                                         "language": "json",
@@ -364,7 +415,7 @@
                                         "label": "结果"
                                     }
                                 ]
-                            },
+                            }],
                             "actions": [
                                 {
                                     "type": "button",
@@ -394,8 +445,29 @@
                     }
                 },
                 {
+                    "name": "ywnrfl",
+                    "label": "业务内容分类",
+                    "width": 250,
+                    "type": "mapping",
+                    "source": {
+                        "method": "post",
+                        "url": "${business_content_class_api}",
+                        "data": "${business_content_class_params}"
+                    }
+                },
+                {
+                    "name": "bzfl",
+                    "label": "业务办理标准分类",
+                    "type": "mapping",
+                    "source": "${standard_class_options}"
+                },
+                {
                     "name": "template_name",
                     "label": "业务办理标准"
+                },
+                {
+                    "name": "template_desc",
+                    "label": "业务办理标准描述"
                 },
 
                 {
