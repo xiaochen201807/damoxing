@@ -656,16 +656,16 @@ router.post('/delete', async (req, res) => {
             // 如果 jgbh/zjgbh 为空字符串，也能匹配到数据库中为空的公共记录（如果有的话）
             // 但通常业务上应该严格匹配当前登录人的机构
             const record = await tx.get(checkSql, [id, jgbh, zjgbh]);
-            
+
             logger.error(`Delete Check: id=${id}, jgbh=${jgbh}, zjgbh=${zjgbh}, record=${JSON.stringify(record)}`);
-            
+
             if (!record) {
                 throw new Error("无权删除此记录或记录不存在");
             }
 
             // 2. 先删除关联属性表
             await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
-            
+
             // 3. 再删除主表
             await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         });
@@ -682,7 +682,7 @@ router.post('/delete', async (req, res) => {
  */
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-    
+
     // 从请求头获取当前机构信息
     const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
@@ -698,7 +698,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
                 AND ${coalesce}(zjgbh, '') = ?
             `;
             const record = await tx.get(checkSql, [id, jgbh, zjgbh]);
-            
+
             if (!record) {
                 throw new Error("无权删除此记录或记录不存在");
             }
@@ -707,7 +707,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
             await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
         });
-        
+
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         logger.error(`Delete failed: ${err.message}`);
@@ -856,53 +856,32 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
  * 包含 check 状态反显
  */
 router.post('/selection_list', async (req, res) => {
-    const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
-
-    // Ensure page and perPage are valid numbers (handle empty strings from frontend)
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limit = Math.max(1, parseInt(perPage) || 10);
-    const offset = (pageNum - 1) * limit;
+    const { ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
 
     // 规范化查询参数：将 null/undefined 统一转为空字符串，防止 join 失败
-    // 假设数据库中存储的空值主要是空字符串 ''
     const queryJgbh = jgbh || '';
     const queryZjgbh = zjgbh || '';
 
-    // 方案二：两次查询 + 内存合并
-    // 1. 查询标准库分页列表 (Query Standards)
+    // 1. 查询标准库全量列表(前端分页)
     let standardsSql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
-    let countSql = "SELECT COUNT(*) as total FROM gjj_ywbzk WHERE 1=1";
     const standardsParams = [];
 
-    // 标准库筛选条件
     if (ywblbz) {
         standardsSql += " AND ywblbz LIKE ?";
-        countSql += " AND ywblbz LIKE ?";
         standardsParams.push(`%${ywblbz}%`);
     }
-    // 注意：gjsjsf 在标准库中是属性，如果前端传了值且确实想筛选标准库类型，则保留此条件
-    // 如果前端传 gjsjsf 只是为了匹配规则表，则这里不应加条件。
-    // 根据业务语境，"关键数据算法"通常对应标准库里的 gjsjsf 分类，所以这里加上是合理的。
     if (gjsjsf) {
         standardsSql += " AND gjsjsf = ?";
-        countSql += " AND gjsjsf = ?";
         standardsParams.push(gjsjsf);
     }
     if (ywnrfl) {
         standardsSql += " AND ywnrfl = ?";
-        countSql += " AND ywnrfl = ?";
         standardsParams.push(ywnrfl);
     }
 
     standardsSql += " ORDER BY pxh ASC, id DESC";
-    const paged = SqlHelper.paginateQuery(standardsSql, standardsParams, perPage, offset);
-    standardsSql = paged.sql;
-    const standardsQueryParams = paged.params;
 
-    // 2. 查询已选中的 mbid (Query Selected IDs)
-    // 按 jgbh/zjgbh 查询该机构已同步的所有标准库 ID
-    // 逻辑修正：与 batch 接口保持一致，如果前端传了 gjsjsf/ywnrfl，则作为 ywsf/ywnrfl 条件进行过滤
-    // 这样能确保 "checked" 状态反映的是"在当前筛选条件下是否已存在"
+    // 2. 查询已选中的 mbid
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
     let selectedSql = `
         SELECT DISTINCT mbid FROM gjj_ywbz 
@@ -920,10 +899,8 @@ router.post('/selection_list', async (req, res) => {
         selectedParams.push(ywnrfl);
     }
 
-    // 执行查询 - 改为 Promise 方式
     try {
-        const countRow = await db.oracle.get(countSql, standardsParams);
-        const standards = await db.oracle.all(standardsSql, standardsQueryParams);
+        const standards = await db.oracle.all(standardsSql, standardsParams);
         const selectedRows = await db.oracle.all(selectedSql, selectedParams);
 
         // 内存合并: 构建 Set 加速查找
@@ -942,7 +919,7 @@ router.post('/selection_list', async (req, res) => {
             data: {
                 items: items,
                 selectedIds: Array.from(selectedIds),
-                total: countRow ? (countRow.total || countRow.TOTAL) : 0
+                total: items.length
             }
         });
     } catch (err) {

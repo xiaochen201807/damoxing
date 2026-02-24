@@ -108,9 +108,7 @@
                                             "url": "{{ GLOBAL_API_PREFIX }}/ywbz/selection_list",
                                             "data": {
                                                 "gjsjsf": "${ywsf}",
-                                                "ywnrfl": "${ywnrfl}",
-                                                "page": "${page}",
-                                                "perPage": "${perPage}"
+                                                "ywnrfl": "${ywnrfl}"
                                             }
                                         },
                                         "syncLocation": false,
@@ -119,6 +117,7 @@
                                         "primaryField": "id",
                                         "selectable": true,
                                         "multiple": true,
+                                        "loadDataOnce": true,
                                         "onEvent": {
                                             "fetchInited": {
                                                 "actions": [
