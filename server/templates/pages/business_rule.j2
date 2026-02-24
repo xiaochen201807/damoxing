@@ -34,6 +34,15 @@
     },
     "body": [
         {
+            "type": "service",
+            "api": {
+                "method": "post",
+                "url": "${business_content_class_api}",
+                "data": "${business_content_class_params}",
+                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+            },
+            "body": [
+        {
             "id": "main_crud",
             "type": "crud",
             "api": "post:${rule_list_api}",
@@ -405,7 +414,9 @@
                 },
                 {
                     "name": "ywnrfl_label",
-                    "label": "业务内容分类"
+                    "label": "业务内容分类",
+                    "type": "mapping",
+                    "source": "${class_options}"
                 },
                 {
                     "name": "bzfl_label",
@@ -469,6 +480,8 @@
                         }
                     ]
                 }
+            ]
+        }
             ]
         }
     ]
