@@ -56,7 +56,8 @@
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择",
-                        "style": { "minWidth": "250px" },
+                        "className": "w-full",
+                        "inputClassName": "min-w-xs",
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
@@ -69,7 +70,7 @@
                         "icon": "fa fa-check",
                         "level": "link",
                         "className": "p-2 mr-4",
-                        "disabledOn": "!ywsf || !ywnrfl",
+                        "disabledOn": "${!ywsf || !ywnrfl}",
                         "tooltip": "请先选择关键数据算法和业务内容分类",
                         "actionType": "dialog",
                         "dialog": {
