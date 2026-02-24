@@ -265,17 +265,7 @@
                         "dialog": {
                             "title": "业务规则调试",
                             "size": "lg",
-                            "headerClassName": "flex items-center",
-                            "body": [
-                                {
-                                    "type": "alert",
-                                    "body": "<b>调试使用说明：</b><br/>（1）业务运行配置工具中通过调用场景 <code>HFB/business/ywbz/zhixing$m=execute.service</code> 方法计算算法结果。<br/>（2）可通过公积金业务后台找到对应的API，复制入参。<br/>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。<br/>（4）也可直接查看算法计算过程中应用的SQL及结果：<code>select * from gjj_ywblbz_log order by cjsj;</code>",
-                                    "level": "info",
-                                    "showIcon": true,
-                                    "visibleOn": "${showDebugHelp}",
-                                    "className": "mb-3"
-                                },
-                                {
+                            "body": {
                                 "type": "form",
                                 "id": "debug_form_component",
                                 "title": "",
@@ -302,6 +292,14 @@
                                                 ]
                                             }
                                         }
+                                    },
+                                    {
+                                        "type": "alert",
+                                        "body": "<b>调试使用说明：</b><br/>（1）业务运行配置工具中通过调用场景 <code>HFB/business/ywbz/zhixing$m=execute.service</code> 方法计算算法结果。<br/>（2）可通过公积金业务后台找到对应的API，复制入参。<br/>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。<br/>（4）也可直接查看算法计算过程中应用的SQL及结果：<code>select * from gjj_ywblbz_log order by cjsj;</code>",
+                                        "level": "info",
+                                        "showIcon": true,
+                                        "visibleOn": "${showDebugHelp}",
+                                        "className": "mb-3"
                                     },
                                     {
                                         "type": "editor",
@@ -415,7 +413,7 @@
                                         "label": "结果"
                                     }
                                 ]
-                            }],
+                            },
                             "actions": [
                                 {
                                     "type": "button",
