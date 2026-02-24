@@ -56,7 +56,6 @@
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择",
-                        "style": { "minWidth": "250px" },
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
@@ -67,11 +66,8 @@
                     {
                         "type": "button",
                         "icon": "fa fa-check",
-                        "label": "勾选",
                         "level": "link",
                         "className": "p-2 mr-4",
-                        "disabledOn": "!ywsf || !ywnrfl",
-                        "tooltip": "请先选择关键数据算法和业务内容分类",
                         "actionType": "dialog",
                         "dialog": {
                             "title": "清册选择",
@@ -177,10 +173,6 @@
                                             {
                                                 "name": "ywblbz",
                                                 "label": "业务办理标准"
-                                            },
-                                            {
-                                                "name": "ywblbzsm",
-                                                "label": "业务办理标准描述"
                                             }
                                         ]
                                     }
@@ -402,33 +394,8 @@
                     }
                 },
                 {
-                    "name": "ywnrfl",
-                    "label": "业务内容分类",
-                    "width": 250
-                },
-                {
-                    "name": "bzfl",
-                    "label": "业务办理标准分类",
-                    "type": "mapping",
-                    "map": {
-                        "1": "缴存人账户余额",
-                        "2": "冻结金额",
-                        "3": "账户保留金额",
-                        "4": "材料提取限额",
-                        "5": "累计提取金额",
-                        "6": "精度值",
-                        "7": "保留方式",
-                        "8": "在途提取金额",
-                        "*": "${bzfl}"
-                    }
-                },
-                {
                     "name": "template_name",
                     "label": "业务办理标准"
-                },
-                {
-                    "name": "template_desc",
-                    "label": "业务办理标准描述"
                 },
 
                 {

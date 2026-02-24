@@ -24,7 +24,7 @@ router.post('/list', async (req, res) => {
     const offset = (page - 1) * perPage;
 
     let sql = `
-        SELECT t1.*, t2.ywblbz as template_name, t2.ywblbzsm as template_desc, t2.ywnrfl as ywnrfl, t2.bzfl as bzfl
+        SELECT t1.*, t2.ywblbz as template_name 
         FROM gjj_ywbz t1
         LEFT JOIN gjj_ywbzk t2 ON t1.mbid = t2.id
         WHERE 1=1
@@ -53,7 +53,7 @@ router.post('/list', async (req, res) => {
         params.push(ywnrfl);
     }
 
-    sql += " ORDER BY t1.ywsf ASC, t2.ywnrfl ASC, t2.bzfl ASC, t1.id DESC";
+    sql += " ORDER BY t1.yxj DESC, t1.id DESC";
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
