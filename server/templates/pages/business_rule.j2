@@ -324,7 +324,10 @@
                                     },
                                     {
                                         "type": "remark",
-                                        "content": "调试使用说明：\n\n（1）业务运行配置工具中通过调用场景HFB/business/ywbz/zhixing$m=execute.service方法计算算法结果。\n\n（2）可通过公积金业务后台找到对应的api，复制入参。\n\n（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。\n\n（4）也可直接查看算法计算过程中应用的sql及结果：select * from gjj_ywblbz_log order by cjsj;",
+                                        "body": {
+                                            "type": "tpl",
+                                            "tpl": "<div style='width:420px;line-height:1.8;font-size:13px;'><b>调试使用说明：</b><br/><br/>（1）业务运行配置工具中通过调用场景HFB/business/ywbz/zhixing$m=execute.service方法计算算法结果。<br/><br/>（2）可通过公积金业务后台找到对应的api，复制入参。<br/><br/>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。<br/><br/>（4）也可直接查看算法计算过程中应用的sql及结果：<br/><code>select * from gjj_ywblbz_log order by cjsj;</code></div>"
+                                        },
                                         "placement": "bottom",
                                         "icon": "fa fa-question-circle",
                                         "className": "ml-1"
