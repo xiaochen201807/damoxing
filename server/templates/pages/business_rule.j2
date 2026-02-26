@@ -82,8 +82,8 @@
                         "icon": "fa fa-check",
                         "level": "link",
                         "className": "p-2 mr-4",
-                        "disabledOn": "${!ywsf || !ywnrfl}",
-                        "tooltip": "请先选择关键数据算法和业务内容分类",
+                        "disabledOn": "${!ywsf || (ywsf == '1' && !ywnrfl)}",
+                        "tooltip": "请先选择关键数据算法（最大可提取额还需选择业务内容分类）",
                         "actionType": "dialog",
                         "dialog": {
                             "title": "清册选择",
@@ -323,14 +323,21 @@
                                         "tpl": "业务规则调试"
                                     },
                                     {
-                                        "type": "remark",
-                                        "content": "**调试使用说明：**\n\n（1）业务运行配置工具中通过调用场景\nHFB/business/ywbz/zhixing$m=execute.service\n方法计算算法结果。\n\n（2）可通过公积金业务后台找到对应的api，复制入参。\n\n（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。\n\n（4）也可直接查看算法计算过程中应用的sql及结果：\nselect * from gjj_ywblbz_log order by cjsj;",
-                                        "placement": "bottom",
-                                        "rootClose": true,
-                                        "trigger": "click",
-                                        "popOverStyle": {"minWidth": "450px"},
+                                        "type": "button",
                                         "icon": "fa fa-question-circle",
-                                        "className": "ml-1"
+                                        "level": "link",
+                                        "className": "ml-1",
+                                        "tooltip": "点击查看使用说明",
+                                        "actionType": "dialog",
+                                        "dialog": {
+                                            "title": "调试使用说明",
+                                            "size": "md",
+                                            "actions": [{"type": "button", "label": "知道了", "actionType": "close", "level": "primary"}],
+                                            "body": {
+                                                "type": "tpl",
+                                                "tpl": "<div style='line-height:2;font-size:14px;'><p>（1）业务运行配置工具中通过调用场景<br/><code>HFB/business/ywbz/zhixing$m=execute.service</code><br/>方法计算算法结果。</p><p>（2）可通过公积金业务后台找到对应的api，复制入参。</p><p>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。</p><p>（4）也可直接查看算法计算过程中应用的sql及结果：<br/><code>select * from gjj_ywblbz_log order by cjsj;</code></p></div>"
+                                            }
+                                        }
                                     }
                                 ],
                                 "className": "d-flex align-items-center",
