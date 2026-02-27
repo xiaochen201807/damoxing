@@ -376,10 +376,10 @@
                                                                 "actionType": "ajax",
                                                                 "api": {
                                                                     "method": "post",
-                                                                    "url": "${rule_debug_api}",
-                                                                    "data": {
-                                                                        "&": "${debugInput | fromjson}"
-                                                                    }
+                                                                    "url": "${rule_debug_api}"
+                                                                },
+                                                                "data": {
+                                                                    "&": "${debugInput | fromjson}"
                                                                 },
                                                                 "outputVar": "debugRes"
                                                             },
