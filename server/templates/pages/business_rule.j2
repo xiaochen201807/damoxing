@@ -377,7 +377,9 @@
                                                                 "api": {
                                                                     "method": "post",
                                                                     "url": "${rule_debug_api}",
-                                                                    "data": "${debugInput | fromjson}"
+                                                                    "data": {
+                                                                        "&": "${debugInput | fromjson}"
+                                                                    }
                                                                 },
                                                                 "outputVar": "debugRes"
                                                             },
