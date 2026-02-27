@@ -376,10 +376,11 @@
                                                                 "actionType": "ajax",
                                                                 "api": {
                                                                     "method": "post",
-                                                                    "url": "${rule_debug_api}"
-                                                                },
-                                                                "data": {
-                                                                    "&": "${debugInput | fromjson}"
+                                                                    "url": "${rule_debug_api}",
+                                                                    "data": {
+                                                                        "debugInput": "${debugInput}"
+                                                                    },
+                                                                    "requestAdaptor": "console.log('[DEBUG v2] debugInput:', api.data.debugInput); try { api.data = JSON.parse(api.data.debugInput); } catch(e) { console.error('JSON parse error:', e); } console.log('[DEBUG v2] final data:', api.data); return api;"
                                                                 },
                                                                 "outputVar": "debugRes"
                                                             },
