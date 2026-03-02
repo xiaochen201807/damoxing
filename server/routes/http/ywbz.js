@@ -1001,7 +1001,7 @@ router.post('/debug_log', async (req, res) => {
             content: row.content || row.CONTENT || row.zxyj,
             result: row.result || row.RESULT || row.zxjg,
             time: row.time || row.TIME || row.cjsj,
-            type: row.type || row.TYPE || row.yjlx === '1' ? 'SQL' : '标准结果'
+            type: (row.type || row.TYPE || row.yjlx) === '1' ? 'SQL' : '标准结果'
         }));
 
         res.json({
