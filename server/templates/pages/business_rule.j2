@@ -185,6 +185,42 @@
                                         "selectable": true,
                                         "multiple": true,
                                         "loadDataOnce": true,
+                                        "filter": {
+                                            "title": "",
+                                            "submitText": "搜索",
+                                            "type": "form",
+                                            "mode": "inline",
+                                            "wrapWithPanel": false,
+                                            "className": "mb-3",
+                                            "body": [
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "ywblbz",
+                                                    "label": "业务办理标准",
+                                                    "placeholder": "输入关键字搜索",
+                                                    "clearable": true,
+                                                    "size": "md"
+                                                },
+                                                {
+                                                    "type": "input-text",
+                                                    "name": "ywblbzsm",
+                                                    "label": "业务办理标准描述",
+                                                    "placeholder": "输入关键字搜索",
+                                                    "clearable": true,
+                                                    "size": "md"
+                                                },
+                                                {
+                                                    "type": "submit",
+                                                    "label": "搜索",
+                                                    "level": "primary",
+                                                    "icon": "fa fa-search"
+                                                },
+                                                {
+                                                    "type": "reset",
+                                                    "label": "重置"
+                                                }
+                                            ]
+                                        },
                                         "onEvent": {
                                             "fetchInited": {
                                                 "actions": [
