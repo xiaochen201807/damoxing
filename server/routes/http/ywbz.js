@@ -856,7 +856,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
  * 包含 check 状态反显
  */
 router.post('/selection_list', async (req, res) => {
-    const { ywblbz, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
+    const { ywblbz, ywblbzsm, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
 
     // 规范化查询参数：将 null/undefined 统一转为空字符串，防止 join 失败
     const queryJgbh = jgbh || '';
@@ -869,6 +869,10 @@ router.post('/selection_list', async (req, res) => {
     if (ywblbz) {
         standardsSql += " AND ywblbz LIKE ?";
         standardsParams.push(`%${ywblbz}%`);
+    }
+    if (ywblbzsm) {
+        standardsSql += " AND ywblbzsm LIKE ?";
+        standardsParams.push(`%${ywblbzsm}%`);
     }
     if (gjsjsf) {
         standardsSql += " AND gjsjsf = ?";
