@@ -281,6 +281,19 @@ router.post('/save_params', async (req, res) => {
     }
 
     try {
+        // 0. 查询该规则对应的 mbid，再查标准库属性定义，确定字段顺序
+        const ruleRow = await db.oracle.get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [id]);
+        const mbid = ruleRow?.mbid || ruleRow?.MBID;
+
+        // 按 id ASC 获取字段定义顺序
+        let fieldOrder = [];
+        if (mbid) {
+            const schemaRows = await db.oracle.all(
+                "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC", [mbid]
+            );
+            fieldOrder = schemaRows.map(r => r.ywblbzsx || r.YWBLBZSX).filter(Boolean);
+        }
+
         await db.oracle.transaction(async (tx) => {
             // 1. 删除旧属性
             await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = :1", [id]);
@@ -290,8 +303,6 @@ router.post('/save_params', async (req, res) => {
             for (let i = 1; i <= 10; i++) {
                 columns.push(`k${i}`, `v${i}`);
             }
-            // Oracle 参数占位符是 :n
-            // 这里我们需要动态构建 :1, :2, ...
             let paramIndex = 1;
             const placeholders = columns.map(() => `:${paramIndex++}`).join(',');
             const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
@@ -301,13 +312,22 @@ router.post('/save_params', async (req, res) => {
                 const params = [id, rowIndex, row.result || ''];
                 let kIndex = 1;
 
-                // 提取除 result 和 id 以外的字段填充到 k, v 对中
-                Object.keys(row).forEach(key => {
-                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                        params.push(key, row[key]);
+                // 按标准库属性定义的固定顺序写入 k/v 对
+                if (fieldOrder.length > 0) {
+                    for (const fieldName of fieldOrder) {
+                        if (kIndex > 10) break;
+                        params.push(fieldName, row[fieldName] !== undefined ? row[fieldName] : null);
                         kIndex++;
                     }
-                });
+                } else {
+                    // 降级：无法获取字段定义时，按 Object.keys 顺序
+                    Object.keys(row).forEach(key => {
+                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                            params.push(key, row[key]);
+                            kIndex++;
+                        }
+                    });
+                }
 
                 // 补齐剩余的 k, v 为空
                 while (kIndex <= 10) {
