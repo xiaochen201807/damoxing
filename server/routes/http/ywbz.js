@@ -880,8 +880,12 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
         return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
     }
 
-    // 解析 ID 列表
-    const idList = Array.isArray(ids) ? ids : String(ids).split(',').map(s => s.trim()).filter(Boolean);
+    // 解析 ID 列表，统一转为数字
+    const idList = (Array.isArray(ids) ? ids : String(ids).split(','))
+        .map(s => String(s).trim())
+        .filter(Boolean)
+        .map(Number)
+        .filter(n => !isNaN(n));
     if (idList.length === 0) {
         return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
     }
@@ -893,6 +897,7 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
 
         // 2. 查询对应的属性数据
         const attributes = await db.oracle.all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idList);
+        logger.info(`Partial export: ids=${idList.join(',')}, rules=${rules.length}, attributes=${attributes.length}`);
 
         // 3. 生成 SQL 脚本（不含 DELETE 全表语句）
         let sqlScript = "-- 业务规则部分导出 (仅包含选中记录)\n";

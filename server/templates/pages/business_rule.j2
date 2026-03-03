@@ -55,6 +55,7 @@
             "api": "post:${rule_list_api}",
             "className": "premium-card",
             "filter": {
+                "id": "main_filter_form",
                 "title": "",
                 "submitText": "",
                 "type": "form",
@@ -353,6 +354,22 @@
                     },
                     {
                         "type": "button",
+                        "label": "部分导出",
+                        "level": "default",
+                        "disabledOn": "${!_selectedIds}",
+                        "tooltip": "请先勾选要导出的记录",
+                        "actionType": "download",
+                        "api": {
+                            "method": "post",
+                            "url": "${rule_partial_export_api}",
+                            "data": {
+                                "ids": "${_selectedIds}"
+                            },
+                            "responseType": "blob"
+                        }
+                    },
+                    {
+                        "type": "button",
                         "label": "部分导入",
                         "level": "default",
                         "actionType": "dialog",
@@ -569,25 +586,22 @@
                     }
                 ]
             },
-            "bulkActions": [
-                {
-                    "type": "button",
-                    "label": "部分导出",
-                    "level": "primary",
-                    "actionType": "download",
-                    "api": {
-                        "method": "post",
-                        "url": "${rule_partial_export_api}",
-                        "data": {
-                            "ids": "${ids}"
-                        },
-                        "responseType": "blob"
-                    }
+            "onEvent": {
+                "selectedChange": {
+                    "actions": [
+                        {
+                            "actionType": "setValue",
+                            "componentId": "main_filter_form",
+                            "args": {
+                                "value": {
+                                    "_selectedIds": "${event.data.selectedItems|pick:id|join}"
+                                }
+                            }
+                        }
+                    ]
                 }
-            ],
-            "headerToolbar": [
-                "bulkActions"
-            ],
+            },
+            "headerToolbar": [],
             "footerToolbar": ["statistics", "pagination"],
             "columns": [
                 {
