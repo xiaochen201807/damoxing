@@ -353,22 +353,6 @@
                     },
                     {
                         "type": "button",
-                        "label": "部分导出",
-                        "level": "default",
-                        "disabledOn": "${!selectedItems || selectedItems.length == 0}",
-                        "tooltip": "请先勾选要导出的记录",
-                        "actionType": "download",
-                        "api": {
-                            "method": "post",
-                            "url": "${rule_partial_export_api}",
-                            "data": {
-                                "ids": "${selectedItems|pick:id|join}"
-                            },
-                            "responseType": "blob"
-                        }
-                    },
-                    {
-                        "type": "button",
                         "label": "部分导入",
                         "level": "default",
                         "actionType": "dialog",
@@ -585,6 +569,22 @@
                     }
                 ]
             },
+            "bulkActions": [
+                {
+                    "type": "button",
+                    "label": "部分导出",
+                    "level": "primary",
+                    "actionType": "download",
+                    "api": {
+                        "method": "post",
+                        "url": "${rule_partial_export_api}",
+                        "data": {
+                            "ids": "${ids}"
+                        },
+                        "responseType": "blob"
+                    }
+                }
+            ],
             "headerToolbar": [
                 "bulkActions"
             ],
