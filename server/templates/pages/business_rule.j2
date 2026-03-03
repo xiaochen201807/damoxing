@@ -26,6 +26,8 @@
         "ywbzk_list_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/list",
         "rule_import_api": "{{ rule_import_api | default(GLOBAL_API_PREFIX + '/ywbz/import') }}",
         "rule_export_api": "{{ rule_export_api | default(GLOBAL_API_PREFIX + '/ywbz/export') }}",
+        "rule_partial_export_api": "{{ GLOBAL_API_PREFIX }}/ywbz/partial_export",
+        "rule_partial_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/partial_import",
         "rule_debug_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
         "rule_debug_log_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
         "algorithm_options": {{ algorithm_options | default([{"label":"最大可提取额","value":"1"},{"label":"最高可贷金额","value":"2"},{"label":"最高可贷年限","value":"3"},{"label":"借款人最大可对冲支取金额","value":"4"}]) | fromjson | tojson }},
@@ -46,6 +48,10 @@
             "id": "main_crud",
             "type": "crud",
             "columnsTogglable": false,
+            "selectable": true,
+            "multiple": true,
+            "keepItemSelectionOnPageChange": true,
+            "primaryField": "id",
             "api": "post:${rule_list_api}",
             "className": "premium-card",
             "filter": {
@@ -343,6 +349,66 @@
                             "method": "post",
                             "url": "${rule_export_api}",
                             "responseType": "blob"
+                        }
+                    },
+                    {
+                        "type": "button",
+                        "label": "部分导出",
+                        "level": "default",
+                        "disabledOn": "${!selectedItems || selectedItems.length == 0}",
+                        "tooltip": "请先勾选要导出的记录",
+                        "actionType": "download",
+                        "api": {
+                            "method": "post",
+                            "url": "${rule_partial_export_api}",
+                            "data": {
+                                "ids": "${selectedItems|pick:id|join}"
+                            },
+                            "responseType": "blob"
+                        }
+                    },
+                    {
+                        "type": "button",
+                        "label": "部分导入",
+                        "level": "default",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "部分导入业务规则（增量）",
+                            "body": {
+                                "type": "form",
+                                "api": {
+                                    "method": "post",
+                                    "url": "${rule_partial_import_api}",
+                                    "dataType": "form-data"
+                                },
+                                "onEvent": {
+                                    "submitSucc": {
+                                        "actions": [
+                                            {
+                                                "actionType": "reload",
+                                                "componentId": "main_crud"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "body": [
+                                    {
+                                        "type": "alert",
+                                        "level": "warning",
+                                        "showIcon": true,
+                                        "className": "mb-3",
+                                        "body": "部分导入为增量模式，不会清空现有数据，仅执行文件中的 INSERT 语句。"
+                                    },
+                                    {
+                                        "type": "input-file",
+                                        "name": "file",
+                                        "label": "选择CSV或SQL文件",
+                                        "accept": ".csv,.sql",
+                                        "asBlob": true,
+                                        "required": true
+                                    }
+                                ]
+                            }
                         }
                     },
                     {

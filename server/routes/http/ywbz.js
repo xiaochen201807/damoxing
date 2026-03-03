@@ -871,6 +871,197 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
     }
 });
 
+// -----------------------------------------------------------------------------
+// 部分导出接口 (仅导出选中记录，不含 DELETE 全表语句)
+// -----------------------------------------------------------------------------
+router.post('/partial_export', authenticateToken, async (req, res) => {
+    const { ids } = req.body;
+    if (!ids) {
+        return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
+    }
+
+    // 解析 ID 列表
+    const idList = Array.isArray(ids) ? ids : String(ids).split(',').map(s => s.trim()).filter(Boolean);
+    if (idList.length === 0) {
+        return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
+    }
+
+    try {
+        // 1. 查询选中的规则数据
+        const placeholders = idList.map(() => '?').join(',');
+        const rules = await db.oracle.all(`SELECT * FROM gjj_ywbz WHERE id IN (${placeholders})`, idList);
+
+        // 2. 查询对应的属性数据
+        const attributes = await db.oracle.all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idList);
+
+        // 3. 生成 SQL 脚本（不含 DELETE 全表语句）
+        let sqlScript = "-- 业务规则部分导出 (仅包含选中记录)\n";
+        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n`;
+        sqlScript += `-- 导出记录数: ${rules.length}\n\n`;
+
+        const formatValue = (val) => {
+            if (val === null || val === undefined) return "NULL";
+            if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+            if (val instanceof Date) {
+                const yyyy = val.getFullYear();
+                const mm = String(val.getMonth() + 1).padStart(2, '0');
+                const dd = String(val.getDate()).padStart(2, '0');
+                const hh = String(val.getHours()).padStart(2, '0');
+                const mi = String(val.getMinutes()).padStart(2, '0');
+                const ss = String(val.getSeconds()).padStart(2, '0');
+                return `TO_DATE('${yyyy}${mm}${dd}${hh}${mi}${ss}', 'YYYYMMDDHH24MISS')`;
+            }
+            return val;
+        };
+
+        // 插入规则表数据
+        for (const row of rules) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(formatValue);
+            sqlScript += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+
+        // 插入属性表数据
+        for (const row of attributes) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(formatValue);
+            sqlScript += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+
+        // 4. 落地到服务器磁盘
+        const exportFileName = 'ywbz_partial_export.csv';
+        const exportDir = path.join(__dirname, '../../exports');
+        const exportPath = path.join(exportDir, exportFileName);
+
+        if (!fs.existsSync(exportDir)) {
+            fs.mkdirSync(exportDir, { recursive: true });
+        }
+
+        fs.writeFileSync(exportPath, '\ufeff' + sqlScript, 'utf8');
+        logger.info(`Partial export CSV written to: ${exportPath}, ${rules.length} rules exported`);
+
+        return res.download(exportPath, exportFileName);
+
+    } catch (err) {
+        logger.error(`Partial export failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "部分导出失败: " + err.message });
+    }
+});
+
+// -----------------------------------------------------------------------------
+// 部分导入接口 (先删除对应ID的旧数据，再执行INSERT)
+// -----------------------------------------------------------------------------
+router.post('/partial_import', authenticateToken, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ status: 1, msg: "请选择文件" });
+    }
+
+    try {
+        let sqlContent = req.file.buffer.toString('utf8');
+
+        // 移除可能存在的 BOM 头
+        if (sqlContent.startsWith('\ufeff')) {
+            sqlContent = sqlContent.slice(1);
+        }
+
+        // 简单的 SQL 检查
+        if (!sqlContent.includes('INSERT INTO')) {
+            return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 INSERT 语句" });
+        }
+
+        // 拆分 SQL 语句
+        const statements = sqlContent
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('--'));
+
+        // 从 INSERT INTO gjj_ywbz 语句中提取 id 值
+        const idsToDelete = new Set();
+        for (const stmt of statements) {
+            const upperStmt = stmt.toUpperCase();
+            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
+            // 匹配 VALUES (...) 中的字段，提取 id 列对应的值
+            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+            if (colsMatch && valsMatch) {
+                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                const idIndex = cols.indexOf('id');
+                if (idIndex >= 0) {
+                    // 智能解析 VALUES，处理含逗号的字符串值
+                    const valsStr = valsMatch[1];
+                    const vals = [];
+                    let current = '';
+                    let inQuote = false;
+                    let parenDepth = 0;
+                    for (let i = 0; i < valsStr.length; i++) {
+                        const ch = valsStr[i];
+                        if (ch === "'" && !inQuote) { inQuote = true; current += ch; }
+                        else if (ch === "'" && inQuote) {
+                            if (i + 1 < valsStr.length && valsStr[i + 1] === "'") {
+                                current += "''"; i++;
+                            } else {
+                                inQuote = false; current += ch;
+                            }
+                        }
+                        else if (ch === '(' && !inQuote) { parenDepth++; current += ch; }
+                        else if (ch === ')' && !inQuote) { parenDepth--; current += ch; }
+                        else if (ch === ',' && !inQuote && parenDepth === 0) {
+                            vals.push(current.trim());
+                            current = '';
+                        }
+                        else { current += ch; }
+                    }
+                    if (current.trim()) vals.push(current.trim());
+
+                    if (vals[idIndex]) {
+                        const idVal = vals[idIndex].replace(/'/g, '').trim();
+                        if (idVal && idVal !== 'NULL') {
+                            idsToDelete.add(idVal);
+                        }
+                    }
+                }
+            }
+        }
+
+        let insertCount = 0;
+        let deleteCount = idsToDelete.size;
+
+        await db.oracle.transaction(async (tx) => {
+            // 1. 先删除对应 ID 的旧数据
+            if (idsToDelete.size > 0) {
+                const idArr = Array.from(idsToDelete);
+                const placeholders = idArr.map(() => '?').join(',');
+                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idArr);
+                await tx.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders})`, idArr);
+                logger.info(`Partial import: deleted ${idArr.length} existing records before insert`);
+            }
+
+            // 2. 执行 INSERT 语句
+            for (const stmt of statements) {
+                const upperStmt = stmt.toUpperCase();
+                if (upperStmt.startsWith('DELETE') ||
+                    upperStmt.startsWith('SELECT') ||
+                    upperStmt.startsWith('SHOW') ||
+                    upperStmt.startsWith('BEGIN') ||
+                    upperStmt.startsWith('COMMIT')) {
+                    continue;
+                }
+                if (upperStmt.startsWith('INSERT')) {
+                    await tx.run(stmt, []);
+                    insertCount++;
+                }
+            }
+        });
+
+        logger.info(`Partial import successful: deleted ${deleteCount} old records, inserted ${insertCount} statements`);
+        res.json({ status: 0, msg: `部分导入成功：替换了 ${deleteCount} 条记录，执行了 ${insertCount} 条插入语句` });
+
+    } catch (err) {
+        logger.error(`Partial import failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: "部分导入失败: " + err.message });
+    }
+});
+
 /**
  * 10. 获取标准库选择清册 (POST /selection_list)
  * 包含 check 状态反显
