@@ -955,22 +955,40 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             .map(s => s.trim())
             .filter(s => s.length > 0 && !s.startsWith('--'));
 
-        // 校验所有 gjj_ywbz INSERT 语句的 mbid 不能为空
+        // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
-            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
-            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
-            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
-            if (colsMatch && valsMatch) {
-                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
-                const mbidIdx = cols.indexOf('mbid');
-                if (mbidIdx < 0) {
-                    return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+            // 校验 gjj_ywbz 的 mbid
+            if (upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZ\s*\(/)) {
+                const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+                const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+                if (colsMatch && valsMatch) {
+                    const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                    const mbidIdx = cols.indexOf('mbid');
+                    if (mbidIdx < 0) {
+                        return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+                    }
+                    const vals = parseInsertValues(valsMatch[1]);
+                    const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                    if (!mbidVal || mbidVal.toUpperCase() === 'NULL') {
+                        return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+                    }
                 }
-                const vals = parseInsertValues(valsMatch[1]);
-                const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
-                if (!mbidVal || mbidVal === 'NULL') {
-                    return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+            }
+            // 校验 gjj_ywbzsx 的 ywid
+            if (upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZSX\s*\(/)) {
+                const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbzsx\s*\(([^)]+)\)/i);
+                const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+                if (colsMatch && valsMatch) {
+                    const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                    const ywidIdx = cols.indexOf('ywid');
+                    if (ywidIdx >= 0) {
+                        const vals = parseInsertValues(valsMatch[1]);
+                        const ywidVal = (vals[ywidIdx] || '').replace(/'/g, '').trim();
+                        if (!ywidVal || ywidVal.toUpperCase() === 'NULL') {
+                            return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 ywid 为空的规则属性，请检查数据" });
+                        }
+                    }
                 }
             }
         }
@@ -1144,25 +1162,44 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
             .map(s => s.trim())
             .filter(s => s.length > 0 && !s.startsWith('--'));
 
-        // 校验所有 gjj_ywbz INSERT 语句的 mbid 不能为空
+        // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
-            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
-            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
-            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
-            if (colsMatch && valsMatch) {
-                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
-                const mbidIdx = cols.indexOf('mbid');
-                if (mbidIdx < 0) {
-                    return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+            // 校验 gjj_ywbz 的 mbid
+            if (upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZ\s*\(/)) {
+                const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+                const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+                if (colsMatch && valsMatch) {
+                    const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                    const mbidIdx = cols.indexOf('mbid');
+                    if (mbidIdx < 0) {
+                        return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+                    }
+                    const vals = parseInsertValues(valsMatch[1]);
+                    const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                    if (!mbidVal || mbidVal.toUpperCase() === 'NULL') {
+                        return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+                    }
                 }
-                const vals = parseInsertValues(valsMatch[1]);
-                const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
-                if (!mbidVal || mbidVal === 'NULL') {
-                    return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+            }
+            // 校验 gjj_ywbzsx 的 ywid
+            if (upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZSX\s*\(/)) {
+                const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbzsx\s*\(([^)]+)\)/i);
+                const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+                if (colsMatch && valsMatch) {
+                    const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                    const ywidIdx = cols.indexOf('ywid');
+                    if (ywidIdx >= 0) {
+                        const vals = parseInsertValues(valsMatch[1]);
+                        const ywidVal = (vals[ywidIdx] || '').replace(/'/g, '').trim();
+                        if (!ywidVal || ywidVal.toUpperCase() === 'NULL') {
+                            return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 ywid 为空的规则属性，请检查数据" });
+                        }
+                    }
                 }
             }
         }
+
 
         // 从 INSERT INTO gjj_ywbz 语句中提取 id 值（用于删除旧数据）
         const idsToDelete = new Set();
