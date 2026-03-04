@@ -822,12 +822,119 @@ router.all('/export', authenticateToken, async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
+// 辅助函数：解析 INSERT 语句中的列名和 VALUES 值数组
+// -----------------------------------------------------------------------------
+function parseInsertValues(valsStr) {
+    const vals = [];
+    let current = '';
+    let inQuote = false;
+    let parenDepth = 0;
+    for (let i = 0; i < valsStr.length; i++) {
+        const ch = valsStr[i];
+        if (ch === "'" && !inQuote) { inQuote = true; current += ch; }
+        else if (ch === "'" && inQuote) {
+            if (i + 1 < valsStr.length && valsStr[i + 1] === "'") {
+                current += "''"; i++;
+            } else {
+                inQuote = false; current += ch;
+            }
+        }
+        else if (ch === '(' && !inQuote) { parenDepth++; current += ch; }
+        else if (ch === ')' && !inQuote) { parenDepth--; current += ch; }
+        else if (ch === ',' && !inQuote && parenDepth === 0) {
+            vals.push(current.trim());
+            current = '';
+        }
+        else { current += ch; }
+    }
+    if (current.trim()) vals.push(current.trim());
+    return vals;
+}
+
+// -----------------------------------------------------------------------------
+// 辅助函数：处理 gjj_ywbz INSERT 语句
+//   - 去掉 id 列（让数据库自增）
+//   - 替换 jgbh/zjgbh 为当前机构码
+//   - 返回 { sql, oldId } 其中 oldId 为被去掉的原始 id 值
+// -----------------------------------------------------------------------------
+function processYwbzInsert(stmt, jgbh, zjgbh) {
+    const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+    const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+    if (!colsMatch || !valsMatch) return { sql: stmt, oldId: null };
+
+    const cols = colsMatch[1].split(',').map(c => c.trim());
+    const colsLower = cols.map(c => c.toLowerCase());
+    const vals = parseInsertValues(valsMatch[1]);
+
+    // 提取并去掉 id 列
+    let oldId = null;
+    const idIdx = colsLower.indexOf('id');
+    if (idIdx >= 0 && idIdx < vals.length) {
+        oldId = vals[idIdx].replace(/'/g, '').trim();
+        cols.splice(idIdx, 1);
+        vals.splice(idIdx, 1);
+        colsLower.splice(idIdx, 1);
+    }
+
+    // 替换 jgbh 和 zjgbh
+    const jgbhIdx = colsLower.indexOf('jgbh');
+    const zjgbhIdx = colsLower.indexOf('zjgbh');
+    if (jgbhIdx >= 0 && jgbhIdx < vals.length) {
+        vals[jgbhIdx] = `'${jgbh.replace(/'/g, "''")}'`;
+    }
+    if (zjgbhIdx >= 0 && zjgbhIdx < vals.length) {
+        vals[zjgbhIdx] = `'${zjgbh.replace(/'/g, "''")}'`;
+    }
+
+    const sql = `INSERT INTO gjj_ywbz (${cols.join(', ')}) VALUES (${vals.join(', ')})`;
+    return { sql, oldId };
+}
+
+// -----------------------------------------------------------------------------
+// 辅助函数：处理 gjj_ywbzsx INSERT 语句 - 替换 ywid 为新 ID
+// -----------------------------------------------------------------------------
+function replaceYwidInInsert(stmt, idMapping) {
+    const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbzsx\s*\(([^)]+)\)/i);
+    const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+    if (!colsMatch || !valsMatch) return stmt;
+
+    const cols = colsMatch[1].split(',').map(c => c.trim());
+    const colsLower = cols.map(c => c.toLowerCase());
+    const vals = parseInsertValues(valsMatch[1]);
+
+    // 去掉 id 列（让数据库自增）
+    const idIdx = colsLower.indexOf('id');
+    if (idIdx >= 0 && idIdx < vals.length) {
+        cols.splice(idIdx, 1);
+        vals.splice(idIdx, 1);
+        colsLower.splice(idIdx, 1);
+    }
+
+    // 替换 ywid 为新 ID
+    const ywidIdx = colsLower.indexOf('ywid');
+    if (ywidIdx >= 0 && ywidIdx < vals.length) {
+        const oldYwid = vals[ywidIdx].replace(/'/g, '').trim();
+        const newYwid = idMapping[oldYwid];
+        if (newYwid !== undefined) {
+            vals[ywidIdx] = String(newYwid);
+        }
+    }
+
+    return `INSERT INTO gjj_ywbzsx (${cols.join(', ')}) VALUES (${vals.join(', ')})`;
+}
+
+// -----------------------------------------------------------------------------
 // 导入接口 (支持 CSV/SQL 单文件上传)
 // -----------------------------------------------------------------------------
 router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 1, msg: "请选择文件" });
     }
+
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    logger.info(`Full import: jgbh=${jgbh}, zjgbh=${zjgbh}`);
 
     try {
         let sqlContent = req.file.buffer.toString('utf8');
@@ -842,27 +949,79 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
         }
 
-        // 执行 SQL - Oracle 不支持 exec，需要拆分执行
+        // 拆分 SQL 语句
         const statements = sqlContent
             .split(';')
             .map(s => s.trim())
             .filter(s => s.length > 0 && !s.startsWith('--'));
 
+        // 校验所有 gjj_ywbz INSERT 语句的 mbid 不能为空
+        for (const stmt of statements) {
+            const upperStmt = stmt.toUpperCase();
+            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
+            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+            if (colsMatch && valsMatch) {
+                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                const mbidIdx = cols.indexOf('mbid');
+                if (mbidIdx < 0) {
+                    return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+                }
+                const vals = parseInsertValues(valsMatch[1]);
+                const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                if (!mbidVal || mbidVal === 'NULL') {
+                    return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+                }
+            }
+        }
+
+        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
         await db.oracle.transaction(async (tx) => {
+            // 1. 先按当前机构删除旧数据（替代全表 DELETE）
+            await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [jgbh, zjgbh]);
+            await tx.run(`DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [jgbh, zjgbh]);
+            logger.info(`Full import: deleted existing records for jgbh=${jgbh}, zjgbh=${zjgbh}`);
+
+            // 2. 分两遍处理 INSERT 语句
+            //    第一遍：gjj_ywbz（去掉id让数据库自增，替换jgbh，建立old→new id映射）
+            //    第二遍：gjj_ywbzsx（用映射替换ywid）
+            const idMapping = {}; // oldId -> newId
+            const ywbzsxStmts = []; // 暂存 gjj_ywbzsx 的 INSERT
+
             for (const stmt of statements) {
                 const upperStmt = stmt.toUpperCase();
-                // 跳过注释和查询语句
-                if (upperStmt.startsWith('SELECT') ||
+                if (upperStmt.startsWith('DELETE') ||
+                    upperStmt.startsWith('SELECT') ||
                     upperStmt.startsWith('SHOW') ||
                     upperStmt.startsWith('BEGIN') ||
                     upperStmt.startsWith('COMMIT')) {
                     continue;
                 }
-                await tx.run(stmt, []);
+                if (upperStmt.startsWith('INSERT INTO GJJ_YWBZ ') || upperStmt.startsWith('INSERT INTO GJJ_YWBZ(')) {
+                    const { sql, oldId } = processYwbzInsert(stmt, jgbh, zjgbh);
+                    await tx.run(sql, []);
+                    // 获取数据库自增的新 ID
+                    if (oldId) {
+                        const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
+                        const newId = lastRow?.id ?? lastRow?.ID;
+                        idMapping[oldId] = newId;
+                    }
+                } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
+                    ywbzsxStmts.push(stmt);
+                } else if (upperStmt.startsWith('INSERT')) {
+                    await tx.run(stmt, []);
+                }
+            }
+
+            // 第二遍：处理 gjj_ywbzsx，替换 ywid
+            for (const stmt of ywbzsxStmts) {
+                const finalStmt = replaceYwidInInsert(stmt, idMapping);
+                await tx.run(finalStmt, []);
             }
         });
 
-        logger.info("Import successful");
+        logger.info("Full import successful");
         res.json({ status: 0, msg: "导入成功" });
 
     } catch (err) {
@@ -954,12 +1113,17 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 部分导入接口 (先删除对应ID的旧数据，再执行INSERT)
+// 部分导入接口 (先删除对应ID的旧数据，再执行INSERT，替换jgbh)
 // -----------------------------------------------------------------------------
 router.post('/partial_import', authenticateToken, upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 1, msg: "请选择文件" });
     }
+
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    logger.info(`Partial import: jgbh=${jgbh}, zjgbh=${zjgbh}`);
 
     try {
         let sqlContent = req.file.buffer.toString('utf8');
@@ -980,44 +1144,38 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
             .map(s => s.trim())
             .filter(s => s.length > 0 && !s.startsWith('--'));
 
-        // 从 INSERT INTO gjj_ywbz 语句中提取 id 值
+        // 校验所有 gjj_ywbz INSERT 语句的 mbid 不能为空
+        for (const stmt of statements) {
+            const upperStmt = stmt.toUpperCase();
+            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
+            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+            if (colsMatch && valsMatch) {
+                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                const mbidIdx = cols.indexOf('mbid');
+                if (mbidIdx < 0) {
+                    return res.status(400).json({ status: 1, msg: "导入失败：文件中的业务规则缺少 mbid 字段" });
+                }
+                const vals = parseInsertValues(valsMatch[1]);
+                const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                if (!mbidVal || mbidVal === 'NULL') {
+                    return res.status(400).json({ status: 1, msg: "导入失败：文件中存在 mbid 为空的业务规则，请检查数据" });
+                }
+            }
+        }
+
+        // 从 INSERT INTO gjj_ywbz 语句中提取 id 值（用于删除旧数据）
         const idsToDelete = new Set();
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
             if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
-            // 匹配 VALUES (...) 中的字段，提取 id 列对应的值
             const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
             const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
             if (colsMatch && valsMatch) {
                 const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
                 const idIndex = cols.indexOf('id');
                 if (idIndex >= 0) {
-                    // 智能解析 VALUES，处理含逗号的字符串值
-                    const valsStr = valsMatch[1];
-                    const vals = [];
-                    let current = '';
-                    let inQuote = false;
-                    let parenDepth = 0;
-                    for (let i = 0; i < valsStr.length; i++) {
-                        const ch = valsStr[i];
-                        if (ch === "'" && !inQuote) { inQuote = true; current += ch; }
-                        else if (ch === "'" && inQuote) {
-                            if (i + 1 < valsStr.length && valsStr[i + 1] === "'") {
-                                current += "''"; i++;
-                            } else {
-                                inQuote = false; current += ch;
-                            }
-                        }
-                        else if (ch === '(' && !inQuote) { parenDepth++; current += ch; }
-                        else if (ch === ')' && !inQuote) { parenDepth--; current += ch; }
-                        else if (ch === ',' && !inQuote && parenDepth === 0) {
-                            vals.push(current.trim());
-                            current = '';
-                        }
-                        else { current += ch; }
-                    }
-                    if (current.trim()) vals.push(current.trim());
-
+                    const vals = parseInsertValues(valsMatch[1]);
                     if (vals[idIndex]) {
                         const idVal = vals[idIndex].replace(/'/g, '').trim();
                         if (idVal && idVal !== 'NULL') {
@@ -1030,18 +1188,22 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
 
         let insertCount = 0;
         let deleteCount = idsToDelete.size;
+        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
         await db.oracle.transaction(async (tx) => {
-            // 1. 先删除对应 ID 的旧数据
+            // 1. 先删除对应 ID 且属于当前机构的旧数据
             if (idsToDelete.size > 0) {
                 const idArr = Array.from(idsToDelete);
                 const placeholders = idArr.map(() => '?').join(',');
-                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idArr);
-                await tx.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders})`, idArr);
-                logger.info(`Partial import: deleted ${idArr.length} existing records before insert`);
+                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idArr, jgbh, zjgbh]);
+                await tx.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idArr, jgbh, zjgbh]);
+                logger.info(`Partial import: deleted records for ids=${idArr.join(',')}, jgbh=${jgbh}`);
             }
 
-            // 2. 执行 INSERT 语句
+            // 2. 分两遍处理 INSERT（同全量导入逻辑）
+            const idMapping = {};
+            const ywbzsxStmts = [];
+
             for (const stmt of statements) {
                 const upperStmt = stmt.toUpperCase();
                 if (upperStmt.startsWith('DELETE') ||
@@ -1051,10 +1213,27 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
                     upperStmt.startsWith('COMMIT')) {
                     continue;
                 }
-                if (upperStmt.startsWith('INSERT')) {
+                if (upperStmt.startsWith('INSERT INTO GJJ_YWBZ ') || upperStmt.startsWith('INSERT INTO GJJ_YWBZ(')) {
+                    const { sql, oldId } = processYwbzInsert(stmt, jgbh, zjgbh);
+                    await tx.run(sql, []);
+                    insertCount++;
+                    if (oldId) {
+                        const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
+                        const newId = lastRow?.id ?? lastRow?.ID;
+                        idMapping[oldId] = newId;
+                    }
+                } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
+                    ywbzsxStmts.push(stmt);
+                } else if (upperStmt.startsWith('INSERT')) {
                     await tx.run(stmt, []);
                     insertCount++;
                 }
+            }
+
+            for (const stmt of ywbzsxStmts) {
+                const finalStmt = replaceYwidInInsert(stmt, idMapping);
+                await tx.run(finalStmt, []);
+                insertCount++;
             }
         });
 
