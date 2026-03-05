@@ -374,4 +374,79 @@ router.post('/public-param-values', async (req, res) => {
     }
 });
 
+/**
+ * 6. 获取任务项 (POST /task-info)
+ * 调用外部网关接口获取任务项列表（支持模糊查询）
+ */
+router.post('/task-info', async (req, res) => {
+    // 网关接口地址
+    const gatewayUrl = `${GATEWAY_BASE_URL}/jobApi/jobinfo/getTaskInfo`;
+
+    // 1. 预处理 Body 参数
+    let body = req.body;
+    if (body && body['0'] === '{') {
+        try {
+            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
+            const jsonStr = keys.map(k => body[String(k)]).join('');
+            const parsedParams = JSON.parse(jsonStr);
+            body = { ...body, ...parsedParams };
+            logger.info(`[Tools API] Reconstructed malformed body params: ${jsonStr}`);
+        } catch (e) {
+            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
+        }
+    }
+
+    // 2. 提取 Header 参数
+    const { jgbh, login_token, zzbs, zzjgdmz } = body;
+    const headers = {
+        'channel': req.headers['channel'] || 'zmd',
+        'jgbh': jgbh || req.headers['jgbh'],
+        'login-token': login_token || req.headers['login-token'],
+        'zzbs': req.headers['zzbs'],
+        'zzjgdmz': req.headers['zzjgdmz'],
+        'Content-Type': 'application/json'
+    };
+
+    // 3. 构造 Body 参数
+    const payload = {
+        // 使用前端传入的查询关键字和机构编号
+        "sjrwmc": body.sjrwmc || body.keyword || "",
+        "organizationNumber": body.organizationNumber || jgbh || ""
+    };
+
+    logger.info(`[Tools API] Payload to gateway (task-info): ${JSON.stringify(payload)}`);
+
+    try {
+        const response = await axios.post(gatewayUrl, payload, { headers });
+        const gatewayData = response.data;
+
+        // 处理返回数据，样例返回的是 { datas: [...] }
+        let list = [];
+        if (Array.isArray(gatewayData.datas)) {
+            list = gatewayData.datas;
+        } else if (Array.isArray(gatewayData.data)) {
+            list = gatewayData.data;
+        } else if (Array.isArray(gatewayData.results)) {
+            list = gatewayData.results;
+        } else if (Array.isArray(gatewayData)) {
+            list = gatewayData;
+        }
+
+        // 转换数据格式为 AMIS 下拉框所需的 { label, value }
+        const resultData = list.map(item => ({
+            label: item.sjrwmc,
+            value: item.taskNumber,
+            ...item
+        }));
+
+        res.json({ status: 0, msg: "ok", data: resultData });
+    } catch (err) {
+        logger.error(`[Tools API] Failed to call gateway (task-info): ${err.message}`);
+        if (err.response) {
+            logger.error(`[Tools API] Gateway error data: ${JSON.stringify(err.response.data)}`);
+        }
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
 module.exports = router;
