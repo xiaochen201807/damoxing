@@ -73,6 +73,27 @@ function authenticateToken(req, res, next) {
             });
         }
 
+        // 防越权校验：请求头中的 jgbh/zjgbh 必须与 Token 中一致
+        const headerJgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
+        const headerZjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+        const tokenJgbh = user.jgbh || '';
+        const tokenZjgbh = user.zjgbh || '';
+
+        if (headerJgbh && headerJgbh !== tokenJgbh) {
+            logger.warn(`[安全] 机构码不一致: header.jgbh=${headerJgbh}, token.jgbh=${tokenJgbh}, user=${user.username}, ip=${req.ip}, path=${req.path}`);
+            return res.status(403).json({
+                status: 403,
+                msg: '机构信息校验失败，请重新登录'
+            });
+        }
+        if (headerZjgbh && headerZjgbh !== tokenZjgbh) {
+            logger.warn(`[安全] 子机构码不一致: header.zjgbh=${headerZjgbh}, token.zjgbh=${tokenZjgbh}, user=${user.username}, ip=${req.ip}, path=${req.path}`);
+            return res.status(403).json({
+                status: 403,
+                msg: '机构信息校验失败，请重新登录'
+            });
+        }
+
         // 将用户信息附加到请求对象
         req.user = user;
         next();

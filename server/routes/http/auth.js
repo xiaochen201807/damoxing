@@ -205,7 +205,7 @@ router.post('/login', async (req, res) => {
 
             // 2. 根据网关信息构造虚拟用户（直接信任网关结果）
             const userIdentity = gatewayInfo.grbh || 'unknown_user';
-            
+
             user = {
                 id: 0, // 虚拟 ID，表示非数据库用户
                 username: userIdentity,
@@ -213,7 +213,7 @@ router.post('/login', async (req, res) => {
                 role: 'user',
                 is_active: 1
             };
-            
+
             logger.info(`[SSO] 网关验证通过，使用虚拟用户登录: ${userIdentity}`);
         }
         // ==========================================
@@ -274,11 +274,13 @@ router.post('/login', async (req, res) => {
         // 公共逻辑: 生成 Token 并返回
         // ==========================================
 
-        // 生成 JWT Token
+        // 生成 JWT Token（含机构码，用于后端防越权校验）
         const token = generateToken({
             id: user.id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            jgbh: gatewayInfo?.jgbh || '',
+            zjgbh: gatewayInfo?.zjgbh || ''
         });
 
         // 更新最后登录时间 (仅当是真实用户 ID > 0 时)
