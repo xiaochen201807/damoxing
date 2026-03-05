@@ -99,15 +99,16 @@ async function analyzeCxgzkzRule() {
             // Update existing
             try {
                 console.log('   [SQL] UPDATE sys_page_templates_config', {
+                    template_name: '程序规则控制',
                     params_schema: JSON.stringify(paramsSchema),
                     default_params: JSON.stringify(defaultParams),
                     templateId
                 });
                 await db.run(
                     `UPDATE sys_page_templates_config 
-                     SET params_schema = ?, default_params = ? 
+                     SET template_name = ?, params_schema = ?, default_params = ? 
                      WHERE template_id = ?`,
-                    [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId]
+                    ['程序规则控制', JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId]
                 );
                 console.log(`   ✅ 已更新: ${templateId}`);
             } catch (err) {
@@ -119,7 +120,7 @@ async function analyzeCxgzkzRule() {
             try {
                 console.log('   [SQL] INSERT INTO sys_page_templates_config', {
                     templateId,
-                    template_name: '程序控制规则管理',
+                    template_name: '程序规则控制',
                     description: '用于管理控制系统核心功能的各项参数阈值与开关',
                     template_file: 'pages/cxgzkz.j2',
                     components: '[]',
@@ -132,7 +133,7 @@ async function analyzeCxgzkzRule() {
                      VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now', '+08:00'))`,
                     [
                         templateId,
-                        '程序控制规则管理',
+                        '程序规则控制',
                         '用于管理控制系统核心功能的各项参数阈值与开关',
                         'pages/cxgzkz.j2',
                         '[]',
