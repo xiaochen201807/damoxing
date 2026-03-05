@@ -27,6 +27,7 @@ const ywbzkRoutes = require("./ywbzk");
 const toolsRoutes = require("./tools");
 const ywbzRoutes = require("./ywbz");
 const exportsRoutes = require("./exports");
+const cxgzkzRoutes = require("./cxgzkz");
 
 
 // API 路由前缀（从环境变量读取，默认 /api）
@@ -93,6 +94,7 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/mcp`, mcpSseRoutes);
 
     app.use(`${API_PREFIX}/exports`, authenticateToken, exportsRoutes);
+    app.use(`${API_PREFIX}/cxgzkz`, authenticateToken, cxgzkzRoutes);
 
     console.log(`✅ API routes mounted on prefix: ${API_PREFIX}`);
     console.log(`🔒 JWT authentication enabled for protected routes`);

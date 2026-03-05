@@ -1,0 +1,321 @@
+{
+    "type": "page",
+    "title": "程序控制规则管理",
+    "css": {
+        ".premium-card": {
+            "boxShadow": "0 4px 20px rgba(0,0,0,0.08)",
+            "borderRadius": "12px",
+            "overflow": "hidden"
+        },
+        ".page-header-gradient": {
+            "background": "linear-gradient(90deg, #1890ff 0%, #096dd9 100%)",
+            "padding": "16px 24px",
+            "color": "#fff",
+            "marginBottom": "0px",
+            "borderRadius": "12px 12px 0 0"
+        }
+    },
+    "data": {
+        "rule_list_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/list",
+        "rule_save_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/save",
+        "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/delete"
+    },
+    "body": [
+        {
+            "id": "main_crud",
+            "type": "crud",
+            "columnsTogglable": false,
+            "selectable": true,
+            "multiple": true,
+            "keepItemSelectionOnPageChange": true,
+            "primaryField": "id",
+            "api": "post:${rule_list_api}",
+            "className": "premium-card",
+            "filter": {
+                "id": "main_filter_form",
+                "title": "",
+                "submitText": "",
+                "type": "form",
+                "mode": "inline",
+                "wrapWithPanel": false,
+                "className": "p-4",
+                "body": [
+                    {
+                        "type": "input-text",
+                        "name": "gzmc",
+                        "label": "程序控制规则名称",
+                        "placeholder": "请输入规则名称",
+                        "clearable": true
+                    },
+                    {
+                        "type": "input-text",
+                        "name": "gztsy",
+                        "label": "程序控制规则提示语",
+                        "placeholder": "请输入提示语",
+                        "clearable": true
+                    },
+                    {
+                        "type": "input-text",
+                        "name": "rwxbh",
+                        "label": "任务项",
+                        "placeholder": "请输入任务项",
+                        "clearable": true
+                    },
+                    {
+                        "type": "select",
+                        "name": "sfqy",
+                        "label": "是否启用",
+                        "clearable": true,
+                        "options": [
+                            {"label": "是", "value": "y"},
+                            {"label": "否", "value": "n"}
+                        ]
+                    },
+                    {
+                        "type": "select",
+                        "name": "sfyxtqy",
+                        "label": "是否允许停启用",
+                        "clearable": true,
+                        "options": [
+                            {"label": "是", "value": "y"},
+                            {"label": "否", "value": "n"}
+                        ]
+                    },
+                    {
+                        "type": "select",
+                        "name": "sfyxtztsy",
+                        "label": "是否允许调整提示语",
+                        "clearable": true,
+                        "options": [
+                            {"label": "是", "value": "y"},
+                            {"label": "否", "value": "n"}
+                        ]
+                    },
+                    {
+                        "type": "submit",
+                        "label": "查询",
+                        "level": "primary",
+                        "icon": "fa fa-search"
+                    }
+                ]
+            },
+            "headerToolbar": [
+                {
+                    "type": "button",
+                    "label": "新增",
+                    "icon": "fa fa-plus",
+                    "level": "primary",
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "新增程序控制规则",
+                        "size": "md",
+                        "body": {
+                            "type": "form",
+                            "api": "post:${rule_save_api}",
+                            "body": [
+                                {
+                                    "type": "select",
+                                    "name": "rwxbh",
+                                    "label": "任务项",
+                                    "required": true,
+                                    "options": [
+                                        {"label": "贷款审批", "value": "loan"},
+                                        {"label": "提取审核", "value": "withdraw"},
+                                        {"label": "账户管理", "value": "account"},
+                                        {"label": "信息变更", "value": "info"},
+                                        {"label": "缴存处理", "value": "payment"}
+                                    ]
+                                },
+                                {
+                                    "type": "input-text",
+                                    "name": "gzmc",
+                                    "label": "程序控制规则名称",
+                                    "required": true,
+                                    "placeholder": "请输入规则名称"
+                                },
+                                {
+                                    "type": "textarea",
+                                    "name": "gztsy",
+                                    "label": "程序控制规则提示语",
+                                    "placeholder": "请输入提示语内容",
+                                    "minRows": 3
+                                },
+                                {
+                                    "type": "select",
+                                    "name": "sfqy",
+                                    "label": "是否启用",
+                                    "value": "y",
+                                    "options": [
+                                        {"label": "是", "value": "y"},
+                                        {"label": "否", "value": "n"}
+                                    ]
+                                },
+                                {
+                                    "type": "select",
+                                    "name": "sfyxtqy",
+                                    "label": "是否允许停启用",
+                                    "value": "y",
+                                    "options": [
+                                        {"label": "是", "value": "y"},
+                                        {"label": "否", "value": "n"}
+                                    ]
+                                },
+                                {
+                                    "type": "select",
+                                    "name": "sfyxtztsy",
+                                    "label": "是否允许调整提示语",
+                                    "value": "n",
+                                    "options": [
+                                        {"label": "是", "value": "y"},
+                                        {"label": "否", "value": "n"}
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                "bulkActions",
+                "statistics"
+            ],
+            "footerToolbar": ["switch-per-page", "pagination"],
+            "columns": [
+                {
+                    "name": "rwxbh",
+                    "label": "任务项",
+                    "type": "mapping",
+                    "map": {
+                        "loan": "贷款审批",
+                        "withdraw": "提取审核",
+                        "account": "账户管理",
+                        "info": "信息变更",
+                        "payment": "缴存处理",
+                        "*": "${rwxbh}"
+                    }
+                },
+                {
+                    "name": "gzmc",
+                    "label": "程序控制规则名称"
+                },
+                {
+                    "name": "gztsy",
+                    "label": "程序控制规则提示语"
+                },
+                {
+                    "name": "sfqy",
+                    "label": "是否启用",
+                    "type": "mapping",
+                    "map": {
+                        "y": "<span class='label label-success'>是</span>",
+                        "n": "<span class='label label-danger'>否</span>",
+                        "*": "${sfqy}"
+                    }
+                },
+                {
+                    "name": "sfyxtqy",
+                    "label": "是否允许停启用",
+                    "type": "mapping",
+                    "map": {
+                        "y": "<span class='label label-success'>是</span>",
+                        "n": "<span class='label label-danger'>否</span>",
+                        "*": "${sfyxtqy}"
+                    }
+                },
+                {
+                    "name": "sfyxtztsy",
+                    "label": "是否允许调整提示语",
+                    "type": "mapping",
+                    "map": {
+                        "y": "<span class='label label-success'>是</span>",
+                        "n": "<span class='label label-danger'>否</span>",
+                        "*": "${sfyxtztsy}"
+                    }
+                },
+                {
+                    "type": "operation",
+                    "label": "操作",
+                    "buttons": [
+                        {
+                            "type": "button",
+                            "label": "调整",
+                            "icon": "fa fa-edit",
+                            "level": "link",
+                            "actionType": "dialog",
+                            "dialog": {
+                                "title": "调整程序控制规则",
+                                "size": "md",
+                                "body": {
+                                    "type": "form",
+                                    "api": "post:${rule_save_api}",
+                                    "initApi": "post:{{ GLOBAL_API_PREFIX }}/cxgzkz/get?id=${id}",
+                                    "body": [
+                                        {
+                                            "type": "hidden",
+                                            "name": "id"
+                                        },
+                                        {
+                                            "type": "static",
+                                            "name": "rwxbh",
+                                            "label": "任务项",
+                                            "tpl": "${rwxbh | map: {'loan':'贷款审批', 'withdraw':'提取审核', 'account':'账户管理', 'info':'信息变更', 'payment':'缴存处理'}}"
+                                        },
+                                        {
+                                            "type": "static",
+                                            "name": "gzmc",
+                                            "label": "程序控制规则名称"
+                                        },
+                                        {
+                                            "type": "textarea",
+                                            "name": "gztsy",
+                                            "label": "程序控制规则提示语",
+                                            "placeholder": "请输入提示语内容",
+                                            "minRows": 3,
+                                            "disabledOn": "${sfyxtztsy === 'n'}"
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "sfqy",
+                                            "label": "是否启用",
+                                            "options": [
+                                                {"label": "是", "value": "y"},
+                                                {"label": "否", "value": "n"}
+                                            ],
+                                            "disabledOn": "${sfyxtqy === 'n'}"
+                                        },
+                                        {
+                                            "type": "static-mapping",
+                                            "name": "sfyxtqy",
+                                            "label": "是否允许停启用",
+                                            "map": {
+                                                "y": "是",
+                                                "n": "否"
+                                            }
+                                        },
+                                        {
+                                            "type": "static-mapping",
+                                            "name": "sfyxtztsy",
+                                            "label": "是否允许调整提示语",
+                                            "map": {
+                                                "y": "是",
+                                                "n": "否"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "label": "删除",
+                            "icon": "fa fa-trash",
+                            "actionType": "ajax",
+                            "api": "post:${rule_delete_api}?id=${id}",
+                            "confirmText": "确定要删除这条规则吗？",
+                            "level": "link",
+                            "className": "text-danger"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
