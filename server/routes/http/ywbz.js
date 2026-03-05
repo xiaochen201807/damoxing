@@ -23,28 +23,33 @@ router.post('/list', async (req, res) => {
     const { page = 1, perPage = 10, gzmc, ywsf, ywnrfl } = req.body;
     const offset = (page - 1) * perPage;
 
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
     let sql = `
         SELECT t1.*, t2.ywblbz as template_name, t2.ywblbzsm as template_desc, t2.ywnrfl as ywnrfl_label, t2.bzfl as bzfl_label
         FROM gjj_ywbz t1
         LEFT JOIN gjj_ywbzk t2 ON t1.mbid = t2.id
-        WHERE 1=1
+        WHERE ${coalesce}(t1.jgbh, '') = ? AND ${coalesce}(t1.zjgbh, '') = ?
     `;
     let countSql = `
         SELECT COUNT(*) as total 
         FROM gjj_ywbz t1
         LEFT JOIN gjj_ywbzk t2 ON t1.mbid = t2.id
-        WHERE 1=1
+        WHERE ${coalesce}(t1.jgbh, '') = ? AND ${coalesce}(t1.zjgbh, '') = ?
     `;
-    const params = [];
+    const params = [jgbh, zjgbh];
 
     if (gzmc) {
         sql += " AND t1.gzmc LIKE ?";
-        countSql += " AND gzmc LIKE ?";
+        countSql += " AND t1.gzmc LIKE ?";
         params.push(`%${gzmc}%`);
     }
     if (ywsf) {
         sql += " AND t1.ywsf = ?";
-        countSql += " AND ywsf = ?";
+        countSql += " AND t1.ywsf = ?";
         params.push(ywsf);
     }
     if (ywnrfl) {
@@ -81,9 +86,14 @@ router.post('/get', async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
     try {
-        const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await db.oracle.get(sql, [id]);
+        const sql = `SELECT * FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+        const row = await db.oracle.get(sql, [id, jgbh, zjgbh]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
@@ -390,16 +400,21 @@ router.post('/save', async (req, res) => {
     // rule_params alias for compatibility
     const attributes = rule_params;
 
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
     try {
         const { id: savedId } = await db.oracle.transaction(async (tx) => {
             let ywid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=?`;
-                await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
-                await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+                const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+                await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id, jgbh, zjgbh]);
+                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy) VALUES (?, ?, ?, ?, ?, ?)`;
-                const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy]);
+                const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh]);
 
                 // 在 db.oracle.transaction 中必然是 Oracle 环境，直接获取 MAX(id)
                 const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
@@ -457,16 +472,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { mbid, gzmc, ywsf, gzljsm, yxj, sfqy, rule_params } = req.body;
 
+    // 从请求头获取当前机构信息
+    const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
     try {
         await db.oracle.transaction(async (tx) => {
             const updateSql = `
                 UPDATE gjj_ywbz SET 
                 mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
-                WHERE id = ?
+                WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
             `;
-            await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id]);
+            await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id, jgbh, zjgbh]);
 
-            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
 
             if (rule_params && typeof rule_params === 'object') {
                 const columns = ['ywid', 'row_index', 'result'];
@@ -591,9 +611,9 @@ router.post('/batch', async (req, res) => {
         if (idsToDelete.length > 0) {
             const placeholders = idsToDelete.map(() => '?').join(',');
             // 先删除关联的属性表
-            await db.oracle.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idsToDelete);
+            await db.oracle.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idsToDelete, jgbh, zjgbh]);
             // 再删除主表
-            await db.oracle.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders})`, idsToDelete);
+            await db.oracle.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idsToDelete, jgbh, zjgbh]);
         }
 
         // 5. 执行新增
@@ -684,10 +704,10 @@ router.post('/delete', async (req, res) => {
             }
 
             // 2. 先删除关联属性表
-            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
+            await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
 
             // 3. 再删除主表
-            await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+            await tx.run(`DELETE FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
         });
 
         res.json({ status: 0, msg: "删除成功" });
@@ -724,8 +744,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             }
 
             // 2. 级联删除
-            await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = ?", [id]);
-            await tx.run("DELETE FROM gjj_ywbz WHERE id = ?", [id]);
+            await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
+            await tx.run(`DELETE FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
         });
 
         res.json({ status: 0, msg: "删除成功" });
@@ -755,18 +775,25 @@ router.all('/export', authenticateToken, async (req, res) => {
     // if (req.user?.role !== 'admin') {
     //     return res.status(403).json({ status: 403, msg: "无导出权限" });
     // }
+    // 从请求头获取当前机构信息
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+
     try {
-        // 1. 获取所有数据
-        const rules = await db.oracle.all("SELECT * FROM gjj_ywbz");
-        const attributes = await db.oracle.all("SELECT * FROM gjj_ywbzsx");
+        // 1. 获取当前机构数据
+        const rules = await db.oracle.all(`SELECT * FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [jgbh, zjgbh]);
+        const ruleIds = rules.map(r => r.id || r.ID).filter(Boolean);
+        let attributes = [];
+        if (ruleIds.length > 0) {
+            const placeholders = ruleIds.map(() => '?').join(',');
+            attributes = await db.oracle.all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, ruleIds);
+        }
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务规则全量导出 (包含规则表和属性表)\n";
-        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
-
-        // 清空旧数据
-        sqlScript += "DELETE FROM gjj_ywbzsx;\n";
-        sqlScript += "DELETE FROM gjj_ywbz;\n\n";
+        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n`;
+        sqlScript += `-- 导出记录数: ${rules.length}\n\n`;
 
         // 辅助函数：格式化值
         const formatValue = (val) => {
@@ -949,11 +976,14 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
         }
 
-        // 拆分 SQL 语句
+        // 拆分 SQL 语句（先按行移除注释，再按分号拆分）
         const statements = sqlContent
+            .split('\n')
+            .filter(line => !line.trim().startsWith('--'))
+            .join('\n')
             .split(';')
             .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
+            .filter(s => s.length > 0);
 
         // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
@@ -995,11 +1025,35 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 
         const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
+        // 从 INSERT 语句中提取所有 mbid 值（用于精确删除）
+        const mbidsToDelete = new Set();
+        for (const stmt of statements) {
+            const upperStmt = stmt.toUpperCase();
+            if (!upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZ\s*\(/)) continue;
+            const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+            const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
+            if (colsMatch && valsMatch) {
+                const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+                const mbidIdx = cols.indexOf('mbid');
+                if (mbidIdx >= 0) {
+                    const vals = parseInsertValues(valsMatch[1]);
+                    const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                    if (mbidVal && mbidVal.toUpperCase() !== 'NULL') {
+                        mbidsToDelete.add(mbidVal);
+                    }
+                }
+            }
+        }
+
         await db.oracle.transaction(async (tx) => {
-            // 1. 先按当前机构删除旧数据（替代全表 DELETE）
-            await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [jgbh, zjgbh]);
-            await tx.run(`DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [jgbh, zjgbh]);
-            logger.info(`Full import: deleted existing records for jgbh=${jgbh}, zjgbh=${zjgbh}`);
+            // 1. 按 jgbh + zjgbh + mbid 删除旧数据
+            if (mbidsToDelete.size > 0) {
+                const mbidArr = Array.from(mbidsToDelete);
+                const placeholders = mbidArr.map(() => '?').join(',');
+                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? AND mbid IN (${placeholders}))`, [jgbh, zjgbh, ...mbidArr]);
+                await tx.run(`DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? AND mbid IN (${placeholders})`, [jgbh, zjgbh, ...mbidArr]);
+                logger.info(`Full import: deleted existing records for jgbh=${jgbh}, zjgbh=${zjgbh}, mbids=${mbidArr.join(',')}`);
+            }
 
             // 2. 分两遍处理 INSERT 语句
             //    第一遍：gjj_ywbz（去掉id让数据库自增，替换jgbh，建立old→new id映射）
@@ -1156,11 +1210,14 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
             return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 INSERT 语句" });
         }
 
-        // 拆分 SQL 语句
+        // 拆分 SQL 语句（先按行移除注释，再按分号拆分）
         const statements = sqlContent
+            .split('\n')
+            .filter(line => !line.trim().startsWith('--'))
+            .join('\n')
             .split(';')
             .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
+            .filter(s => s.length > 0);
 
         // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
@@ -1201,40 +1258,38 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
         }
 
 
-        // 从 INSERT INTO gjj_ywbz 语句中提取 id 值（用于删除旧数据）
-        const idsToDelete = new Set();
+        // 从 INSERT INTO gjj_ywbz 语句中提取 mbid 值（用于删除旧数据）
+        const mbidsToDelete = new Set();
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
-            if (!upperStmt.startsWith('INSERT INTO GJJ_YWBZ')) continue;
+            if (!upperStmt.match(/^INSERT\s+INTO\s+GJJ_YWBZ\s*\(/)) continue;
             const colsMatch = stmt.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
             const valsMatch = stmt.match(/VALUES\s*\((.+)\)/is);
             if (colsMatch && valsMatch) {
                 const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
-                const idIndex = cols.indexOf('id');
-                if (idIndex >= 0) {
+                const mbidIdx = cols.indexOf('mbid');
+                if (mbidIdx >= 0) {
                     const vals = parseInsertValues(valsMatch[1]);
-                    if (vals[idIndex]) {
-                        const idVal = vals[idIndex].replace(/'/g, '').trim();
-                        if (idVal && idVal !== 'NULL') {
-                            idsToDelete.add(idVal);
-                        }
+                    const mbidVal = (vals[mbidIdx] || '').replace(/'/g, '').trim();
+                    if (mbidVal && mbidVal.toUpperCase() !== 'NULL') {
+                        mbidsToDelete.add(mbidVal);
                     }
                 }
             }
         }
 
         let insertCount = 0;
-        let deleteCount = idsToDelete.size;
+        let deleteCount = mbidsToDelete.size;
         const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
         await db.oracle.transaction(async (tx) => {
-            // 1. 先删除对应 ID 且属于当前机构的旧数据
-            if (idsToDelete.size > 0) {
-                const idArr = Array.from(idsToDelete);
-                const placeholders = idArr.map(() => '?').join(',');
-                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idArr, jgbh, zjgbh]);
-                await tx.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idArr, jgbh, zjgbh]);
-                logger.info(`Partial import: deleted records for ids=${idArr.join(',')}, jgbh=${jgbh}`);
+            // 1. 按 jgbh + zjgbh + mbid 删除旧数据
+            if (mbidsToDelete.size > 0) {
+                const mbidArr = Array.from(mbidsToDelete);
+                const placeholders = mbidArr.map(() => '?').join(',');
+                await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? AND mbid IN (${placeholders}))`, [jgbh, zjgbh, ...mbidArr]);
+                await tx.run(`DELETE FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? AND mbid IN (${placeholders})`, [jgbh, zjgbh, ...mbidArr]);
+                logger.info(`Partial import: deleted records for mbids=${mbidArr.join(',')}, jgbh=${jgbh}`);
             }
 
             // 2. 分两遍处理 INSERT（同全量导入逻辑）
