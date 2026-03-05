@@ -72,6 +72,11 @@ export const fetcher = <T = unknown>({
         (requestConfig.headers as Record<string, string>)['jgbh'] = info.jgbh;
       }
 
+      // 子机构编号
+      if (info.zjgbh) {
+        (requestConfig.headers as Record<string, string>)['zjgbh'] = info.zjgbh;
+      }
+
       // 组织标识
       if (info.zzbs) {
         (requestConfig.headers as Record<string, string>)['zzbs'] = info.zzbs;
@@ -176,19 +181,19 @@ export const fetcher = <T = unknown>({
       } else {
         // 尝试从 URL 中提取文件名，或者使用当前时间戳
         try {
-            const urlParts = response.config.url?.split('/') || [];
-            const lastPart = urlParts[urlParts.length - 1];
-            if (lastPart && !lastPart.includes('?')) {
-                fileName = lastPart;
-            } else {
-                fileName = `download_${new Date().getTime()}`;
-            }
-            // 如果是 csv
-            if (res.type === 'text/csv' || res.type === 'application/csv') {
-                fileName += '.csv';
-            }
+          const urlParts = response.config.url?.split('/') || [];
+          const lastPart = urlParts[urlParts.length - 1];
+          if (lastPart && !lastPart.includes('?')) {
+            fileName = lastPart;
+          } else {
+            fileName = `download_${new Date().getTime()}`;
+          }
+          // 如果是 csv
+          if (res.type === 'text/csv' || res.type === 'application/csv') {
+            fileName += '.csv';
+          }
         } catch (e) {
-            // ignore
+          // ignore
         }
       }
 
@@ -196,11 +201,11 @@ export const fetcher = <T = unknown>({
       // 某些情况下浏览器或正则可能截断了扩展名，或者 MIME 类型对应的扩展名未自动添加
       console.log('Download File Type:', res.type);
       console.log('Extracted FileName:', fileName);
-      
+
       const isCsv = res.type.includes('csv') || res.type.includes('excel') || res.type === 'application/vnd.ms-excel';
       if (isCsv && !fileName.toLowerCase().endsWith('.csv')) {
-          fileName += '.csv';
-          console.log('Appended .csv extension. New FileName:', fileName);
+        fileName += '.csv';
+        console.log('Appended .csv extension. New FileName:', fileName);
       }
 
       // 触发浏览器下载动作
