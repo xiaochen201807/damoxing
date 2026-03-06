@@ -21,9 +21,10 @@
                 "3601032003"
             ],
             "config": {
-                "user": "DBA",
-                "password": "PWD",
-                "connectString": "10.99.1.35:5236",
+                "user": "SY_PTDX_CS",
+                "password": "SY_PTDX_CS",
+                "connectString": "127.0.0.1:5236",
+                "loginEncrypt": false,
                 "poolMin": 2,
                 "poolMax": 10
             }

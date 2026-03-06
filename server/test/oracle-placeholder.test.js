@@ -40,7 +40,14 @@ describe('分页封装与占位符转换协作', () => {
 
   test('SqlHelper.paginateQuery：空/非法分页参数会被安全归一化', () => {
     process.env.ORACLE_ENABLE = 'false';
+    process.env.DM_ENABLE = 'false';
     jest.resetModules();
+
+    jest.doMock('fs', () => ({
+      ...jest.requireActual('fs'),
+      existsSync: jest.fn(() => false)
+    }));
+
     const SqlHelper = require('../utils/sqlHelper');
 
     const base = 'SELECT * FROM t';
@@ -48,6 +55,8 @@ describe('分页封装与占位符转换协作', () => {
     expect(sql).toContain('LIMIT ? OFFSET ?');
     expect(params[0]).toBeGreaterThanOrEqual(1);
     expect(params[1]).toBeGreaterThanOrEqual(0);
+
+    jest.dontMock('fs');
   });
 });
 

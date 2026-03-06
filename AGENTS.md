@@ -1,5 +1,6 @@
 # Repository Guidelines
-所有代码的修改和编辑应该用utf8 的字符集处理
+所有代码、SQL、配置文件、脚本、文档的新增、修改和保存都必须使用 UTF-8 字符集编码处理。
+如无特殊说明，统一使用 UTF-8；避免因编码不一致导致中文乱码。
 
 ## Project Structure & Module Organization
 - `client/`: Vite + React + TypeScript frontend. Main code lives in `client/src/`, static assets in `client/public/`.

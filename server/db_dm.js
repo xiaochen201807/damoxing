@@ -12,6 +12,37 @@ const { prepareOracleQuery } = require('./db_oracle'); // Reuse Oracle binding p
 dmdb.outFormat = dmdb.OUT_FORMAT_OBJECT;
 dmdb.autoCommit = true;
 
+function normalizeDmPoolConfig(config = {}) {
+    const nextConfig = { ...config };
+    const rawConnectString = String(nextConfig.connectString || nextConfig.connectionString || '').trim();
+
+    if (!rawConnectString) {
+        throw new Error('Dm datasource connectString is required');
+    }
+
+    if (!rawConnectString.startsWith('dm://')) {
+        const user = nextConfig.user == null ? '' : String(nextConfig.user);
+        const password = nextConfig.password == null ? '' : String(nextConfig.password);
+        const auth = user
+            ? `${encodeURIComponent(user)}${password !== '' ? `:${encodeURIComponent(password)}` : ''}@`
+            : '';
+
+        nextConfig.connectString = `dm://${auth}${rawConnectString}`;
+    } else {
+        nextConfig.connectString = rawConnectString;
+    }
+
+    if (typeof nextConfig.loginEncrypt === 'boolean') {
+        const loginEncryptFragment = `loginEncrypt=${String(nextConfig.loginEncrypt)}`;
+        nextConfig.connectString += nextConfig.connectString.includes('?')
+            ? `&${loginEncryptFragment}`
+            : `?${loginEncryptFragment}`;
+    }
+
+    delete nextConfig.connectionString;
+    return nextConfig;
+}
+
 class DmAdapter {
     constructor(config, id) {
         this.config = config;
@@ -21,7 +52,8 @@ class DmAdapter {
 
     async initialize() {
         try {
-            this.pool = await dmdb.createPool(this.config);
+            const poolConfig = normalizeDmPoolConfig(this.config);
+            this.pool = await dmdb.createPool(poolConfig);
             logger.info(`Dm Connection Pool [${this.id}] created successfully.`);
         } catch (err) {
             logger.error(`Error creating Dm Connection Pool [${this.id}]: ${err.message}`);
@@ -204,4 +236,4 @@ class DmAdapter {
     }
 }
 
-module.exports = { DmAdapter };
+module.exports = { DmAdapter, normalizeDmPoolConfig };
