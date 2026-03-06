@@ -148,7 +148,7 @@ function normalizeCsvRowToCxgzkzRow(source, jgbh, zjgbh) {
         gztsy: pickFirstValue(source, ['程序控制规则提示语', '规则提示语', 'gztsy', 'GZTSY']),
         sfqy: normalizeBooleanLike(pickFirstValue(source, ['是否启用', 'sfqy', 'SFQY']), 'y'),
         sfyxtqy: normalizeBooleanLike(pickFirstValue(source, ['是否允许停启用', 'sfyxtqy', 'SFYXTQY']), 'y'),
-        sfyxtztsy: normalizeBooleanLike(pickFirstValue(source, ['是否允许停启提示语', 'sfyxtztsy', 'SFYXTZTSY']), 'n'),
+        sfyxtztsy: normalizeBooleanLike(pickFirstValue(source, ['是否允许调整提示语', '是否允许停启提示语', 'sfyxtztsy', 'SFYXTZTSY']), 'n'),
         role: pickFirstValue(source, ['角色', 'role', 'ROLE'])
     };
 
@@ -175,7 +175,7 @@ function buildExportCsvContent(rows) {
         '规则提示语': getRowField(row, 'gztsy') ?? '',
         '是否启用': getRowField(row, 'sfqy') ?? '',
         '是否允许停启用': getRowField(row, 'sfyxtqy') ?? '',
-        '是否允许停启提示语': getRowField(row, 'sfyxtztsy') ?? '',
+        '是否允许调整提示语': getRowField(row, 'sfyxtztsy') ?? '',
         '角色': getRowField(row, 'role') ?? ''
     }));
 
@@ -429,17 +429,52 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role } = req.body;
 
-    const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
-    const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const modelEnv = isModelEnv(req);
 
     try {
-        const updateSql = `
-            UPDATE gjj_cxgzkz SET 
-            rwxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=?
-            WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
-        `;
-        await db.oracle.run(updateSql, [rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role, id, jgbh, zjgbh]);
+        await db.oracle.transaction(async (tx) => {
+            const existing = await tx.get(
+                `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`,
+                [id, jgbh, zjgbh]
+            );
+            if (!existing) {
+                throw new Error('记录不存在或无权限修改');
+            }
+
+            const current = {
+                rwxbh: existing.rwxbh ?? existing.RWXBH,
+                gzmc: existing.gzmc ?? existing.GZMC,
+                gztsy: existing.gztsy ?? existing.GZTSY,
+                sfqy: existing.sfqy ?? existing.SFQY,
+                sfyxtqy: existing.sfyxtqy ?? existing.SFYXTQY,
+                sfyxtztsy: existing.sfyxtztsy ?? existing.SFYXTZTSY,
+                role: existing.role ?? existing.ROLE
+            };
+
+            const next = {
+                rwxbh: rwxbh ?? current.rwxbh,
+                gzmc: gzmc ?? current.gzmc,
+                gztsy: modelEnv || current.sfyxtztsy !== 'n'
+                    ? (gztsy !== undefined ? gztsy : current.gztsy)
+                    : current.gztsy,
+                sfqy: modelEnv || current.sfyxtqy !== 'n'
+                    ? normalizeYn(sfqy, current.sfqy || 'y')
+                    : current.sfqy,
+                sfyxtqy: modelEnv
+                    ? normalizeYn(sfyxtqy, current.sfyxtqy || 'y')
+                    : current.sfyxtqy,
+                sfyxtztsy: modelEnv
+                    ? normalizeYn(sfyxtztsy, current.sfyxtztsy || 'n')
+                    : current.sfyxtztsy,
+                role: role !== undefined ? role : current.role
+            };
+
+            const updateSql = `UPDATE gjj_cxgzkz SET rwxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+            await tx.run(updateSql, [next.rwxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
+        });
 
         res.json({ status: 0, msg: "更新成功" });
     } catch (err) {
