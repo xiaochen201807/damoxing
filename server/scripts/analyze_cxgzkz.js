@@ -41,6 +41,50 @@ const API_PARAMS = {
         groupOrder: 1,
         order: 3,
         required: true
+    },
+    // 任务项查询接口
+    task_info_api: {
+        type: 'string',
+        title: '任务项接口 URL',
+        description: '任务项联想与映射查询接口',
+        default: '/api/tools/task-info',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 4,
+        required: true
+    },
+    // 导入接口
+    rule_import_api: {
+        type: 'string',
+        title: '导入接口 URL',
+        description: '全量导入程序控制规则的 API',
+        default: '/api/cxgzkz/import',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 5,
+        required: true
+    },
+    // 全量导出接口
+    rule_export_api: {
+        type: 'string',
+        title: '全量导出接口 URL',
+        description: '全量导出程序控制规则的 API',
+        default: '/api/cxgzkz/export',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 6,
+        required: true
+    },
+    // 部分导出接口
+    rule_partial_export_api: {
+        type: 'string',
+        title: '部分导出接口 URL',
+        description: '按勾选记录导出程序控制规则的 API',
+        default: '/api/cxgzkz/partial_export',
+        group: '🔗 平台接口配置',
+        groupOrder: 1,
+        order: 7,
+        required: true
     }
 };
 

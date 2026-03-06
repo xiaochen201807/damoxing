@@ -18,7 +18,10 @@
     "data": {
         "rule_list_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/list",
         "rule_save_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/save",
-        "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/delete"
+        "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/delete",
+        "task_info_api": "{{ GLOBAL_API_PREFIX }}/tools/task-info",
+        "rule_import_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/import",
+        "rule_export_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/export"
     },
     "body": [
         {
@@ -55,11 +58,28 @@
                         "clearable": true
                     },
                     {
-                        "type": "input-text",
+                        "type": "select",
                         "name": "rwxbh",
                         "label": "任务项",
-                        "placeholder": "请输入任务项",
-                        "clearable": true
+                        "placeholder": "请输入任务项关键字联想查询",
+                        "clearable": true,
+                        "searchable": true,
+                        "source": {
+                            "method": "post",
+                            "url": "${task_info_api}",
+                            "data": {
+                                "sjrwmc": ""
+                            }
+                        },
+                        "searchApi": {
+                            "method": "post",
+                            "url": "${task_info_api}",
+                            "data": {
+                                "sjrwmc": "${term}"
+                            }
+                        },
+                        "labelField": "label",
+                        "valueField": "value"
                     },
                     {
                         "type": "select",
@@ -118,13 +138,24 @@
                                     "name": "rwxbh",
                                     "label": "任务项",
                                     "required": true,
-                                    "options": [
-                                        {"label": "贷款审批", "value": "loan"},
-                                        {"label": "提取审核", "value": "withdraw"},
-                                        {"label": "账户管理", "value": "account"},
-                                        {"label": "信息变更", "value": "info"},
-                                        {"label": "缴存处理", "value": "payment"}
-                                    ]
+                                    "placeholder": "请输入任务项关键字联想查询",
+                                    "searchable": true,
+                                    "source": {
+                                        "method": "post",
+                                        "url": "${task_info_api}",
+                                        "data": {
+                                            "sjrwmc": ""
+                                        }
+                                    },
+                                    "searchApi": {
+                                        "method": "post",
+                                        "url": "${task_info_api}",
+                                        "data": {
+                                            "sjrwmc": "${term}"
+                                        }
+                                    },
+                                    "labelField": "label",
+                                    "valueField": "value"
                                 },
                                 {
                                     "type": "input-text",
@@ -174,23 +205,67 @@
                         }
                     }
                 },
-                "bulkActions",
-                "statistics"
+                {
+                    "type": "button",
+                    "label": "导入",
+                    "level": "primary",
+                    "actionType": "dialog",
+                    "dialog": {
+                        "title": "导入程序控制规则",
+                        "body": {
+                            "type": "form",
+                            "api": {
+                                "method": "post",
+                                "url": "${rule_import_api}",
+                                "dataType": "form-data"
+                            },
+                            "onEvent": {
+                                "submitSucc": {
+                                    "actions": [
+                                        {
+                                            "actionType": "reload",
+                                            "componentId": "main_crud"
+                                        }
+                                    ]
+                                }
+                            },
+                            "body": [
+                                {
+                                    "type": "input-file",
+                                    "name": "file",
+                                    "label": "选择CSV文件",
+                                    "accept": ".csv",
+                                    "asBlob": true,
+                                    "required": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "type": "button",
+                    "label": "导出",
+                    "level": "default",
+                    "actionType": "download",
+                    "api": {
+                        "method": "post",
+                        "url": "${rule_export_api}",
+                        "data": {
+                            "ids": "${_selectedIds}"
+                        },
+                        "responseType": "blob"
+                    },
+                    "tooltip": "已勾选则导出勾选项，未勾选则导出全部"
+                },
+                "bulkActions"
             ],
-            "footerToolbar": ["switch-per-page", "pagination"],
+            "footerToolbar": ["switch-per-page", "pagination", "statistics"],
             "columns": [
                 {
                     "name": "rwxbh",
                     "label": "任务项",
-                    "type": "mapping",
-                    "map": {
-                        "loan": "贷款审批",
-                        "withdraw": "提取审核",
-                        "account": "账户管理",
-                        "info": "信息变更",
-                        "payment": "缴存处理",
-                        "*": "${rwxbh}"
-                    }
+                    "type": "tpl",
+                    "tpl": "${rwxmc || rwxbh}"
                 },
                 {
                     "name": "gzmc",
@@ -253,10 +328,28 @@
                                             "name": "id"
                                         },
                                         {
-                                            "type": "static",
+                                            "type": "select",
                                             "name": "rwxbh",
                                             "label": "任务项",
-                                            "tpl": "${rwxbh | map: {'loan':'贷款审批', 'withdraw':'提取审核', 'account':'账户管理', 'info':'信息变更', 'payment':'缴存处理'}}"
+                                            "required": true,
+                                            "placeholder": "请输入任务项关键字联想查询",
+                                            "searchable": true,
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${task_info_api}",
+                                                "data": {
+                                                    "sjrwmc": ""
+                                                }
+                                            },
+                                            "searchApi": {
+                                                "method": "post",
+                                                "url": "${task_info_api}",
+                                                "data": {
+                                                    "sjrwmc": "${term}"
+                                                }
+                                            },
+                                            "labelField": "label",
+                                            "valueField": "value"
                                         },
                                         {
                                             "type": "static",

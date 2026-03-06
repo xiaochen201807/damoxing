@@ -410,8 +410,8 @@ router.post('/task-info', async (req, res) => {
     // 3. 构造 Body 参数
     const payload = {
         // 使用前端传入的查询关键字和机构编号
-        "sjrwmc": body.sjrwmc || body.keyword || "",
-        "organizationNumber": body.organizationNumber || jgbh || ""
+        "sjrwmc": body.sjrwmc || body.jsrwmc || body.keyword || "",
+        "organizationNumber": body.zjgbh||body.jgbh || jgbh || ""
     };
 
     logger.info(`[Tools API] Payload to gateway (task-info): ${JSON.stringify(payload)}`);
@@ -433,11 +433,30 @@ router.post('/task-info', async (req, res) => {
         }
 
         // 转换数据格式为 AMIS 下拉框所需的 { label, value }
-        const resultData = list.map(item => ({
-            label: item.sjrwmc,
-            value: item.taskNumber,
-            ...item
-        }));
+        const resultData = list
+            .map(item => {
+                const label =
+                    item.label ??
+                    item.sjrwmc ??
+                    item.jsrwmc ??
+                    item.xmbh ??
+                    item.taskName ??
+                    item.name ??
+                    item.text ??
+                    '';
+                const value =
+                    item.value ??
+                    item.taskNumber ??
+                    item.rwxbh ??
+                    item.id ??
+                    '';
+                return {
+                    label,
+                    value,
+                    ...item
+                };
+            })
+            .filter(item => item.label !== '' && item.value !== '');
 
         res.json({ status: 0, msg: "ok", data: resultData });
     } catch (err) {

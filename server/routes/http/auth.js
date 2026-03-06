@@ -85,11 +85,13 @@ async function callGatewayValidate(ticket, tyLoginToken) {
         let grbh = null;
         let xingming = null;
         let zzbs = null;      // 组织标识
+        let mechanismMmodel = null;
+        let userInfoObj = null;
 
         // 解析 user_info（JSON 字符串）
         if (user_info) {
             try {
-                const userInfoObj = JSON.parse(user_info);
+                userInfoObj = JSON.parse(user_info);
 
                 // 提取机构编号和机构名称
                 if (userInfoObj.zzjgxx?.results?.jgmsg?.jgbh) {
@@ -105,6 +107,8 @@ async function callGatewayValidate(ticket, tyLoginToken) {
                     grbh = person.grbh;
                     xingming = person.xingming;
                 }
+
+                mechanismMmodel = userInfoObj.ptSettings?.mechanismMmodel ?? null;
 
                 logger.info(`[Gateway] 解析到: jgbh=${jgbh}, jgmc=${jgmc},zjgbh=${zjgbh}, grbh=${grbh}, xingming=${xingming}, zzbs=${zzbs}`);
             } catch (parseError) {
@@ -123,11 +127,12 @@ async function callGatewayValidate(ticket, tyLoginToken) {
             grbh: grbh,           // 个人编号
             xingming: xingming,   // 姓名
             zzbs: zzbs,           // 组织标识
+            mechanismMmodel: mechanismMmodel,
             login_token: tyLoginToken,  // 保存原始 loginToken 供后续使用
             raw_response: {
                 code,
                 success,
-                user_info_parsed: user_info ? JSON.parse(user_info) : null,
+                user_info_parsed: userInfoObj,
                 role_info_parsed: role_info ? JSON.parse(role_info) : null
             }
         };
@@ -322,6 +327,7 @@ router.post('/login', async (req, res) => {
                 grbh: gatewayInfo.grbh,
                 xingming: gatewayInfo.xingming,
                 zzbs: gatewayInfo.zzbs,
+                mechanismMmodel: gatewayInfo.mechanismMmodel,
                 zzjgdmz: qycode,
                 login_token: gatewayInfo.login_token
             };
