@@ -1,4 +1,6 @@
-const isOracle = process.env.ORACLE_ENABLE === 'true';
+const process = require('process');
+// Assume true for Oracle/DM pagination since factory handles routing
+const isOracle = process.env.ORACLE_ENABLE === 'true' || process.env.DM_ENABLE === 'true' || true;
 
 const SqlHelper = {
     isOracle,

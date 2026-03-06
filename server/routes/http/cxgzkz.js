@@ -200,7 +200,7 @@ async function sendCxgzkzExport(req, res, ids, logLabel) {
 
     sql += ' ORDER BY id';
 
-    const rules = await db.oracle.all(sql, params);
+    const rules = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, params);
     const csvContent = buildExportCsvContent(rules);
     const exportFileName = 'cxgzkz_export.csv';
 
@@ -269,8 +269,8 @@ router.post('/list', async (req, res) => {
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
-        const countRow = await db.oracle.get(countSql, params);
-        const rows = await db.oracle.all(paged.sql, paged.params);
+        const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
         const taskNameMap = await fetchTaskNameMap(req);
         const envMode = getEnvModeFromJwt(req);
         const items = rows.map(row => {
@@ -309,7 +309,7 @@ router.post('/get', async (req, res) => {
 
     try {
         const sql = `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-        const row = await db.oracle.get(sql, [id, jgbh, zjgbh]);
+        const row = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(sql, [id, jgbh, zjgbh]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
@@ -330,7 +330,7 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
 
     try {
         const sql = `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-        const row = await db.oracle.get(sql, [id, jgbh, zjgbh]);
+        const row = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(sql, [id, jgbh, zjgbh]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
@@ -352,7 +352,7 @@ router.post('/save', async (req, res) => {
     const modelEnv = isModelEnv(req);
 
     try {
-        const { id: savedId } = await db.oracle.transaction(async (tx) => {
+        const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             let rowId = id;
             if (id) {
                 const existing = await tx.get(
@@ -435,7 +435,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const modelEnv = isModelEnv(req);
 
     try {
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             const existing = await tx.get(
                 `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`,
                 [id, jgbh, zjgbh]
@@ -500,13 +500,13 @@ router.post('/delete', async (req, res) => {
             AND ${coalesce}(jgbh, '') = ? 
             AND ${coalesce}(zjgbh, '') = ?
         `;
-        const record = await db.oracle.get(checkSql, [id, jgbh, zjgbh]);
+        const record = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(checkSql, [id, jgbh, zjgbh]);
 
         if (!record) {
             return res.status(403).json({ status: 1, msg: "无权删除此记录或记录不存在" });
         }
 
-        await db.oracle.run(`DELETE FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
 
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
@@ -532,13 +532,13 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             AND ${coalesce}(jgbh, '') = ? 
             AND ${coalesce}(zjgbh, '') = ?
         `;
-        const record = await db.oracle.get(checkSql, [id, jgbh, zjgbh]);
+        const record = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(checkSql, [id, jgbh, zjgbh]);
 
         if (!record) {
             return res.status(403).json({ status: 1, msg: "无权删除此记录或记录不存在" });
         }
 
-        await db.oracle.run(`DELETE FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [id, jgbh, zjgbh]);
 
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
@@ -742,7 +742,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             return res.status(400).json({ status: 1, msg: "文件中未解析到可导入的程序控制规则数据，请检查 CSV 中是否包含任务项编号列" });
         }
 
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             const existingRows = await tx.all(
                 `SELECT * FROM gjj_cxgzkz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? ORDER BY id DESC`,
                 [jgbh, zjgbh]

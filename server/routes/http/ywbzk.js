@@ -21,6 +21,7 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.post('/list', async (req, res) => {
     const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const offset = (page - 1) * perPage;
 
     let sql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
@@ -48,8 +49,8 @@ router.post('/list', async (req, res) => {
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
-        const countRow = await db.oracle.get(countSql, params);
-        const rows = await db.oracle.all(paged.sql, paged.params);
+        const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -71,20 +72,21 @@ router.post('/list', async (req, res) => {
  */
 router.post('/get', async (req, res) => {
     const { id } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     if (!id) {
         return res.status(400).json({ status: 1, msg: "ID is required" });
     }
 
     try {
         const sql = "SELECT * FROM gjj_ywbzk WHERE id = ?";
-        const row = await db.oracle.get(sql, [id]);
+        const row = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(sql, [id]);
 
         if (!row) {
             return res.status(404).json({ status: 1, msg: "Record not found" });
         }
 
         const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
-        const sxRows = await db.oracle.all(sxSql, [id]);
+        const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
 
         row.ywblbzsxz = sxRows;
         res.json({ status: 0, msg: "ok", data: row });
@@ -99,9 +101,10 @@ router.post('/get', async (req, res) => {
  */
 router.post('/save', async (req, res) => {
     const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
     try {
-        const { id: savedId } = await db.oracle.transaction(async (tx) => {
+        const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             let mbid = id;
             if (id) {
                 const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, ywbzz=:3, ywbzjg=:4, ywblbzsm=:5, gjsjsf=:6, ywnrfl=:7, bzfl=:8, gxsj=${SqlHelper.now()} WHERE id=:9`;
@@ -143,13 +146,14 @@ router.post('/save', async (req, res) => {
  */
 router.post('/delete', async (req, res) => {
     const { id } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     if (!id) {
         return res.status(400).json({ status: 1, msg: "ID is required" });
     }
 
     try {
         const sql = "DELETE FROM gjj_ywbzk WHERE id = ?";
-        await db.oracle.run(sql, [id]);
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(sql, [id]);
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         logger.error(`Failed to delete ywbzk: ${err.message}`);
@@ -161,9 +165,10 @@ router.post('/delete', async (req, res) => {
  * 5. 获取所有唯一的业务办理标准 (POST /standards)
  */
 router.post('/standards', async (req, res) => {
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     try {
         const sql = "SELECT DISTINCT ywblbz as value, ywblbz as label FROM gjj_ywbzk WHERE ywblbz IS NOT NULL";
-        const rows = await db.oracle.all(sql, []);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -174,13 +179,14 @@ router.post('/standards', async (req, res) => {
 // 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
+    const jgbh = req.body?.jgbh || req.query?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     // if (req.user?.role !== 'admin') {
     //     return res.status(403).json({ status: 403, msg: "无导出权限" });
     // }
     try {
         // 1. 获取所有数据
-        const standards = await db.oracle.all("SELECT * FROM gjj_ywbzk");
-        const attributes = await db.oracle.all("SELECT * FROM gjj_ywbzksx");
+        const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzk");
+        const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzksx");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务标准全量导出 (包含标准表和属性表)\n";
@@ -252,6 +258,7 @@ router.all('/export', authenticateToken, async (req, res) => {
 // 导入接口 (支持 CSV/SQL 单文件上传)
 // -----------------------------------------------------------------------------
 router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
+    const jgbh = req.body?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     if (!req.file) {
         return res.status(400).json({ status: 1, msg: "请选择文件" });
     }
@@ -270,14 +277,14 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         }
 
         // 执行 SQL
-        // await db.oracle.exec(sqlContent);
+        // await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').exec(sqlContent);
 
         // 分割 SQL 语句并逐条执行 (能够正确处理字符串中的分号)
         const splitSqlStatements = (sql) => {
             const stmts = [];
             let buffer = '';
             let inQuote = false;
-            
+
             for (let i = 0; i < sql.length; i++) {
                 const char = sql[i];
                 if (char === "'") {
@@ -289,7 +296,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                     }
                     inQuote = !inQuote;
                 }
-                
+
                 if (char === ';' && !inQuote) {
                     const trimmed = buffer.trim();
                     if (trimmed) stmts.push(trimmed);
@@ -303,8 +310,8 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         };
 
         const statements = splitSqlStatements(sqlContent);
-        
-        await db.oracle.transaction(async (tx) => {
+
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             for (const sql of statements) {
                 // 跳过可能的事务控制语句
                 if (['BEGIN TRANSACTION', 'COMMIT', 'ROLLBACK'].includes(sql.toUpperCase())) {

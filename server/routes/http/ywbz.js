@@ -62,8 +62,8 @@ router.post('/list', async (req, res) => {
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
 
     try {
-        const countRow = await db.oracle.get(countSql, params);
-        const rows = await db.oracle.all(paged.sql, paged.params);
+        const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -93,12 +93,12 @@ router.post('/get', async (req, res) => {
 
     try {
         const sql = `SELECT * FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-        const row = await db.oracle.get(sql, [id, jgbh, zjgbh]);
+        const row = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(sql, [id, jgbh, zjgbh]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ?";
-        const sxRows = await db.oracle.all(sxSql, [id]);
+        const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
 
         const attributes = [];
         sxRows.forEach(row => {
@@ -149,7 +149,7 @@ router.post('/config_form', async (req, res) => {
             ORDER BY row_index ASC, id ASC
         `;
 
-        const schemaRows = await db.oracle.all(sqlSchema, [mbid]);
+        const schemaRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sqlSchema, [mbid]);
 
         // ============================================================
         // gjj_ywbzksx 表字段实际含义说明（与字段名不完全一致）：
@@ -171,7 +171,7 @@ router.post('/config_form', async (req, res) => {
             }
         });
 
-        const valueRows = await db.oracle.all(sqlValues, [id]);
+        const valueRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
         // 宽表 k 列可能存的是旧的中文名(sxbm)或新的程序化标识(ywblbzsx)
@@ -292,19 +292,19 @@ router.post('/save_params', async (req, res) => {
 
     try {
         // 0. 查询该规则对应的 mbid，再查标准库属性定义，确定字段顺序
-        const ruleRow = await db.oracle.get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [id]);
+        const ruleRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [id]);
         const mbid = ruleRow?.mbid || ruleRow?.MBID;
 
         // 按 id ASC 获取字段定义顺序
         let fieldOrder = [];
         if (mbid) {
-            const schemaRows = await db.oracle.all(
+            const schemaRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
                 "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC", [mbid]
             );
             fieldOrder = schemaRows.map(r => r.ywblbzsx || r.YWBLBZSX).filter(Boolean);
         }
 
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 删除旧属性
             await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = :1", [id]);
 
@@ -364,12 +364,12 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
 
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
-        const row = await db.oracle.get(sql, [id]);
+        const row = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(sql, [id]);
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
         const sxSql = "SELECT * FROM gjj_ywbzsx WHERE ywid = ? ORDER BY row_index ASC, id ASC";
-        const sxRows = await db.oracle.all(sxSql, [id]);
+        const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
 
         const rule_params = {};
         sxRows.forEach(row => {
@@ -406,7 +406,7 @@ router.post('/save', async (req, res) => {
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
     try {
-        const { id: savedId } = await db.oracle.transaction(async (tx) => {
+        const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             let ywid = id;
             if (id) {
                 const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
@@ -416,7 +416,7 @@ router.post('/save', async (req, res) => {
                 const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
                 const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh]);
 
-                // 在 db.oracle.transaction 中必然是 Oracle 环境，直接获取 MAX(id)
+                // 在 db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction 中必然是 Oracle 环境，直接获取 MAX(id)
                 const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
                 ywid = lastRow?.id ?? lastRow?.ID;
             }
@@ -478,7 +478,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
     try {
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             const updateSql = `
                 UPDATE gjj_ywbz SET 
                 mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
@@ -583,7 +583,7 @@ router.post('/batch', async (req, res) => {
             existingParams.push(ywnrfl);
         }
 
-        const existingRows = await db.oracle.all(existingSql, existingParams);
+        const existingRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(existingSql, existingParams);
 
         const selectedMbids = new Set(syncIds.map(String));
 
@@ -611,9 +611,9 @@ router.post('/batch', async (req, res) => {
         if (idsToDelete.length > 0) {
             const placeholders = idsToDelete.map(() => '?').join(',');
             // 先删除关联的属性表
-            await db.oracle.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idsToDelete, jgbh, zjgbh]);
+            await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idsToDelete, jgbh, zjgbh]);
             // 再删除主表
-            await db.oracle.run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idsToDelete, jgbh, zjgbh]);
+            await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idsToDelete, jgbh, zjgbh]);
         }
 
         // 5. 执行新增
@@ -621,7 +621,7 @@ router.post('/batch', async (req, res) => {
         if (mbidsToInsert.length > 0) {
             const getStandards = (ids) => {
                 const placeholders = ids.map(() => '?').join(',');
-                return db.oracle.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
+                return db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
             };
 
             const templates = await getStandards(mbidsToInsert);
@@ -646,7 +646,7 @@ router.post('/batch', async (req, res) => {
             for (const tpl of templates) {
                 const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
 
-                await db.oracle.transaction(async (tx) => {
+                await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
                     const insertSql = `
                         INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
                         VALUES (?, ?, ?, ?, 1, ?, ?, ?)
@@ -684,7 +684,7 @@ router.post('/delete', async (req, res) => {
     }
 
     try {
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 验证权限：检查该记录是否属于当前机构
             const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
             const checkSql = `
@@ -728,7 +728,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
 
     try {
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 验证权限
             const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
             const checkSql = `
@@ -761,7 +761,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.get('/options/categories', async (req, res) => {
     const sql = "SELECT DISTINCT ywnrfl as value, ywnrfl as label FROM gjj_ywbzk WHERE ywnrfl IS NOT NULL";
     try {
-        const rows = await db.oracle.all(sql, []);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -782,12 +782,12 @@ router.all('/export', authenticateToken, async (req, res) => {
 
     try {
         // 1. 获取当前机构数据
-        const rules = await db.oracle.all(`SELECT * FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [jgbh, zjgbh]);
+        const rules = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [jgbh, zjgbh]);
         const ruleIds = rules.map(r => r.id || r.ID).filter(Boolean);
         let attributes = [];
         if (ruleIds.length > 0) {
             const placeholders = ruleIds.map(() => '?').join(',');
-            attributes = await db.oracle.all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, ruleIds);
+            attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, ruleIds);
         }
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
@@ -1045,7 +1045,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             }
         }
 
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 按 jgbh + zjgbh + mbid 删除旧数据
             if (mbidsToDelete.size > 0) {
                 const mbidArr = Array.from(mbidsToDelete);
@@ -1124,10 +1124,10 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
     try {
         // 1. 查询选中的规则数据
         const placeholders = idList.map(() => '?').join(',');
-        const rules = await db.oracle.all(`SELECT * FROM gjj_ywbz WHERE id IN (${placeholders})`, idList);
+        const rules = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbz WHERE id IN (${placeholders})`, idList);
 
         // 2. 查询对应的属性数据
-        const attributes = await db.oracle.all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idList);
+        const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idList);
         logger.info(`Partial export: ids=${idList.join(',')}, rules=${rules.length}, attributes=${attributes.length}`);
 
         // 3. 生成 SQL 脚本（不含 DELETE 全表语句）
@@ -1282,7 +1282,7 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
         let deleteCount = mbidsToDelete.size;
         const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
-        await db.oracle.transaction(async (tx) => {
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 按 jgbh + zjgbh + mbid 删除旧数据
             if (mbidsToDelete.size > 0) {
                 const mbidArr = Array.from(mbidsToDelete);
@@ -1391,8 +1391,8 @@ router.post('/selection_list', async (req, res) => {
     }
 
     try {
-        const standards = await db.oracle.all(standardsSql, standardsParams);
-        const selectedRows = await db.oracle.all(selectedSql, selectedParams);
+        const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(standardsSql, standardsParams);
+        const selectedRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(selectedSql, selectedParams);
 
         // 内存合并: 构建 Set 加速查找
         const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
@@ -1483,7 +1483,7 @@ router.post('/debug_log', async (req, res) => {
             WHERE pcid = ?
             ORDER BY cjsj ASC
         `;
-        const rows = await db.oracle.all(sql, [pcid]);
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, [pcid]);
 
         // 格式化数据
         const formattedRows = rows.map((row, index) => ({

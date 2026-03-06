@@ -1,0 +1,207 @@
+/**
+ * Dameng Database Adapter
+ * 
+ * Provides a connection pool and helper methods for executing queries.
+ */
+
+const dmdb = require('dmdb');
+const logger = require('./utils/logger');
+const { prepareOracleQuery } = require('./db_oracle'); // Reuse Oracle binding parameter converter
+
+// Configuration
+dmdb.outFormat = dmdb.OUT_FORMAT_OBJECT;
+dmdb.autoCommit = true;
+
+class DmAdapter {
+    constructor(config, id) {
+        this.config = config;
+        this.id = id;
+        this.pool = null;
+    }
+
+    async initialize() {
+        try {
+            this.pool = await dmdb.createPool(this.config);
+            logger.info(`Dm Connection Pool [${this.id}] created successfully.`);
+        } catch (err) {
+            logger.error(`Error creating Dm Connection Pool [${this.id}]: ${err.message}`);
+            throw err;
+        }
+    }
+
+    async close() {
+        if (this.pool) {
+            try {
+                await this.pool.close();
+                logger.info(`Dm Connection Pool [${this.id}] closed.`);
+            } catch (err) {
+                logger.error(`Error closing Dm [${this.id}] pool`, err);
+            }
+        }
+    }
+
+    get isOracle() { return true; } // Map to Oracle since DM syntax is compatible
+    get isEnabled() { return true; }
+
+    async all(sql, params = []) {
+        if (!this.pool) throw new Error(`Dm pool [${this.id}] not initialized`);
+        let connection;
+        const start = Date.now();
+        const sqlId = Math.random().toString(36).substring(7);
+
+        try {
+            connection = await this.pool.getConnection();
+            const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
+
+            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
+            if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
+                try {
+                    logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
+                } catch (jsonErr) {
+                    logger.warn(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters (cannot stringify)`);
+                }
+            }
+
+            const result = await connection.execute(finalSql, finalParams);
+            let rows = result.rows || [];
+
+            if (rows.length > 0) {
+                rows = rows.map(row => {
+                    const newRow = {};
+                    for (const key in row) {
+                        newRow[key.toLowerCase()] = row[key];
+                    }
+                    return newRow;
+                });
+            }
+
+            const duration = Date.now() - start;
+            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] <==      Total: ${rows.length} (${duration}ms)`);
+            return rows;
+        } catch (err) {
+            const duration = Date.now() - start;
+            logger.error(`[Dm-${this.id}] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+            throw err;
+        } finally {
+            if (connection) {
+                try { await connection.close(); } catch (err) { logger.error('Error closing connection', err); }
+            }
+        }
+    }
+
+    async get(sql, params = []) {
+        const rows = await this.all(sql, params);
+        return rows[0];
+    }
+
+    async run(sql, params = []) {
+        if (!this.pool) throw new Error(`Dm pool [${this.id}] not initialized`);
+        let connection;
+        const start = Date.now();
+        const sqlId = Math.random().toString(36).substring(7);
+
+        try {
+            connection = await this.pool.getConnection();
+            const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
+
+            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
+            if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
+                try {
+                    logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
+                } catch (jsonErr) {
+                    logger.warn(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters (cannot stringify)`);
+                }
+            }
+
+            const result = await connection.execute(finalSql, finalParams, { autoCommit: true });
+            const duration = Date.now() - start;
+
+            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
+
+            return {
+                rowsAffected: result.rowsAffected,
+                lastID: null
+            };
+        } catch (err) {
+            const duration = Date.now() - start;
+            logger.error(`[Dm-${this.id}] [SQL-${sqlId}] <==      Error: ${err.message} (${duration}ms)`);
+            throw err;
+        } finally {
+            if (connection) {
+                try { await connection.close(); } catch (err) { logger.error('Error closing connection', err); }
+            }
+        }
+    }
+
+    async exec(sql) {
+        return this.run(sql);
+    }
+
+    async withConnection(callback) {
+        if (!this.pool) throw new Error(`Dm pool [${this.id}] not initialized`);
+        let connection;
+        try {
+            connection = await this.pool.getConnection();
+            return await callback(connection);
+        } catch (err) {
+            throw err;
+        } finally {
+            if (connection) {
+                try { await connection.close(); } catch (err) { logger.error('Error closing connection', err); }
+            }
+        }
+    }
+
+    async transaction(work) {
+        return this.withConnection(async (connection) => {
+            const txId = Math.random().toString(36).substring(7);
+            const tx = {
+                async all(sql, params = []) {
+                    const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
+                    const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
+                    let rows = result.rows || [];
+                    if (rows.length > 0) {
+                        rows = rows.map(row => {
+                            const newRow = {};
+                            for (const key in row) {
+                                newRow[key.toLowerCase()] = row[key];
+                            }
+                            return newRow;
+                        });
+                    }
+                    return rows;
+                },
+                async get(sql, params = []) {
+                    const rows = await tx.all(sql, params);
+                    return rows[0];
+                },
+                async run(sql, params = []) {
+                    const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
+                    const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
+                    return { rowsAffected: result.rowsAffected, lastID: null };
+                },
+                async exec(sql) {
+                    await connection.execute(sql, [], { autoCommit: false });
+                }
+            };
+
+            try {
+                logger.info(`[Dm-${this.id}] [TX-${txId}] BEGIN`);
+                const result = await work(tx);
+                await connection.commit();
+                logger.info(`[Dm-${this.id}] [TX-${txId}] COMMIT`);
+                return result;
+            } catch (err) {
+                try {
+                    logger.warn(`[Dm-${this.id}] [TX-${txId}] ROLLBACK`);
+                    await connection.rollback();
+                } catch (rollbackErr) {
+                    logger.error(`[Dm-${this.id}] [TX-${txId}] Rollback failed:`, rollbackErr);
+                }
+                throw err;
+            }
+        });
+    }
+}
+
+module.exports = { DmAdapter };
