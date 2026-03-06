@@ -11,6 +11,7 @@ const { prepareOracleQuery } = require('./db_oracle'); // Reuse Oracle binding p
 // Configuration
 dmdb.outFormat = dmdb.OUT_FORMAT_OBJECT;
 dmdb.autoCommit = true;
+dmdb.fetchAsString = [dmdb.NUMBER];
 
 function isPlainObject(value) {
     if (!value || typeof value !== 'object') {
