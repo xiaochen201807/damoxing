@@ -7,6 +7,18 @@
             "borderRadius": "12px",
             "overflow": "hidden"
         },
+        "#main_crud .cxd-CRUD-header": {
+            "padding": "8px 0 12px"
+        },
+        "#main_crud .cxd-CRUD-header .cxd-CRUD-toolbar": {
+            "display": "flex",
+            "alignItems": "center",
+            "gap": "10px",
+            "flexWrap": "wrap"
+        },
+        "#main_crud .cxd-CRUD-header .cxgzkz-toolbar-btn": {
+            "marginRight": "0"
+        },
         ".page-header-gradient": {
             "background": "linear-gradient(90deg, #1890ff 0%, #096dd9 100%)",
             "padding": "16px 24px",
@@ -21,7 +33,13 @@
         "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/delete",
         "task_info_api": "{{ GLOBAL_API_PREFIX }}/tools/task-info",
         "rule_import_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/import",
-        "rule_export_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/export"
+        "rule_export_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/export",
+        "mode_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/mode",
+        "env_mode": "prod"
+    },
+    "initApi": {
+        "method": "post",
+        "url": "${mode_api}"
     },
     "body": [
         {
@@ -124,6 +142,7 @@
                     "type": "button",
                     "label": "新增",
                     "icon": "fa fa-plus",
+                    "className": "cxgzkz-toolbar-btn",
                     "level": "primary",
                     "actionType": "dialog",
                     "dialog": {
@@ -169,13 +188,15 @@
                                     "name": "gztsy",
                                     "label": "程序控制规则提示语",
                                     "placeholder": "请输入提示语内容",
-                                    "minRows": 3
+                                    "minRows": 3,
+                                    "disabledOn": "${env_mode !== 'rd' && sfyxtztsy === 'n'}"
                                 },
                                 {
                                     "type": "select",
                                     "name": "sfqy",
                                     "label": "是否启用",
                                     "value": "y",
+                                    "disabledOn": "${env_mode !== 'rd' && sfyxtqy === 'n'}",
                                     "options": [
                                         {"label": "是", "value": "y"},
                                         {"label": "否", "value": "n"}
@@ -186,6 +207,7 @@
                                     "name": "sfyxtqy",
                                     "label": "是否允许停启用",
                                     "value": "y",
+                                    "visibleOn": "${env_mode === 'rd'}",
                                     "options": [
                                         {"label": "是", "value": "y"},
                                         {"label": "否", "value": "n"}
@@ -195,7 +217,8 @@
                                     "type": "select",
                                     "name": "sfyxtztsy",
                                     "label": "是否允许调整提示语",
-                                    "value": "n",
+                                    "value": "y",
+                                    "visibleOn": "${env_mode === 'rd'}",
                                     "options": [
                                         {"label": "是", "value": "y"},
                                         {"label": "否", "value": "n"}
@@ -208,6 +231,7 @@
                 {
                     "type": "button",
                     "label": "导入",
+                    "className": "cxgzkz-toolbar-btn",
                     "level": "primary",
                     "actionType": "dialog",
                     "dialog": {
@@ -245,6 +269,7 @@
                 {
                     "type": "button",
                     "label": "导出",
+                    "className": "cxgzkz-toolbar-btn",
                     "level": "default",
                     "actionType": "download",
                     "api": {
@@ -362,7 +387,7 @@
                                             "label": "程序控制规则提示语",
                                             "placeholder": "请输入提示语内容",
                                             "minRows": 3,
-                                            "disabledOn": "${sfyxtztsy === 'n'}"
+                                            "disabledOn": "${env_mode !== 'rd' && sfyxtztsy === 'n'}"
                                         },
                                         {
                                             "type": "select",
@@ -372,25 +397,27 @@
                                                 {"label": "是", "value": "y"},
                                                 {"label": "否", "value": "n"}
                                             ],
-                                            "disabledOn": "${sfyxtqy === 'n'}"
+                                            "disabledOn": "${env_mode !== 'rd' && sfyxtqy === 'n'}"
                                         },
                                         {
-                                            "type": "static-mapping",
+                                            "type": "select",
                                             "name": "sfyxtqy",
                                             "label": "是否允许停启用",
-                                            "map": {
-                                                "y": "是",
-                                                "n": "否"
-                                            }
+                                            "visibleOn": "${env_mode === 'rd'}",
+                                            "options": [
+                                                {"label": "是", "value": "y"},
+                                                {"label": "否", "value": "n"}
+                                            ]
                                         },
                                         {
-                                            "type": "static-mapping",
+                                            "type": "select",
                                             "name": "sfyxtztsy",
                                             "label": "是否允许调整提示语",
-                                            "map": {
-                                                "y": "是",
-                                                "n": "否"
-                                            }
+                                            "visibleOn": "${env_mode === 'rd'}",
+                                            "options": [
+                                                {"label": "是", "value": "y"},
+                                                {"label": "否", "value": "n"}
+                                            ]
                                         }
                                     ]
                                 }

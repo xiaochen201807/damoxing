@@ -57,33 +57,22 @@ const API_PARAMS = {
     rule_import_api: {
         type: 'string',
         title: '导入接口 URL',
-        description: '全量导入程序控制规则的 API',
+        description: '导入程序控制规则的 API',
         default: '/api/cxgzkz/import',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 5,
         required: true
     },
-    // 全量导出接口
+    // 导出接口
     rule_export_api: {
         type: 'string',
-        title: '全量导出接口 URL',
-        description: '全量导出程序控制规则的 API',
+        title: '导出接口 URL',
+        description: '导出程序控制规则的 API',
         default: '/api/cxgzkz/export',
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 6,
-        required: true
-    },
-    // 部分导出接口
-    rule_partial_export_api: {
-        type: 'string',
-        title: '部分导出接口 URL',
-        description: '按勾选记录导出程序控制规则的 API',
-        default: '/api/cxgzkz/partial_export',
-        group: '🔗 平台接口配置',
-        groupOrder: 1,
-        order: 7,
         required: true
     }
 };
@@ -135,12 +124,11 @@ async function analyzeCxgzkzRule() {
         try {
             row = await db.get('SELECT template_id FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
         } catch (err) {
-            console.error(`   ❌ 查询失败:`, err.message);
+            console.error('   ❌ 查询失败:', err.message);
             return;
         }
 
         if (row) {
-            // Update existing
             try {
                 console.log('   [SQL] UPDATE sys_page_templates_config', {
                     template_name: '程序规则控制',
@@ -156,10 +144,9 @@ async function analyzeCxgzkzRule() {
                 );
                 console.log(`   ✅ 已更新: ${templateId}`);
             } catch (err) {
-                console.error(`   ❌ 更新失败:`, err.message);
+                console.error('   ❌ 更新失败:', err.message);
             }
         } else {
-            // Insert new
             console.log(`   ✨ 模板不存在，创建新记录: ${templateId}`);
             try {
                 console.log('   [SQL] INSERT INTO sys_page_templates_config', {
@@ -187,11 +174,10 @@ async function analyzeCxgzkzRule() {
                 );
                 console.log(`   ✅ 已创建: ${templateId}`);
             } catch (err) {
-                console.error(`   ❌ 创建失败:`, err.message);
+                console.error('   ❌ 创建失败:', err.message);
             }
         }
 
-        // Verification Step
         try {
             const verifyRow = await db.get('SELECT params_schema FROM sys_page_templates_config WHERE template_id = ?', [templateId]);
             if (verifyRow && verifyRow.params_schema) {
@@ -208,7 +194,7 @@ async function analyzeCxgzkzRule() {
         console.log(`\n🎉 ${templateId} 分析完成！\n`);
         return { success: true, message: `${templateId} 分析完成` };
     } catch (error) {
-        console.error(`   └─ ❌ 分析失败:`, error);
+        console.error('   └─ ❌ 分析失败:', error);
         return { success: false, message: error.message };
     }
 }

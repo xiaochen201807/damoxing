@@ -26,72 +26,13 @@ const GATEWAY_BASE_URL = (() => {
 // 配置 Multer 内存存储，用于处理文件上传
 const upload = multer({ storage: multer.memoryStorage() });
 
-function isMissingTableError(err) {
-    const msg = String(err?.message || '').toLowerCase();
-    return (
-        msg.includes('ora-00942') ||
-        msg.includes('table or view does not exist') ||
-        msg.includes('no such table')
-    );
+function getEnvModeFromJwt(req) {
+    const mechanismMmodel = String(req.user?.mechanismMmodel ?? '').trim();
+    return mechanismMmodel === '1' ? 'rd' : 'prod';
 }
 
-function normalizeEnvMode(raw) {
-    const value = String(raw ?? '').trim().toLowerCase();
-    if (!value) return 'rd';
-    if (['prod', 'production', 'sc', '软件生产', '生产', '2'].includes(value)) return 'prod';
-    if (['rd', 'dev', '研发', 'model', '模型', '1'].includes(value)) return 'rd';
-    return value === 'prod' ? 'prod' : 'rd';
-}
-
-/**
- * 从 Oracle 配置表读取当前机构运行模式（研发/生产）
- * 优先级：匹配 jgbh+zjgbh 的机构配置 -> 全局配置
- * 说明：请按雪川实际表结构调整 SQL（集中在此函数）
- */
-async function queryEnvModeFromDb(jgbh, zjgbh) {
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
-    const escapedKey = 'cxgzkz_env_mode';
-
-    const candidates = [
-        {
-            // 机构级配置表（推荐）
-            sql: `SELECT env_mode AS mode_value FROM gjj_cxgzkz_mode_cfg WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? ORDER BY id DESC`,
-            params: [jgbh, zjgbh]
-        },
-        {
-            // 机构级配置表（字段名差异兼容）
-            sql: `SELECT mode_flag AS mode_value FROM gjj_cxgzkz_mode_cfg WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? ORDER BY id DESC`,
-            params: [jgbh, zjgbh]
-        },
-        {
-            // 通用配置表（如果雪川侧已落库到此类表）
-            sql: `SELECT config_value AS mode_value FROM gjj_system_config WHERE config_key = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? ORDER BY id DESC`,
-            params: [escapedKey, jgbh, zjgbh]
-        },
-        {
-            // 全局配置兜底
-            sql: `SELECT config_value AS mode_value FROM gjj_system_config WHERE config_key = ? ORDER BY id DESC`,
-            params: [escapedKey]
-        }
-    ];
-
-    for (const candidate of candidates) {
-        try {
-            const row = await db.oracle.get(candidate.sql, candidate.params);
-            if (!row) continue;
-            const raw = row.mode_value ?? row.MODE_VALUE;
-            const mode = normalizeEnvMode(raw);
-            if (mode) return mode;
-        } catch (err) {
-            if (isMissingTableError(err)) {
-                continue;
-            }
-            logger.warn(`[cxgzkz] queryEnvModeFromDb failed on candidate SQL: ${err.message}`);
-        }
-    }
-
-    // 查不到时默认研发模式，避免误伤生产配置
-    return 'rd';
+function isModelEnv(req) {
+    return getEnvModeFromJwt(req) === 'rd';
 }
 
 function normalizeYn(value, fallback) {
@@ -105,6 +46,13 @@ function getRequestOrg(req) {
     return {
         jgbh: body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '',
         zjgbh: body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || ''
+    };
+}
+
+function getHeaderOrg(req) {
+    return {
+        jgbh: req.headers['jgbh'] || req.headers['zzbs'] || '',
+        zjgbh: req.headers['zjgbh'] || req.headers['zzjgdmz'] || ''
     };
 }
 
@@ -324,6 +272,7 @@ router.post('/list', async (req, res) => {
         const countRow = await db.oracle.get(countSql, params);
         const rows = await db.oracle.all(paged.sql, paged.params);
         const taskNameMap = await fetchTaskNameMap(req);
+        const envMode = getEnvModeFromJwt(req);
         const items = rows.map(row => {
             const rwxbhValue = row.rwxbh ?? row.RWXBH;
             return {
@@ -337,7 +286,8 @@ router.post('/list', async (req, res) => {
             msg: "ok",
             data: {
                 items,
-                total: countRow ? (countRow.total || countRow.TOTAL) : 0
+                total: countRow ? (countRow.total || countRow.TOTAL) : 0,
+                env_mode: envMode
             }
         });
     } catch (err) {
@@ -363,7 +313,7 @@ router.post('/get', async (req, res) => {
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
-        res.json({ status: 0, msg: "ok", data: row });
+        res.json({ status: 0, msg: "ok", data: { ...row, env_mode: getEnvModeFromJwt(req) } });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
     }
@@ -384,7 +334,7 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
 
         if (!row) return res.status(404).json({ status: 1, msg: "Record not found" });
 
-        res.json({ status: 0, msg: "ok", data: row });
+        res.json({ status: 0, msg: "ok", data: { ...row, env_mode: getEnvModeFromJwt(req) } });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
     }
@@ -399,6 +349,7 @@ router.post('/save', async (req, res) => {
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const modelEnv = isModelEnv(req);
 
     try {
         const { id: savedId } = await db.oracle.transaction(async (tx) => {
@@ -425,16 +376,26 @@ router.post('/save', async (req, res) => {
                 const next = {
                     rwxbh: rwxbh ?? current.rwxbh,
                     gzmc: gzmc ?? current.gzmc,
-                    gztsy: gztsy !== undefined ? gztsy : current.gztsy,
-                    sfqy: normalizeYn(sfqy, current.sfqy || 'y'),
-                    sfyxtqy: normalizeYn(sfyxtqy, current.sfyxtqy || 'y'),
-                    sfyxtztsy: normalizeYn(sfyxtztsy, current.sfyxtztsy || 'n'),
+                    gztsy: modelEnv || current.sfyxtztsy !== 'n'
+                        ? (gztsy !== undefined ? gztsy : current.gztsy)
+                        : current.gztsy,
+                    sfqy: modelEnv || current.sfyxtqy !== 'n'
+                        ? normalizeYn(sfqy, current.sfqy || 'y')
+                        : current.sfqy,
+                    sfyxtqy: modelEnv
+                        ? normalizeYn(sfyxtqy, current.sfyxtqy || 'y')
+                        : current.sfyxtqy,
+                    sfyxtztsy: modelEnv
+                        ? normalizeYn(sfyxtztsy, current.sfyxtztsy || 'n')
+                        : current.sfyxtztsy,
                     role: role !== undefined ? role : current.role
                 };
 
                 const updateSql = `UPDATE gjj_cxgzkz SET rwxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
                 await tx.run(updateSql, [next.rwxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
             } else {
+                const nextSfyxtqy = modelEnv ? normalizeYn(sfyxtqy, 'y') : 'y';
+                const nextSfyxtztsy = modelEnv ? normalizeYn(sfyxtztsy, 'y') : 'y';
                 const insertSql = `INSERT INTO gjj_cxgzkz (jgbh, zjgbh, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
                 await tx.run(insertSql, [
                     jgbh,
@@ -443,8 +404,8 @@ router.post('/save', async (req, res) => {
                     gzmc,
                     gztsy,
                     normalizeYn(sfqy, 'y'),
-                    normalizeYn(sfyxtqy, 'y'),
-                    normalizeYn(sfyxtztsy, 'n'),
+                    nextSfyxtqy,
+                    nextSfyxtztsy,
                     role
                 ]);
 
@@ -551,16 +512,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
-/**
- * 8. 获取当前机构运行模式 (POST /mode)
- */
+// -----------------------------------------------------------------------------
+// 获取当前机构运行模式（基于 JWT 中 mechanismMmodel）
+// -----------------------------------------------------------------------------
 router.post('/mode', async (req, res) => {
-    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
-    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-
     try {
-        const envMode = await queryEnvModeFromDb(jgbh, zjgbh);
-        res.json({ status: 0, msg: "ok", data: { env_mode: envMode } });
+        res.json({ status: 0, msg: "ok", data: { env_mode: getEnvModeFromJwt(req) } });
     } catch (err) {
         logger.error(`Get cxgzkz mode failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
@@ -577,22 +534,6 @@ router.all('/export', authenticateToken, async (req, res) => {
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: "导出失败: " + err.message });
-    }
-});
-
-// -----------------------------------------------------------------------------
-// 兼容旧入口：部分导出接口（仅导出选中记录）
-// -----------------------------------------------------------------------------
-router.post('/partial_export', authenticateToken, async (req, res) => {
-    try {
-        const ids = normalizeIdList(req.body?.ids);
-        if (ids.length === 0) {
-            return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
-        }
-        return await sendCxgzkzExport(req, res, ids, 'Partial export');
-    } catch (err) {
-        logger.error(`Partial export failed: ${err.message}`);
-        res.status(500).json({ status: 1, msg: "部分导出失败: " + err.message });
     }
 });
 
@@ -705,11 +646,12 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         return res.status(400).json({ status: 1, msg: "请选择文件" });
     }
 
-    const { jgbh, zjgbh } = getRequestOrg(req);
+    const { jgbh, zjgbh } = getHeaderOrg(req);
     const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
 
     try {
-        const envMode = await queryEnvModeFromDb(jgbh, zjgbh);
+        const envMode = getEnvModeFromJwt(req);
+        const modelEnv = envMode === 'rd';
         let insertCount = 0;
         let updateCount = 0;
         let fileContent = req.file.buffer.toString('utf8');
@@ -766,21 +708,6 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         }
 
         await db.oracle.transaction(async (tx) => {
-            if (envMode === 'rd') {
-                // 研发模式：全覆盖（先删后插）
-                await tx.run(
-                    `DELETE FROM gjj_cxgzkz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`,
-                    [jgbh, zjgbh]
-                );
-
-                for (const row of importedRows) {
-                    await insertCxgzkzRow(tx, row);
-                    insertCount++;
-                }
-                return;
-            }
-
-            // 生产模式：按 rwxbh 覆盖，保留 sfqy/gztsy
             const existingRows = await tx.all(
                 `SELECT * FROM gjj_cxgzkz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ? ORDER BY id DESC`,
                 [jgbh, zjgbh]
@@ -813,19 +740,29 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                     role: existing.role ?? existing.ROLE
                 };
 
+                const next = {
+                    rwxbh: imported.rwxbh,
+                    gzmc: imported.gzmc ?? current.gzmc,
+                    gztsy: modelEnv ? (imported.gztsy ?? current.gztsy) : current.gztsy,
+                    sfqy: modelEnv ? normalizeYn(imported.sfqy, current.sfqy || 'y') : current.sfqy,
+                    sfyxtqy: normalizeYn(imported.sfyxtqy, current.sfyxtqy || 'y'),
+                    sfyxtztsy: normalizeYn(imported.sfyxtztsy, current.sfyxtztsy || 'n'),
+                    role: current.role
+                };
+
                 const updateSql = `
                     UPDATE gjj_cxgzkz
                     SET rwxbh = ?, gzmc = ?, gztsy = ?, sfqy = ?, sfyxtqy = ?, sfyxtztsy = ?, role = ?
                     WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
                 `;
                 await tx.run(updateSql, [
-                    imported.rwxbh,
-                    imported.gzmc ?? current.gzmc,
-                    current.gztsy, // 生产模式保留
-                    current.sfqy,  // 生产模式保留
-                    normalizeYn(imported.sfyxtqy, current.sfyxtqy || 'y'),
-                    normalizeYn(imported.sfyxtztsy, current.sfyxtztsy || 'n'),
-                    imported.role !== undefined ? imported.role : current.role,
+                    next.rwxbh,
+                    next.gzmc,
+                    next.gztsy,
+                    next.sfqy,
+                    next.sfyxtqy,
+                    next.sfyxtztsy,
+                    next.role,
                     idVal,
                     jgbh,
                     zjgbh
@@ -836,9 +773,9 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 
         logger.info(`Import successful for cxgzkz: env_mode=${envMode}, jgbh=${jgbh}, zjgbh=${zjgbh}, inserted=${insertCount}, updated=${updateCount}`);
         if (envMode === 'prod') {
-            return res.json({ status: 0, msg: `导入成功（生产模式）：新增 ${insertCount} 条，覆盖 ${updateCount} 条（保留“是否启用/提示语”）` });
+            return res.json({ status: 0, msg: `导入成功（生产环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，仅更新 rwxbh/gzmc/sfyxtqy/sfyxtztsy` });
         }
-        res.json({ status: 0, msg: `导入成功，共导入 ${insertCount} 条记录` });
+        res.json({ status: 0, msg: `导入成功（模型环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，按文件更新 rwxbh/gzmc/gztsy/sfqy/sfyxtqy/sfyxtztsy` });
     } catch (err) {
         logger.error(`Import failed for cxgzkz: ${err.message}`);
         res.status(500).json({ status: 1, msg: "导入失败: " + err.message });

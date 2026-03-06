@@ -285,7 +285,8 @@ router.post('/login', async (req, res) => {
             username: user.username,
             role: user.role,
             jgbh: gatewayInfo?.jgbh || '',
-            zjgbh: gatewayInfo?.zjgbh || ''
+            zjgbh: gatewayInfo?.zjgbh || '',
+            mechanismMmodel: gatewayInfo?.mechanismMmodel || ''
         });
 
         // 更新最后登录时间 (仅当是真实用户 ID > 0 时)
