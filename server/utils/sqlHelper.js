@@ -1,6 +1,21 @@
 const process = require('process');
-// Assume true for Oracle/DM pagination since factory handles routing
-const isOracle = process.env.ORACLE_ENABLE === 'true' || process.env.DM_ENABLE === 'true' || true;
+const fs = require('fs');
+const path = require('path');
+
+let isOracle = false;
+try {
+    const configPath = path.join(__dirname, '../config/datasources.json');
+    if (fs.existsSync(configPath)) {
+        const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        // If there's any oracle or dm source, we assume Oracle-style pagination in shared routes
+        isOracle = (conf.datasources || []).some(ds => ds.type === 'oracle' || ds.type === 'dm');
+    }
+} catch (e) { }
+
+// Fallback to env vars if config not useful
+if (!isOracle) {
+    isOracle = process.env.ORACLE_ENABLE === 'true' || process.env.DM_ENABLE === 'true';
+}
 
 const SqlHelper = {
     isOracle,

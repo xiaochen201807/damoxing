@@ -7,6 +7,9 @@
         "start": "node index.js",
         "dev": "nodemon index.js",
         "migrate": "node data/migrations/migrate.js",
+        "db:migrate": "node data/migrations/migrate.js",
+        "db:init:oracle": "node scripts/init_oracle_db.js",
+        "db:init:dm": "node scripts/init_dm_db.js",
         "init-db": "node data/migrations/init_database.js",
         "mcp": "node mcp-server.js",
         "test": "jest"

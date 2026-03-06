@@ -4,10 +4,8 @@
  */
 
 const { startHttpServer } = require('./services/http-server');
-const dbOracle = require('./db_oracle');
-
-// 初始化 Oracle 连接池
-dbOracle.initialize();
+// 初始化数据库网关 (已由 db.js 内部自执行)
+const db = require('./db');
 
 startHttpServer()
     .then(() => {

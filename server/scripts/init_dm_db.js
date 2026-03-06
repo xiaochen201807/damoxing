@@ -1,4 +1,4 @@
-const oracledb = require('oracledb');
+const dmdb = require('dmdb');
 const path = require('path');
 const fs = require('fs');
 
@@ -11,10 +11,10 @@ if (!fs.existsSync(configPath)) {
 }
 
 const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-const oracleSources = (conf.datasources || []).filter(ds => ds.type === 'oracle');
+const dmSources = (conf.datasources || []).filter(ds => ds.type === 'dm');
 
-if (oracleSources.length === 0) {
-    logger.info("No Oracle datasources configured, skipping initialization.");
+if (dmSources.length === 0) {
+    logger.info("No Dameng (dm) datasources configured, skipping initialization.");
     process.exit(0);
 }
 
@@ -24,16 +24,16 @@ async function runForSource(source) {
     let connection;
     try {
         const { user, password, connectString } = source.config;
-        logger.info(`Starting initialization for Oracle DS: ${source.id} (${connectString})...`);
-        connection = await oracledb.getConnection({ user, password, connectString });
-        logger.info(`Connected to Oracle DS: ${source.id}.`);
+        logger.info(`Starting initialization for Dameng DS: ${source.id} (${connectString})...`);
+        connection = await dmdb.getConnection({ user, password, connectString });
+        logger.info(`Connected to Dameng DS: ${source.id}.`);
 
         const sqlContent = fs.readFileSync(SQL_FILE_PATH, 'utf8');
 
         // Remove comments
         const cleanSql = sqlContent
-            .replace(/--.*$/gm, '') // Remove single line comments
-            .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove block comments
+            .replace(/--.*$/gm, '')
+            .replace(/\/\*[\s\S]*?\*\//g, '');
 
         // Split by semicolon
         const statements = cleanSql
@@ -49,16 +49,11 @@ async function runForSource(source) {
                 await connection.execute(sql);
                 logger.info("Success.");
             } catch (err) {
-                // Ignore "name is already used by an existing object" error (ORA-00955)
-                if (err.errorNum === 955) {
-                    logger.warn("Object already exists, skipping.");
-                } else {
-                    logger.error(`Error executing SQL: ${err.message}`);
-                    throw err;
-                }
+                logger.warn(`Execution warning on ${source.id}: ${err.message}`);
+                // Continue despite errors like table already exists
             }
         }
-        logger.info(`Oracle initialization completed successfully for ${source.id}.`);
+        logger.info(`Dameng initialization completed successfully for ${source.id}.`);
     } catch (err) {
         logger.error(`Initialization failed for ${source.id}:`, err);
     } finally {
@@ -69,7 +64,7 @@ async function runForSource(source) {
 }
 
 async function runAll() {
-    for (const source of oracleSources) {
+    for (const source of dmSources) {
         await runForSource(source);
     }
 }

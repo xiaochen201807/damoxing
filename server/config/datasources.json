@@ -1,6 +1,6 @@
 {
-    "default_datasource": "sqlite_default",
-    "strict_routing": false,
+    "default_datasource": "dm_jiangxi_dev",
+    "strict_routing": true,
     "datasources": [
         {
             "id": "oracle_main",

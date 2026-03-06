@@ -26,7 +26,8 @@
 ### 后端
 - **运行时**: Node.js
 - **框架**: Express 4
-- **数据库**: SQLite 3
+- **系统库**: SQLite 3
+- **业务库**: Oracle / 达梦 (多数据源多租户动态路由)
 - **日志**: Winston
 - **安全**: Helmet + Joi + Rate Limit
 
@@ -57,7 +58,7 @@ npm install
 # 后端配置
 cd server
 cp .env.example .env
-# 编辑 .env 文件，配置 Dify API（可选）
+# 核心配置：编辑 server/config/datasources.json 配置您的 Oracle 或 达梦 (DaMeng) 业务数据源
 
 # 前端配置
 cd ../client
@@ -65,11 +66,17 @@ cp .env.example .env.development
 # 编辑 .env.development 文件
 ```
 
-### 数据库迁移
+### 数据库迁移与初始化
 
 ```bash
 cd server
+# 1. 迁移系统库 (SQLite)
 npm run db:migrate
+
+# 2. 初始化业务库 (若使用 Oracle / 达梦)
+# 请确保已在 server/config/datasources.json 中配置好相关库连接
+# npm run db:init:oracle
+# npm run db:init:dm
 ```
 
 ### 启动服务
