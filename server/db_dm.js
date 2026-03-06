@@ -12,14 +12,23 @@ const { prepareOracleQuery } = require('./db_oracle'); // Reuse Oracle binding p
 dmdb.outFormat = dmdb.OUT_FORMAT_OBJECT;
 dmdb.autoCommit = true;
 
-function normalizeDmValue(value) {
+function isPlainObject(value) {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+}
+
+function normalizeDmValue(value, seen = new WeakSet()) {
     if (typeof value === 'bigint') {
         const numberValue = Number(value);
         return Number.isSafeInteger(numberValue) ? numberValue : value.toString();
     }
 
     if (Array.isArray(value)) {
-        return value.map(normalizeDmValue);
+        return value.map(item => normalizeDmValue(item, seen));
     }
 
     if (value && typeof value === 'object') {
@@ -27,10 +36,22 @@ function normalizeDmValue(value) {
             return value;
         }
 
+        if (!isPlainObject(value)) {
+            return value;
+        }
+
+        if (seen.has(value)) {
+            return null;
+        }
+
+        seen.add(value);
+
         const normalized = {};
         for (const [key, nestedValue] of Object.entries(value)) {
-            normalized[key] = normalizeDmValue(nestedValue);
+            normalized[key] = normalizeDmValue(nestedValue, seen);
         }
+
+        seen.delete(value);
         return normalized;
     }
 
