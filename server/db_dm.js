@@ -12,6 +12,39 @@ const { prepareOracleQuery } = require('./db_oracle'); // Reuse Oracle binding p
 dmdb.outFormat = dmdb.OUT_FORMAT_OBJECT;
 dmdb.autoCommit = true;
 
+function normalizeDmValue(value) {
+    if (typeof value === 'bigint') {
+        const numberValue = Number(value);
+        return Number.isSafeInteger(numberValue) ? numberValue : value.toString();
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(normalizeDmValue);
+    }
+
+    if (value && typeof value === 'object') {
+        if (value instanceof Date || Buffer.isBuffer(value)) {
+            return value;
+        }
+
+        const normalized = {};
+        for (const [key, nestedValue] of Object.entries(value)) {
+            normalized[key] = normalizeDmValue(nestedValue);
+        }
+        return normalized;
+    }
+
+    return value;
+}
+
+function normalizeDmRow(row) {
+    const newRow = {};
+    for (const key in row) {
+        newRow[key.toLowerCase()] = normalizeDmValue(row[key]);
+    }
+    return newRow;
+}
+
 function normalizeDmPoolConfig(config = {}) {
     const nextConfig = { ...config };
     const rawConnectString = String(nextConfig.connectString || nextConfig.connectionString || '').trim();
@@ -98,13 +131,7 @@ class DmAdapter {
             let rows = result.rows || [];
 
             if (rows.length > 0) {
-                rows = rows.map(row => {
-                    const newRow = {};
-                    for (const key in row) {
-                        newRow[key.toLowerCase()] = row[key];
-                    }
-                    return newRow;
-                });
+                rows = rows.map(normalizeDmRow);
             }
 
             const duration = Date.now() - start;
@@ -151,7 +178,7 @@ class DmAdapter {
             logger.info(`[Dm-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
 
             return {
-                rowsAffected: result.rowsAffected,
+                rowsAffected: normalizeDmValue(result.rowsAffected),
                 lastID: null
             };
         } catch (err) {
@@ -193,13 +220,7 @@ class DmAdapter {
                     const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
                     let rows = result.rows || [];
                     if (rows.length > 0) {
-                        rows = rows.map(row => {
-                            const newRow = {};
-                            for (const key in row) {
-                                newRow[key.toLowerCase()] = row[key];
-                            }
-                            return newRow;
-                        });
+                        rows = rows.map(normalizeDmRow);
                     }
                     return rows;
                 },
@@ -210,7 +231,7 @@ class DmAdapter {
                 async run(sql, params = []) {
                     const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
                     const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
-                    return { rowsAffected: result.rowsAffected, lastID: null };
+                    return { rowsAffected: normalizeDmValue(result.rowsAffected), lastID: null };
                 },
                 async exec(sql) {
                     await connection.execute(sql, [], { autoCommit: false });

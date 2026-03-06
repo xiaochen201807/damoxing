@@ -1,21 +1,13 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   app:
-    # 使用 GitHub Container Registry 镜像
-    image: ghcr.io/xiaoguan521/damoxing:latest
-
-    # 或使用特定版本
-    # image: ghcr.io/xiaoguan521/damoxing:v1.0.0
-
-    # 或使用 x86 快速构建版本
-    # image: ghcr.io/xiaoguan521/damoxing:x86
-
-    container_name: damoxing-app
+    image: harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202603051100-gjsj
+    container_name: damoxing-gjsj
     restart: unless-stopped
 
     ports:
-      - "80:80"
+      - "30200:80"
 
     networks:
       - damoxing-net
@@ -25,79 +17,32 @@ services:
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
-      # CORS 配置（允许 jbysoft.com 子域名访问）
       - CORS_ORIGIN=https://appcs.jbysoft.com,https://appsy.jbysoft.com,https://app.jbysoft.com
-      # AI 接口超时时间 (毫秒)，默认 5分钟
       - DIFY_API_TIMEOUT=300000
-      # MCP 鉴权密钥 (用于 CherryStudio/Dify 连接)
-      - MCP_API_KEY=SY-1234567890
-      # 只读模式 (生产环境推荐)
-      # - SQLITE_READONLY=true
-
-      # ============================================
-      # API 路由前缀配置
-      # ============================================
-      - API_ROUTE_PREFIX=/gjj_gjsjjxmx/api
-      - APP_BASE_PATH=/gjj_gjsjjxmx/
-
-      # ============================================
-      # JWT 配置
-      # ============================================
+      - API_ROUTE_PREFIX=/gjj_gjsjjsmx/api
+      - APP_BASE_PATH=/gjj_gjsjjsmx/
       - JWT_SECRET=4671d0ca-6bc0-41e2-95f0-ade07b6eef0c
       - JWT_EXPIRES_IN=24h
-
-      # ============================================
-      # 第三方网关配置
-      # ============================================
-      - GATEWAY_VALIDATE_URL=https://appsy.jbysoft.com/tyrz/cheque/validate.service
-      # 网关集成开关（true=启用真实调用，false=使用模拟数据）
+      - GATEWAY_VALIDATE_URL=https://appcs.jbysoft.com/tyrz/cheque/validate.service
       - GATEWAY_ENABLED=true
-      # 是否跳过本地用户验证
-      - SKIP_LOCAL_AUTH=${SKIP_LOCAL_AUTH}
-      # 以下参数作为兜底配置，优先使用前端URL传入的参数
-      # - GATEWAY_TICKET=your-ticket-here
-      # - GATEWAY_LOGIN_TOKEN=your-login-token-here
-
+      - SKIP_LOCAL_AUTH=true
 
     volumes:
-      # 统一数据目录挂载（包含数据库、日志、备份）
-      # data/
-      #   ├── database.sqlite    (数据库文件)
-      #   ├── logs/              (日志目录)
-      #   └── backups/           (备份目录)
       - ./data:/app/data
-      # 环境变量文件 (可选)
-      # - ./server/.env:/app/.env:ro
-      # 前端运行时配置文件 (可选，用于覆盖自动生成的配置)
-      # - ./client/public/config.js:/usr/share/nginx/html/config.js:ro
-      # 挂载修复版启动脚本 (解决 envsubst not found 问题)
-      - ./docker-entrypoint.sh:/docker-entrypoint.sh
+      - ./config/datasources.json:/app/config/datasources.json:ro
 
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 10s
 
-# ============================================
-# 多副本部署 (可选)
-# ============================================
-# 如需多副本，使用:
-# docker-compose up -d --scale app=3
-#
-# 注意: 多副本需要外部负载均衡器 (如 Nginx)
-# 或者使用 Docker Swarm mode
-
-# ============================================
-# 自定义网络配置
-# ============================================
-# 明确指定网络范围，避免与物理网络 192.168.x.x 冲突
 networks:
   damoxing-net:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.28.0.0/16
-          gateway: 172.28.0.1
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
