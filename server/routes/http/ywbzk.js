@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
+const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
 const fs = require('fs');
@@ -103,6 +104,10 @@ router.post('/save', async (req, res) => {
     const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
+    if (!isBusinessStandardMasterEnabled(req)) {
+        return res.status(403).json({ status: 403, msg: getBusinessStandardWriteDeniedMessage() });
+    }
+
     try {
         const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             let mbid = id;
@@ -151,6 +156,10 @@ router.post('/delete', async (req, res) => {
         return res.status(400).json({ status: 1, msg: "ID is required" });
     }
 
+    if (!isBusinessStandardMasterEnabled(req)) {
+        return res.status(403).json({ status: 403, msg: getBusinessStandardWriteDeniedMessage() });
+    }
+
     try {
         const sql = "DELETE FROM gjj_ywbzk WHERE id = ?";
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(sql, [id]);
@@ -161,6 +170,24 @@ router.post('/delete', async (req, res) => {
     }
 });
 
+
+// -----------------------------------------------------------------------------
+// 获取当前机构是否允许维护业务标准库（基于 JWT 中 mechanismMmodel）
+// -----------------------------------------------------------------------------
+router.post('/mode', async (req, res) => {
+    try {
+        res.json({
+            status: 0,
+            msg: "ok",
+            data: {
+                business_standard_editable: isBusinessStandardMasterEnabled(req)
+            }
+        });
+    } catch (err) {
+        logger.error(`Get ywbzk mode failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
 /**
  * 5. 获取所有唯一的业务办理标准 (POST /standards)
  */
@@ -334,3 +361,4 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 });
 
 module.exports = router;
+

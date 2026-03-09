@@ -52,8 +52,7 @@ CREATE TABLE gjj_ywbz (
     yxj INTEGER DEFAULT 0, -- 优先级
     sfqy BOOLEAN DEFAULT 1, -- 是否启用
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE SET NULL
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 4. 业务标准属性表 (业务规则实例具体的参数/属性值)

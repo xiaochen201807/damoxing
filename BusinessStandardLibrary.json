@@ -304,6 +304,7 @@
                 {
                     "type": "operation",
                     "label": "操作",
+                    "visibleOn": "${business_standard_editable}",
                     "buttons": [
                         {
                             "type": "button",

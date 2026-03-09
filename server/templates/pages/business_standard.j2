@@ -27,7 +27,13 @@
         "business_standard_attribute_api": "{{ business_standard_attribute_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-attributes') }}",
         "business_standard_attribute_params": {{ business_standard_attribute_params | default({}) | fromjson | tojson }},
         "standard_import_api": "{{ standard_import_api | default(GLOBAL_API_PREFIX + '/ywbzk/import') }}",
-        "standard_export_api": "{{ standard_export_api | default(GLOBAL_API_PREFIX + '/ywbzk/export') }}"
+        "standard_export_api": "{{ standard_export_api | default(GLOBAL_API_PREFIX + '/ywbzk/export') }}",
+        "mode_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/mode",
+        "business_standard_editable": false
+    },
+    "initApi": {
+        "method": "post",
+        "url": "${mode_api}"
     },
     "body": [
         {
@@ -92,8 +98,15 @@
                         "label": "重置"
                     },
                     {
+                        "type": "tpl",
+                        "visibleOn": "!${business_standard_editable}",
+                        "className": "text-warning m-l-sm",
+                        "tpl": "当前机构为非模型机构，标准库仅支持查看、导出和全量导入；新增、编辑、删除请在模型机构执行。"
+                    },
+                    {
                         "type": "button",
-                        "label": "增加",
+                        "label": "新增",
+                        "visibleOn": "${business_standard_editable}",
                         "actionType": "dialog",
                         "level": "success",
                         "dialog": {
@@ -340,10 +353,12 @@
                 {
                     "type": "operation",
                     "label": "操作",
+                    "visibleOn": "${business_standard_editable}",
                     "buttons": [
                         {
                             "type": "button",
                             "label": "编辑",
+                            "visibleOn": "${business_standard_editable}",
                             "level": "link",
                             "actionType": "dialog",
                             "dialog": {
@@ -521,6 +536,7 @@
                         {
                             "type": "button",
                             "label": "删除",
+                            "visibleOn": "${business_standard_editable}",
                             "level": "link",
                             "className": "text-danger",
                             "actionType": "ajax",
@@ -535,3 +551,4 @@
         }
     ]
 }
+

@@ -5,11 +5,11 @@
         {
             "id": "oracle_main",
             "type": "oracle",
-            "jgbh_list": [],
+            "jgbh_list": ["1305282025"],
             "config": {
-                "user": "sysdba",
-                "password": "pwd",
-                "connectString": "192.168.1.100:1521/ORCL",
+                "user": "sy_ptdx",
+                "password": "sy_ptdx",
+                "connectString": "10.99.1.37:1521/ORCL",
                 "poolMin": 2,
                 "poolMax": 10
             }

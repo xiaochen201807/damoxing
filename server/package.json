@@ -11,6 +11,7 @@
         "db:init:oracle": "node scripts/init_oracle_db.js",
         "db:init:dm": "node scripts/init_dm_db.js",
         "init-db": "node data/migrations/init_database.js",
+        "check:ywbz": "node scripts/check_ywbz_consistency.js",
         "mcp": "node mcp-server.js",
         "test": "jest"
     },

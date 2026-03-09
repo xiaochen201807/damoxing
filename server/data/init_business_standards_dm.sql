@@ -49,8 +49,7 @@ CREATE TABLE gjj_ywbz (
     jgbh VARCHAR2 (50 CHAR), -- 机构编号 (新增支持多租户)
     zjgbh VARCHAR2 (50 CHAR), -- 子机构编号
     ywbzz VARCHAR2 (100 CHAR), -- 业务标准值 (从网关获取)
-    CONSTRAINT pk_ywbz PRIMARY KEY (id),
-    CONSTRAINT fk_ywbz_mbid FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE SET NULL
+    CONSTRAINT pk_ywbz PRIMARY KEY (id)
 );
 
 -- 4. 业务标准属性表 (业务规则实例具体的参数/属性值)
