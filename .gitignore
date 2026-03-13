@@ -96,3 +96,8 @@ Desktop.ini
 *.temp
 .cache/
 server/test/公积金政策智能分析-提取政策(新).html
+
+# ============================================
+# Parallel Refactor Workspace
+# ============================================
+damoxing-next/

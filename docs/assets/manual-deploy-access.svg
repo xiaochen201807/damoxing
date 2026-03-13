@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568"/>
+    </marker>
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #233142; }
+      .sub { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #566270; }
+      .box-title { font: 700 24px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #1f2d3d; }
+      .box-text { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #334e68; }
+      .small { font: 400 17px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #4a5568; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="720" fill="#f7f4ee"/>
+  <text x="80" y="70" class="title">生产部署与访问关系图</text>
+  <text x="80" y="108" class="sub">帮助交付人员快速理解访问地址、接口前缀、容器和数据源之间的关系</text>
+
+  <rect x="90" y="210" width="250" height="160" rx="22" fill="#d7e8f7" stroke="#8fb8de" stroke-width="3"/>
+  <text x="125" y="265" class="box-title">浏览器 / 贝贝入口</text>
+  <text x="125" y="305" class="box-text">访问系统首页</text>
+  <text x="125" y="335" class="box-text">或 /system/config 页面</text>
+
+  <rect x="420" y="170" width="300" height="240" rx="22" fill="#fff4cc" stroke="#f0c36d" stroke-width="3"/>
+  <text x="455" y="225" class="box-title">访问地址层</text>
+  <text x="455" y="270" class="box-text">APP_BASE_PATH</text>
+  <text x="455" y="302" class="small">决定页面访问子路径</text>
+  <text x="455" y="345" class="box-text">API_ROUTE_PREFIX</text>
+  <text x="455" y="377" class="small">决定接口访问前缀</text>
+
+  <rect x="800" y="150" width="330" height="280" rx="22" fill="#e3f2d3" stroke="#a8c686" stroke-width="3"/>
+  <text x="835" y="205" class="box-title">应用容器</text>
+  <text x="835" y="245" class="box-text">docker-compose.prod.yml</text>
+  <text x="835" y="285" class="box-text">挂载 database.sqlite</text>
+  <text x="835" y="320" class="box-text">挂载 logs / backups</text>
+  <text x="835" y="355" class="box-text">读取 config/datasources.json</text>
+
+  <rect x="1180" y="130" width="160" height="140" rx="20" fill="#f8d5d3" stroke="#d88c9a" stroke-width="3"/>
+  <text x="1212" y="190" class="box-title">SQLite</text>
+  <text x="1208" y="225" class="box-text">系统基础库</text>
+
+  <rect x="1180" y="320" width="160" height="160" rx="20" fill="#f9e2ae" stroke="#e0a458" stroke-width="3"/>
+  <text x="1212" y="385" class="box-title">Oracle / 达梦</text>
+  <text x="1208" y="420" class="box-text">业务数据源</text>
+
+  <rect x="420" y="500" width="710" height="120" rx="22" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+  <text x="455" y="555" class="box-title">交付关注点</text>
+  <text x="455" y="592" class="box-text">页面地址、接口前缀、数据源路由三者必须同时正确，才能避免“页面能开但接口报错”的问题。</text>
+
+  <line x1="340" y1="290" x2="420" y2="290" stroke="#4a5568" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="720" y1="290" x2="800" y2="290" stroke="#4a5568" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="1130" y1="220" x2="1180" y2="220" stroke="#4a5568" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="1130" y1="390" x2="1180" y2="390" stroke="#4a5568" stroke-width="5" marker-end="url(#arrow)"/>
+</svg>

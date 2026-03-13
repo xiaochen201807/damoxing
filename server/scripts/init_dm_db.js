@@ -18,7 +18,7 @@ if (dmSources.length === 0) {
     process.exit(0);
 }
 
-const SQL_FILE_PATH = path.join(__dirname, '../data/init_business_standards_oracle.sql');
+const SQL_FILE_PATH = path.join(__dirname, '../data/init_business_standards_dm.sql');
 
 async function runForSource(source) {
     let connection;

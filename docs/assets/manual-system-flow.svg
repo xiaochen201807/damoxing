@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f5d75"/>
+    </marker>
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #233142; }
+      .subtitle { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #566270; }
+      .box-title { font: 700 24px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #1f2d3d; }
+      .box-text { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #34495e; }
+      .step { font: 700 20px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="520" fill="#f7f4ee"/>
+  <text x="80" y="70" class="title">业务标准库与关键数据计算模型使用流程</text>
+  <text x="80" y="108" class="subtitle">先建模板，再选清册，再配参数，最后调试验证</text>
+
+  <rect x="90" y="170" width="250" height="180" rx="20" fill="#c9d6df"/>
+  <circle cx="130" cy="205" r="22" fill="#3f72af"/>
+  <text x="122" y="212" class="step">1</text>
+  <text x="125" y="250" class="box-title">业务标准库</text>
+  <text x="125" y="290" class="box-text">维护统一模板</text>
+  <text x="125" y="320" class="box-text">明确标准名称、分类和结果</text>
+
+  <rect x="410" y="170" width="250" height="180" rx="20" fill="#dbe7c9"/>
+  <circle cx="450" cy="205" r="22" fill="#5c8d89"/>
+  <text x="442" y="212" class="step">2</text>
+  <text x="445" y="250" class="box-title">清册选择</text>
+  <text x="445" y="290" class="box-text">从模板中勾选本机构启用项</text>
+  <text x="445" y="320" class="box-text">同步为机构规则</text>
+
+  <rect x="730" y="170" width="250" height="180" rx="20" fill="#f7d6bf"/>
+  <circle cx="770" cy="205" r="22" fill="#d68060"/>
+  <text x="762" y="212" class="step">3</text>
+  <text x="765" y="250" class="box-title">规则参数配置</text>
+  <text x="765" y="290" class="box-text">按机构填写条件和结果值</text>
+  <text x="765" y="320" class="box-text">形成可执行规则</text>
+
+  <rect x="1050" y="170" width="250" height="180" rx="20" fill="#f4c7c3"/>
+  <circle cx="1090" cy="205" r="22" fill="#b83b5e"/>
+  <text x="1082" y="212" class="step">4</text>
+  <text x="1085" y="250" class="box-title">调试验证</text>
+  <text x="1085" y="290" class="box-text">检查输入条件和命中结果</text>
+  <text x="1085" y="320" class="box-text">确认业务可解释、可上线</text>
+
+  <line x1="340" y1="260" x2="410" y2="260" stroke="#4f5d75" stroke-width="6" marker-end="url(#arrow)"/>
+  <line x1="660" y1="260" x2="730" y2="260" stroke="#4f5d75" stroke-width="6" marker-end="url(#arrow)"/>
+  <line x1="980" y1="260" x2="1050" y2="260" stroke="#4f5d75" stroke-width="6" marker-end="url(#arrow)"/>
+
+  <rect x="320" y="395" width="760" height="60" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+  <text x="355" y="433" class="box-text">业务理解主线：模板定义标准，规则落实机构，参数决定结果，调试用于验收。</text>
+</svg>

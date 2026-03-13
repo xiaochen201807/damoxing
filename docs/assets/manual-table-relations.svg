@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495867"/>
+    </marker>
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #233142; }
+      .sub { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #566270; }
+      .box-title { font: 700 26px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #1f2d3d; }
+      .box-text { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #334e68; }
+      .rel { font: 700 20px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #495867; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="760" fill="#f8f5f0"/>
+  <text x="80" y="70" class="title">四张业务表关系图</text>
+  <text x="80" y="108" class="sub">从模板定义到机构规则落地的核心数据链路</text>
+
+  <rect x="100" y="170" width="340" height="190" rx="22" fill="#d7e8f7" stroke="#8fb8de" stroke-width="3"/>
+  <text x="130" y="220" class="box-title">gjj_ywbzk</text>
+  <text x="130" y="255" class="box-text">业务标准库主表</text>
+  <text x="130" y="290" class="box-text">保存模板名称、分类、标准值</text>
+  <text x="130" y="325" class="box-text">和结果执行语句</text>
+
+  <rect x="540" y="110" width="340" height="220" rx="22" fill="#e3f2d3" stroke="#a8c686" stroke-width="3"/>
+  <text x="570" y="160" class="box-title">gjj_ywbzksx</text>
+  <text x="570" y="195" class="box-text">业务标准库属性表</text>
+  <text x="570" y="230" class="box-text">保存模板依赖的输入属性</text>
+  <text x="570" y="265" class="box-text">如对象、标签、属性来源</text>
+
+  <rect x="540" y="410" width="340" height="220" rx="22" fill="#fde8cd" stroke="#f0b67f" stroke-width="3"/>
+  <text x="570" y="460" class="box-title">gjj_ywbz</text>
+  <text x="570" y="495" class="box-text">业务规则主表</text>
+  <text x="570" y="530" class="box-text">保存机构启用后的规则实例</text>
+  <text x="570" y="565" class="box-text">含机构编号、优先级、启用状态</text>
+
+  <rect x="980" y="410" width="340" height="220" rx="22" fill="#f8d5d3" stroke="#d88c9a" stroke-width="3"/>
+  <text x="1010" y="460" class="box-title">gjj_ywbzsx</text>
+  <text x="1010" y="495" class="box-text">业务规则属性表</text>
+  <text x="1010" y="530" class="box-text">保存条件项、条件值、结果值</text>
+  <text x="1010" y="565" class="box-text">是规则参数的最终落地点</text>
+
+  <line x1="440" y1="240" x2="540" y2="220" stroke="#495867" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="445" y="190" class="rel">1 对多</text>
+  <text x="455" y="218" class="box-text">模板定义属性</text>
+
+  <line x1="385" y1="330" x2="540" y2="465" stroke="#495867" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="390" y="392" class="rel">逻辑关联</text>
+  <text x="392" y="422" class="box-text">模板同步为机构规则</text>
+
+  <line x1="880" y1="520" x2="980" y2="520" stroke="#495867" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="885" y="485" class="rel">1 对多</text>
+  <text x="892" y="512" class="box-text">规则填写参数</text>
+
+  <rect x="170" y="660" width="1060" height="56" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+  <text x="205" y="696" class="box-text">业务解释顺序：模板主信息 -> 模板属性定义 -> 机构规则实例 -> 机构规则参数。</text>
+</svg>
