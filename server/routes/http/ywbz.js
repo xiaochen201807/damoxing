@@ -282,6 +282,7 @@ router.post('/config_form', async (req, res) => {
  */
 router.post('/save_params', async (req, res) => {
     const { id, rules } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
     if (!id) {
         return res.json({ status: 1, msg: "缺少规则ID" });
@@ -362,6 +363,7 @@ router.post('/save_params', async (req, res) => {
  */
 router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
     const { id } = req.params;
+    const jgbh = req.query.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
     try {
         const sql = "SELECT * FROM gjj_ywbz WHERE id = ?";
@@ -1510,4 +1512,3 @@ router.post('/debug_log', async (req, res) => {
 });
 
 module.exports = router;
-

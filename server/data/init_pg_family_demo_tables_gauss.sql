@@ -1,0 +1,132 @@
+DROP TABLE IF EXISTS gjj_ywbzsx;
+DROP TABLE IF EXISTS gjj_ywbzksx;
+DROP TABLE IF EXISTS gjj_ywbz;
+DROP TABLE IF EXISTS gjj_ywbzk;
+DROP TABLE IF EXISTS tmp_gjj_ywblsxz;
+DROP TABLE IF EXISTS gjj_ywblbz_log;
+DROP TABLE IF EXISTS t_wa_sys_log_err;
+DROP TABLE IF EXISTS pt_dx_ggcs_mx;
+DROP TABLE IF EXISTS pt_dx_ggcs;
+DROP TABLE IF EXISTS pt_dxsl_1305282028_01;
+
+CREATE TABLE public.gjj_ywblbz_log (
+    pcid CHARACTER VARYING(200) DEFAULT ' ' NOT NULL,
+    zxyj TEXT,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    yjlx CHARACTER VARYING(10),
+    zxjg CHARACTER VARYING(200)
+);
+
+CREATE TABLE public.gjj_ywbz (
+    id BIGINT NOT NULL PRIMARY KEY,
+    mbid BIGINT,
+    ywsf CHARACTER VARYING(50) NOT NULL,
+    ywnrfl CHARACTER VARYING(50),
+    gzmc CHARACTER VARYING(200) NOT NULL,
+    gzljsm TEXT,
+    yxj NUMERIC DEFAULT 0,
+    sfqy NUMERIC(1, 0) DEFAULT 1,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    jgbh CHARACTER VARYING(50),
+    zjgbh CHARACTER VARYING(50),
+    ywbzz CHARACTER VARYING(100)
+);
+
+CREATE TABLE public.gjj_ywbzk (
+    id BIGINT NOT NULL PRIMARY KEY,
+    pxh NUMERIC DEFAULT 0,
+    ywblbz CHARACTER VARYING(200) NOT NULL,
+    ywbzz CHARACTER VARYING(100),
+    ywbzjg TEXT,
+    ywblbzsm TEXT,
+    gjsjsf CHARACTER VARYING(100),
+    ywnrfl CHARACTER VARYING(50),
+    bzfl CHARACTER VARYING(50),
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE public.gjj_ywbzksx (
+    id BIGINT NOT NULL PRIMARY KEY,
+    mbid BIGINT NOT NULL,
+    ywblbzdx CHARACTER VARYING(100),
+    fwdxbq CHARACTER VARYING(100),
+    sxbm CHARACTER VARYING(50),
+    ywblbzsx CHARACTER VARYING(100),
+    sxly CHARACTER VARYING(20),
+    ywblbzyg TEXT,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ywbzksx_mbid FOREIGN KEY (mbid) REFERENCES public.gjj_ywbzk(id) ON DELETE CASCADE
+);
+
+CREATE TABLE public.gjj_ywbzsx (
+    id BIGINT NOT NULL PRIMARY KEY,
+    ywid BIGINT NOT NULL,
+    row_index NUMERIC DEFAULT 0,
+    k1 CHARACTER VARYING(1000),
+    v1 CHARACTER VARYING(4000),
+    k2 CHARACTER VARYING(1000),
+    v2 CHARACTER VARYING(4000),
+    k3 CHARACTER VARYING(1000),
+    v3 CHARACTER VARYING(4000),
+    k4 CHARACTER VARYING(1000),
+    v4 CHARACTER VARYING(4000),
+    k5 CHARACTER VARYING(1000),
+    v5 CHARACTER VARYING(4000),
+    k6 CHARACTER VARYING(1000),
+    v6 CHARACTER VARYING(4000),
+    k7 CHARACTER VARYING(1000),
+    v7 CHARACTER VARYING(4000),
+    k8 CHARACTER VARYING(1000),
+    v8 CHARACTER VARYING(4000),
+    k9 CHARACTER VARYING(1000),
+    v9 CHARACTER VARYING(4000),
+    k10 CHARACTER VARYING(1000),
+    v10 CHARACTER VARYING(4000),
+    result TEXT,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ywbzsx_ywid FOREIGN KEY (ywid) REFERENCES public.gjj_ywbz(id) ON DELETE CASCADE
+);
+
+CREATE TABLE public.t_wa_sys_log_err (
+    err_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    name_proc CHARACTER VARYING(200),
+    err_code NUMERIC,
+    err_msg TEXT
+);
+
+CREATE TABLE public.tmp_gjj_ywblsxz (
+    pcid CHARACTER VARYING(200) DEFAULT ' ' NOT NULL,
+    key CHARACTER VARYING(200) DEFAULT ' ' NOT NULL,
+    value CHARACTER VARYING(4000)
+);
+
+CREATE TABLE public.pt_dx_ggcs (
+    ggcs_wybs CHARACTER VARYING(200),
+    jgbh CHARACTER VARYING(50)
+);
+
+CREATE TABLE public.pt_dx_ggcs_mx (
+    id BIGINT,
+    ggcs_wybs CHARACTER VARYING(200),
+    jgbh CHARACTER VARYING(100),
+    cs CHARACTER VARYING(20),
+    jgbs CHARACTER VARYING(100),
+    csz CHARACTER VARYING(200)
+);
+
+CREATE TABLE public.pt_dxsl_1305282028_01 (
+    dx_01_dxbh CHARACTER VARYING(50),
+    dx_01_zjbzxbm CHARACTER VARYING(100)
+);
+
+CREATE INDEX idx_gjj_ywbz_jg ON public.gjj_ywbz (jgbh, zjgbh);
+CREATE INDEX idx_gjj_ywbz_mb ON public.gjj_ywbz (mbid);
+CREATE INDEX idx_gjj_ywbz_yxj ON public.gjj_ywbz (yxj);
+CREATE INDEX idx_gjj_ywbzk_pxh ON public.gjj_ywbzk (pxh);
+CREATE INDEX idx_gjj_ywbzksx_mb ON public.gjj_ywbzksx (mbid);
+CREATE INDEX idx_gjj_ywbzsx_k1 ON public.gjj_ywbzsx (k1);
+CREATE INDEX idx_gjj_ywbzsx_yw ON public.gjj_ywbzsx (ywid);
