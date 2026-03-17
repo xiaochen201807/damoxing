@@ -3,6 +3,7 @@ const path = require('path');
 const dbSqlite = require('./db_sqlite');
 const { OracleAdapter } = require('./db_oracle');
 const { DmAdapter } = require('./db_dm');
+const { PgAdapter, GaussAdapter, KingbaseAdapter } = require('./db_pg');
 const logger = require('./utils/logger');
 const sqlite3 = require('sqlite3').verbose();
 require('dotenv').config();
@@ -34,6 +35,12 @@ async function initDataSources() {
                 adapter = new OracleAdapter(ds.config, ds.id);
             } else if (ds.type === 'dm') {
                 adapter = new DmAdapter(ds.config, ds.id);
+            } else if (ds.type === 'pg') {
+                adapter = new PgAdapter(ds.config, ds.id);
+            } else if (ds.type === 'gauss') {
+                adapter = new GaussAdapter(ds.config, ds.id);
+            } else if (ds.type === 'kingbase') {
+                adapter = new KingbaseAdapter(ds.config, ds.id);
             } else {
                 logger.warn(`Unknown datasource type: ${ds.type}`);
                 continue;

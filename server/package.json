@@ -36,6 +36,7 @@
         "node-cache": "^5.1.2",
         "nunjucks": "^3.2.4",
         "oracledb": "^6.10.0",
+        "pg": "^8.20.0",
         "sqlite3": "^5.1.7",
         "winston": "^3.17.0",
         "winston-daily-rotate-file": "^5.0.0"
