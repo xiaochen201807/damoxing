@@ -1,0 +1,51 @@
+variables:
+  VITE_BASE_PATH: "/gjj_gjsjjsmx/"
+  VITE_API_ROUTE_PREFIX: "/gjj_gjsjjsmx/api"
+  VITE_APP_NAME: "Damoxing"
+  VITE_APP_VERSION: "1.0.0"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+
+stages:
+  - build
+
+build-x86:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # Install buildx
+    - mkdir -p ~/.docker/cli-plugins
+    - wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.2/buildx-v0.11.2.linux-amd64
+    - chmod a+x ~/.docker/cli-plugins/docker-buildx
+    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    - docker buildx create --use
+  script:
+    - export DATE_TAG=$(date +%Y%m%d-%H%M)
+    - export TAG_BRANCH="${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-x86"
+    - export TAG_SHA="${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}-x86"
+    - export TAG_DATE="${IMAGE_NAME}:${DATE_TAG}-x86"
+    - |
+      if [ "$CI_COMMIT_REF_SLUG" == "$CI_DEFAULT_BRANCH" ]; then
+        export TAG_LATEST="${IMAGE_NAME}:x86"
+        TAG_ARGS="-t $TAG_BRANCH -t $TAG_SHA -t $TAG_DATE -t $TAG_LATEST"
+      else
+        TAG_ARGS="-t $TAG_BRANCH -t $TAG_SHA -t $TAG_DATE"
+      fi
+    - >
+      docker buildx build --push 
+      --platform linux/amd64
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      --build-arg VITE_BASE_PATH=$VITE_BASE_PATH
+      --build-arg VITE_API_ROUTE_PREFIX=$VITE_API_ROUTE_PREFIX
+      --build-arg VITE_APP_NAME=$VITE_APP_NAME
+      --build-arg VITE_APP_VERSION=$VITE_APP_VERSION
+      $TAG_ARGS .
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_TAG =~ /^v.*/
+    - if: $CI_PIPELINE_SOURCE == "web" # Allow manual trigger
