@@ -189,14 +189,45 @@ DS_DM_BRANCH_1_CONNECT_STRING=...
 - 实现与 OracleAdapter 一致的方法签名
 - 事务接口对齐 `transaction(work)` 风格
 
-### 5.3 未来扩展：PostgresAdapter
+### 5.3 PG 系适配器（PostgreSQL / GaussDB / Kingbase）
 
-虽然当前先不落地 PostgreSQL，但架构上应直接预留注册入口：
+已落地，代码位于 `server/db_pg.js`，共用 `pg` npm 驱动。
 
-- `registerAdapter('postgres', PostgresAdapter)`
-- `registerDialect('postgres', PostgresDialect)`
+- `PgAdapter` — PostgreSQL 原生适配器
+- `GaussAdapter` — 继承 `PgAdapter`，用于 openGauss / GaussDB
+- `KingbaseAdapter` — 继承 `PgAdapter`，用于人大金仓
 
-这样后续新增数据库时，无需再调整 `Registry` 主体逻辑。
+GaussDB 和人大金仓均兼容 PostgreSQL 协议，通过继承预留了后续差异处理的扩展点。
+
+### 5.4 已落地适配器汇总
+
+| `datasources.json` type | 适配器类 | 代码文件 | npm 驱动 |
+|---|---|---|---|
+| `oracle` | `OracleAdapter` | `server/db_oracle.js` | `oracledb` |
+| `dm` | `DmAdapter` | `server/db_dm.js` | `dmdb` |
+| `pg` | `PgAdapter` | `server/db_pg.js` | `pg` |
+| `gauss` | `GaussAdapter` | `server/db_pg.js` | `pg` |
+| `kingbase` | `KingbaseAdapter` | `server/db_pg.js` | `pg` |
+
+配置示例（以人大金仓为例）：
+
+```json
+{
+    "id": "kingbase_branch_1",
+    "type": "kingbase",
+    "enabled": true,
+    "jgbh_list": ["4001"],
+    "config": {
+        "host": "127.0.0.1",
+        "port": 54321,
+        "database": "test",
+        "user": "system",
+        "password": "xxx"
+    }
+}
+```
+
+后续新增数据库类型时，只需在 `db.js` 的 `initDataSources` 中增加对应 `else if` 分支即可。
 
 ---
 
