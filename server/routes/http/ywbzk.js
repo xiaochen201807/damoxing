@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
+const { parseDialectSql, buildDialectSql, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
 const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
@@ -86,10 +87,20 @@ router.post('/get', async (req, res) => {
             return res.status(404).json({ status: 1, msg: "Record not found" });
         }
 
+        // 拆解 ywbzjg 方言
+        row.ywbzjg_dialects = parseDialectSql(row.ywbzjg || row.YWBZJG);
+
         const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
         const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
 
+        // 拆解每行属性的 ywblbzyg 方言
+        sxRows.forEach(sx => {
+            sx.ywblbzyg_dialects = parseDialectSql(sx.ywblbzyg || sx.YWBLBZYG);
+        });
+
         row.ywblbzsxz = sxRows;
+        // 返回方言列表供前端渲染 Tab 页签
+        row.dialect_list = DIALECT_LIST;
         res.json({ status: 0, msg: "ok", data: row });
     } catch (err) {
         res.status(500).json({ status: 1, msg: err.message });
@@ -101,7 +112,13 @@ router.post('/get', async (req, res) => {
  * 自动处理事务和属性组同步
  */
 router.post('/save', async (req, res) => {
-    const { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
+    let { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
+    const { ywbzjg_dialects } = req.body;
+
+    // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
+    if (ywbzjg_dialects && typeof ywbzjg_dialects === 'object') {
+        ywbzjg = buildDialectSql(ywbzjg_dialects);
+    }
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
     if (!isBusinessStandardMasterEnabled(req)) {
@@ -126,11 +143,16 @@ router.post('/save', async (req, res) => {
 
             if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
                 for (const sx of ywblbzsxz) {
+                    // 如果属性行传入了方言对象，组装为 JSON 字符串
+                    let sxYwblbzyg = sx.ywblbzyg;
+                    if (sx.ywblbzyg_dialects && typeof sx.ywblbzyg_dialects === 'object') {
+                        sxYwblbzyg = buildDialectSql(sx.ywblbzyg_dialects);
+                    }
                     const sxInsertSql = `
                         INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
                         VALUES (:1, :2, :3, :4, :5, :6, :7)
                     `;
-                    await tx.run(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sx.ywblbzyg]);
+                    await tx.run(sxInsertSql, [mbid, sx.ywblbzdx, sx.fwdxbq, sx.sxbm, sx.ywblbzsx, sx.sxly, sxYwblbzyg]);
                 }
             }
 

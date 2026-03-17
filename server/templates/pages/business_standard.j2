@@ -177,10 +177,34 @@
                                         }
                                     },
                                     {
-                                        "type": "textarea",
-                                        "name": "ywbzjg",
-                                        "label": "业务办理标准结果执行语句：",
-                                        "placeholder": "请输入执行语句"
+                                        "type": "tabs",
+                                        "tabsMode": "simple",
+                                        "tabs": [
+                                            {
+                                                "title": "默认数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.default", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            },
+                                            {
+                                                "title": "oracle数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.oracle", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            },
+                                            {
+                                                "title": "达梦数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.dm", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            },
+                                            {
+                                                "title": "高斯数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.gauss", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            },
+                                            {
+                                                "title": "人大金仓数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.kingbase", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            },
+                                            {
+                                                "title": "postgresql数据库",
+                                                "body": { "type": "editor", "name": "ywbzjg_dialects.pg", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                            }
+                                        ]
                                     },
                                     {
                                         "type": "combo",
@@ -263,10 +287,35 @@
                                                 "value": "page"
                                             },
                                             {
-                                                "type": "textarea",
-                                                "name": "ywblbzyg",
-                                                "label": "业务办理标准属性来源执行语句：",
-                                                "visibleOn": "${sxly === 'sql'}"
+                                                "type": "tabs",
+                                                "tabsMode": "simple",
+                                                "visibleOn": "${sxly === 'sql'}",
+                                                "tabs": [
+                                                    {
+                                                        "title": "默认数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.default", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    },
+                                                    {
+                                                        "title": "oracle数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.oracle", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    },
+                                                    {
+                                                        "title": "达梦数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.dm", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    },
+                                                    {
+                                                        "title": "高斯数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.gauss", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    },
+                                                    {
+                                                        "title": "人大金仓数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.kingbase", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    },
+                                                    {
+                                                        "title": "postgresql数据库",
+                                                        "body": { "type": "editor", "name": "ywblbzyg_dialects.pg", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }
@@ -436,10 +485,34 @@
                                             }
                                         },
                                         {
-                                            "type": "textarea",
-                                            "name": "ywbzjg",
-                                            "label": "业务办理标准结果执行语句：",
-                                            "placeholder": "请输入执行语句"
+                                            "type": "tabs",
+                                            "tabsMode": "simple",
+                                            "tabs": [
+                                                {
+                                                    "title": "默认数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.default", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                },
+                                                {
+                                                    "title": "oracle数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.oracle", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                },
+                                                {
+                                                    "title": "达梦数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.dm", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                },
+                                                {
+                                                    "title": "高斯数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.gauss", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                },
+                                                {
+                                                    "title": "人大金仓数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.kingbase", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                },
+                                                {
+                                                    "title": "postgresql数据库",
+                                                    "body": { "type": "editor", "name": "ywbzjg_dialects.pg", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
+                                                }
+                                            ]
                                         },
                                         {
                                             "type": "combo",
@@ -522,10 +595,35 @@
                                                     "value": "page"
                                                 },
                                                 {
-                                                    "type": "textarea",
-                                                    "name": "ywblbzyg",
-                                                    "label": "业务办理标准属性来源执行语句：",
-                                                    "visibleOn": "${sxly === 'sql'}"
+                                                    "type": "tabs",
+                                                    "tabsMode": "simple",
+                                                    "visibleOn": "${sxly === 'sql'}",
+                                                    "tabs": [
+                                                        {
+                                                            "title": "默认数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.default", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        },
+                                                        {
+                                                            "title": "oracle数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.oracle", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        },
+                                                        {
+                                                            "title": "达梦数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.dm", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        },
+                                                        {
+                                                            "title": "高斯数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.gauss", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        },
+                                                        {
+                                                            "title": "人大金仓数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.kingbase", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        },
+                                                        {
+                                                            "title": "postgresql数据库",
+                                                            "body": { "type": "editor", "name": "ywblbzyg_dialects.pg", "label": false, "language": "sql", "size": "sm", "options": {"fontSize": 13} }
+                                                        }
+                                                    ]
                                                 }
                                             ]
                                         }
