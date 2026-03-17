@@ -1,4 +1,10 @@
-const { parseDialectSql, buildDialectSql, resolveSql, DIALECT_LIST } = require('../utils/sqlDialectHelper');
+const {
+    parseDialectSql,
+    buildDialectSql,
+    resolveSql,
+    validateDialectSqlObject,
+    DIALECT_LIST
+} = require('../utils/sqlDialectHelper');
 
 describe('sqlDialectHelper', () => {
     describe('DIALECT_LIST', () => {
@@ -45,9 +51,13 @@ describe('sqlDialectHelper', () => {
             expect(r.pg).toBe('');
         });
 
-        it('非法 JSON（以 [ 开头但解析失败）→ 视为旧版纯 SQL', () => {
-            const r = parseDialectSql('[not valid json');
-            expect(r.default).toBe('[not valid json');
+        it('非法 JSON（以 [ 开头但解析失败）→ 直接报错，避免静默当成旧版 SQL', () => {
+            expect(() => parseDialectSql('[not valid json')).toThrow('不是合法的 JSON 数组文本');
+        });
+
+        it('JSON 中包含不支持的 dialect → 直接报错', () => {
+            const json = JSON.stringify([{ dialect: 'mysql', sql: 'SELECT 1' }]);
+            expect(() => parseDialectSql(json)).toThrow('包含不支持的 dialect');
         });
     });
 
@@ -80,6 +90,13 @@ describe('sqlDialectHelper', () => {
             expect(parsed[0]).toEqual({ dialect: 'default', sql: 'SELECT 1' });
             expect(parsed[1]).toEqual({ dialect: 'oracle', sql: 'SELECT 1 FROM DUAL' });
         });
+
+        it('存在不支持的方言键 → 直接报错', () => {
+            expect(() => buildDialectSql({
+                default: 'SELECT 1',
+                mysql: 'SELECT 1'
+            })).toThrow('包含不支持的方言键');
+        });
     });
 
     describe('resolveSql', () => {
@@ -108,6 +125,35 @@ describe('sqlDialectHelper', () => {
         it('JSON 中既无专属又无 default → 返回 null', () => {
             const json = JSON.stringify([{ dialect: 'dm', sql: 'SELECT 1' }]);
             expect(resolveSql(json, 'oracle')).toBeNull();
+        });
+
+        it('非法 JSON → 直接报错，避免运行时静默回退', () => {
+            expect(() => resolveSql('[not valid json', 'oracle')).toThrow('不是合法的 JSON 数组文本');
+        });
+    });
+
+    describe('validateDialectSqlObject', () => {
+        it('合法对象可以通过校验', () => {
+            expect(validateDialectSqlObject({
+                default: 'SELECT 1',
+                oracle: 'SELECT 1 FROM DUAL'
+            })).toEqual({
+                default: 'SELECT 1',
+                oracle: 'SELECT 1 FROM DUAL'
+            });
+        });
+
+        it('不支持的方言键会报错', () => {
+            expect(() => validateDialectSqlObject({
+                default: 'SELECT 1',
+                mysql: 'SELECT 1'
+            })).toThrow('包含不支持的方言键');
+        });
+
+        it('非字符串值会报错', () => {
+            expect(() => validateDialectSqlObject({
+                default: { sql: 'SELECT 1' }
+            })).toThrow('必须是字符串');
         });
     });
 });

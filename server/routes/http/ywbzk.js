@@ -8,7 +8,7 @@ const router = express.Router();
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
-const { parseDialectSql, buildDialectSql, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
+const { parseDialectSql, buildDialectSql, validateDialectSqlObject, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
 const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
@@ -117,7 +117,10 @@ router.post('/save', async (req, res) => {
 
     // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
     if (ywbzjg_dialects && typeof ywbzjg_dialects === 'object') {
-        ywbzjg = buildDialectSql(ywbzjg_dialects);
+        validateDialectSqlObject(ywbzjg_dialects, '业务办理标准结果执行语句');
+        ywbzjg = buildDialectSql(ywbzjg_dialects, '业务办理标准结果执行语句');
+    } else if (typeof ywbzjg === 'string' && ywbzjg.trim().startsWith('[')) {
+        parseDialectSql(ywbzjg, '业务办理标准结果执行语句');
     }
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
@@ -146,7 +149,10 @@ router.post('/save', async (req, res) => {
                     // 如果属性行传入了方言对象，组装为 JSON 字符串
                     let sxYwblbzyg = sx.ywblbzyg;
                     if (sx.ywblbzyg_dialects && typeof sx.ywblbzyg_dialects === 'object') {
-                        sxYwblbzyg = buildDialectSql(sx.ywblbzyg_dialects);
+                        validateDialectSqlObject(sx.ywblbzyg_dialects, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
+                        sxYwblbzyg = buildDialectSql(sx.ywblbzyg_dialects, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
+                    } else if (typeof sxYwblbzyg === 'string' && sxYwblbzyg.trim().startsWith('[')) {
+                        parseDialectSql(sxYwblbzyg, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
                     }
                     const sxInsertSql = `
                         INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)
@@ -383,4 +389,3 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 });
 
 module.exports = router;
-

@@ -126,6 +126,7 @@ router.post('/get', async (req, res) => {
  */
 router.post('/config_form', async (req, res) => {
     const { id, mbid } = req.body; // 改为从 body 获取
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 
     if (!id || !mbid) {
         return res.json({
@@ -1509,5 +1510,4 @@ router.post('/debug_log', async (req, res) => {
 });
 
 module.exports = router;
-
 
