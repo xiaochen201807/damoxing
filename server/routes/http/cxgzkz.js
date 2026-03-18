@@ -395,7 +395,7 @@ router.post('/save', async (req, res) => {
                 const nextSfyxtqy = modelEnv ? normalizeYn(sfyxtqy, 'y') : 'y';
                 const nextSfyxtztsy = modelEnv ? normalizeYn(sfyxtztsy, 'y') : 'y';
                 const insertSql = `INSERT INTO gjj_cxgzkz (jgbh, zjgbh, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-                await tx.run(insertSql, [
+                const insertResult = await tx.run(insertSql, [
                     jgbh,
                     zjgbh,
                     rwxbh,
@@ -406,9 +406,7 @@ router.post('/save', async (req, res) => {
                     nextSfyxtztsy,
                     role
                 ]);
-
-                const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_cxgzkz");
-                rowId = lastRow?.id ?? lastRow?.ID;
+                rowId = insertResult.lastID;
             }
             return { id: rowId };
         });

@@ -419,11 +419,8 @@ router.post('/save', async (req, res) => {
                 await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
             } else {
                 const insertSql = `INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                const result = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh]);
-
-                // 在 db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction 中必然是 Oracle 环境，直接获取 MAX(id)
-                const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
-                ywid = lastRow?.id ?? lastRow?.ID;
+                const insertResult = await tx.run(insertSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, jgbh, zjgbh]);
+                ywid = insertResult.lastID;
             }
 
             const attrs = attributes;
@@ -1078,12 +1075,10 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                 }
                 if (upperStmt.startsWith('INSERT INTO GJJ_YWBZ ') || upperStmt.startsWith('INSERT INTO GJJ_YWBZ(')) {
                     const { sql, oldId } = processYwbzInsert(stmt, jgbh, zjgbh);
-                    await tx.run(sql, []);
+                    const insertRunResult = await tx.run(sql, []);
                     // 获取数据库自增的新 ID
                     if (oldId) {
-                        const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
-                        const newId = lastRow?.id ?? lastRow?.ID;
-                        idMapping[oldId] = newId;
+                        idMapping[oldId] = insertRunResult.lastID;
                     }
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);
@@ -1313,12 +1308,10 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
                 }
                 if (upperStmt.startsWith('INSERT INTO GJJ_YWBZ ') || upperStmt.startsWith('INSERT INTO GJJ_YWBZ(')) {
                     const { sql, oldId } = processYwbzInsert(stmt, jgbh, zjgbh);
-                    await tx.run(sql, []);
+                    const insertRunResult = await tx.run(sql, []);
                     insertCount++;
                     if (oldId) {
-                        const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbz");
-                        const newId = lastRow?.id ?? lastRow?.ID;
-                        idMapping[oldId] = newId;
+                        idMapping[oldId] = insertRunResult.lastID;
                     }
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);

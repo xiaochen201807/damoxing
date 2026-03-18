@@ -185,23 +185,37 @@ class DmAdapter {
             connection = await this.pool.getConnection();
             const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
 
-            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
-            if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
+            // 对 INSERT 语句自动追加 RETURNING id INTO :out 以获取自增主键
+            const isInsert = /^\s*INSERT\s+/i.test(finalSql);
+            let execSql = finalSql;
+            let execParams = finalParams;
+            if (isInsert) {
+                const dmdb_ = require('dmdb');
+                const outBind = { type: dmdb_.NUMBER, dir: dmdb_.BIND_OUT };
+                execSql = finalSql.replace(/;?\s*$/, '') + ' RETURNING id INTO :out';
+                execParams = Array.isArray(finalParams)
+                    ? [...finalParams, outBind]
+                    : { ...finalParams, out: outBind };
+            }
+
+            logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${execSql}`);
+            if (execParams && (Array.isArray(execParams) ? execParams.length > 0 : Object.keys(execParams).length > 0)) {
                 try {
-                    logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
+                    logger.info(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(execParams)}`);
                 } catch (jsonErr) {
                     logger.warn(`[Dm-${this.id}] [SQL-${sqlId}] ==> Parameters (cannot stringify)`);
                 }
             }
 
-            const result = await connection.execute(finalSql, finalParams, { autoCommit: true });
+            const result = await connection.execute(execSql, execParams, { autoCommit: true });
             const duration = Date.now() - start;
+            const lastID = isInsert ? normalizeDmValue(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
 
             logger.info(`[Dm-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
 
             return {
                 rowsAffected: normalizeDmValue(result.rowsAffected),
-                lastID: null
+                lastID
             };
         } catch (err) {
             const duration = Date.now() - start;
@@ -252,8 +266,20 @@ class DmAdapter {
                 },
                 async run(sql, params = []) {
                     const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
-                    const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
-                    return { rowsAffected: normalizeDmValue(result.rowsAffected), lastID: null };
+                    const isInsert = /^\s*INSERT\s+/i.test(finalSql);
+                    let execSql = finalSql;
+                    let execParams = finalParams;
+                    if (isInsert) {
+                        const dmdb_ = require('dmdb');
+                        const outBind = { type: dmdb_.NUMBER, dir: dmdb_.BIND_OUT };
+                        execSql = finalSql.replace(/;?\s*$/, '') + ' RETURNING id INTO :out';
+                        execParams = Array.isArray(finalParams)
+                            ? [...finalParams, outBind]
+                            : { ...finalParams, out: outBind };
+                    }
+                    const result = await connection.execute(execSql, execParams, { autoCommit: false });
+                    const lastID = isInsert ? normalizeDmValue(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+                    return { rowsAffected: normalizeDmValue(result.rowsAffected), lastID };
                 },
                 async exec(sql) {
                     await connection.execute(sql, [], { autoCommit: false });

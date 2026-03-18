@@ -189,23 +189,37 @@ class OracleAdapter {
             connection = await this.pool.getConnection();
             const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
 
-            logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
-            if (finalParams && (Array.isArray(finalParams) ? finalParams.length > 0 : Object.keys(finalParams).length > 0)) {
+            // 对 INSERT 语句自动追加 RETURNING id INTO :out 以获取自增主键
+            const isInsert = /^\s*INSERT\s+/i.test(finalSql);
+            let execSql = finalSql;
+            let execParams = finalParams;
+            let outBind = null;
+            if (isInsert) {
+                outBind = { type: oracledb.NUMBER, dir: oracledb.BIND_OUT };
+                execSql = finalSql.replace(/;?\s*$/, '') + ' RETURNING id INTO :out';
+                execParams = Array.isArray(finalParams)
+                    ? [...finalParams, outBind]
+                    : { ...finalParams, out: outBind };
+            }
+
+            logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${execSql}`);
+            if (execParams && (Array.isArray(execParams) ? execParams.length > 0 : Object.keys(execParams).length > 0)) {
                 try {
-                    logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(finalParams)}`);
+                    logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] ==> Parameters: ${JSON.stringify(execParams)}`);
                 } catch (jsonErr) {
-                    logger.warn(`[Oracle-${this.id}] [SQL-${sqlId}] ==> Parameters (cannot stringify): ${String(finalParams)}`);
+                    logger.warn(`[Oracle-${this.id}] [SQL-${sqlId}] ==> Parameters (cannot stringify): ${String(execParams)}`);
                 }
             }
 
-            const result = await connection.execute(finalSql, finalParams, { autoCommit: true });
+            const result = await connection.execute(execSql, execParams, { autoCommit: true });
             const duration = Date.now() - start;
+            const lastID = isInsert ? (result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
 
             logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
 
             return {
                 rowsAffected: result.rowsAffected,
-                lastID: null
+                lastID
             };
         } catch (err) {
             const duration = Date.now() - start;
@@ -262,8 +276,19 @@ class OracleAdapter {
                 },
                 async run(sql, params = []) {
                     const { sql: finalSql, params: finalParams } = prepareOracleQuery(sql, params);
-                    const result = await connection.execute(finalSql, finalParams, { autoCommit: false });
-                    return { rowsAffected: result.rowsAffected, lastID: null };
+                    const isInsert = /^\s*INSERT\s+/i.test(finalSql);
+                    let execSql = finalSql;
+                    let execParams = finalParams;
+                    if (isInsert) {
+                        const outBind = { type: oracledb.NUMBER, dir: oracledb.BIND_OUT };
+                        execSql = finalSql.replace(/;?\s*$/, '') + ' RETURNING id INTO :out';
+                        execParams = Array.isArray(finalParams)
+                            ? [...finalParams, outBind]
+                            : { ...finalParams, out: outBind };
+                    }
+                    const result = await connection.execute(execSql, execParams, { autoCommit: false });
+                    const lastID = isInsert ? (result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+                    return { rowsAffected: result.rowsAffected, lastID };
                 },
                 async exec(sql) {
                     await connection.execute(sql, [], { autoCommit: false });

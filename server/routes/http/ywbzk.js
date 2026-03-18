@@ -139,11 +139,8 @@ router.post('/save', async (req, res) => {
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {
                 const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8)`;
-                await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
-
-                // Oracle 获取自增 ID
-                const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
-                mbid = lastRow?.id ?? lastRow?.ID;
+                const insertResult = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
+                mbid = insertResult.lastID;
             }
 
             if (ywblbzsxz && Array.isArray(ywblbzsxz)) {

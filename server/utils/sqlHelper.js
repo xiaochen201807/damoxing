@@ -6,6 +6,7 @@ const path = require('path');
 const ORACLE_STYLE_TYPES = new Set(['oracle', 'dm']);
 
 let isOracle = false;
+let configLoaded = false;
 try {
     const configPath = path.join(__dirname, '../config/datasources.json');
     if (fs.existsSync(configPath)) {
@@ -14,11 +15,12 @@ try {
         // 混合环境下建议通过 getDialectFor(adapter) 按请求动态选择
         const sources = conf.datasources || [];
         isOracle = sources.length > 0 && sources.every(ds => ORACLE_STYLE_TYPES.has(ds.type));
+        configLoaded = true;
     }
 } catch (e) { }
 
-// Fallback to env vars if config not useful
-if (!isOracle) {
+// 仅在没有 datasources.json 时才用环境变量兜底，避免混合库场景被 ORACLE_ENABLE 误覆盖
+if (!configLoaded) {
     isOracle = process.env.ORACLE_ENABLE === 'true' || process.env.DM_ENABLE === 'true';
 }
 

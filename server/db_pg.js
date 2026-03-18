@@ -223,7 +223,11 @@ class PgAdapter {
         const sqlId = Math.random().toString(36).substring(7);
 
         try {
-            const { sql: finalSql, params: finalParams } = preparePgQuery(sql, params);
+            const isInsert = /^\s*INSERT\s+/i.test(sql);
+            // 对 INSERT 自动追加 RETURNING id 以获取自增主键（如果没有已有的 RETURNING 子句）
+            const needsReturning = isInsert && !/RETURNING\s+/i.test(sql);
+            const execSql = needsReturning ? sql.replace(/;?\s*$/, '') + ' RETURNING id' : sql;
+            const { sql: finalSql, params: finalParams } = preparePgQuery(execSql, params);
 
             logger.info(`[PG-${this.id}] [SQL-${sqlId}] ==>  Preparing: ${finalSql}`);
             if (finalParams && finalParams.length > 0) {
@@ -236,12 +240,13 @@ class PgAdapter {
 
             const result = await this.pool.query(finalSql, finalParams);
             const duration = Date.now() - start;
+            const lastID = needsReturning ? (result.rows?.[0]?.id ?? null) : null;
 
             logger.info(`[PG-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowCount} (${duration}ms)`);
 
             return {
                 rowsAffected: result.rowCount,
-                lastID: null
+                lastID
             };
         } catch (err) {
             const duration = Date.now() - start;
@@ -280,9 +285,13 @@ class PgAdapter {
                 return rows[0];
             },
             async run(sql, params = []) {
-                const { sql: finalSql, params: finalParams } = preparePgQuery(sql, params);
+                const isInsert = /^\s*INSERT\s+/i.test(sql);
+                const needsReturning = isInsert && !/RETURNING\s+/i.test(sql);
+                const execSql = needsReturning ? sql.replace(/;?\s*$/, '') + ' RETURNING id' : sql;
+                const { sql: finalSql, params: finalParams } = preparePgQuery(execSql, params);
                 const result = await client.query(finalSql, finalParams);
-                return { rowsAffected: result.rowCount, lastID: null };
+                const lastID = needsReturning ? (result.rows?.[0]?.id ?? null) : null;
+                return { rowsAffected: result.rowCount, lastID };
             },
             async exec(sql) {
                 await client.query(sql);
