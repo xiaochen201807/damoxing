@@ -163,9 +163,15 @@ function dedupeImportedRows(rows) {
     const rowMap = new Map();
     for (const row of rows) {
         if (!row || !row.rwxbh) continue;
-        rowMap.set(String(row.rwxbh), row);
+        rowMap.set(buildCxgzkzImportKey(row), row);
     }
     return Array.from(rowMap.values());
+}
+
+function buildCxgzkzImportKey(row) {
+    const rwxbh = String(getRowField(row, 'rwxbh') ?? '').trim();
+    const gzmc = String(getRowField(row, 'gzmc') ?? '').trim();
+    return `${rwxbh}||${gzmc}`;
 }
 
 function buildExportCsvContent(rows) {
@@ -745,14 +751,17 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             );
             const existingMap = new Map();
             for (const row of existingRows) {
-                const key = row.rwxbh ?? row.RWXBH;
-                if (key !== undefined && key !== null && !existingMap.has(String(key))) {
-                    existingMap.set(String(key), row);
+                const rwxbh = row.rwxbh ?? row.RWXBH;
+                if (rwxbh !== undefined && rwxbh !== null) {
+                    const key = buildCxgzkzImportKey(row);
+                    if (!existingMap.has(key)) {
+                        existingMap.set(key, row);
+                    }
                 }
             }
 
             for (const imported of importedRows) {
-                const key = String(imported.rwxbh);
+                const key = buildCxgzkzImportKey(imported);
                 const existing = existingMap.get(key);
 
                 if (!existing) {
