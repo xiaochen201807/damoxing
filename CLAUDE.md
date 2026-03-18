@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repo layout
 
 - `client/`: React 17 + TypeScript + Vite frontend using AMIS for rendering page schemas.
-- `server/`: Express backend, SQLite system database, optional Oracle/达梦 business datasources, Nunjucks-based schema generation, and MCP server support.
+- `server/`: Express backend, SQLite system database, optional Oracle/达梦/PostgreSQL/GaussDB/Kingbase business datasources, Nunjucks-based schema generation, and MCP server support.
 - `schema-builder/`: standalone prototype assets for schema/page editing; not part of the main runtime app.
 - `docs/`: deployment and architecture notes.
 
@@ -44,6 +44,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Main local dev setup: start backend on `3001`, then frontend on `3000`.
 - Vite proxies `VITE_API_ROUTE_PREFIX` (default `/api`) to `http://localhost:3001`.
+- Node.js `>=20.0.0` required for both `client/` and `server/`.
+- Backend API route prefix is controlled by `API_ROUTE_PREFIX` env var (default `/api`).
 
 ## Architecture overview
 
@@ -120,9 +122,10 @@ Important behavior:
 - SQLite is the default system database and stores routes, menus, templates, Dify config, component library, etc.
 - `server/db.js` is a unified adapter facade:
   - `db.all/get/run/exec/transaction` go to SQLite.
-  - `db.getByJgbh(jgbh)` selects an Oracle/达梦 adapter for tenant/business queries based on `config/datasources.json`.
+  - `db.getByJgbh(jgbh)` selects a business adapter (Oracle, 达梦, PostgreSQL, GaussDB, or Kingbase) for tenant/business queries based on `config/datasources.json`.
 - Multi-datasource routing is initialized at startup and can be strict (`strict_routing`) or fallback to the default datasource.
-- When changing business-query code, prefer `db.getByJgbh(...)` over legacy `db.oracle.*` access.
+- `db.oracle` is a legacy alias for `defaultAdapter`; prefer `db.getByJgbh(...)` in all new code.
+- `DB_PATH` env var controls the SQLite file path; `SQLITE_READONLY=true` disables write transactions.
 
 ### Dynamic routes, menus, and page rendering
 
@@ -187,6 +190,11 @@ Important behavior:
 - Backend Jest config is in `server/jest.config.cjs` and matches `server/test/**/*.test.js`.
 - Representative tests cover AMIS variable escaping, transaction rollback, Oracle placeholder behavior, export security, and the 达梦 adapter.
 - There is no root package.json; run npm commands inside `client/` or `server/`.
+
+## Commit style
+
+- Short, direct summaries, often in Chinese (e.g. `增加任务项目接口`, `处理子机构问题`).
+- Keep each commit scoped to one change.
 
 ## Files worth reading before major changes
 

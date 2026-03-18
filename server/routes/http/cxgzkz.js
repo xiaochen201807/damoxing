@@ -187,9 +187,7 @@ function buildExportCsvContent(rows) {
 
 async function sendCxgzkzExport(req, res, ids, logLabel) {
     const { jgbh, zjgbh } = getRequestOrg(req);
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
-
-    let sql = `SELECT * FROM gjj_cxgzkz WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+    let sql = `SELECT * FROM gjj_cxgzkz WHERE COALESCE(jgbh, '') = ? AND COALESCE(zjgbh, '') = ?`;
     const params = [jgbh, zjgbh];
 
     if (ids.length > 0) {
@@ -220,17 +218,15 @@ router.post('/list', async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
-
     let sql = `
         SELECT *
         FROM gjj_cxgzkz
-        WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
+        WHERE COALESCE(jgbh, '') = ? AND COALESCE(zjgbh, '') = ?
     `;
     let countSql = `
-        SELECT COUNT(*) as total 
+        SELECT COUNT(*) as total
         FROM gjj_cxgzkz
-        WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
+        WHERE COALESCE(jgbh, '') = ? AND COALESCE(zjgbh, '') = ?
     `;
     const params = [jgbh, zjgbh];
 
@@ -266,11 +262,13 @@ router.post('/list', async (req, res) => {
     }
 
     sql += " ORDER BY id DESC";
-    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
+    const adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset, adapter);
 
     try {
         const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
-        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
+        const adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const rows = await adapter.all(paged.sql, paged.params);
         const taskNameMap = await fetchTaskNameMap(req);
         const envMode = getEnvModeFromJwt(req);
         const items = rows.map(row => {
@@ -305,7 +303,7 @@ router.post('/get', async (req, res) => {
 
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         const sql = `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
@@ -326,7 +324,7 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         const sql = `SELECT * FROM gjj_cxgzkz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
@@ -348,7 +346,7 @@ router.post('/save', async (req, res) => {
 
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
     const modelEnv = isModelEnv(req);
 
     try {
@@ -431,7 +429,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
     const modelEnv = isModelEnv(req);
 
     try {
@@ -493,7 +491,7 @@ router.post('/delete', async (req, res) => {
     if (!zjgbh) zjgbh = req.headers['zjgbh'] || '';
 
     try {
-        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+        const coalesce = 'COALESCE';
         const checkSql = `
             SELECT id FROM gjj_cxgzkz 
             WHERE id = ? 
@@ -523,7 +521,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         const checkSql = `
@@ -682,7 +680,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
     }
 
     const { jgbh, zjgbh } = getHeaderOrg(req);
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         const envMode = getEnvModeFromJwt(req);

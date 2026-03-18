@@ -48,11 +48,12 @@ router.post('/list', async (req, res) => {
 
     // 分页
     sql += " ORDER BY pxh ASC, id DESC";
-    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset, _adapter);
 
     try {
-        const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
-        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
+        const countRow = await _adapter.get(countSql, params);
+        const rows = await _adapter.all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -129,10 +130,11 @@ router.post('/save', async (req, res) => {
     }
 
     try {
-        const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const { id: savedId } = await _adapter.transaction(async (tx) => {
             let mbid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, ywbzz=:3, ywbzjg=:4, ywblbzsm=:5, gjsjsf=:6, ywnrfl=:7, bzfl=:8, gxsj=${SqlHelper.now()} WHERE id=:9`;
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, ywbzz=:3, ywbzjg=:4, ywblbzsm=:5, gjsjsf=:6, ywnrfl=:7, bzfl=:8, gxsj=${SqlHelper.now(_adapter)} WHERE id=:9`;
                 await tx.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {

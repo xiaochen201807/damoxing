@@ -26,7 +26,7 @@ router.post('/list', async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     let sql = `
         SELECT t1.*, t2.ywblbz as template_name, t2.ywblbzsm as template_desc, t2.ywnrfl as ywnrfl_label, t2.bzfl as bzfl_label
@@ -59,11 +59,12 @@ router.post('/list', async (req, res) => {
     }
 
     sql += " ORDER BY t1.ywsf ASC, t2.ywnrfl ASC, t2.bzfl ASC, t1.id DESC";
-    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset);
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    const paged = SqlHelper.paginateQuery(sql, params, perPage, offset, _adapter);
 
     try {
-        const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
-        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(paged.sql, paged.params);
+        const countRow = await _adapter.get(countSql, params);
+        const rows = await _adapter.all(paged.sql, paged.params);
 
         res.json({
             status: 0,
@@ -89,7 +90,7 @@ router.post('/get', async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         const sql = `SELECT * FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
@@ -406,13 +407,14 @@ router.post('/save', async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
-        const { id: savedId } = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const { id: savedId } = await _adapter.transaction(async (tx) => {
             let ywid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now()} WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+                const updateSql = `UPDATE gjj_ywbz SET mbid=?, gzmc=?, ywsf=?, gzljsm=?, yxj=?, sfqy=?, gxsj=${SqlHelper.now(_adapter)} WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
                 await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id, jgbh, zjgbh]);
                 await tx.run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [id, jgbh, zjgbh]);
             } else {
@@ -478,13 +480,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
-        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        await _adapter.transaction(async (tx) => {
             const updateSql = `
-                UPDATE gjj_ywbz SET 
-                mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now()}
+                UPDATE gjj_ywbz SET
+                mbid = ?, gzmc = ?, ywsf = ?, gzljsm = ?, yxj = ?, sfqy = ?, gxsj = ${SqlHelper.now(_adapter)}
                 WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
             `;
             await tx.run(updateSql, [mbid, gzmc, ywsf, gzljsm, yxj, sfqy, id, jgbh, zjgbh]);
@@ -569,7 +572,7 @@ router.post('/batch', async (req, res) => {
 
     try {
         // 1. 查询该范围下已存在的规则
-        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+        const coalesce = 'COALESCE';
         let existingSql = `
             SELECT id, mbid FROM gjj_ywbz 
             WHERE ${coalesce}(jgbh, '') = ? 
@@ -689,7 +692,7 @@ router.post('/delete', async (req, res) => {
     try {
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 验证权限：检查该记录是否属于当前机构
-            const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+            const coalesce = 'COALESCE';
             const checkSql = `
                 SELECT id FROM gjj_ywbz 
                 WHERE id = ? 
@@ -733,7 +736,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 验证权限
-            const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+            const coalesce = 'COALESCE';
             const checkSql = `
                 SELECT id FROM gjj_ywbz 
                 WHERE id = ? 
@@ -781,7 +784,7 @@ router.all('/export', authenticateToken, async (req, res) => {
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
 
     try {
         // 1. 获取当前机构数据
@@ -1026,7 +1029,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             }
         }
 
-        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+        const coalesce = 'COALESCE';
 
         // 从 INSERT 语句中提取所有 mbid 值（用于精确删除）
         const mbidsToDelete = new Set();
@@ -1283,7 +1286,7 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
 
         let insertCount = 0;
         let deleteCount = mbidsToDelete.size;
-        const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+        const coalesce = 'COALESCE';
 
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             // 1. 按 jgbh + zjgbh + mbid 删除旧数据
@@ -1376,7 +1379,7 @@ router.post('/selection_list', async (req, res) => {
     standardsSql += " ORDER BY pxh ASC, id DESC";
 
     // 2. 查询已选中的 mbid
-    const coalesce = SqlHelper.isOracle ? 'NVL' : 'IFNULL';
+    const coalesce = 'COALESCE';
     let selectedSql = `
         SELECT DISTINCT mbid FROM gjj_ywbz 
         WHERE ${coalesce}(jgbh, '') = ? 
