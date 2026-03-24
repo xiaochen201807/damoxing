@@ -4,7 +4,7 @@
 
 -- 1. 业务标准库主表 (规则模板定义)
 CREATE TABLE gjj_ywbzk (
-    id BIGINT IDENTITY(1,1) NOT NULL,
+    id BIGINT AUTO_INCREMENT NOT NULL,
     pxh NUMBER DEFAULT 0, -- 排序号
     ywblbz VARCHAR2 (200 CHAR) NOT NULL, -- 业务办理标准
     ywbzz VARCHAR2 (100 CHAR), -- 业务标准值
@@ -20,7 +20,7 @@ CREATE TABLE gjj_ywbzk (
 
 -- 2. 业务标准库属性表 (规则模板绑定的要素属性)
 CREATE TABLE gjj_ywbzksx (
-    id BIGINT IDENTITY(1,1) NOT NULL,
+    id BIGINT AUTO_INCREMENT NOT NULL,
     mbid BIGINT NOT NULL, -- 关联业务标准库的ID
     ywblbzdx VARCHAR2 (100 CHAR), -- 业务办理标准对象
     fwdxbq VARCHAR2 (100 CHAR), -- 服务对象标签 (Label)
@@ -36,7 +36,7 @@ CREATE TABLE gjj_ywbzksx (
 
 -- 3. 业务标准主表 (业务规则实例配置)
 CREATE TABLE gjj_ywbz (
-    id BIGINT IDENTITY(1,1) NOT NULL,
+    id BIGINT AUTO_INCREMENT NOT NULL,
     mbid BIGINT, -- 关联业务标准库的模板ID
     ywsf VARCHAR2 (50 CHAR) NOT NULL, -- 业务算法
     ywnrfl VARCHAR2 (50 CHAR), -- 业务内容分类
@@ -54,7 +54,7 @@ CREATE TABLE gjj_ywbz (
 
 -- 4. 业务标准属性表 (业务规则实例具体的参数/属性值)
 CREATE TABLE gjj_ywbzsx (
-    id BIGINT IDENTITY(1,1) NOT NULL,
+    id BIGINT AUTO_INCREMENT NOT NULL,
     ywid BIGINT NOT NULL, -- 关联业务标准主表的ID
     row_index NUMBER DEFAULT 0, -- 行索引(排序)
     k1 VARCHAR2 (1000 CHAR),
@@ -82,6 +82,33 @@ CREATE TABLE gjj_ywbzsx (
     gxsj TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_ywbzsx PRIMARY KEY (id),
     CONSTRAINT fk_ywbzsx_ywid FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
+);
+
+-- 5. 模型业务算法临时属性表
+-- 结构按本地达梦库 `SP_TABLEDEF` / `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE tmp_gjj_ywblsxz (
+    pcid VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 批次id
+    key VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 属性key
+    value VARCHAR2(4000) -- 属性值
+);
+
+-- 6. 业务办理标准执行日志表
+-- 结构按本地达梦库 `SP_TABLEDEF` / `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE gjj_ywblbz_log (
+    pcid VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 批次id
+    zxyj CLOB, -- 执行的sql语句
+    cjsj TIMESTAMP(6) DEFAULT SYSTIMESTAMP, -- 插入时间
+    yjlx VARCHAR2(10), -- 日志类型，1--sql语句，2--标准结果
+    zxjg VARCHAR2(200) -- 执行结果
+);
+
+-- 7. 系统异常日志表
+-- 结构按本地达梦库 `SP_TABLEDEF` / `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE t_wa_sys_log_err (
+    err_date DATE,
+    name_proc VARCHAR2(200),
+    err_code NUMBER,
+    err_msg CLOB
 );
 
 -- ============================================
