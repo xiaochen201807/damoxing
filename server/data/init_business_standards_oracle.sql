@@ -82,6 +82,33 @@ CREATE TABLE gjj_ywbzsx (
     CONSTRAINT fk_ywbzsx_ywid FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
 );
 
+-- 5. 模型业务算法临时属性表
+-- 结构按本地 Oracle 实例 `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE tmp_gjj_ywblsxz (
+    pcid VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 批次id
+    key VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 属性key
+    value VARCHAR2(4000) -- 属性值
+);
+
+-- 6. 业务办理标准执行日志表
+-- 结构按本地 Oracle 实例 `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE gjj_ywblbz_log (
+    pcid VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 批次id
+    zxyj CLOB, -- 执行的sql语句
+    cjsj TIMESTAMP(6) DEFAULT SYSTIMESTAMP, -- 插入时间
+    yjlx VARCHAR2(10), -- 日志类型，1--sql语句，2--标准结果
+    zxjg VARCHAR2(200) -- 执行结果
+);
+
+-- 7. 系统异常日志表
+-- 结构按本地 Oracle 实例 `DBMS_METADATA.GET_DDL` 导出结果整理
+CREATE TABLE t_wa_sys_log_err (
+    err_date DATE,
+    name_proc VARCHAR2(200),
+    err_code NUMBER,
+    err_msg CLOB
+);
+
 -- ============================================
 -- 创建索引
 -- ============================================
