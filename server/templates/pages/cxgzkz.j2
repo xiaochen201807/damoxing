@@ -31,7 +31,7 @@
         "rule_list_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/list",
         "rule_save_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/save",
         "rule_delete_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/delete",
-        "task_info_api": "{{ GLOBAL_API_PREFIX }}/tools/task-info",
+        "matter_subject_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/matter-subject-info",
         "rule_import_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/import",
         "rule_export_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/export",
         "mode_api": "{{ GLOBAL_API_PREFIX }}/cxgzkz/mode",
@@ -77,23 +77,23 @@
                     },
                     {
                         "type": "select",
-                        "name": "rwxbh",
-                        "label": "任务项",
-                        "placeholder": "请输入任务项关键字联想查询",
+                        "name": "sxbh",
+                        "label": "事项名称",
+                        "placeholder": "请输入事项名称关键字联想查询",
                         "clearable": true,
                         "searchable": true,
                         "source": {
                             "method": "post",
-                            "url": "${task_info_api}",
+                            "url": "${matter_subject_api}",
                             "data": {
-                                "sjrwmc": ""
+                                "matterSubjectName": ""
                             }
                         },
-                        "searchApi": {
+                        "autoComplete": {
                             "method": "post",
-                            "url": "${task_info_api}",
+                            "url": "${matter_subject_api}",
                             "data": {
-                                "sjrwmc": "${term}"
+                                "matterSubjectName": "${term}"
                             }
                         },
                         "labelField": "label",
@@ -154,23 +154,23 @@
                             "body": [
                                 {
                                     "type": "select",
-                                    "name": "rwxbh",
-                                    "label": "任务项",
+                                    "name": "sxbh",
+                                    "label": "事项名称",
                                     "required": true,
-                                    "placeholder": "请输入任务项关键字联想查询",
+                                    "placeholder": "请输入事项名称关键字联想查询",
                                     "searchable": true,
                                     "source": {
                                         "method": "post",
-                                        "url": "${task_info_api}",
+                                        "url": "${matter_subject_api}",
                                         "data": {
-                                            "sjrwmc": ""
+                                            "matterSubjectName": ""
                                         }
                                     },
-                                    "searchApi": {
+                                    "autoComplete": {
                                         "method": "post",
-                                        "url": "${task_info_api}",
+                                        "url": "${matter_subject_api}",
                                         "data": {
-                                            "sjrwmc": "${term}"
+                                            "matterSubjectName": "${term}"
                                         }
                                     },
                                     "labelField": "label",
@@ -287,10 +287,10 @@
             "footerToolbar": ["switch-per-page", "pagination", "statistics"],
             "columns": [
                 {
-                    "name": "rwxbh",
-                    "label": "任务项",
+                    "name": "sxbh",
+                    "label": "事项名称",
                     "type": "tpl",
-                    "tpl": "${rwxmc || rwxbh}"
+                    "tpl": "${sxmc || sxbh}"
                 },
                 {
                     "name": "gzmc",
@@ -354,23 +354,23 @@
                                         },
                                         {
                                             "type": "select",
-                                            "name": "rwxbh",
-                                            "label": "任务项",
+                                            "name": "sxbh",
+                                            "label": "事项名称",
                                             "required": true,
-                                            "placeholder": "请输入任务项关键字联想查询",
+                                            "placeholder": "请输入事项名称关键字联想查询",
                                             "searchable": true,
                                             "source": {
                                                 "method": "post",
-                                                "url": "${task_info_api}",
+                                                "url": "${matter_subject_api}",
                                                 "data": {
-                                                    "sjrwmc": ""
+                                                    "matterSubjectName": ""
                                                 }
                                             },
-                                            "searchApi": {
+                                            "autoComplete": {
                                                 "method": "post",
-                                                "url": "${task_info_api}",
+                                                "url": "${matter_subject_api}",
                                                 "data": {
-                                                    "sjrwmc": "${term}"
+                                                    "matterSubjectName": "${term}"
                                                 }
                                             },
                                             "labelField": "label",

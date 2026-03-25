@@ -56,50 +56,122 @@ function getHeaderOrg(req) {
     };
 }
 
-async function fetchTaskNameMap(req) {
+function normalizePositiveInteger(value, fallback) {
+    const normalized = Number(value);
+    return Number.isInteger(normalized) && normalized > 0 ? normalized : fallback;
+}
+
+function maskSensitiveValue(value) {
+    const text = String(value ?? '');
+    if (!text) return '';
+    if (text.length <= 8) return '****';
+    return `${text.slice(0, 4)}****${text.slice(-4)}`;
+}
+
+function buildMatterSubjectGatewayRequest(req, overrides = {}) {
     const body = req.body || {};
-    const { jgbh, zjgbh } = getRequestOrg(req);
-    const gatewayUrl = `${GATEWAY_BASE_URL}/jobApi/jobinfo/getTaskInfo`;
+    const payloadBody = { ...body, ...overrides };
+    const jgbh = payloadBody.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const zjgbh = payloadBody.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+    const qycode = payloadBody.qycode || req.headers['qycode'] || req.headers['zzjgdmz'] || '';
+    const zjbzxbm = payloadBody.zjbzxbm || req.headers['zjbzxbm'] || qycode || req.headers['zzjgdmz'] || '';
+    const loginToken = payloadBody.login_token || payloadBody.loginToken || req.headers['login-token'] || '';
+    const channel = req.headers['channel']
+        || (typeof loginToken === 'string' && loginToken.includes(':') ? loginToken.split(':').pop() : '')
+        || 'zmd';
+
     const headers = {
-        channel: req.headers['channel'] || 'zmd',
-        jgbh: jgbh || req.headers['jgbh'],
-        'login-token': body.login_token || req.headers['login-token'],
-        zzbs: req.headers['zzbs'],
-        zzjgdmz: req.headers['zzjgdmz'],
+        channel,
+        jgbh: payloadBody.organizationNumber || jgbh || req.headers['jgbh'] || '',
+        'login-token': loginToken,
+        qycode,
+        zjbzxbm,
+        zzbs: req.headers['zzbs'] || jgbh || '',
+        zzjgdmz: req.headers['zzjgdmz'] || qycode || '',
         'Content-Type': 'application/json'
     };
     const payload = {
-        sjrwmc: '',
-        organizationNumber: zjgbh || jgbh || ''
+        organizationNumber: payloadBody.organizationNumber || jgbh || '',
+        querySyobjectName: payloadBody.querySyobjectName ?? true,
+        querySearch: payloadBody.querySearch ?? 1,
+        matterSubjectName: payloadBody.matterSubjectName || payloadBody.keyword || payloadBody.term || '',
+        zijigou: payloadBody.zijigou || zjgbh || '',
+        qycode,
+        page: normalizePositiveInteger(payloadBody.page, 1),
+        size: normalizePositiveInteger(payloadBody.size, 1000)
     };
 
+    return {
+        gatewayUrl: `${GATEWAY_BASE_URL}/V2/GLDX/business/common/matterSubject$m=query.service`,
+        headers,
+        payload
+    };
+}
+
+async function fetchMatterSubjectList(req, overrides = {}) {
+    const { gatewayUrl, headers, payload } = buildMatterSubjectGatewayRequest(req, overrides);
+
+    logger.info(`[cxgzkz] Request to gateway (matter-subject-info): ${JSON.stringify({
+        url: gatewayUrl,
+        headers: {
+            channel: headers.channel,
+            jgbh: headers.jgbh,
+            qycode: headers.qycode,
+            zjbzxbm: headers.zjbzxbm,
+            zzbs: headers.zzbs,
+            zzjgdmz: headers.zzjgdmz,
+            'login-token': maskSensitiveValue(headers['login-token'])
+        },
+        payload
+    })}`);
+
+    const response = await axios.post(gatewayUrl, payload, { headers, timeout: 10000 });
+    const gatewayData = response.data;
+    const list = Array.isArray(gatewayData?.results)
+        ? gatewayData.results
+        : Array.isArray(gatewayData?.datas)
+            ? gatewayData.datas
+            : Array.isArray(gatewayData?.data)
+                ? gatewayData.data
+                : Array.isArray(gatewayData)
+                    ? gatewayData
+                    : [];
+
+    logger.info(`[cxgzkz] Response from gateway (matter-subject-info): ${JSON.stringify({
+        success: gatewayData?.success,
+        ret: gatewayData?.ret,
+        totalcount: gatewayData?.totalcount,
+        resultCount: list.length,
+        firstResult: list[0]
+            ? {
+                matterSubjectName: list[0].matterSubjectName,
+                matterSubjectNumber: list[0].matterSubjectNumber
+            }
+            : null
+    })}`);
+    return list;
+}
+
+async function fetchMatterSubjectNameMap(req) {
     try {
-        const response = await axios.post(gatewayUrl, payload, { headers, timeout: 10000 });
-        const gatewayData = response.data;
-        let list = [];
+        const list = await fetchMatterSubjectList(req, {
+            matterSubjectName: '',
+            page: 1,
+            size: 1000
+        });
 
-        if (Array.isArray(gatewayData.datas)) {
-            list = gatewayData.datas;
-        } else if (Array.isArray(gatewayData.data)) {
-            list = gatewayData.data;
-        } else if (Array.isArray(gatewayData.results)) {
-            list = gatewayData.results;
-        } else if (Array.isArray(gatewayData)) {
-            list = gatewayData;
-        }
-
-        const taskNameMap = {};
+        const matterSubjectNameMap = {};
         for (const item of list) {
-            const label = item.label ?? item.sjrwmc ?? item.jsrwmc ?? item.xmbh ?? item.taskName ?? item.name ?? item.text ?? '';
-            const value = item.value ?? item.taskNumber ?? item.rwxbh ?? item.id ?? '';
+            const label = item.matterSubjectName ?? item.label ?? item.name ?? item.text ?? '';
+            const value = item.matterSubjectNumber ?? item.value ?? item.id ?? '';
             if (value !== undefined && value !== null && String(value).trim()) {
-                taskNameMap[String(value)] = label || String(value);
+                matterSubjectNameMap[String(value)] = label || String(value);
             }
         }
 
-        return taskNameMap;
+        return matterSubjectNameMap;
     } catch (err) {
-        logger.warn(`[cxgzkz] fetchTaskNameMap failed: ${err.message}`);
+        logger.warn(`[cxgzkz] fetchMatterSubjectNameMap failed: ${err.message}`);
         return {};
     }
 }
@@ -143,7 +215,7 @@ function normalizeCsvRowToCxgzkzRow(source, jgbh, zjgbh) {
     const row = {
         jgbh,
         zjgbh,
-        rwxbh: pickFirstValue(source, ['任务项编号', '任务编号', 'rwxbh', 'RWXBH']),
+        sxbh: pickFirstValue(source, ['事项编号', '任务项编号', '任务编号', 'sxbh', 'SXBH']),
         gzmc: pickFirstValue(source, ['程序控制规则名称', '规则名称', 'gzmc', 'GZMC']),
         gztsy: pickFirstValue(source, ['程序控制规则提示语', '规则提示语', 'gztsy', 'GZTSY']),
         sfqy: normalizeBooleanLike(pickFirstValue(source, ['是否启用', 'sfqy', 'SFQY']), 'y'),
@@ -152,7 +224,7 @@ function normalizeCsvRowToCxgzkzRow(source, jgbh, zjgbh) {
         role: pickFirstValue(source, ['角色', 'role', 'ROLE'])
     };
 
-    if (!row.rwxbh) {
+    if (!row.sxbh) {
         return null;
     }
 
@@ -162,28 +234,32 @@ function normalizeCsvRowToCxgzkzRow(source, jgbh, zjgbh) {
 function dedupeImportedRows(rows) {
     const rowMap = new Map();
     for (const row of rows) {
-        if (!row || !row.rwxbh) continue;
+        if (!row || !row.sxbh) continue;
         rowMap.set(buildCxgzkzImportKey(row), row);
     }
     return Array.from(rowMap.values());
 }
 
 function buildCxgzkzImportKey(row) {
-    const rwxbh = String(getRowField(row, 'rwxbh') ?? '').trim();
+    const sxbh = String(getRowField(row, 'sxbh') ?? '').trim();
     const gzmc = String(getRowField(row, 'gzmc') ?? '').trim();
-    return `${rwxbh}||${gzmc}`;
+    return `${sxbh}||${gzmc}`;
 }
 
-function buildExportCsvContent(rows) {
-    const exportRows = rows.map(row => ({
-        '任务项编号': getRowField(row, 'rwxbh') ?? '',
-        '规则名称': getRowField(row, 'gzmc') ?? '',
-        '规则提示语': getRowField(row, 'gztsy') ?? '',
-        '是否启用': getRowField(row, 'sfqy') ?? '',
-        '是否允许停启用': getRowField(row, 'sfyxtqy') ?? '',
-        '是否允许调整提示语': getRowField(row, 'sfyxtztsy') ?? '',
-        '角色': getRowField(row, 'role') ?? ''
-    }));
+function buildExportCsvContent(rows, matterSubjectNameMap = {}) {
+    const exportRows = rows.map(row => {
+        const matterSubjectNumber = getRowField(row, 'sxbh') ?? '';
+        return {
+            '事项编号': matterSubjectNumber,
+            '事项名称': matterSubjectNameMap[String(matterSubjectNumber)] ?? '',
+            '规则名称': getRowField(row, 'gzmc') ?? '',
+            '规则提示语': getRowField(row, 'gztsy') ?? '',
+            '是否启用': getRowField(row, 'sfqy') ?? '',
+            '是否允许停启用': getRowField(row, 'sfyxtqy') ?? '',
+            '是否允许调整提示语': getRowField(row, 'sfyxtztsy') ?? '',
+            '角色': getRowField(row, 'role') ?? ''
+        };
+    });
 
     return stringifyCsv(exportRows, {
         header: true,
@@ -205,7 +281,8 @@ async function sendCxgzkzExport(req, res, ids, logLabel) {
     sql += ' ORDER BY id';
 
     const rules = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, params);
-    const csvContent = buildExportCsvContent(rules);
+    const matterSubjectNameMap = await fetchMatterSubjectNameMap(req);
+    const csvContent = buildExportCsvContent(rules, matterSubjectNameMap);
     const exportFileName = 'cxgzkz_export.csv';
 
     logger.info(`${logLabel} successful for cxgzkz: jgbh=${jgbh}, zjgbh=${zjgbh}, selected=${ids.length}, exported=${rules.length}`);
@@ -218,7 +295,7 @@ async function sendCxgzkzExport(req, res, ids, logLabel) {
  * 1. 获取列表 (POST /list)
  */
 router.post('/list', async (req, res) => {
-    const { page = 1, perPage = 10, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy } = req.body;
+    const { page = 1, perPage = 10, sxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy } = req.body;
     const offset = (page - 1) * perPage;
 
     // 从请求头获取当前机构信息
@@ -236,10 +313,10 @@ router.post('/list', async (req, res) => {
     `;
     const params = [jgbh, zjgbh];
 
-    if (rwxbh) {
-        sql += " AND rwxbh = ?";
-        countSql += " AND rwxbh = ?";
-        params.push(rwxbh);
+    if (sxbh) {
+        sql += " AND sxbh = ?";
+        countSql += " AND sxbh = ?";
+        params.push(sxbh);
     }
     if (gzmc) {
         sql += " AND gzmc LIKE ?";
@@ -275,13 +352,13 @@ router.post('/list', async (req, res) => {
         const countRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get(countSql, params);
         const adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
         const rows = await adapter.all(paged.sql, paged.params);
-        const taskNameMap = await fetchTaskNameMap(req);
+        const matterSubjectNameMap = await fetchMatterSubjectNameMap(req);
         const envMode = getEnvModeFromJwt(req);
         const items = rows.map(row => {
-            const rwxbhValue = row.rwxbh ?? row.RWXBH;
+            const sxbhValue = row.sxbh ?? row.SXBH;
             return {
                 ...row,
-                rwxmc: taskNameMap[String(rwxbhValue)] || rwxbhValue
+                sxmc: matterSubjectNameMap[String(sxbhValue)] || sxbhValue
             };
         });
 
@@ -348,7 +425,7 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
  * 4. 保存 (POST /save)
  */
 router.post('/save', async (req, res) => {
-    const { id, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role } = req.body;
+    const { id, sxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role } = req.body;
 
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
@@ -368,7 +445,7 @@ router.post('/save', async (req, res) => {
                 }
 
                 const current = {
-                    rwxbh: existing.rwxbh ?? existing.RWXBH,
+                    sxbh: existing.sxbh ?? existing.SXBH,
                     gzmc: existing.gzmc ?? existing.GZMC,
                     gztsy: existing.gztsy ?? existing.GZTSY,
                     sfqy: existing.sfqy ?? existing.SFQY,
@@ -378,7 +455,7 @@ router.post('/save', async (req, res) => {
                 };
 
                 const next = {
-                    rwxbh: rwxbh ?? current.rwxbh,
+                    sxbh: sxbh ?? current.sxbh,
                     gzmc: gzmc ?? current.gzmc,
                     gztsy: modelEnv || current.sfyxtztsy !== 'n'
                         ? (gztsy !== undefined ? gztsy : current.gztsy)
@@ -395,16 +472,16 @@ router.post('/save', async (req, res) => {
                     role: role !== undefined ? role : current.role
                 };
 
-                const updateSql = `UPDATE gjj_cxgzkz SET rwxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-                await tx.run(updateSql, [next.rwxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
+                const updateSql = `UPDATE gjj_cxgzkz SET sxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id=? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+                await tx.run(updateSql, [next.sxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
             } else {
                 const nextSfyxtqy = modelEnv ? normalizeYn(sfyxtqy, 'y') : 'y';
                 const nextSfyxtztsy = modelEnv ? normalizeYn(sfyxtztsy, 'y') : 'y';
-                const insertSql = `INSERT INTO gjj_cxgzkz (jgbh, zjgbh, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                const insertSql = `INSERT INTO gjj_cxgzkz (jgbh, zjgbh, sxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
                 const insertResult = await tx.run(insertSql, [
                     jgbh,
                     zjgbh,
-                    rwxbh,
+                    sxbh,
                     gzmc,
                     gztsy,
                     normalizeYn(sfqy, 'y'),
@@ -429,7 +506,7 @@ router.post('/save', async (req, res) => {
  */
 router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-    const { rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role } = req.body;
+    const { sxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role } = req.body;
 
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
@@ -447,7 +524,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
             }
 
             const current = {
-                rwxbh: existing.rwxbh ?? existing.RWXBH,
+                sxbh: existing.sxbh ?? existing.SXBH,
                 gzmc: existing.gzmc ?? existing.GZMC,
                 gztsy: existing.gztsy ?? existing.GZTSY,
                 sfqy: existing.sfqy ?? existing.SFQY,
@@ -457,7 +534,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
             };
 
             const next = {
-                rwxbh: rwxbh ?? current.rwxbh,
+                sxbh: sxbh ?? current.sxbh,
                 gzmc: gzmc ?? current.gzmc,
                 gztsy: modelEnv || current.sfyxtztsy !== 'n'
                     ? (gztsy !== undefined ? gztsy : current.gztsy)
@@ -474,8 +551,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
                 role: role !== undefined ? role : current.role
             };
 
-            const updateSql = `UPDATE gjj_cxgzkz SET rwxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-            await tx.run(updateSql, [next.rwxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
+            const updateSql = `UPDATE gjj_cxgzkz SET sxbh=?, gzmc=?, gztsy=?, sfqy=?, sfyxtqy=?, sfyxtztsy=?, role=? WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
+            await tx.run(updateSql, [next.sxbh, next.gzmc, next.gztsy, next.sfqy, next.sfyxtqy, next.sfyxtztsy, next.role, id, jgbh, zjgbh]);
         });
 
         res.json({ status: 0, msg: "更新成功" });
@@ -557,6 +634,34 @@ router.post('/mode', async (req, res) => {
         res.json({ status: 0, msg: "ok", data: { env_mode: getEnvModeFromJwt(req) } });
     } catch (err) {
         logger.error(`Get cxgzkz mode failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
+// -----------------------------------------------------------------------------
+// 获取事项名称（支持模糊查询）
+// -----------------------------------------------------------------------------
+router.post('/matter-subject-info', async (req, res) => {
+    try {
+        const list = await fetchMatterSubjectList(req);
+        const resultData = list
+            .map(item => {
+                const label = item.matterSubjectName ?? item.label ?? item.name ?? item.text ?? '';
+                const value = item.matterSubjectNumber ?? item.value ?? item.id ?? '';
+                return {
+                    label,
+                    value,
+                    ...item
+                };
+            })
+            .filter(item => item.label !== '' && item.value !== '');
+
+        res.json({ status: 0, msg: "ok", data: resultData });
+    } catch (err) {
+        logger.error(`[cxgzkz] Failed to call gateway (matter-subject-info): ${err.message}`);
+        if (err.response) {
+            logger.error(`[cxgzkz] Gateway error data: ${JSON.stringify(err.response.data)}`);
+        }
         res.status(500).json({ status: 1, msg: err.message });
     }
 });
@@ -654,18 +759,18 @@ function parseCxgzkzInsertToRow(stmt, jgbh, zjgbh) {
 }
 
 async function insertCxgzkzRow(tx, row) {
-    if (!row.rwxbh || !row.gzmc) {
-        throw new Error('导入数据缺少必填字段 rwxbh 或 gzmc');
+    if (!row.sxbh || !row.gzmc) {
+        throw new Error('导入数据缺少必填字段 sxbh 或 gzmc');
     }
 
     const insertSql = `
-        INSERT INTO gjj_cxgzkz (jgbh, zjgbh, rwxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role)
+        INSERT INTO gjj_cxgzkz (jgbh, zjgbh, sxbh, gzmc, gztsy, sfqy, sfyxtqy, sfyxtztsy, role)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await tx.run(insertSql, [
         row.jgbh,
         row.zjgbh,
-        row.rwxbh,
+        row.sxbh,
         row.gzmc,
         row.gztsy ?? null,
         normalizeYn(row.sfqy, 'y'),
@@ -719,7 +824,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                 }
                 if (upperStmt.startsWith('INSERT INTO GJJ_CXGZKZ ') || upperStmt.startsWith('INSERT INTO GJJ_CXGZKZ(')) {
                     const row = parseCxgzkzInsertToRow(stmt, jgbh, zjgbh);
-                    if (row && row.rwxbh) {
+                    if (row && row.sxbh) {
                         importedRows.push(row);
                     }
                 }
@@ -741,7 +846,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         importedRows = dedupeImportedRows(importedRows);
 
         if (importedRows.length === 0) {
-            return res.status(400).json({ status: 1, msg: "文件中未解析到可导入的程序控制规则数据，请检查 CSV 中是否包含任务项编号列" });
+            return res.status(400).json({ status: 1, msg: "文件中未解析到可导入的程序控制规则数据，请检查 CSV 中是否包含事项编号列" });
         }
 
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
@@ -751,8 +856,8 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             );
             const existingMap = new Map();
             for (const row of existingRows) {
-                const rwxbh = row.rwxbh ?? row.RWXBH;
-                if (rwxbh !== undefined && rwxbh !== null) {
+                const sxbh = row.sxbh ?? row.SXBH;
+                if (sxbh !== undefined && sxbh !== null) {
                     const key = buildCxgzkzImportKey(row);
                     if (!existingMap.has(key)) {
                         existingMap.set(key, row);
@@ -781,7 +886,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                 };
 
                 const next = {
-                    rwxbh: imported.rwxbh,
+                    sxbh: imported.sxbh,
                     gzmc: imported.gzmc ?? current.gzmc,
                     gztsy: modelEnv ? (imported.gztsy ?? current.gztsy) : current.gztsy,
                     sfqy: modelEnv ? normalizeYn(imported.sfqy, current.sfqy || 'y') : current.sfqy,
@@ -792,11 +897,11 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 
                 const updateSql = `
                     UPDATE gjj_cxgzkz
-                    SET rwxbh = ?, gzmc = ?, gztsy = ?, sfqy = ?, sfyxtqy = ?, sfyxtztsy = ?, role = ?
+                    SET sxbh = ?, gzmc = ?, gztsy = ?, sfqy = ?, sfyxtqy = ?, sfyxtztsy = ?, role = ?
                     WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?
                 `;
                 await tx.run(updateSql, [
-                    next.rwxbh,
+                    next.sxbh,
                     next.gzmc,
                     next.gztsy,
                     next.sfqy,
@@ -813,9 +918,9 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 
         logger.info(`Import successful for cxgzkz: env_mode=${envMode}, jgbh=${jgbh}, zjgbh=${zjgbh}, inserted=${insertCount}, updated=${updateCount}`);
         if (envMode === 'prod') {
-            return res.json({ status: 0, msg: `导入成功（生产环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，仅更新 rwxbh/gzmc/sfyxtqy/sfyxtztsy` });
+            return res.json({ status: 0, msg: `导入成功（生产环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，仅更新 sxbh/gzmc/sfyxtqy/sfyxtztsy` });
         }
-        res.json({ status: 0, msg: `导入成功（模型环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，按文件更新 rwxbh/gzmc/gztsy/sfqy/sfyxtqy/sfyxtztsy` });
+        res.json({ status: 0, msg: `导入成功（模型环境）：新增 ${insertCount} 条，更新 ${updateCount} 条，按文件更新 sxbh/gzmc/gztsy/sfqy/sfyxtqy/sfyxtztsy` });
     } catch (err) {
         logger.error(`Import failed for cxgzkz: ${err.message}`);
         res.status(500).json({ status: 1, msg: "导入失败: " + err.message });
