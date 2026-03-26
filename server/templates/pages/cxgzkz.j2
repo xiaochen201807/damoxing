@@ -284,6 +284,21 @@
                 },
                 "bulkActions"
             ],
+            "onEvent": {
+                "selectedChange": {
+                    "actions": [
+                        {
+                            "actionType": "setValue",
+                            "componentId": "main_filter_form",
+                            "args": {
+                                "value": {
+                                    "_selectedIds": "${event.data.selectedItems|pick:id|join}"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
             "footerToolbar": ["switch-per-page", "pagination", "statistics"],
             "columns": [
                 {
