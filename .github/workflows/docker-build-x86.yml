@@ -73,8 +73,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},suffix=-x86
             # 使用 git commit hash 作为版本 (例如: main-f0c1d2-x86)
             type=sha,prefix={{branch}}-,suffix=-x86
-            # 使用 日期-时间 作为版本 (例如: 20251217-1345-x86)
-            type=raw,value={{date 'YYYYMMDD-HHmm'}},suffix=-x86
+            # 使用东八区日期-时间作为版本 (例如: 20251217-1345-x86)
+            type=raw,value={{date 'YYYYMMDD-HHmm' tz='Asia/Shanghai'}},suffix=-x86
             type=raw,value=x86,enable={{is_default_branch}}
 
       - name: Build and push x86 Docker image
