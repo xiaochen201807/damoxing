@@ -266,36 +266,38 @@
                         }
                     }
                 },
-                {
-                    "type": "button",
-                    "label": "全量导出",
-                    "className": "cxgzkz-toolbar-btn",
-                    "level": "default",
-                    "actionType": "download",
-                    "reload": "none",
-                    "api": {
-                        "method": "post",
-                        "url": "${rule_export_api}",
-                        "responseType": "blob"
-                    },
-                    "tooltip": "导出当前机构全部规则"
-                }
+                "bulkActions"
             ],
             "bulkActions": [
                 {
                     "type": "button",
-                    "label": "导出勾选项",
+                    "label": "导出",
+                    "className": "cxgzkz-toolbar-btn",
                     "level": "default",
-                    "actionType": "download",
-                    "reload": "none",
-                    "api": {
-                        "method": "post",
-                        "url": "${rule_export_api}",
-                        "data": {
-                            "ids": "${ids}"
-                        },
-                        "responseType": "blob"
-                    }
+                    "actionType": "custom",
+                    "onEvent": {
+                        "click": {
+                            "actions": [
+                                {
+                                    "actionType": "custom",
+                                    "script": "console.log('[cxgzkz export debug] event.data =', event.data); console.log('[cxgzkz export debug] ids =', event.data && event.data.ids); console.log('[cxgzkz export debug] items =', event.data && event.data.items); console.log('[cxgzkz export debug] rows =', event.data && event.data.rows); console.log('[cxgzkz export debug] selectedItems =', event.data && event.data.selectedItems);"
+                                },
+                                {
+                                    "actionType": "download",
+                                    "reload": "none",
+                                    "api": {
+                                        "method": "post",
+                                        "url": "${rule_export_api}",
+                                        "data": {
+                                            "ids": "${ids}"
+                                        },
+                                        "responseType": "blob"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "tooltip": "已勾选则导出勾选项，未勾选则导出全部"
                 }
             ],
             "footerToolbar": ["switch-per-page", "pagination", "statistics"],
