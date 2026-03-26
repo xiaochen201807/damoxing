@@ -268,7 +268,7 @@
                 },
                 {
                     "type": "button",
-                    "label": "导出",
+                    "label": "全量导出",
                     "className": "cxgzkz-toolbar-btn",
                     "level": "default",
                     "actionType": "download",
@@ -276,30 +276,28 @@
                     "api": {
                         "method": "post",
                         "url": "${rule_export_api}",
-                        "data": {
-                            "ids": "${_selectedIds}"
-                        },
                         "responseType": "blob"
                     },
-                    "tooltip": "已勾选则导出勾选项，未勾选则导出全部"
-                },
-                "bulkActions"
-            ],
-            "onEvent": {
-                "selectedChange": {
-                    "actions": [
-                        {
-                            "actionType": "setValue",
-                            "componentId": "main_filter_form",
-                            "args": {
-                                "value": {
-                                    "_selectedIds": "${event.data.selectedItems|pick:id|join}"
-                                }
-                            }
-                        }
-                    ]
+                    "tooltip": "导出当前机构全部规则"
                 }
-            },
+            ],
+            "bulkActions": [
+                {
+                    "type": "button",
+                    "label": "导出勾选项",
+                    "level": "default",
+                    "actionType": "download",
+                    "reload": "none",
+                    "api": {
+                        "method": "post",
+                        "url": "${rule_export_api}",
+                        "data": {
+                            "ids": "${ids}"
+                        },
+                        "responseType": "blob"
+                    }
+                }
+            ],
             "footerToolbar": ["switch-per-page", "pagination", "statistics"],
             "columns": [
                 {
