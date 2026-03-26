@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目详情 - AMis 页面</title>
+  <link rel="stylesheet" href="https://unpkg.com/amis@6.13.0/sdk/sdk.css">
+  <link rel="stylesheet" href="https://unpkg.com/amis@6.13.0/sdk/helper.css">
+  <link rel="stylesheet" href="https://unpkg.com/amis@6.13.0/sdk/iconfont.css">
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #f4f7fb;
+      color: #344055;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+
+    .detail-page {
+      background: transparent;
+    }
+
+    .detail-shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px 14px 30px;
+    }
+
+    .detail-panel {
+      padding: 18px 18px 12px;
+      border: 1px solid #e5edf8;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 10px 30px rgba(37, 74, 146, 0.06);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: #2a3951;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .section-title__bar {
+      width: 3px;
+      height: 14px;
+      border-radius: 999px;
+      background: #2f7cff;
+    }
+
+    .section-block {
+      margin-bottom: 18px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px 22px;
+      margin-bottom: 6px;
+    }
+
+    .info-item {
+      min-height: 32px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #58657a;
+    }
+
+    .info-label {
+      margin-right: 4px;
+      color: #7a8495;
+    }
+
+    .info-value {
+      color: #2f3a4a;
+    }
+
+    .task-stage-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .task-stage-card {
+      position: relative;
+      flex: 1 1 142px;
+      min-width: 136px;
+      max-width: 146px;
+      padding: 16px 12px 12px;
+      border: 1px solid #e4ebf5;
+      border-radius: 4px;
+      background: #ffffff;
+      box-sizing: border-box;
+      cursor: pointer;
+      appearance: none;
+      text-align: left;
+      font: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .task-stage-card::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      border: 2px solid #d0d7e4;
+      border-radius: 50%;
+      background: #ffffff;
+      transform: translateX(-50%);
+    }
+
+    .task-stage-card::after {
+      content: "";
+      position: absolute;
+      top: -6px;
+      right: -13px;
+      width: 14px;
+      border-top: 1px solid #e2e8f2;
+    }
+
+    .task-stage-card:last-child::after {
+      display: none;
+    }
+
+    .task-stage-card:hover {
+      transform: translateY(-1px);
+      border-color: #cfdcf5;
+      box-shadow: 0 8px 20px rgba(47, 124, 255, 0.08);
+    }
+
+    .task-stage-card.is-active {
+      border-color: #91bfff;
+      background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+      box-shadow: 0 10px 24px rgba(47, 124, 255, 0.12);
+    }
+
+    .task-stage-card.is-active::before {
+      border-color: #2f7cff;
+      background: #2f7cff;
+    }
+
+    .task-stage-card__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .task-stage-card__name {
+      color: #2d3a50;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .task-stage-card__range {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #8a95a7;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .date-icon {
+      width: 11px;
+      height: 11px;
+      border: 1px solid #c4cfde;
+      border-radius: 2px;
+      box-sizing: border-box;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .date-icon::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      right: 1px;
+      top: 2px;
+      border-top: 1px solid #c4cfde;
+    }
+
+    .stage-badge {
+      padding: 1px 6px;
+      border: 1px solid #d9e2ef;
+      border-radius: 3px;
+      font-size: 10px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .stage-badge--done {
+      border-color: #acd47f;
+      color: #628d1a;
+      background: #f6ffea;
+    }
+
+    .stage-badge--active {
+      border-color: #ffb1b8;
+      color: #db4b57;
+      background: #fff3f4;
+    }
+
+    .stage-badge--todo {
+      border-color: #d4dbe7;
+      color: #7e8798;
+      background: #f7f9fc;
+    }
+
+    .task-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: #617087;
+      font-size: 12px;
+    }
+
+    .task-chip {
+      padding: 5px 12px;
+      border: 1px solid #dbe4f1;
+      border-radius: 14px;
+      background: #f9fbff;
+      color: #4d5b72;
+    }
+
+    .task-group-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e7edf7;
+      background: #ffffff;
+      color: #46546b;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      transition: background 0.18s ease;
+    }
+
+    .task-group-item + .task-group-item,
+    .task-group-panel + .task-group-item {
+      margin-top: -1px;
+    }
+
+    .task-group-item:hover {
+      background: #f8fbff;
+    }
+
+    .task-group-item.is-active {
+      background: #fbfdff;
+      color: #2e3a4f;
+      font-weight: 600;
+      border-bottom-color: transparent;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .task-group-item__caret {
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 6px solid #7c889c;
+      transition: transform 0.18s ease;
+    }
+
+    .task-group-item.is-active .task-group-item__caret {
+      transform: rotate(90deg);
+      border-left-color: #2f7cff;
+    }
+
+    .task-group-item__count {
+      color: #8a95a7;
+      font-weight: 400;
+    }
+
+    .task-group-panel {
+      margin-bottom: 0;
+      border: 1px solid #e7edf7;
+      border-top: 0;
+      border-radius: 0 0 4px 4px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .task-table {
+      overflow: hidden;
+      border: 0;
+      border-radius: 0;
+      background: #ffffff;
+    }
+
+    .task-table .cxd-Table {
+      margin-bottom: 0;
+    }
+
+    .task-table table {
+      table-layout: fixed;
+    }
+
+    .task-table table thead th {
+      padding: 10px 8px;
+      border-color: #dfe7f3;
+      background: #dbeafe;
+      color: #415067;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .task-table table tbody td {
+      padding: 9px 8px;
+      border-color: #edf2f9;
+      background: #ffffff;
+      color: #425066;
+      font-size: 12px;
+      line-height: 1.45;
+      vertical-align: middle;
+    }
+
+    .task-table table tbody tr:hover td {
+      background: #f8fbff;
+    }
+
+    .task-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .task-status__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7c889c;
+      flex-shrink: 0;
+    }
+
+    .task-status--done .task-status__dot {
+      background: #6ac530;
+      box-shadow: 0 0 0 3px rgba(106, 197, 48, 0.12);
+    }
+
+    .task-status--progress .task-status__dot {
+      background: #2f7cff;
+      box-shadow: 0 0 0 3px rgba(47, 124, 255, 0.12);
+    }
+
+    .task-status--todo .task-status__dot {
+      background: #a8b3c4;
+      box-shadow: 0 0 0 3px rgba(168, 179, 196, 0.12);
+    }
+
+    .task-pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      padding: 10px 12px 12px;
+      color: #6b778b;
+      font-size: 12px;
+      border-top: 1px solid #edf2f9;
+    }
+
+    .task-pager__pages {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .task-pager__arrow,
+    .task-pager__page {
+      min-width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #657285;
+      cursor: pointer;
+      font: inherit;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+
+    .task-pager__arrow:hover,
+    .task-pager__page:hover {
+      background: #eef4ff;
+      color: #2f7cff;
+    }
+
+    .task-pager__page.is-active {
+      background: #2f7cff;
+      color: #ffffff;
+    }
+
+    .task-pager__arrow[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      background: transparent;
+      color: #657285;
+    }
+
+    .task-pager__size,
+    .task-pager__jump {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border: 1px solid #dce5f2;
+      border-radius: 4px;
+      background: #ffffff;
+    }
+
+    .task-pager__jump {
+      padding: 0;
+    }
+
+    .task-pager__input {
+      width: 34px;
+      height: 20px;
+      border: 0;
+      outline: none;
+      text-align: center;
+      color: #425066;
+      background: transparent;
+      font: inherit;
+    }
+
+    .resource-table {
+      border: 1px solid #e4ebf5;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .resource-table__header,
+    .resource-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px;
+      align-items: center;
+    }
+
+    .resource-table__header {
+      background: #dbeafe;
+      color: #425066;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .resource-table__header span,
+    .resource-row span {
+      padding: 10px 12px;
+      box-sizing: border-box;
+    }
+
+    .resource-row {
+      border-top: 1px solid #edf2f9;
+      color: #425066;
+      font-size: 12px;
+      background: #ffffff;
+    }
+
+    .resource-row:hover {
+      background: #f8fbff;
+    }
+
+    .resource-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .resource-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border: 0;
+      background: transparent;
+      color: #788496;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+    }
+
+    .resource-toggle::before {
+      content: "";
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 5px solid currentColor;
+      transition: transform 0.18s ease;
+    }
+
+    .resource-toggle.is-open::before {
+      transform: rotate(90deg);
+    }
+
+    .resource-toggle--ghost {
+      cursor: default;
+      opacity: 0;
+    }
+
+    .resource-count {
+      color: #627086;
+      text-align: left;
+    }
+
+    .section-note {
+      margin-top: 8px;
+      color: #8b96a8;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .task-stage-card {
+        max-width: none;
+      }
+
+      .task-pager {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .detail-shell {
+        padding: 14px 10px 24px;
+      }
+
+      .detail-panel {
+        padding: 14px 12px 10px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .task-stage-card {
+        min-width: 100%;
+      }
+
+      .resource-table__header,
+      .resource-row {
+        grid-template-columns: minmax(0, 1fr) 84px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/amis@6.13.0/sdk/sdk.js"></script>
+  <script>
+    (function () {
+      var amis = amisRequire('amis/embed');
+
+      var INFO_FIELDS = [
+        { label: '交付项目名称', value: '咸阳中心2026年贝贝2.0升级项目（农行）(SY-WA)' },
+        { label: '项目经理', value: '关晔' },
+        { label: '客户名称', value: '咸阳公积金中心' },
+        { label: '运营项目名称', value: '安泰伟奥运营项目-2026' },
+        { label: '项目经理', value: '史磊' },
+        { label: '项目阶段', value: '产品准备' }
+      ];
+
+      var STAGES = [
+        { name: '接收交付任务书', status: '已完成', statusKey: 'done', start: '2026-01-01', end: '2026-02-28' },
+        { name: '业务分析评审', status: '已完成', statusKey: 'done', start: '2026-03-01', end: '2026-04-30' },
+        { name: '公共资源初始化', status: '未完成', statusKey: 'active', start: '2026-05-01', end: '2026-06-30' },
+        { name: '任务制定及分配', status: '已完成', statusKey: 'done', start: '2026-07-01', end: '2026-08-31' },
+        { name: '软件生产配置', status: '未开始', statusKey: 'todo', start: '2026-09-01', end: '2026-10-31' },
+        { name: '软件生产质检', status: '未开始', statusKey: 'todo', start: '2026-11-01', end: '2026-12-31' },
+        { name: '交付成果物', status: '未开始', statusKey: 'todo', start: '2027-01-01', end: '2027-02-28' }
+      ];
+
+      var GROUPS = [
+        { name: '任务发布', count: 20 },
+        { name: '需求填报', count: 7 },
+        { name: '故障填报', count: 12 }
+      ];
+
+      var SPONSORS = ['赵耀辉', '戴洋', '夏硕云', '杨源', '赵中思', '叶杰', '程岚', '董若', '钱荷', '棠锦彬', '周也', '陈青'];
+      var TASK_NAMES = ['提取模型', '贷款模型', '数据资源管理', '后勤保障', '财务资金管理', '组织人员资源管理', '业务执行', '行政办公', '业务管理', '服务对象管理', '资源池同步', '标准字典发布'];
+      var SOURCES = ['任务来源', '系统分发', '运营下发'];
+
+      var RESOURCE_TREE = [
+        {
+          id: 'data-resource',
+          name: '数据资源',
+          count: 291,
+          children: [
+            { id: 'data-object', name: '对象', count: 979 },
+            { id: 'data-deposit', name: '缴存单位', count: 926 },
+            { id: 'data-developer', name: '开发商', count: 813 }
+          ]
+        },
+        {
+          id: 'biz-resource',
+          name: '业务资源',
+          count: 764,
+          children: [
+            { id: 'biz-interface', name: '接口目录', count: 248 },
+            { id: 'biz-template', name: '模板映射', count: 159 }
+          ]
+        },
+        {
+          id: 'biz-category',
+          name: '业务分类',
+          count: 845,
+          children: [
+            { id: 'biz-rule', name: '规则分类', count: 332 },
+            { id: 'biz-scene', name: '场景标签', count: 204 }
+          ]
+        }
+      ];
+
+      var state = {
+        activeStage: '公共资源初始化',
+        activeGroup: '任务发布',
+        currentPage: 1,
+        pageSize: 10,
+        expandedResources: {
+          'data-resource': true,
+          'biz-resource': false,
+          'biz-category': false
+        }
+      };
+
+      var allTasks = buildTasks();
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function pad(value) {
+        return String(value).padStart(2, '0');
+      }
+
+      function buildTasks() {
+        var rows = [];
+
+        STAGES.forEach(function (stage, stageIndex) {
+          GROUPS.forEach(function (group, groupIndex) {
+            for (var i = 1; i <= group.count; i += 1) {
+              var statusInfo = getTaskStatus(stage.statusKey, i, groupIndex);
+              rows.push({
+                stage: stage.name,
+                group: group.name,
+                itemName: group.name + '-' + pad(i),
+                serialNo: i,
+                sponsor: SPONSORS[(stageIndex * 3 + i) % SPONSORS.length],
+                taskId: 'HB' + (123400000 + stageIndex * 1000 + groupIndex * 100 + i),
+                taskName: TASK_NAMES[(i + groupIndex + stageIndex) % TASK_NAMES.length],
+                source: SOURCES[(i + groupIndex) % SOURCES.length],
+                dueDate: calcDueDate(stage, i),
+                status: statusInfo.label,
+                statusKey: statusInfo.key
+              });
+            }
+          });
+        });
+
+        return rows;
+      }
+
+      function calcDueDate(stage, index) {
+        var baseMonth = parseInt(stage.start.slice(5, 7), 10);
+        var month = baseMonth + Math.floor((index - 1) / 6);
+        var day = ((index * 3) % 27) + 1;
+        return '2026-' + pad(Math.min(month, 12)) + '-' + pad(day);
+      }
+
+      function getTaskStatus(stageStatusKey, index, groupIndex) {
+        if (stageStatusKey === 'done') {
+          return { label: '已完成', key: 'done' };
+        }
+
+        if (stageStatusKey === 'todo') {
+          return { label: '未开始', key: 'todo' };
+        }
+
+        if (groupIndex === 0) {
+          return index % 5 === 0 ? { label: '处理中', key: 'progress' } : { label: '已完成', key: 'done' };
+        }
+
+        return index % 3 === 0 ? { label: '处理中', key: 'progress' } : { label: '未开始', key: 'todo' };
+      }
+
+      function buildInfoGrid(fields) {
+        return '<div class="info-grid">' + fields.map(function (field) {
+          return (
+            '<div class="info-item">' +
+              '<span class="info-label">' + escapeHtml(field.label) + ':</span>' +
+              '<span class="info-value">' + escapeHtml(field.value) + '</span>' +
+            '</div>'
+          );
+        }).join('') + '</div>';
+      }
+
+      function buildStageStrip(stages, activeStage) {
+        return '<div class="task-stage-strip">' + stages.map(function (stage) {
+          var activeClass = stage.name === activeStage ? ' is-active' : '';
+          return (
+            '<button type="button" class="task-stage-card' + activeClass + '" data-role="stage" data-stage="' + escapeHtml(stage.name) + '">' +
+              '<div class="task-stage-card__head">' +
+                '<div class="task-stage-card__name">' + escapeHtml(stage.name) + '</div>' +
+                '<span class="stage-badge stage-badge--' + escapeHtml(stage.statusKey) + '">' + escapeHtml(stage.status) + '</span>' +
+              '</div>' +
+              '<div class="task-stage-card__range"><span class="date-icon"></span><span>' + escapeHtml(stage.start) + ' ~ ' + escapeHtml(stage.end) + '</span></div>' +
+            '</button>'
+          );
+        }).join('') + '</div>';
+      }
+
+      function getGroupStats(activeStage) {
+        return GROUPS.map(function (group) {
+          return {
+            name: group.name,
+            count: allTasks.filter(function (task) {
+              return task.stage === activeStage && task.group === group.name;
+            }).length
+          };
+        });
+      }
+
+      function buildTaskGroup(group, activeGroup) {
+        var activeClass = group.name === activeGroup ? ' is-active' : '';
+        return (
+          '<button type="button" class="task-group-item' + activeClass + '" data-role="group" data-group="' + escapeHtml(group.name) + '">' +
+            '<span class="task-group-item__caret"></span>' +
+            '<span>' + escapeHtml(group.name) + '</span>' +
+            '<span class="task-group-item__count">' + escapeHtml(group.count) + '条</span>' +
+          '</button>'
+        );
+      }
+
+      function getVisibleTasks() {
+        if (!state.activeGroup) {
+          return [];
+        }
+
+        return allTasks.filter(function (task) {
+          return task.stage === state.activeStage && task.group === state.activeGroup;
+        });
+      }
+
+      function buildPageList(totalPages, currentPage) {
+        if (totalPages <= 6) {
+          return Array.from({ length: totalPages }, function (_, index) {
+            return index + 1;
+          });
+        }
+
+        var pages = [1];
+        var start = Math.max(2, currentPage - 1);
+        var end = Math.min(totalPages - 1, currentPage + 1);
+
+        if (start > 2) {
+          pages.push('...');
+        }
+
+        for (var page = start; page <= end; page += 1) {
+          pages.push(page);
+        }
+
+        if (end < totalPages - 1) {
+          pages.push('...');
+        }
+
+        pages.push(totalPages);
+        return pages;
+      }
+
+      function buildTaskPager(pagination) {
+        if (!pagination.totalPages) {
+          return '<div class="section-note">当前任务分组下暂无数据</div>';
+        }
+
+        var pages = pagination.pages.map(function (page) {
+          if (page === '...') {
+            return '<span>...</span>';
+          }
+
+          var activeClass = page === pagination.current ? ' is-active' : '';
+          return '<button type="button" class="task-pager__page' + activeClass + '" data-role="page" data-page="' + escapeHtml(page) + '">' + escapeHtml(page) + '</button>';
+        }).join('');
+
+        return (
+          '<div class="task-pager">' +
+            '<span>共 ' + escapeHtml(pagination.total) + ' 条</span>' +
+            '<div class="task-pager__pages">' +
+              '<button type="button" class="task-pager__arrow" data-role="page-nav" data-nav="prev" ' + (pagination.current <= 1 ? 'disabled' : '') + '>&lt;</button>' +
+              pages +
+              '<button type="button" class="task-pager__arrow" data-role="page-nav" data-nav="next" ' + (pagination.current >= pagination.totalPages ? 'disabled' : '') + '>&gt;</button>' +
+              '<span class="task-pager__size">' + escapeHtml(state.pageSize) + '条/页</span>' +
+              '<span>跳至</span>' +
+              '<span class="task-pager__jump"><input class="task-pager__input" data-role="jump-input" inputmode="numeric" value="' + escapeHtml(pagination.current) + '"></span>' +
+              '<span>页</span>' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      function flattenResources(nodes, level, rows) {
+        nodes.forEach(function (node) {
+          var hasChildren = Array.isArray(node.children) && node.children.length > 0;
+          rows.push({
+            id: node.id,
+            name: node.name,
+            count: node.count,
+            level: level,
+            hasChildren: hasChildren,
+            expanded: !!state.expandedResources[node.id]
+          });
+
+          if (hasChildren && state.expandedResources[node.id]) {
+            flattenResources(node.children, level + 1, rows);
+          }
+        });
+      }
+
+      function buildResourceTable(rows) {
+        return (
+          '<div class="resource-table">' +
+            '<div class="resource-table__header">' +
+              '<span>资源目录</span>' +
+              '<span>资源数</span>' +
+            '</div>' +
+            rows.map(function (row) {
+              var indent = row.level * 22;
+              var toggle = row.hasChildren
+                ? '<button type="button" class="resource-toggle' + (row.expanded ? ' is-open' : '') + '" data-role="resource-toggle" data-resource-id="' + escapeHtml(row.id) + '"></button>'
+                : '<span class="resource-toggle resource-toggle--ghost"></span>';
+
+              return (
+                '<div class="resource-row">' +
+                  '<span>' +
+                    '<div class="resource-label" style="padding-left:' + indent + 'px">' +
+                      toggle +
+                      '<span>' + escapeHtml(row.name) + '</span>' +
+                    '</div>' +
+                  '</span>' +
+                  '<span class="resource-count">' + escapeHtml(row.count) + '</span>' +
+                '</div>'
+              );
+            }).join('') +
+          '</div>'
+        );
+      }
+
+      function buildViewModel() {
+        var groupStats = getGroupStats(state.activeStage);
+        var activeGroupExists = state.activeGroup && groupStats.some(function (group) {
+          return group.name === state.activeGroup && group.count > 0;
+        });
+
+        if (state.activeGroup && !activeGroupExists) {
+          state.activeGroup = null;
+        }
+
+        var visibleTasks = getVisibleTasks();
+        var total = visibleTasks.length;
+        var totalPages = total === 0 ? 0 : Math.ceil(total / state.pageSize);
+
+        if (totalPages > 0 && state.currentPage > totalPages) {
+          state.currentPage = totalPages;
+        }
+
+        if (state.currentPage < 1) {
+          state.currentPage = 1;
+        }
+
+        var start = (state.currentPage - 1) * state.pageSize;
+        var pagedTasks = visibleTasks.slice(start, start + state.pageSize);
+        var resourceRows = [];
+
+        flattenResources(RESOURCE_TREE, 0, resourceRows);
+
+        return {
+          pagedTasks: pagedTasks,
+          groupStats: groupStats,
+          pagination: {
+            total: total,
+            totalPages: totalPages,
+            current: totalPages ? state.currentPage : 0,
+            pages: buildPageList(totalPages, state.currentPage)
+          },
+          resourceRows: resourceRows
+        };
+      }
+
+      function createTaskTableSchema() {
+        return {
+          type: 'table',
+          source: '${pagedTasks}',
+          className: 'task-table',
+          affixHeader: false,
+          columnsTogglable: false,
+          placeholder: '暂无任务数据',
+          tableLayout: 'fixed',
+          columns: [
+            {
+              name: 'itemName',
+              label: '任务项名称',
+              width: 120
+            },
+            {
+              name: 'serialNo',
+              label: '流水数',
+              width: 78
+            },
+            {
+              name: 'sponsor',
+              label: '发起人',
+              width: 88
+            },
+            {
+              name: 'taskId',
+              label: '任务ID',
+              width: 124
+            },
+            {
+              name: 'taskName',
+              label: '任务名称',
+              width: 140
+            },
+            {
+              name: 'source',
+              label: '任务来源',
+              width: 110
+            },
+            {
+              name: 'dueDate',
+              label: '要求完成时间',
+              width: 126
+            },
+            {
+              name: 'status',
+              label: '任务状态',
+              width: 96,
+              type: 'tpl',
+              tpl: '<span class="task-status task-status--${statusKey}"><span class="task-status__dot"></span>${status}</span>'
+            }
+          ]
+        };
+      }
+
+      function createTaskAccordionBody(viewModel) {
+        var body = [
+          {
+            type: 'tpl',
+            inline: false,
+            tpl: '<div class="section-title"><span class="section-title__bar"></span><span>任务清单</span></div>' + buildStageStrip(STAGES, state.activeStage) + '<div class="task-filter-bar"><span class="task-chip">全部</span><span>当前阶段：' + escapeHtml(state.activeStage) + '</span></div>'
+          }
+        ];
+
+        viewModel.groupStats.forEach(function (group) {
+          var expanded = group.name === state.activeGroup;
+
+          body.push({
+            type: 'tpl',
+            inline: false,
+            tpl: buildTaskGroup(group, state.activeGroup)
+          });
+
+          if (!expanded) {
+            return;
+          }
+
+          body.push({
+            type: 'container',
+            className: 'task-group-panel',
+            body: [
+              createTaskTableSchema(),
+              {
+                type: 'tpl',
+                inline: false,
+                tpl: buildTaskPager(viewModel.pagination)
+              }
+            ]
+          });
+        });
+
+        return body;
+      }
+
+      function createSchema(viewModel) {
+        return {
+          type: 'page',
+          className: 'detail-page',
+          data: viewModel,
+          body: {
+            type: 'container',
+            className: 'detail-shell',
+            body: {
+              type: 'container',
+              className: 'detail-panel',
+              body: [
+                {
+                  type: 'tpl',
+                  inline: false,
+                  className: 'section-block',
+                  tpl: '<div class="section-title"><span class="section-title__bar"></span><span>项目基本信息</span></div>' + buildInfoGrid(INFO_FIELDS)
+                }
+              ].concat(createTaskAccordionBody(viewModel)).concat([
+                {
+                  type: 'tpl',
+                  inline: false,
+                  className: 'section-block',
+                  tpl: '<div class="section-title"><span class="section-title__bar"></span><span>资源清单</span></div>' + buildResourceTable(viewModel.resourceRows)
+                }
+              ])
+            }
+          }
+        };
+      }
+
+      function renderApp() {
+        var root = document.getElementById('root');
+
+        if (window.ReactDOM && typeof window.ReactDOM.unmountComponentAtNode === 'function') {
+          try {
+            window.ReactDOM.unmountComponentAtNode(root);
+          } catch (error) {
+            console.warn('Unmount previous AMis view failed:', error);
+          }
+        }
+
+        root.innerHTML = '';
+        amis.embed('#root', createSchema(buildViewModel()), {}, { updateLocation: false });
+      }
+
+      function goToPage(page) {
+        var visibleTasks = getVisibleTasks();
+        var totalPages = Math.max(1, Math.ceil(visibleTasks.length / state.pageSize) || 1);
+        state.currentPage = Math.min(Math.max(page, 1), totalPages);
+        renderApp();
+      }
+
+      document.addEventListener('click', function (event) {
+        var target = event.target.closest('[data-role]');
+
+        if (!target) {
+          return;
+        }
+
+        var role = target.getAttribute('data-role');
+
+        if (role === 'stage') {
+          state.activeStage = target.getAttribute('data-stage');
+          state.currentPage = 1;
+          renderApp();
+          return;
+        }
+
+        if (role === 'group') {
+          var groupName = target.getAttribute('data-group');
+          state.activeGroup = state.activeGroup === groupName ? null : groupName;
+          state.currentPage = 1;
+          renderApp();
+          return;
+        }
+
+        if (role === 'page') {
+          goToPage(parseInt(target.getAttribute('data-page'), 10));
+          return;
+        }
+
+        if (role === 'page-nav') {
+          goToPage(state.currentPage + (target.getAttribute('data-nav') === 'prev' ? -1 : 1));
+          return;
+        }
+
+        if (role === 'resource-toggle') {
+          var id = target.getAttribute('data-resource-id');
+          state.expandedResources[id] = !state.expandedResources[id];
+          renderApp();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (!event.target.classList.contains('task-pager__input') || event.key !== 'Enter') {
+          return;
+        }
+
+        var page = parseInt(event.target.value, 10);
+
+        if (!isNaN(page)) {
+          goToPage(page);
+        }
+      });
+
+      document.addEventListener('change', function (event) {
+        if (!event.target.classList.contains('task-pager__input')) {
+          return;
+        }
+
+        var page = parseInt(event.target.value, 10);
+
+        if (!isNaN(page)) {
+          goToPage(page);
+          return;
+        }
+
+        renderApp();
+      });
+
+      renderApp();
+    })();
+  </script>
+</body>
+</html>

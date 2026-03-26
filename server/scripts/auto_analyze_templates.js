@@ -74,6 +74,12 @@ const TEMPLATE_METADATA = {
         description: 'AI稽核模型卡片展示页面，支持1个API配置（模型列表）',
         preview_image: '/templates/audit_ai_models.png',
         theme_id: 'antd'
+    },
+    'project_detail': {
+        template_name: '项目详情',
+        description: '项目详情看板页面，支持项目基本信息、阶段概览、任务清单和资源清单接口配置',
+        preview_image: '/templates/project_detail.png',
+        theme_id: 'antd'
     }
 };
 

@@ -1,0 +1,507 @@
+{#
+  项目详情页面 AMIS 模板
+
+  @param title 页面标题
+  @param project_summary_api 项目基本信息接口 URL
+  @param project_summary_params 项目基本信息接口参数
+  @param project_stage_api 项目阶段概览接口 URL
+  @param project_stage_params 项目阶段概览接口参数
+  @param project_group_api 任务分组接口 URL
+  @param project_group_params 任务分组接口参数
+  @param project_task_api 任务清单接口 URL
+  @param project_task_params 任务清单接口参数
+  @param project_resource_api 资源清单接口 URL
+  @param project_resource_params 资源清单接口参数
+  @param default_page_size 任务清单默认每页条数
+#}
+{
+    "type": "page",
+    "title": "{{ title | default('项目详情') }}",
+    "className": "detail-page",
+    "css": {
+        ".detail-page": {
+            "background": "#f4f7fb"
+        },
+        ".detail-shell": {
+            "maxWidth": "1320px",
+            "margin": "0 auto",
+            "padding": "22px 14px 30px"
+        },
+        ".detail-panel": {
+            "padding": "18px 18px 12px",
+            "border": "1px solid #e5edf8",
+            "borderRadius": "6px",
+            "background": "#ffffff",
+            "boxShadow": "0 10px 30px rgba(37, 74, 146, 0.06)"
+        },
+        ".section-block": {
+            "marginBottom": "20px"
+        },
+        ".section-title": {
+            "display": "flex",
+            "alignItems": "center",
+            "gap": "8px",
+            "marginBottom": "14px",
+            "color": "#2a3951",
+            "fontSize": "15px",
+            "fontWeight": "600"
+        },
+        ".section-title__bar": {
+            "width": "3px",
+            "height": "14px",
+            "borderRadius": "999px",
+            "background": "#2f7cff"
+        },
+        ".info-card-grid .cxd-Cards-items": {
+            "display": "grid",
+            "gridTemplateColumns": "repeat(3, minmax(0, 1fr))",
+            "gap": "14px 22px"
+        },
+        ".info-card-grid .cxd-Cards-item": {
+            "marginBottom": "0"
+        },
+        ".info-card": {
+            "minHeight": "32px",
+            "padding": "0",
+            "border": "0",
+            "borderRadius": "0",
+            "background": "transparent",
+            "boxShadow": "none"
+        },
+        ".info-item": {
+            "minHeight": "32px",
+            "fontSize": "12px",
+            "lineHeight": "1.6",
+            "color": "#58657a"
+        },
+        ".info-label": {
+            "marginRight": "4px",
+            "color": "#7a8495",
+            "fontSize": "12px"
+        },
+        ".info-value": {
+            "color": "#2f3a4a",
+            "fontSize": "12px",
+            "fontWeight": "600"
+        },
+        ".stage-card-grid .cxd-Cards-items": {
+            "display": "flex",
+            "flexWrap": "wrap",
+            "gap": "12px"
+        },
+        ".stage-card-grid .cxd-Cards-item": {
+            "marginBottom": "0",
+            "flex": "1 1 142px",
+            "minWidth": "136px",
+            "maxWidth": "146px"
+        },
+        ".task-stage-card": {
+            "position": "relative",
+            "padding": "16px 12px 12px",
+            "border": "1px solid #e4ebf5",
+            "borderRadius": "4px",
+            "background": "#ffffff",
+            "boxSizing": "border-box",
+            "transition": "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease"
+        },
+        ".task-stage-card:hover": {
+            "transform": "translateY(-1px)",
+            "borderColor": "#cfdcf5",
+            "boxShadow": "0 8px 20px rgba(47, 124, 255, 0.08)"
+        },
+        ".task-stage-card::before": {
+            "content": "\"\"",
+            "position": "absolute",
+            "top": "-10px",
+            "left": "50%",
+            "width": "8px",
+            "height": "8px",
+            "border": "2px solid #d0d7e4",
+            "borderRadius": "50%",
+            "background": "#ffffff",
+            "transform": "translateX(-50%)"
+        },
+        ".task-stage-card::after": {
+            "content": "\"\"",
+            "position": "absolute",
+            "top": "-6px",
+            "right": "-13px",
+            "width": "14px",
+            "borderTop": "1px solid #e2e8f2"
+        },
+        ".stage-card-grid .cxd-Cards-item:last-child .task-stage-card::after": {
+            "display": "none"
+        },
+        ".task-stage-card__head": {
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "gap": "8px",
+            "marginBottom": "10px"
+        },
+        ".task-stage-card__name": {
+            "color": "#2d3a50",
+            "fontSize": "14px",
+            "fontWeight": "600",
+            "lineHeight": "1.4"
+        },
+        ".task-stage-card__date": {
+            "marginBottom": "6px",
+            "color": "#8a95a7",
+            "fontSize": "11px"
+        },
+        ".task-stage-card__meta": {
+            "color": "#526178",
+            "fontSize": "12px"
+        },
+        ".stage-badge": {
+            "padding": "1px 6px",
+            "border": "1px solid #d9e2ef",
+            "borderRadius": "3px",
+            "fontSize": "10px",
+            "lineHeight": "1.5",
+            "whiteSpace": "nowrap"
+        },
+        ".stage-badge--done": {
+            "borderColor": "#acd47f",
+            "color": "#628d1a",
+            "background": "#f6ffea"
+        },
+        ".stage-badge--active": {
+            "borderColor": "#ffb1b8",
+            "color": "#db4b57",
+            "background": "#fff3f4"
+        },
+        ".stage-badge--todo": {
+            "borderColor": "#d4dbe7",
+            "color": "#7e8798",
+            "background": "#f7f9fc"
+        },
+        ".detail-crud .cxd-CRUD-header": {
+            "padding": "0 0 12px"
+        },
+        ".detail-crud .cxd-CRUD-filter": {
+            "marginBottom": "10px"
+        },
+        ".detail-crud .cxd-CRUD-filter": {
+            "padding": "0"
+        },
+        ".detail-crud .cxd-Form--inline .cxd-Form-item": {
+            "marginRight": "12px",
+            "marginBottom": "10px"
+        },
+        ".detail-crud .cxd-Form--inline .cxd-Form-control": {
+            "minWidth": "220px"
+        },
+        ".detail-crud .cxd-CRUD-body": {
+            "border": "1px solid #e7edf7",
+            "borderRadius": "6px",
+            "overflow": "hidden",
+            "background": "#ffffff"
+        },
+        ".detail-crud table thead th": {
+            "background": "#dbeafe",
+            "color": "#415067",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "textAlign": "center"
+        },
+        ".detail-crud table tbody td": {
+            "color": "#425066",
+            "fontSize": "12px",
+            "verticalAlign": "middle",
+            "lineHeight": "1.45"
+        },
+        ".detail-crud table tbody tr:hover td": {
+            "background": "#f8fbff"
+        },
+        ".task-status": {
+            "display": "inline-flex",
+            "alignItems": "center",
+            "gap": "6px",
+            "whiteSpace": "nowrap"
+        },
+        ".task-status__dot": {
+            "width": "6px",
+            "height": "6px",
+            "borderRadius": "50%",
+            "background": "#7c889c",
+            "flexShrink": "0"
+        },
+        ".task-status--done .task-status__dot": {
+            "background": "#6ac530"
+        },
+        ".task-status--progress .task-status__dot": {
+            "background": "#2f7cff"
+        },
+        ".task-status--todo .task-status__dot": {
+            "background": "#a8b3c4"
+        },
+        ".section-note": {
+            "marginTop": "8px",
+            "color": "#8b96a8",
+            "fontSize": "12px"
+        },
+        ".resource-name": {
+            "display": "flex",
+            "alignItems": "center",
+            "gap": "8px"
+        },
+        ".resource-count": {
+            "color": "#627086"
+        },
+        "@media (max-width: 980px)": {
+            ".info-card-grid .cxd-Cards-items": {
+                "gridTemplateColumns": "repeat(2, minmax(0, 1fr))"
+            }
+        },
+        "@media (max-width: 640px)": {
+            ".detail-shell": {
+                "padding": "14px 10px 24px"
+            },
+            ".detail-panel": {
+                "padding": "14px 12px 10px"
+            },
+            ".info-card-grid .cxd-Cards-items": {
+                "gridTemplateColumns": "1fr"
+            }
+        }
+    },
+    "data": {
+        "project_summary_api": "{{ project_summary_api | default(GLOBAL_API_PREFIX + '/project_detailmock/summary') }}",
+        "project_summary_params": {{ project_summary_params | default({}) | fromjson | tojson }},
+        "project_stage_api": "{{ project_stage_api | default(GLOBAL_API_PREFIX + '/project_detailmock/stages') }}",
+        "project_stage_params": {{ project_stage_params | default({}) | fromjson | tojson }},
+        "project_group_api": "{{ project_group_api | default(GLOBAL_API_PREFIX + '/project_detailmock/task-groups') }}",
+        "project_group_params": {{ project_group_params | default({}) | fromjson | tojson }},
+        "project_task_api": "{{ project_task_api | default(GLOBAL_API_PREFIX + '/project_detailmock/tasks') }}",
+        "project_task_params": {{ project_task_params | default({}) | fromjson | tojson }},
+        "project_resource_api": "{{ project_resource_api | default(GLOBAL_API_PREFIX + '/project_detailmock/resources') }}",
+        "project_resource_params": {{ project_resource_params | default({}) | fromjson | tojson }},
+        "default_page_size": {{ default_page_size | default(10) }}
+    },
+    "body": {
+        "type": "container",
+        "className": "detail-shell",
+        "body": {
+            "type": "container",
+            "className": "detail-panel",
+            "body": [
+                {
+                    "type": "service",
+                    "className": "section-block",
+                    "api": {
+                        "method": "post",
+                        "url": "${project_summary_api}",
+                        "data": "${project_summary_params}",
+                        "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.summaryItems) ? src.summaryItems : (Array.isArray(src.items) ? src.items : []); return {summaryItems: list.map(item => ({label: item.label || item.name || '-', value: item.value || item.text || '-'}))};"
+                    },
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "inline": false,
+                            "tpl": "<div class='section-title'><span class='section-title__bar'></span><span>项目基本信息</span></div>"
+                        },
+                        {
+                            "type": "cards",
+                            "source": "${summaryItems}",
+                            "className": "info-card-grid",
+                            "placeholder": "暂无项目信息",
+                            "card": {
+                                "className": "info-card",
+                                "body": [
+                                    {
+                                        "type": "tpl",
+                                        "tpl": "<div class='info-item'><span class='info-label'>${label}:</span><span class='info-value'>${value || '-'}</span></div>"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "service",
+                    "className": "section-block",
+                    "api": {
+                        "method": "post",
+                        "url": "${project_stage_api}",
+                        "data": "${project_stage_params}",
+                        "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : (Array.isArray(src) ? src : [])); return {stageItems: list.map(item => ({name: item.name || item.stageName || item.label || '-', status: item.status || item.stageStatus || '-', statusKey: item.statusKey || item.stageStatusKey || 'todo', start: item.start || item.startDate || '-', end: item.end || item.endDate || '-', taskCount: item.taskCount || item.count || 0}))};"
+                    },
+                    "body": [
+                        {
+                            "type": "tpl",
+                            "inline": false,
+                            "tpl": "<div class='section-title'><span class='section-title__bar'></span><span>项目阶段概览</span></div>"
+                        },
+                        {
+                            "type": "cards",
+                            "source": "${stageItems}",
+                            "className": "stage-card-grid",
+                            "placeholder": "暂无阶段数据",
+                            "card": {
+                                "className": "task-stage-card",
+                                "body": [
+                                    {
+                                        "type": "tpl",
+                                        "tpl": "<div class='task-stage-card__head'><div class='task-stage-card__name'>${name}</div><span class='stage-badge stage-badge--${statusKey || \"todo\"}'>${status || \"未开始\"}</span></div><div class='task-stage-card__date'>${start || \"-\"} ~ ${end || \"-\"}</div><div class='task-stage-card__meta'>${taskCount || 0} 条任务</div>"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "crud",
+                    "id": "project_task_crud",
+                    "className": "detail-crud section-block",
+                    "syncLocation": false,
+                    "api": {
+                        "method": "post",
+                        "url": "${project_task_api}",
+                        "data": {
+                            "&": "${project_task_params}",
+                            "stage": "${stage}",
+                            "group": "${task_group}"
+                        },
+                        "adaptor": "const src = payload.data || payload || {}; const items = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : []); const total = src.total !== undefined ? src.total : items.length; return {...payload, data: {items, total}};"
+                    },
+                    "perPage": {{ default_page_size | default(10) }},
+                    "headerToolbar": [],
+                    "footerToolbar": ["statistics", "pagination", "switch-per-page"],
+                    "filter": {
+                        "title": "",
+                        "submitText": "",
+                        "type": "form",
+                        "mode": "inline",
+                        "wrapWithPanel": false,
+                        "body": [
+                            {
+                                "type": "tpl",
+                                "inline": false,
+                                "tpl": "<div class='section-title'><span class='section-title__bar'></span><span>任务清单</span></div><div class='section-note'>可按项目阶段和任务分组筛选当前任务。</div>"
+                            },
+                            {
+                                "type": "select",
+                                "name": "stage",
+                                "label": "项目阶段",
+                                "clearable": true,
+                                "searchable": true,
+                                "source": {
+                                    "method": "post",
+                                    "url": "${project_stage_api}",
+                                    "data": "${project_stage_params}",
+                                    "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : (Array.isArray(src) ? src : [])); return {options: list.map(item => ({label: item.name || item.stageName || item.label || '-', value: item.name || item.stageName || item.value || ''}))};"
+                                }
+                            },
+                            {
+                                "type": "select",
+                                "name": "task_group",
+                                "label": "任务分组",
+                                "clearable": true,
+                                "searchable": true,
+                                "source": {
+                                    "method": "post",
+                                    "url": "${project_group_api}",
+                                    "data": {
+                                        "&": "${project_group_params}",
+                                        "stage": "${stage}"
+                                    },
+                                    "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : (Array.isArray(src) ? src : [])); return {options: list.map(item => ({label: item.name || item.groupName || item.label || '-', value: item.name || item.groupName || item.value || ''}))};"
+                                }
+                            },
+                            {
+                                "type": "submit",
+                                "label": "查询",
+                                "level": "primary"
+                            },
+                            {
+                                "type": "reset",
+                                "label": "重置"
+                            }
+                        ]
+                    },
+                    "columns": [
+                        {
+                            "name": "itemName",
+                            "label": "任务项名称",
+                            "width": 140
+                        },
+                        {
+                            "name": "serialNo",
+                            "label": "流水数",
+                            "width": 90
+                        },
+                        {
+                            "name": "sponsor",
+                            "label": "发起人",
+                            "width": 100
+                        },
+                        {
+                            "name": "taskId",
+                            "label": "任务 ID",
+                            "width": 140
+                        },
+                        {
+                            "name": "taskName",
+                            "label": "任务名称",
+                            "width": 160
+                        },
+                        {
+                            "name": "source",
+                            "label": "任务来源",
+                            "width": 110
+                        },
+                        {
+                            "name": "dueDate",
+                            "label": "要求完成时间",
+                            "width": 130
+                        },
+                        {
+                            "name": "status",
+                            "label": "任务状态",
+                            "width": 110,
+                            "type": "tpl",
+                            "tpl": "<span class='task-status task-status--${statusKey || \"todo\"}'><span class='task-status__dot'></span>${status || '-'}</span>"
+                        }
+                    ]
+                },
+                {
+                    "type": "crud",
+                    "id": "project_resource_crud",
+                    "className": "detail-crud section-block",
+                    "syncLocation": false,
+                    "api": {
+                        "method": "post",
+                        "url": "${project_resource_api}",
+                        "data": "${project_resource_params}",
+                        "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : (Array.isArray(src) ? src : [])); return {...payload, data: {items: list.map(item => ({name: item.name || item.resourceName || item.label || '-', count: item.count !== undefined ? item.count : (item.resourceCount !== undefined ? item.resourceCount : 0), level: item.level || 0})), total: list.length}};"
+                    },
+                    "headerToolbar": [
+                        {
+                            "type": "tpl",
+                            "inline": false,
+                            "tpl": "<div class='section-title'><span class='section-title__bar'></span><span>资源清单</span></div>"
+                        }
+                    ],
+                    "footerToolbar": [],
+                    "columns": [
+                        {
+                            "name": "name",
+                            "label": "资源目录",
+                            "type": "tpl",
+                            "tpl": "<div class='resource-name' style='padding-left:${(level || 0) * 20}px;'>${name}</div>"
+                        },
+                        {
+                            "name": "count",
+                            "label": "资源数",
+                            "width": 120,
+                            "type": "tpl",
+                            "tpl": "<span class='resource-count'>${count || 0}</span>"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
