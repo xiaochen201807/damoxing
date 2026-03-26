@@ -275,28 +275,15 @@
                     "className": "cxgzkz-toolbar-btn",
                     "level": "default",
                     "requireSelected": false,
-                    "actionType": "custom",
-                    "onEvent": {
-                        "click": {
-                            "actions": [
-                                {
-                                    "actionType": "custom",
-                                    "script": "console.log('[cxgzkz export debug] event.data =', event.data); console.log('[cxgzkz export debug] ids =', event.data && event.data.ids); console.log('[cxgzkz export debug] items =', event.data && event.data.items); console.log('[cxgzkz export debug] rows =', event.data && event.data.rows); console.log('[cxgzkz export debug] selectedItems =', event.data && event.data.selectedItems);"
-                                },
-                                {
-                                    "actionType": "download",
-                                    "reload": "none",
-                                    "api": {
-                                        "method": "post",
-                                        "url": "${rule_export_api}",
-                                        "data": {
-                                            "ids": "${ids}"
-                                        },
-                                        "responseType": "blob"
-                                    }
-                                }
-                            ]
-                        }
+                    "actionType": "download",
+                    "reload": "none",
+                    "api": {
+                        "method": "post",
+                        "url": "${rule_export_api}",
+                        "data": {
+                            "ids": "${ids}"
+                        },
+                        "responseType": "blob"
                     },
                     "tooltip": "已勾选则导出勾选项，未勾选则导出全部"
                 }
