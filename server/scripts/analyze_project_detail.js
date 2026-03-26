@@ -36,10 +36,11 @@ const API_PARAMS = {
         required: true
     },
     project_summary_params: {
-        type: 'json',
+        type: 'string',
+        format: 'textarea',
         title: '项目基本信息接口参数',
-        description: '项目基本信息接口请求参数',
-        default: {},
+        description: '项目基本信息接口请求参数（JSON 字符串）',
+        default: '{}',
         group: '🔗 接口配置',
         groupOrder: 2,
         order: 2
@@ -55,10 +56,11 @@ const API_PARAMS = {
         required: true
     },
     project_stage_params: {
-        type: 'json',
+        type: 'string',
+        format: 'textarea',
         title: '项目阶段概览接口参数',
-        description: '项目阶段概览接口请求参数',
-        default: {},
+        description: '项目阶段概览接口请求参数（JSON 字符串）',
+        default: '{}',
         group: '🔗 接口配置',
         groupOrder: 2,
         order: 4
@@ -74,10 +76,11 @@ const API_PARAMS = {
         required: true
     },
     project_group_params: {
-        type: 'json',
+        type: 'string',
+        format: 'textarea',
         title: '任务分组接口参数',
-        description: '任务分组接口请求参数',
-        default: {},
+        description: '任务分组接口请求参数（JSON 字符串）',
+        default: '{}',
         group: '🔗 接口配置',
         groupOrder: 2,
         order: 6
@@ -93,10 +96,11 @@ const API_PARAMS = {
         required: true
     },
     project_task_params: {
-        type: 'json',
+        type: 'string',
+        format: 'textarea',
         title: '任务清单接口参数',
-        description: '任务清单接口请求参数',
-        default: {},
+        description: '任务清单接口请求参数（JSON 字符串）',
+        default: '{}',
         group: '🔗 接口配置',
         groupOrder: 2,
         order: 8
@@ -112,10 +116,11 @@ const API_PARAMS = {
         required: true
     },
     project_resource_params: {
-        type: 'json',
+        type: 'string',
+        format: 'textarea',
         title: '资源清单接口参数',
-        description: '资源清单接口请求参数',
-        default: {},
+        description: '资源清单接口请求参数（JSON 字符串）',
+        default: '{}',
         group: '🔗 接口配置',
         groupOrder: 2,
         order: 10
