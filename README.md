@@ -73,11 +73,31 @@ cd server
 # 1. 迁移系统库 (SQLite)
 npm run db:migrate
 
-# 2. 初始化业务库 (若使用 Oracle / 达梦)
+# 2. 初始化业务标准/业务规则相关业务库 (若使用 Oracle / 达梦)
 # 请确保已在 server/config/datasources.json 中配置好相关库连接
 # npm run db:init:oracle
 # npm run db:init:dm
+
+# 3. 独立初始化程序规则控制管理表 gjj_cxgzkz
+# 支持 Oracle / 达梦 / PostgreSQL / openGauss / 人大金仓
+npm run db:init:cxgzkz
+
+# 4. 验证 cxgzkz 多数据源表结构与基础 CRUD 能力
+npm run db:verify:cxgzkz
 ```
+
+### cxgzkz 独立初始化文件
+
+`cxgzkz` 没有和标准库/业务规则初始化 SQL 绑定，采用独立文件维护：
+
+- Oracle: [server/data/init_cxgzkz_oracle.sql](/Users/xiaochen/Downloads/damoxing/server/data/init_cxgzkz_oracle.sql)
+- 达梦: [server/data/init_cxgzkz_dm.sql](/Users/xiaochen/Downloads/damoxing/server/data/init_cxgzkz_dm.sql)
+- PostgreSQL / openGauss / 人大金仓: [server/data/init_cxgzkz_pg_family.sql](/Users/xiaochen/Downloads/damoxing/server/data/init_cxgzkz_pg_family.sql)
+
+对应脚本：
+
+- 初始化: [server/scripts/init_cxgzkz_multids.js](/Users/xiaochen/Downloads/damoxing/server/scripts/init_cxgzkz_multids.js)
+- 验证: [server/scripts/verify_cxgzkz_multids.js](/Users/xiaochen/Downloads/damoxing/server/scripts/verify_cxgzkz_multids.js)
 
 ### 启动服务
 

@@ -93,6 +93,14 @@ function prepareOracleQuery(sql, params) {
     return { sql: newSql, params };
 }
 
+function normalizeOutBindScalar(value) {
+    let current = value;
+    while (Array.isArray(current) && current.length === 1) {
+        [current] = current;
+    }
+    return current;
+}
+
 class OracleAdapter {
     constructor(config, id) {
         this.config = config;
@@ -213,7 +221,9 @@ class OracleAdapter {
 
             const result = await connection.execute(execSql, execParams, { autoCommit: true });
             const duration = Date.now() - start;
-            const lastID = isInsert ? (result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+            const lastID = isInsert
+                ? normalizeOutBindScalar(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null)
+                : null;
 
             logger.info(`[Oracle-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
 
@@ -287,7 +297,9 @@ class OracleAdapter {
                             : { ...finalParams, out: outBind };
                     }
                     const result = await connection.execute(execSql, execParams, { autoCommit: false });
-                    const lastID = isInsert ? (result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+                    const lastID = isInsert
+                        ? normalizeOutBindScalar(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null)
+                        : null;
                     return { rowsAffected: result.rowsAffected, lastID };
                 },
                 async exec(sql) {

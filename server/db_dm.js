@@ -67,6 +67,14 @@ function normalizeDmRow(row) {
     return newRow;
 }
 
+function normalizeOutBindScalar(value) {
+    let current = normalizeDmValue(value);
+    while (Array.isArray(current) && current.length === 1) {
+        [current] = current;
+    }
+    return current;
+}
+
 function normalizeDmPoolConfig(config = {}) {
     const nextConfig = { ...config };
     const rawConnectString = String(nextConfig.connectString || nextConfig.connectionString || '').trim();
@@ -209,7 +217,9 @@ class DmAdapter {
 
             const result = await connection.execute(execSql, execParams, { autoCommit: true });
             const duration = Date.now() - start;
-            const lastID = isInsert ? normalizeDmValue(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+            const lastID = isInsert
+                ? normalizeOutBindScalar(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null)
+                : null;
 
             logger.info(`[Dm-${this.id}] [SQL-${sqlId}] <==    Updates: ${result.rowsAffected} (${duration}ms)`);
 
@@ -278,7 +288,9 @@ class DmAdapter {
                             : { ...finalParams, out: outBind };
                     }
                     const result = await connection.execute(execSql, execParams, { autoCommit: false });
-                    const lastID = isInsert ? normalizeDmValue(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null) : null;
+                    const lastID = isInsert
+                        ? normalizeOutBindScalar(result.outBinds?.[result.outBinds.length - 1] ?? result.outBinds?.out ?? null)
+                        : null;
                     return { rowsAffected: normalizeDmValue(result.rowsAffected), lastID };
                 },
                 async exec(sql) {

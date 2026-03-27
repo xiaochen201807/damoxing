@@ -7,9 +7,9 @@
             "type": "oracle",
             "jgbh_list": ["1305282025"],
             "config": {
-                "user": "sy_ptdx",
-                "password": "sy_ptdx",
-                "connectString": "10.99.1.37:1521/ORCL",
+                "user": "damoxing",
+                "password": "Damoxing123!",
+                "connectString": "127.0.0.1:51521/FREEPDB1",
                 "poolMin": 2,
                 "poolMax": 10
             }
@@ -36,9 +36,9 @@
                 "3607010001"
             ],
             "config": {
-                "user": "sy_ptdx",
-                "password": "Kd#0!Py2t1",
-                "connectString": "127.0.0.1:54321",
+                "user": "system",
+                "password": "Damoxing123!",
+                "connectString": "127.0.0.1:55434/test",
                 "loginEncrypt": false,
                 "poolMin": 2,
                 "poolMax": 10

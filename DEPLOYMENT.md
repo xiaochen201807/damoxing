@@ -138,9 +138,24 @@ docker-compose exec server sh
 # 运行数据库迁移
 npm run db:migrate
 
+# 独立初始化程序规则控制管理表 gjj_cxgzkz
+npm run db:init:cxgzkz
+
+# 可选：验证 cxgzkz 在多数据源下的建表与基础 CRUD 能力
+npm run db:verify:cxgzkz
+
 # 退出容器
 exit
 ```
+
+说明：
+
+- `npm run db:init:oracle` / `npm run db:init:dm` 仍用于标准库、业务规则等既有业务库对象初始化。
+- `gjj_cxgzkz` 采用独立初始化文件，不和标准库/业务规则初始化脚本绑定。
+- `npm run db:init:cxgzkz` 会按 `server/config/datasources.json` 中配置的数据源类型，分别执行对应的独立 SQL：
+  - Oracle: `server/data/init_cxgzkz_oracle.sql`
+  - 达梦: `server/data/init_cxgzkz_dm.sql`
+  - PostgreSQL / openGauss / 人大金仓: `server/data/init_cxgzkz_pg_family.sql`
 
 ### 4. 验证部署
 
