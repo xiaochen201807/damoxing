@@ -9,6 +9,8 @@ const db = require('../../db');
 const logger = require('../../utils/logger');
 const axios = require('axios');
 const { info } = require('winston');
+const algorithmConfig = require('../../utils/business-algorithms');
+const { normalizeMalformedBody } = require('../../middleware/requestNormalizer');
 
 // 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名
 const GATEWAY_BASE_URL = (() => {
@@ -26,12 +28,31 @@ const GATEWAY_BASE_URL = (() => {
  * 现：调用外部网关接口获取数据
  */
 router.post('/business-content-classes', async (req, res) => {
-    // 网关接口地址
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/objectAttributeOptionScope$m=query.service`;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const gjsjsf = req.body.gjsjsf || req.body.ywsf || '';
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    let sql = 'SELECT id, gjsjsf, flbm as value, flmc as label, flbm, flmc, pxh, sfqy FROM gjj_ywnrfl WHERE sfqy = ?';
+    const params = [1];
 
-    // 1. 提取 Header 参数
-    // 前端 Body 中包含了用户信息，优先使用 Body 中的参数
-    const { jgbh, login_token, zzbs, zzjgdmz } = req.body;
+    if (gjsjsf) {
+        sql += ' AND gjsjsf = ?';
+        params.push(gjsjsf);
+    }
+
+    sql += ' ORDER BY pxh ASC, id ASC';
+
+    try {
+        const rows = await _adapter.all(sql, params);
+        res.json({ status: 0, msg: "ok", data: rows });
+    } catch (err) {
+        logger.error(`[Tools API] Failed to query business-content-classes: ${err.message}`);
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
+router.post('/business-content-class-options', async (req, res) => {
+    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/objectAttributeOptionScope$m=query.service`;
+    const { jgbh, login_token } = req.body;
 
     const headers = {
         'channel': req.headers['channel'],
@@ -42,8 +63,6 @@ router.post('/business-content-classes', async (req, res) => {
         'Content-Type': 'application/json'
     };
 
-    // 2. 构造 Body 参数
-    // 使用前端传入的机构编号，其他业务参数暂时使用硬编码默认值
     const payload = {
         "organizationNumber": jgbh,
         "syObjectNumber": req.body.syObjectNumber,
@@ -54,17 +73,12 @@ router.post('/business-content-classes', async (req, res) => {
 
     logger.info(`[Tools API] Payload to gateway: ${JSON.stringify(payload)}`);
 
-
     try {
         const response = await axios.post(gatewayUrl, payload, { headers });
-        // 记录网关响应状态
         logger.info(`[Tools API] Gateway response status: ${response.status}`);
-        // 处理返回数据
         const gatewayData = response.data;
-        // 兼容处理：有些网关直接返回数组，有些返回 { code, data, msg }
-        // 这里的处理逻辑可能需要根据实际网关返回结构进行调整
-        // 根据最新的日志，网关返回结构为 { success: true, results: [...] }
         let list = [];
+
         if (Array.isArray(gatewayData)) {
             list = gatewayData;
         } else if (Array.isArray(gatewayData.results)) {
@@ -73,15 +87,13 @@ router.post('/business-content-classes', async (req, res) => {
             list = gatewayData.data;
         }
 
-        // 转换数据格式为 AMIS 下拉框所需的 { label, value }
         const resultData = list.map(item => ({
             label: item.name,
             value: item.coding,
-            ...item // 保留原始数据以备不时之需
+            ...item
         }));
 
         res.json({ status: 0, msg: "ok", data: resultData });
-
     } catch (err) {
         logger.error(`[Tools API] Failed to call gateway: ${err.message}`);
         if (err.response) {
@@ -96,23 +108,10 @@ router.post('/business-content-classes', async (req, res) => {
  * 原：从 ywbzk 表中提取唯一的业务办理标准值 (ywbzz)
  * 现：调用外部网关接口获取公共参数
  */
-router.post('/business-standard-values', async (req, res) => {
+router.post('/business-standard-values', normalizeMalformedBody(), async (req, res) => {
     // 网关接口地址
     const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/publicparam$m=query.service`;
-
-    // 1. 预处理 Body 参数 (修复前端可能发送的畸形数据)
-    let body = req.body;
-    if (body && body['0'] === '{') {
-        try {
-            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-            const jsonStr = keys.map(k => body[String(k)]).join('');
-            const parsedParams = JSON.parse(jsonStr);
-            body = { ...body, ...parsedParams };
-            logger.info(`[Tools API] Reconstructed malformed body params: ${jsonStr}`);
-        } catch (e) {
-            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
-        }
-    }
+    const body = req.body;
 
     // 2. 提取 Header 参数
     const { jgbh, login_token, zzbs, zzjgdmz } = body;
@@ -172,23 +171,10 @@ router.post('/business-standard-values', async (req, res) => {
  * 原：从 ywbzksx 表中提取唯一的服务对象标签 (fwdxbq)
  * 现：调用外部网关接口获取服务对象
  */
-router.post('/service-objects', async (req, res) => {
+router.post('/service-objects', normalizeMalformedBody(), async (req, res) => {
     // 网关接口地址
     const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/queryxjSxdx.service`;
-
-    // 1. 预处理 Body 参数
-    let body = req.body;
-    if (body && body['0'] === '{') {
-        try {
-            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-            const jsonStr = keys.map(k => body[String(k)]).join('');
-            const parsedParams = JSON.parse(jsonStr);
-            body = { ...body, ...parsedParams };
-            logger.info(`[Tools API] Reconstructed malformed body params: ${jsonStr}`);
-        } catch (e) {
-            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
-        }
-    }
+    const body = req.body;
 
     // 2. 提取 Header 参数
     const { jgbh, login_token, zzbs, zzjgdmz } = body;
@@ -249,23 +235,10 @@ router.post('/service-objects', async (req, res) => {
  * 原：从 ywbzksx 表中提取唯一的标准属性 (ywblbzsx)
  * 现：调用外部网关接口获取对象属性
  */
-router.post('/business-standard-attributes', async (req, res) => {
+router.post('/business-standard-attributes', normalizeMalformedBody(), async (req, res) => {
     // 网关接口地址
     const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/manageObjectProperties$m=query.service`;
-
-    // 1. 预处理 Body 参数
-    let body = req.body;
-    if (body && body['0'] === '{') {
-        try {
-            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-            const jsonStr = keys.map(k => body[String(k)]).join('');
-            const parsedParams = JSON.parse(jsonStr);
-            body = { ...body, ...parsedParams };
-            logger.info(`[Tools API] Reconstructed malformed body params: ${jsonStr}`);
-        } catch (e) {
-            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
-        }
-    }
+    const body = req.body;
 
     // 2. 提取 Header 参数
     const { jgbh, login_token, zzbs, zzjgdmz } = body;
@@ -332,19 +305,8 @@ const { fetchPublicParamValue } = require('../../services/gatewayService');
  * 5. 获取公共参数值 (POST /public-param-values)
  * 调用外部网关接口获取公共参数的具体值
  */
-router.post('/public-param-values', async (req, res) => {
-    // 1. 预处理 Body 参数
-    let body = req.body;
-    if (body && body['0'] === '{') {
-        try {
-            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-            const jsonStr = keys.map(k => body[String(k)]).join('');
-            const parsedParams = JSON.parse(jsonStr);
-            body = { ...body, ...parsedParams };
-        } catch (e) {
-            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
-        }
-    }
+router.post('/public-param-values', normalizeMalformedBody(), async (req, res) => {
+    const body = req.body;
 
     // 2. 提取 Header 参数
     const { jgbh, login_token, zzbs, zzjgdmz } = body;
@@ -378,23 +340,10 @@ router.post('/public-param-values', async (req, res) => {
  * 6. 获取任务项 (POST /task-info)
  * 调用外部网关接口获取任务项列表（支持模糊查询）
  */
-router.post('/task-info', async (req, res) => {
+router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
     // 网关接口地址
     const gatewayUrl = `${GATEWAY_BASE_URL}/jobApi/jobinfo/getTaskInfo`;
-
-    // 1. 预处理 Body 参数
-    let body = req.body;
-    if (body && body['0'] === '{') {
-        try {
-            const keys = Object.keys(body).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-            const jsonStr = keys.map(k => body[String(k)]).join('');
-            const parsedParams = JSON.parse(jsonStr);
-            body = { ...body, ...parsedParams };
-            logger.info(`[Tools API] Reconstructed malformed body params: ${jsonStr}`);
-        } catch (e) {
-            logger.warn(`[Tools API] Failed to reconstruct body: ${e.message}`);
-        }
-    }
+    const body = req.body;
 
     // 2. 提取 Header 参数
     const { jgbh, login_token, zzbs, zzjgdmz } = body;
@@ -464,6 +413,20 @@ router.post('/task-info', async (req, res) => {
         if (err.response) {
             logger.error(`[Tools API] Gateway error data: ${JSON.stringify(err.response.data)}`);
         }
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
+/**
+ * 7. 获取关键数据算法列表 (GET|POST /business-algorithms)
+ * 从本地配置文件读取
+ */
+router.all('/business-algorithms', (req, res) => {
+    try {
+        const algorithms = algorithmConfig.getAlgorithms();
+        res.json({ status: 0, msg: "ok", data: algorithms });
+    } catch (err) {
+        logger.error(`[Tools API] Failed to get algorithms: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
     }
 });

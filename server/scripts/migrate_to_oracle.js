@@ -62,9 +62,9 @@ async function migrate() {
         logger.info("Migrating gjj_ywbzk...");
         const ywbzkRows = await getSqliteData(sqliteDb, 'gjj_ywbzk');
         if (ywbzkRows.length > 0) {
-            const sql = `INSERT INTO gjj_ywbzk (id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, cjsj, gxsj) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11)`;
+            const sql = `INSERT INTO gjj_ywbzk (id, pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, cjsj, gxsj) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12, :13)`;
             const binds = ywbzkRows.map(row => [
-                row.id, row.pxh, row.ywblbz, row.ywbzz, row.ywbzjg, row.ywblbzsm, row.gjsjsf, row.ywnrfl, row.bzfl, 
+                row.id, row.pxh, row.ywblbz, row.zdybm, row.ywbzz, row.ywbzjg, row.ywblbzsm, row.gjsjsf, row.ywnrfl, row.ywblfl || '1', row.bzfl,
                 row.cjsj ? new Date(row.cjsj) : new Date(), 
                 row.gxsj ? new Date(row.gxsj) : new Date()
             ]);

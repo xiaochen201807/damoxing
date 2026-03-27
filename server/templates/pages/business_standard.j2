@@ -2,12 +2,7 @@
     "type": "page",
     "title": "业务办理标准库",
     "data": {
-        "algorithm_options": [
-            { "label": "最大可提取额", "value": "1" },
-            { "label": "最高可贷金额", "value": "2" },
-            { "label": "最高可贷年限", "value": "3" },
-            { "label": "借款人最大可对冲支取金额", "value": "4" }
-        ],
+        "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
         "standard_class_options": [
             { "label": "缴存人账户余额", "value": "1" },
             { "label": "冻结金额", "value": "2" },
@@ -18,8 +13,15 @@
             { "label": "保留方式", "value": "7" },
             { "label": "在途提取金额", "value": "8" }
         ],
+        "handle_class_options": [
+            { "label": "标准", "value": "1" },
+            { "label": "条件", "value": "2" }
+        ],
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }},
+        "business_content_class_manage_list_api": "{{ GLOBAL_API_PREFIX }}/ywnrfl/list",
+        "business_content_class_manage_save_api": "{{ GLOBAL_API_PREFIX }}/ywnrfl/save",
+        "business_content_class_manage_delete_api": "{{ GLOBAL_API_PREFIX }}/ywnrfl/delete",
         "business_standard_value_api": "{{ business_standard_value_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-values') }}",
         "business_standard_value_params": {{ business_standard_value_params | default({}) | fromjson | tojson }},
         "service_objects_api": "{{ service_objects_api | default(GLOBAL_API_PREFIX + '/tools/service-objects') }}",
@@ -62,7 +64,7 @@
                         "label": "关键数据算法",
                         "placeholder": "请选择关键数据算法",
                         "clearable": true,
-                        "source": "${algorithm_options}"
+                        "source": "${algorithm_options_api}"
                     },
                     {
                         "type": "select",
@@ -73,8 +75,12 @@
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
-                            "data": "${business_content_class_params}"
-                        }
+                            "data": {
+                                "&": "${business_content_class_params}",
+                                "gjsjsf": "${gjsjsf}"
+                            }
+                        },
+                        "disabledOn": "${!gjsjsf}"
                     },
                     {
                         "type": "select",
@@ -89,6 +95,21 @@
                         }
                     },
                     {
+                        "type": "input-text",
+                        "name": "zdybm",
+                        "label": "自定义编码",
+                        "placeholder": "请输入自定义编码",
+                        "clearable": true
+                    },
+                    {
+                        "type": "select",
+                        "name": "ywblfl",
+                        "label": "业务办理分类",
+                        "placeholder": "请选择业务办理分类",
+                        "clearable": true,
+                        "source": "${handle_class_options}"
+                    },
+                    {
                         "type": "submit",
                         "label": "查询",
                         "level": "primary"
@@ -96,6 +117,255 @@
                     {
                         "type": "reset",
                         "label": "重置"
+                    },
+                    {
+                        "type": "button",
+                        "label": "业务内容分类维护",
+                        "visibleOn": "${business_standard_editable}",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "业务内容分类维护",
+                            "size": "lg",
+                            "body": {
+                                "type": "crud",
+                                "id": "business_content_class_crud",
+                                "syncLocation": false,
+                                "api": {
+                                    "method": "post",
+                                    "url": "${business_content_class_manage_list_api}"
+                                },
+                                "filter": {
+                                    "title": "",
+                                    "submitText": "",
+                                    "type": "form",
+                                    "mode": "inline",
+                                    "wrapWithPanel": false,
+                                    "body": [
+                                        {
+                                            "type": "select",
+                                            "name": "gjsjsf",
+                                            "label": "关键数据算法",
+                                            "clearable": true,
+                                            "source": "${algorithm_options_api}"
+                                        },
+                                        {
+                                            "type": "input-text",
+                                            "name": "flbm",
+                                            "label": "分类编码",
+                                            "clearable": true
+                                        },
+                                        {
+                                            "type": "input-text",
+                                            "name": "flmc",
+                                            "label": "分类名称",
+                                            "clearable": true
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "sfqy",
+                                            "label": "是否启用",
+                                            "clearable": true,
+                                            "options": [
+                                                { "label": "启用", "value": 1 },
+                                                { "label": "停用", "value": 0 }
+                                            ]
+                                        },
+                                        {
+                                            "type": "submit",
+                                            "label": "查询",
+                                            "level": "primary"
+                                        },
+                                        {
+                                            "type": "reset",
+                                            "label": "重置"
+                                        },
+                                        {
+                                            "type": "button",
+                                            "label": "新增分类",
+                                            "level": "success",
+                                            "actionType": "dialog",
+                                            "dialog": {
+                                                "title": "新增业务内容分类",
+                                                "body": {
+                                                    "type": "form",
+                                                    "api": "post:${business_content_class_manage_save_api}",
+                                                    "body": [
+                                                        {
+                                                            "type": "select",
+                                                            "name": "gjsjsf",
+                                                            "label": "关键数据算法",
+                                                            "required": true,
+                                                            "source": "${algorithm_options_api}"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "flbm",
+                                                            "label": "分类编码",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "flmc",
+                                                            "label": "分类名称",
+                                                            "required": true
+                                                        },
+                                                        {
+                                                            "type": "input-number",
+                                                            "name": "pxh",
+                                                            "label": "排序号",
+                                                            "value": 0
+                                                        },
+                                                        {
+                                                            "type": "select",
+                                                            "name": "sfqy",
+                                                            "label": "是否启用",
+                                                            "value": 1,
+                                                            "options": [
+                                                                { "label": "启用", "value": 1 },
+                                                                { "label": "停用", "value": 0 }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "onEvent": {
+                                                    "submitSucc": {
+                                                        "actions": [
+                                                            {
+                                                                "actionType": "reload",
+                                                                "componentId": "business_content_class_crud"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "columns": [
+                                    {
+                                        "name": "gjsjsf",
+                                        "label": "关键数据算法",
+                                        "type": "mapping",
+                                        "source": "${algorithm_options_api}"
+                                    },
+                                    {
+                                        "name": "flbm",
+                                        "label": "分类编码"
+                                    },
+                                    {
+                                        "name": "flmc",
+                                        "label": "分类名称"
+                                    },
+                                    {
+                                        "name": "pxh",
+                                        "label": "排序号"
+                                    },
+                                    {
+                                        "name": "sfqy",
+                                        "label": "是否启用",
+                                        "type": "mapping",
+                                        "map": {
+                                            "1": "启用",
+                                            "0": "停用",
+                                            "*": "-"
+                                        }
+                                    },
+                                    {
+                                        "type": "operation",
+                                        "label": "操作",
+                                        "buttons": [
+                                            {
+                                                "type": "button",
+                                                "label": "编辑",
+                                                "level": "link",
+                                                "actionType": "dialog",
+                                                "dialog": {
+                                                    "title": "编辑业务内容分类",
+                                                    "body": {
+                                                        "type": "form",
+                                                        "api": "post:${business_content_class_manage_save_api}",
+                                                        "body": [
+                                                            {
+                                                                "type": "hidden",
+                                                                "name": "id"
+                                                            },
+                                                            {
+                                                                "type": "select",
+                                                                "name": "gjsjsf",
+                                                                "label": "关键数据算法",
+                                                                "required": true,
+                                                                "source": "${algorithm_options_api}"
+                                                            },
+                                                            {
+                                                                "type": "input-text",
+                                                                "name": "flbm",
+                                                                "label": "分类编码",
+                                                                "required": true
+                                                            },
+                                                            {
+                                                                "type": "input-text",
+                                                                "name": "flmc",
+                                                                "label": "分类名称",
+                                                                "required": true
+                                                            },
+                                                            {
+                                                                "type": "input-number",
+                                                                "name": "pxh",
+                                                                "label": "排序号"
+                                                            },
+                                                            {
+                                                                "type": "select",
+                                                                "name": "sfqy",
+                                                                "label": "是否启用",
+                                                                "options": [
+                                                                    { "label": "启用", "value": 1 },
+                                                                    { "label": "停用", "value": 0 }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "onEvent": {
+                                                        "submitSucc": {
+                                                            "actions": [
+                                                                {
+                                                                    "actionType": "reload",
+                                                                    "componentId": "business_content_class_crud"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "button",
+                                                "label": "删除",
+                                                "level": "link",
+                                                "className": "text-danger",
+                                                "actionType": "ajax",
+                                                "confirmText": "确认删除该业务内容分类？",
+                                                "api": {
+                                                    "method": "post",
+                                                    "url": "${business_content_class_manage_delete_api}",
+                                                    "data": {
+                                                        "id": "${id}"
+                                                    }
+                                                },
+                                                "onEvent": {
+                                                    "click": {
+                                                        "actions": [
+                                                            {
+                                                                "actionType": "reload",
+                                                                "componentId": "business_content_class_crud"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
                     },
                     {
                         "type": "tpl",
@@ -132,6 +402,12 @@
                                     },
                                     {
                                         "type": "input-text",
+                                        "name": "zdybm",
+                                        "label": "自定义编码：",
+                                        "placeholder": "请输入自定义编码"
+                                    },
+                                    {
+                                        "type": "input-text",
                                         "name": "ywblbzsm",
                                         "label": "业务办理标准描述：",
                                         "placeholder": "请输入业务办理标准描述"
@@ -140,7 +416,7 @@
                                         "type": "select",
                                         "name": "gjsjsf",
                                         "label": "关键数据算法：",
-                                        "source": "${algorithm_options}"
+                                        "source": "${algorithm_options_api}"
                                     },
                                     {
                                         "type": "select",
@@ -151,8 +427,19 @@
                                         "source": {
                                             "method": "post",
                                             "url": "${business_content_class_api}",
-                                            "data": "${business_content_class_params}"
-                                        }
+                                            "data": {
+                                                "&": "${business_content_class_params}",
+                                                "gjsjsf": "${gjsjsf}"
+                                            }
+                                        },
+                                        "disabledOn": "${!gjsjsf}"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "name": "ywblfl",
+                                        "label": "业务办理分类：",
+                                        "value": "1",
+                                        "source": "${handle_class_options}"
                                     },
                                     {
                                         "type": "select",
@@ -167,6 +454,7 @@
                                         "clearable": true,
                                         "searchable": true,
                                         "placeholder": "请选择业务标准值",
+                                        "visibleOn": "${ywblfl !== '2'}",
                                         "source": {
                                             "method": "post",
                                             "url": "${business_standard_value_api}",
@@ -179,6 +467,13 @@
                                     {
                                         "type": "tpl",
                                         "tpl": "<b>业务办理标准结果执行语句：</b>",
+                                        "visibleOn": "${ywblfl !== '2'}",
+                                        "className": "m-t-sm m-b-xs block"
+                                    },
+                                    {
+                                        "type": "tpl",
+                                        "tpl": "<b>业务条件执行语句：</b>",
+                                        "visibleOn": "${ywblfl === '2'}",
                                         "className": "m-t-sm m-b-xs block"
                                     },
                                     {
@@ -392,23 +687,27 @@
                     "width": 300
                 },
                 {
+                    "name": "zdybm",
+                    "label": "自定义编码",
+                    "width": 180
+                },
+                {
+                    "name": "ywblfl",
+                    "label": "业务办理分类",
+                    "type": "mapping",
+                    "source": "${handle_class_options}"
+                },
+                {
                     "name": "gjsjsf",
                     "label": "关键数据算法",
                     "width": 150,
                     "type": "mapping",
-                    "map": {
-                        "1": "<span class='label label-info'>最大可提取额</span>",
-                        "2": "<span class='label label-success'>最高可贷金额</span>",
-                        "3": "<span class='label label-warning'>最高可贷年限</span>",
-                        "4": "<span class='label label-danger'>借款人最大可对冲支取金额</span>"
-                    }
+                    "source": "${algorithm_options_api}"
                 },
                 {
-                    "name": "ywnrfl",
+                    "name": "ywnrfl_label",
                     "label": "业务内容分类",
-                    "width": 250,
-                    "type": "mapping",
-                    "source": "${class_options}"
+                    "width": 250
                 },
                 {
                     "type": "operation",
@@ -451,6 +750,12 @@
                                         },
                                         {
                                             "type": "input-text",
+                                            "name": "zdybm",
+                                            "label": "自定义编码：",
+                                            "placeholder": "请输入自定义编码"
+                                        },
+                                        {
+                                            "type": "input-text",
                                             "name": "ywblbzsm",
                                             "label": "业务办理标准描述：",
                                             "placeholder": "请输入业务办理标准描述"
@@ -459,7 +764,7 @@
                                             "type": "select",
                                             "name": "gjsjsf",
                                             "label": "关键数据算法：",
-                                            "source": "${algorithm_options}"
+                                            "source": "${algorithm_options_api}"
                                         },
                                         {
                                             "type": "select",
@@ -470,8 +775,19 @@
                                             "source": {
                                                 "method": "post",
                                                 "url": "${business_content_class_api}",
-                                                "data": "${business_content_class_params}"
-                                            }
+                                                "data": {
+                                                    "&": "${business_content_class_params}",
+                                                    "gjsjsf": "${gjsjsf}"
+                                                }
+                                            },
+                                            "disabledOn": "${!gjsjsf}"
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "ywblfl",
+                                            "label": "业务办理分类：",
+                                            "value": "1",
+                                            "source": "${handle_class_options}"
                                         },
                                         {
                                             "type": "select",
@@ -486,6 +802,7 @@
                                             "clearable": true,
                                             "searchable": true,
                                             "placeholder": "请选择业务标准值",
+                                            "visibleOn": "${ywblfl !== '2'}",
                                             "source": {
                                                 "method": "post",
                                                 "url": "${business_standard_value_api}",
@@ -498,6 +815,13 @@
                                         {
                                             "type": "tpl",
                                             "tpl": "<b>业务办理标准结果执行语句：</b>",
+                                            "visibleOn": "${ywblfl !== '2'}",
+                                            "className": "m-t-sm m-b-xs block"
+                                        },
+                                        {
+                                            "type": "tpl",
+                                            "tpl": "<b>业务条件执行语句：</b>",
+                                            "visibleOn": "${ywblfl === '2'}",
                                             "className": "m-t-sm m-b-xs block"
                                         },
                                         {

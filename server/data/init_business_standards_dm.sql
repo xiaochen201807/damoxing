@@ -2,16 +2,31 @@
 -- 业务规则配置系统数据库初始化脚本 (达梦版)
 -- ============================================
 
+CREATE TABLE gjj_ywnrfl (
+    id BIGINT AUTO_INCREMENT NOT NULL,
+    gjsjsf VARCHAR2 (100 CHAR) NOT NULL,
+    flbm VARCHAR2 (50 CHAR) NOT NULL,
+    flmc VARCHAR2 (200 CHAR) NOT NULL,
+    pxh NUMBER DEFAULT 0,
+    sfqy NUMBER (1) DEFAULT 1,
+    cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    gxsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    CONSTRAINT pk_ywnrfl PRIMARY KEY (id),
+    CONSTRAINT uq_ywnrfl_code UNIQUE (gjsjsf, flbm)
+);
+
 -- 1. 业务标准库主表 (规则模板定义)
 CREATE TABLE gjj_ywbzk (
     id BIGINT AUTO_INCREMENT NOT NULL,
     pxh NUMBER DEFAULT 0, -- 排序号
     ywblbz VARCHAR2 (200 CHAR) NOT NULL, -- 业务办理标准
+    zdybm VARCHAR2 (100 CHAR), -- 自定义编码
     ywbzz VARCHAR2 (100 CHAR), -- 业务标准值
     ywbzjg CLOB, -- 业务标准结果SQL
     ywblbzsm CLOB, -- 业务办理标准说明
     gjsjsf VARCHAR2 (100 CHAR), -- 关键数据算法
     ywnrfl VARCHAR2 (50 CHAR), -- 业务内容分类
+    ywblfl VARCHAR2 (10 CHAR) DEFAULT '1', -- 业务办理分类: 1标准 2条件
     bzfl VARCHAR2 (50 CHAR), -- 标准分类
     cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
     gxsj TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -117,6 +132,8 @@ CREATE TABLE t_wa_sys_log_err (
 
 -- 库表索引
 CREATE INDEX idx_gjj_ywbzk_pxh ON gjj_ywbzk (pxh);
+CREATE UNIQUE INDEX idx_gjj_ywbzk_zdybm ON gjj_ywbzk (zdybm);
+CREATE INDEX idx_gjj_ywnrfl_sf ON gjj_ywnrfl (gjsjsf, sfqy);
 
 -- 库属性表索引
 CREATE INDEX idx_gjj_ywbzksx_mb ON gjj_ywbzksx (mbid);

@@ -30,7 +30,7 @@
         "rule_partial_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/partial_import",
         "rule_debug_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
         "rule_debug_log_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
-        "algorithm_options": {{ algorithm_options | default([{"label":"最大可提取额","value":"1"},{"label":"最高可贷金额","value":"2"},{"label":"最高可贷年限","value":"3"},{"label":"借款人最大可对冲支取金额","value":"4"}]) | fromjson | tojson }},
+        "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
     },
@@ -68,7 +68,7 @@
                         "name": "ywsf",
                         "label": "关键数据算法",
                         "placeholder": "请选择",
-                        "source": "${algorithm_options}",
+                        "source": "${algorithm_options_api}",
                         "clearable": true
                     },
                     {
@@ -80,9 +80,13 @@
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
-                            "data": "${business_content_class_params}"
+                            "data": {
+                                "&": "${business_content_class_params}",
+                                "gjsjsf": "${ywsf}"
+                            }
                         },
-                        "clearable": true
+                        "clearable": true,
+                        "disabledOn": "${!ywsf}"
                     },
                     {
                         "type": "button",
@@ -608,19 +612,11 @@
                     "name": "ywsf",
                     "label": "关键数据算法",
                     "type": "mapping",
-                    "map": {
-                        "1": "最大可提取额",
-                        "2": "最高可贷金额",
-                        "3": "最高可贷年限",
-                        "4": "借款人最大可对冲支取金额",
-                        "*": "${ywsf}"
-                    }
+                    "source": "${algorithm_options_api}"
                 },
                 {
                     "name": "ywnrfl_label",
-                    "label": "业务内容分类",
-                    "type": "mapping",
-                    "source": "${class_options}"
+                    "label": "业务内容分类"
                 },
                 {
                     "name": "bzfl_label",

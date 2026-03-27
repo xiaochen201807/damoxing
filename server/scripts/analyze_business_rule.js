@@ -29,27 +29,7 @@ const API_PARAMS = {
         groupOrder: 3,
         order: 2
     },
-    // 关键数据算法选项配置
-    algorithm_options: {
-        type: 'combo',
-        title: '关键数据算法选项',
-        description: '配置关键数据算法的下拉选项 (Key为中文拼音首字母)',
-        multiple: true,
-        items: [
-            { type: 'input-text', name: 'label', label: '显示名称', required: true },
-            { type: 'input-text', name: 'value', label: '值 (Key)', required: true }
-        ],
-        default: [
-            { "label": "可提取金额", "value": "ktqje" },
-            { "label": "可贷款金额", "value": "kdkje" },
-            { "label": "可贷款年限", "value": "kdknx" },
-            { "label": "贷款还款时可对冲金额", "value": "dkhkskdcje" }
-        ],
-        placeholder: '例如：[{"label":"显示名称", "value":"值"}]',
-        group: '⚙️ 选项配置',
-        groupOrder: 4,
-        order: 1
-    },
+    // 关键数据算法配置改为从本地 JSON 文件读取，不再作为模板配置项
     // 业务内容分类接口
     business_content_class_api: {
         type: 'string',

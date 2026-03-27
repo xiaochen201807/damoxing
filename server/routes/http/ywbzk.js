@@ -10,6 +10,7 @@ const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
 const { parseDialectSql, buildDialectSql, validateDialectSqlObject, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
 const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
+const algorithmConfig = require('../../utils/business-algorithms');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
 const fs = require('fs');
@@ -17,50 +18,75 @@ const path = require('path');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function getCountValue(row) {
+    if (!row) {
+        return 0;
+    }
+
+    return row.total || row.TOTAL || 0;
+}
+
 /**
  * 1. 获取列表 (POST /list)
  * 支持分页和关键字查询
  */
 router.post('/list', async (req, res) => {
-    const { page = 1, perPage = 10, ywblbz, gjsjsf, ywnrfl } = req.body;
+    const { page = 1, perPage = 10, ywblbz, zdybm, gjsjsf, ywnrfl, ywblfl } = req.body;
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const offset = (page - 1) * perPage;
 
-    let sql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
+    let sql = `
+        SELECT t.*, COALESCE(c.flmc, t.ywnrfl) as ywnrfl_label
+        FROM gjj_ywbzk t
+        LEFT JOIN gjj_ywnrfl c ON c.gjsjsf = t.gjsjsf AND c.flbm = t.ywnrfl
+        WHERE 1=1
+    `;
     let countSql = "SELECT COUNT(*) as total FROM gjj_ywbzk WHERE 1=1";
     const params = [];
 
     if (ywblbz) {
-        sql += " AND ywblbz LIKE ?";
+        sql += " AND t.ywblbz LIKE ?";
         countSql += " AND ywblbz LIKE ?";
         params.push(`%${ywblbz}%`);
     }
+    if (zdybm) {
+        sql += " AND t.zdybm LIKE ?";
+        countSql += " AND zdybm LIKE ?";
+        params.push(`%${zdybm}%`);
+    }
     if (gjsjsf) {
-        sql += " AND gjsjsf = ?";
+        sql += " AND t.gjsjsf = ?";
         countSql += " AND gjsjsf = ?";
         params.push(gjsjsf);
     }
     if (ywnrfl) {
-        sql += " AND ywnrfl = ?";
+        sql += " AND t.ywnrfl = ?";
         countSql += " AND ywnrfl = ?";
         params.push(ywnrfl);
     }
+    if (ywblfl) {
+        sql += " AND COALESCE(t.ywblfl, '1') = ?";
+        countSql += " AND COALESCE(ywblfl, '1') = ?";
+        params.push(String(ywblfl));
+    }
 
-    // 分页
-    sql += " ORDER BY pxh ASC, id DESC";
+    sql += " ORDER BY t.pxh ASC, t.id DESC";
     const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
     const paged = SqlHelper.paginateQuery(sql, params, perPage, offset, _adapter);
 
     try {
         const countRow = await _adapter.get(countSql, params);
         const rows = await _adapter.all(paged.sql, paged.params);
+        rows.forEach(row => {
+            row.ywblfl = row.ywblfl || row.YWBLFL || '1';
+        });
 
         res.json({
             status: 0,
             msg: "ok",
             data: {
                 items: rows,
-                total: countRow ? (countRow.total || countRow.TOTAL) : 0 // Oracle keys might be uppercase
+                total: getCountValue(countRow)
             }
         });
     } catch (err) {
@@ -88,6 +114,8 @@ router.post('/get', async (req, res) => {
             return res.status(404).json({ status: 1, msg: "Record not found" });
         }
 
+        row.ywblfl = row.ywblfl || row.YWBLFL || '1';
+
         // 拆解 ywbzjg 方言
         row.ywbzjg_dialects = parseDialectSql(row.ywbzjg || row.YWBZJG);
 
@@ -113,7 +141,7 @@ router.post('/get', async (req, res) => {
  * 自动处理事务和属性组同步
  */
 router.post('/save', async (req, res) => {
-    let { id, pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, ywblbzsxz } = req.body;
+    let { id, pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, ywblbzsxz } = req.body;
     const { ywbzjg_dialects } = req.body;
 
     // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
@@ -129,17 +157,55 @@ router.post('/save', async (req, res) => {
         return res.status(403).json({ status: 403, msg: getBusinessStandardWriteDeniedMessage() });
     }
 
+    if (gjsjsf && !algorithmConfig.isValidAlgorithm(gjsjsf)) {
+        return res.status(400).json({ status: 1, msg: `无效的关键数据算法编码: ${gjsjsf}` });
+    }
+
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        zdybm = zdybm ? String(zdybm).trim() : '';
+        ywblfl = ywblfl ? String(ywblfl) : '1';
+
+        if (!['1', '2'].includes(ywblfl)) {
+            return res.status(400).json({ status: 1, msg: `无效的业务办理分类编码: ${ywblfl}` });
+        }
+
+        if (zdybm) {
+            const duplicateSql = id
+                ? 'SELECT id FROM gjj_ywbzk WHERE zdybm = ? AND id <> ?'
+                : 'SELECT id FROM gjj_ywbzk WHERE zdybm = ?';
+            const duplicateParams = id ? [zdybm, id] : [zdybm];
+            const duplicateRow = await _adapter.get(duplicateSql, duplicateParams);
+
+            if (duplicateRow) {
+                return res.status(400).json({ status: 1, msg: `自定义编码已存在: ${zdybm}` });
+            }
+        }
+
+        if (ywnrfl) {
+            if (!gjsjsf) {
+                return res.status(400).json({ status: 1, msg: '选择业务内容分类时必须指定关键数据算法' });
+            }
+
+            const classRow = await _adapter.get(
+                'SELECT id FROM gjj_ywnrfl WHERE gjsjsf = ? AND flbm = ?',
+                [gjsjsf, ywnrfl]
+            );
+
+            if (!classRow) {
+                return res.status(400).json({ status: 1, msg: `业务内容分类不存在: ${ywnrfl}` });
+            }
+        }
+
         const { id: savedId } = await _adapter.transaction(async (tx) => {
             let mbid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, ywbzz=:3, ywbzjg=:4, ywblbzsm=:5, gjsjsf=:6, ywnrfl=:7, bzfl=:8, gxsj=${SqlHelper.now(_adapter)} WHERE id=:9`;
-                await tx.run(updateSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl, id]);
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, zdybm=:3, ywbzz=:4, ywbzjg=:5, ywblbzsm=:6, gjsjsf=:7, ywnrfl=:8, ywblfl=:9, bzfl=:10, gxsj=${SqlHelper.now(_adapter)} WHERE id=:11`;
+                await tx.run(updateSql, [pxh, ywblbz, zdybm || null, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, id]);
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8)`;
-                const insertResult = await tx.run(insertSql, [pxh, ywblbz, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, bzfl]);
+                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10)`;
+                const insertResult = await tx.run(insertSql, [pxh, ywblbz, zdybm || null, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl]);
                 mbid = insertResult.lastID;
             }
 

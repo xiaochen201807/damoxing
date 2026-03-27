@@ -26,6 +26,7 @@ const mcpSseRoutes = require("./mcp-sse");
 const ywbzkRoutes = require("./ywbzk");
 const toolsRoutes = require("./tools");
 const ywbzRoutes = require("./ywbz");
+const ywnrflRoutes = require("./ywnrfl");
 const exportsRoutes = require("./exports");
 const cxgzkzRoutes = require("./cxgzkz");
 const projectDetailMockRoutes = require("./project_detailmock");
@@ -82,6 +83,7 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/themes`, authenticateToken, themesRoutes);
     app.use(`${API_PREFIX}/ywbzk`, authenticateToken, ywbzkRoutes);
     app.use(`${API_PREFIX}/ywbz`, authenticateToken, ywbzRoutes);
+    app.use(`${API_PREFIX}/ywnrfl`, authenticateToken, ywnrflRoutes);
 
     // 别名，兼容 LoanBusinessStandard.json
     app.use(`${API_PREFIX}/loan-standards`, authenticateToken, ywbzRoutes);

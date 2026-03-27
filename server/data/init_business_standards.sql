@@ -11,17 +11,31 @@ DROP TABLE IF EXISTS gjj_ywbzksx;
 -- 业务标准库属性表
 DROP TABLE IF EXISTS gjj_ywbzk;
 -- 业务标准库主表
+DROP TABLE IF EXISTS gjj_ywnrfl;
+
+CREATE TABLE gjj_ywnrfl (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gjsjsf VARCHAR(100) NOT NULL,
+    flbm VARCHAR(50) NOT NULL,
+    flmc VARCHAR(200) NOT NULL,
+    pxh INTEGER DEFAULT 0,
+    sfqy BOOLEAN DEFAULT 1,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 1. 业务标准库主表 (规则模板定义)
 CREATE TABLE gjj_ywbzk (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pxh INTEGER DEFAULT 0, -- 排序号
     ywblbz VARCHAR(200) NOT NULL, -- 业务办理标准
+    zdybm VARCHAR(100), -- 自定义编码
     ywbzz VARCHAR(100), -- 业务标准值
     ywbzjg TEXT, -- 业务标准结果SQL
     ywblbzsm TEXT, -- 业务办理标准说明
     gjsjsf VARCHAR(100), -- 关键数据算法
     ywnrfl VARCHAR(50), -- 业务内容分类
+    ywblfl VARCHAR(10) DEFAULT '1', -- 业务办理分类: 1标准 2条件
     bzfl VARCHAR(50), -- 标准分类
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -220,6 +234,12 @@ VALUES (1, '职工类型', '正式员工'),
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzk_pxh ON gjj_ywbzk (pxh);
 
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzk_sf ON gjj_ywbzk (gjsjsf);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gjj_ywbzk_zdybm ON gjj_ywbzk (zdybm);
+
+CREATE INDEX IF NOT EXISTS idx_gjj_ywnrfl_sf ON gjj_ywnrfl (gjsjsf, sfqy);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gjj_ywnrfl_code ON gjj_ywnrfl (gjsjsf, flbm);
 
 -- 库属性表索引
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzksx_mb ON gjj_ywbzksx (mbid);

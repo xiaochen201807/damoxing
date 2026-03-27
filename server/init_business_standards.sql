@@ -17,10 +17,12 @@ CREATE TABLE gjj_ywbzk (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pxh INTEGER DEFAULT 0, -- 排序号
     ywblbz VARCHAR(200) NOT NULL, -- 业务办理标准
+    zdybm VARCHAR(100), -- 自定义编码
     ywbzz VARCHAR(100), -- 业务标准值
     ywbzjg TEXT, -- 业务标准结果SQL
     ywblbzsm TEXT, -- 业务办理标准说明
     ywsf VARCHAR(100), -- 业务算法
+    ywblfl VARCHAR(10) DEFAULT '1', -- 业务办理分类: 1标准 2条件
     bzfl VARCHAR(50), -- 标准分类
     ywnrfl VARCHAR(50), -- 业务内容分类
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

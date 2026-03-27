@@ -1,0 +1,26 @@
+[
+    {
+        "value": "1",
+        "label": "最大可提取额",
+        "sort": 1,
+        "enabled": true
+    },
+    {
+        "value": "2",
+        "label": "最高可贷金额",
+        "sort": 2,
+        "enabled": true
+    },
+    {
+        "value": "3",
+        "label": "最高可贷年限",
+        "sort": 3,
+        "enabled": true
+    },
+    {
+        "value": "4",
+        "label": "借款人最大可对冲支取金额",
+        "sort": 4,
+        "enabled": true
+    }
+]

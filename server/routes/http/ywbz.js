@@ -9,6 +9,7 @@ const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
 const { authenticateToken } = require('../../middleware/auth');
+const algorithmConfig = require('../../utils/business-algorithms');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -29,9 +30,10 @@ router.post('/list', async (req, res) => {
     const coalesce = 'COALESCE';
 
     let sql = `
-        SELECT t1.*, t2.ywblbz as template_name, t2.ywblbzsm as template_desc, t2.ywnrfl as ywnrfl_label, t2.bzfl as bzfl_label
+        SELECT t1.*, t2.ywblbz as template_name, t2.ywblbzsm as template_desc, COALESCE(t3.flmc, t2.ywnrfl, t1.ywnrfl) as ywnrfl_label, t2.bzfl as bzfl_label
         FROM gjj_ywbz t1
         LEFT JOIN gjj_ywbzk t2 ON t1.mbid = t2.id
+        LEFT JOIN gjj_ywnrfl t3 ON t3.gjsjsf = t1.ywsf AND t3.flbm = t2.ywnrfl
         WHERE ${coalesce}(t1.jgbh, '') = ? AND ${coalesce}(t1.zjgbh, '') = ?
     `;
     let countSql = `
@@ -91,6 +93,10 @@ router.post('/get', async (req, res) => {
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     const coalesce = 'COALESCE';
+
+    if (ywsf && !algorithmConfig.isValidAlgorithm(ywsf)) {
+        return res.status(400).json({ status: 1, msg: `无效的关键数据算法编码: ${ywsf}` });
+    }
 
     try {
         const sql = `SELECT * FROM gjj_ywbz WHERE id = ? AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
@@ -219,7 +225,7 @@ router.post('/config_form', async (req, res) => {
                 joinValues: true,
                 source: {
                     method: "post",
-                    url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-classes`,
+                    url: `${process.env.API_ROUTE_PREFIX || '/api'}/tools/business-content-class-options`,
                     data: {
                         syObjectNumber: syObjectNumber || '',
                         fieldIdentification: fieldId   // 传给网关的 fieldIdentification
@@ -408,6 +414,10 @@ router.post('/save', async (req, res) => {
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     const coalesce = 'COALESCE';
+
+    if (ywsf && !algorithmConfig.isValidAlgorithm(ywsf)) {
+        return res.status(400).json({ status: 1, msg: `无效的关键数据算法编码: ${ywsf}` });
+    }
 
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
