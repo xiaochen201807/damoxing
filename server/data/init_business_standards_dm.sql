@@ -111,6 +111,21 @@ CREATE TABLE gjj_ywbzsx (
     CONSTRAINT fk_ywbzsx_ywid FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
 );
 
+CREATE TABLE gjj_ywbz_debug_case (
+    id BIGINT AUTO_INCREMENT NOT NULL,
+    ywsf VARCHAR2 (50 CHAR),
+    ywnrfl VARCHAR2 (50 CHAR),
+    case_name VARCHAR2 (200 CHAR) NOT NULL,
+    request_json CLOB NOT NULL,
+    result_summary CLOB NOT NULL,
+    creator_name VARCHAR2 (100 CHAR),
+    jgbh VARCHAR2 (50 CHAR),
+    zjgbh VARCHAR2 (50 CHAR),
+    cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    gxsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    CONSTRAINT pk_ywbz_debug_case PRIMARY KEY (id)
+);
+
 -- 5. 模型业务算法临时属性表
 -- 结构按本地达梦库 `SP_TABLEDEF` / `DBMS_METADATA.GET_DDL` 导出结果整理
 CREATE TABLE tmp_gjj_ywblsxz (
@@ -159,3 +174,4 @@ CREATE INDEX idx_gjj_ywbz_jg ON gjj_ywbz (jgbh, zjgbh);
 -- 业务属性表索引
 CREATE INDEX idx_gjj_ywbzsx_yw ON gjj_ywbzsx (ywid);
 CREATE INDEX idx_gjj_ywbzsx_k1 ON gjj_ywbzsx (k1);
+CREATE INDEX idx_gjj_ywbz_debug_case_scope ON gjj_ywbz_debug_case (jgbh, zjgbh, ywsf, ywnrfl);

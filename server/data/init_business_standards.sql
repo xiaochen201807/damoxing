@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS gjj_ywbzksx;
 DROP TABLE IF EXISTS gjj_ywbzk;
 -- 业务标准库主表
 DROP TABLE IF EXISTS gjj_ywbzkhc;
+DROP TABLE IF EXISTS gjj_ywbz_debug_case;
 DROP TABLE IF EXISTS gjj_ywnrfl;
 
 CREATE TABLE gjj_ywnrfl (
@@ -90,6 +91,20 @@ CREATE TABLE gjj_ywbzsx (
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
+);
+
+CREATE TABLE gjj_ywbz_debug_case (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ywsf VARCHAR(50),
+    ywnrfl VARCHAR(50),
+    case_name VARCHAR(200) NOT NULL,
+    request_json TEXT NOT NULL,
+    result_summary TEXT NOT NULL,
+    creator_name VARCHAR(100),
+    jgbh VARCHAR(50),
+    zjgbh VARCHAR(50),
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -266,3 +281,4 @@ CREATE INDEX IF NOT EXISTS idx_gjj_ywbz_yxj ON gjj_ywbz (yxj);
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_yw ON gjj_ywbzsx (ywid);
 
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_mc ON gjj_ywbzsx (sxmc);
+CREATE INDEX IF NOT EXISTS idx_gjj_ywbz_debug_case_scope ON gjj_ywbz_debug_case (jgbh, zjgbh, ywsf, ywnrfl);

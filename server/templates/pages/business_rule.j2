@@ -29,7 +29,11 @@
         "rule_partial_export_api": "{{ GLOBAL_API_PREFIX }}/ywbz/partial_export",
         "rule_partial_import_api": "{{ GLOBAL_API_PREFIX }}/ywbz/partial_import",
         "rule_debug_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
+        "rule_debug_template_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_template",
         "rule_debug_log_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
+        "rule_debug_case_list_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/list",
+        "rule_debug_case_get_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/get",
+        "rule_debug_case_save_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/save",
         "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
@@ -136,7 +140,7 @@
                                         "body": [
                                             {
                                                 "type": "tpl",
-                                                "tpl": "<b>最大可提取额算法说明</b><br/><span style='font-size:12px;color:#666;'>最大可提取额数据算法是一套结合提取内容、账户余额、冻结金额、账户保留金额、材料提取限额、累计提取金额、在途提取金额、计算精度等业务标准分类的动态标准计算模型，核心逻辑为：先根据提取内容（如购房、租房、还贷、离退休等）匹配对应的政策约束的材料提取限额（如购房不超过房款总额、租房不超过当地月度限额或实际租金、还贷不超过当期还款本息、离退休可全额提取），再与个人公积金账户当前可用余额（账户余额-冻结金额-账户保留金额）取最小值，最终得出的金额按计算精度计算后即为当前场景下可提取的最高额度。</span>"
+                        "tpl": "<b>最大可提取额算法说明</b><br/><span style='font-size:12px;color:#666;'>最大可提取额数据算法是一套结合提取内容、账户余额、冻结金额、账户保留金额、材料提取限额、累计提取金额、在途提取金额、计算精度等业务标准分类的动态标准计算模型，核心逻辑为：先根据提取内容（如购房、租房、还贷、离退休等）匹配对应的政策约束的材料提取限额（如购房不超过房款总额、租房不超过当地月度限额或实际租金、还贷不超过当期还款本息、离退休可全额提取），再与个人公积金账户当前可用余额（账户余额-冻结金额-账户保留金额）取最小值，最终得出的金额按计算精度计算后即为当前场景下可提取的最高额度。</span><br/><span style='font-size:12px;color:#999;'>执行路径说明：统一入口过程当前按 <code>ywsf=1</code> 进入对应算法分支；后续拆分建议子过程命名为 <code>p_gjj_get_mxywsfz_ywsf_1</code>。</span>"
                                             }
                                         ]
                                     },
@@ -149,7 +153,7 @@
                                         "body": [
                                             {
                                                 "type": "tpl",
-                                                "tpl": "<b>最高可贷金额算法说明</b><br/><span style='font-size:12px;color:#666;'>最高可贷金额数据算法是一套多维度取低的综合计算模型，核心逻辑为：分别通过&ldquo;账户余额×缴存倍数（通常15-25倍）、家庭月收入×还贷能力系数（多为40%-60%）测算的年还贷能力×贷款年限、房屋总价扣除首付后的剩余金额、当地单/双缴存人家庭贷款最高限额；同时可根据缴存时间、公积金流动性等动态系数调整，叠加人才、多子女家庭等上浮规则&rdquo;等组合维度算出基础额度，最终取所有限制条件下的最小值作为可贷上限，最终得出的金额按计算精度计算后即为当前场景下可贷款的最高额度。</span>"
+                        "tpl": "<b>最高可贷金额算法说明</b><br/><span style='font-size:12px;color:#666;'>最高可贷金额数据算法是一套多维度取低的综合计算模型，核心逻辑为：分别通过&ldquo;账户余额×缴存倍数（通常15-25倍）、家庭月收入×还贷能力系数（多为40%-60%）测算的年还贷能力×贷款年限、房屋总价扣除首付后的剩余金额、当地单/双缴存人家庭贷款最高限额；同时可根据缴存时间、公积金流动性等动态系数调整，叠加人才、多子女家庭等上浮规则&rdquo;等组合维度算出基础额度，最终取所有限制条件下的最小值作为可贷上限，最终得出的金额按计算精度计算后即为当前场景下可贷款的最高额度。</span><br/><span style='font-size:12px;color:#999;'>执行路径说明：统一入口过程当前按 <code>ywsf=2</code> 进入对应算法分支；后续拆分建议子过程命名为 <code>p_gjj_get_mxywsfz_ywsf_2</code>。</span>"
                                             }
                                         ]
                                     },
@@ -162,7 +166,7 @@
                                         "body": [
                                             {
                                                 "type": "tpl",
-                                                "tpl": "<b>最高可贷年限算法说明</b><br/><span style='font-size:12px;color:#666;'>最高可贷年限数据算法是一套多维度取低的综合计算模型，核心逻辑为：分别通过【按借款人年龄算出&ldquo;法定退休年龄+贷款年限延长至退休年龄后X年-申请年龄&rdquo;的年限上限，二手房需额外计算&ldquo;当地规定的房龄+贷款年限总和上限（多为40-50年）-现有房龄&rdquo;的房龄限制年限，再与房屋类型对应的最高年限（新房最长30年、二手房部分城市最长20年）】计算后取最小值，夫妻共同贷款通常按年龄较长一方核算，最终结果向下取整为整年。</span>"
+                        "tpl": "<b>最高可贷年限算法说明</b><br/><span style='font-size:12px;color:#666;'>最高可贷年限数据算法是一套多维度取低的综合计算模型，核心逻辑为：分别通过【按借款人年龄算出&ldquo;法定退休年龄+贷款年限延长至退休年龄后X年-申请年龄&rdquo;的年限上限，二手房需额外计算&ldquo;当地规定的房龄+贷款年限总和上限（多为40-50年）-现有房龄&rdquo;的房龄限制年限，再与房屋类型对应的最高年限（新房最长30年、二手房部分城市最长20年）】计算后取最小值，夫妻共同贷款通常按年龄较长一方核算，最终结果向下取整为整年。</span><br/><span style='font-size:12px;color:#999;'>执行路径说明：统一入口过程当前按 <code>ywsf=3</code> 进入对应算法分支；后续拆分建议子过程命名为 <code>p_gjj_get_mxywsfz_ywsf_3</code>。</span>"
                                             }
                                         ]
                                     },
@@ -175,7 +179,7 @@
                                         "body": [
                                             {
                                                 "type": "tpl",
-                                                "tpl": "<b>借款人最大可对冲支取金额算法说明</b><br/><span style='font-size:12px;color:#666;'>借款人最大可对冲支取金额数据算法采用&ldquo;多限制取低+累计扣减&rdquo;规则计算，核心逻辑为：先按对冲类型匹配上限（按月对冲不超过当月应还贷款本息额、按年对冲不超过当年/12个月应还本息总额、一次性冲本不超过剩余贷款本金），再减去历史累计已对冲支取金额，同时不超过借款人及共同对冲人公积金账户可用余额（账户余额-冻结金额-账户保留金额），三者取最小值即为本次可对冲支取的最高额度，部分城市支持叠加配偶、直系亲属的账户余额合并计算。</span>"
+                        "tpl": "<b>借款人最大可对冲支取金额算法说明</b><br/><span style='font-size:12px;color:#666;'>借款人最大可对冲支取金额数据算法采用&ldquo;多限制取低+累计扣减&rdquo;规则计算，核心逻辑为：先按对冲类型匹配上限（按月对冲不超过当月应还贷款本息额、按年对冲不超过当年/12个月应还本息总额、一次性冲本不超过剩余贷款本金），再减去历史累计已对冲支取金额，同时不超过借款人及共同对冲人公积金账户可用余额（账户余额-冻结金额-账户保留金额），三者取最小值即为本次可对冲支取的最高额度，部分城市支持叠加配偶、直系亲属的账户余额合并计算。</span><br/><span style='font-size:12px;color:#999;'>执行路径说明：统一入口过程当前按 <code>ywsf=4</code> 进入对应算法分支；后续拆分建议子过程命名为 <code>p_gjj_get_mxywsfz_ywsf_4</code>。</span>"
                                             }
                                         ]
                                     },
@@ -448,13 +452,13 @@
                                             "title": "调试使用说明",
                                             "size": "md",
                                             "actions": [{"type": "button", "label": "知道了", "actionType": "close", "level": "primary"}],
-                                            "body": {
-                                                "type": "tpl",
-                                                "tpl": "<div style='line-height:2;font-size:14px;'><p>（1）业务运行配置工具中通过调用场景<br/><code>HFB/business/ywbz/zhixing$m=execute.service</code><br/>方法计算算法结果。</p><p>（2）可通过公积金业务后台找到对应的api，复制入参。</p><p>（3）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。</p><p>（4）也可直接查看算法计算过程中应用的sql及结果：<br/><code>select * from gjj_ywblbz_log order by cjsj;</code></p></div>"
-                                            }
-                                        }
-                                    }
-                                ],
+                                             "body": {
+                                                 "type": "tpl",
+                                                 "tpl": "<div style='line-height:2;font-size:14px;'><p>（1）业务运行配置工具中通过调用场景<br/><code>HFB/business/ywbz/zhixing$m=execute.service</code><br/>方法计算算法结果。</p><p>（2）统一入口收到请求后，会按关键数据算法进入对应算法分支；调试日志首行会补充分发说明，便于核对当前算法执行路径。</p><p>（3）可通过公积金业务后台找到对应的api，复制入参。</p><p>（4）调试完成后，可点击查看明细，查看算法计算过程中每一条业务办理标准执行的结果。</p><p>（5）也可直接查看算法计算过程中应用的sql及结果：<br/><code>select * from gjj_ywblbz_log order by cjsj;</code></p></div>"
+                                             }
+                                         }
+                                     }
+                                 ],
                                 "className": "d-flex align-items-center",
                                 "style": {
                                     "display": "flex",
@@ -463,19 +467,231 @@
                                 }
                             },
                             "size": "xl",
+                            "data": {
+                                "ywsf": "${ywsf}",
+                                "ywnrfl": "${ywnrfl}",
+                                "selectedCaseId": "",
+                                "debugOutput": "",
+                                "pcid": ""
+                            },
                             "body": {
                                 "type": "form",
                                 "id": "debug_form_component",
                                 "title": "",
                                 "mode": "normal",
+                                "initApi": {
+                                    "method": "post",
+                                    "url": "${rule_debug_template_api}",
+                                    "data": {
+                                        "ywsf": "${ywsf}",
+                                        "ywnrfl": "${ywnrfl}"
+                                    },
+                                    "adaptor": "var data = payload.data || payload || {}; var template = data.template || {}; return Object.assign({}, template, data);"
+                                },
                                 "body": [
+                                    {
+                                        "type": "hidden",
+                                        "name": "ywsf"
+                                    },
+                                    {
+                                        "type": "hidden",
+                                        "name": "ywnrfl"
+                                    },
+                                    {
+                                        "type": "hidden",
+                                        "name": "pcid"
+                                    },
+                                    {
+                                        "type": "alert",
+                                        "level": "info",
+                                        "showIcon": true,
+                                        "body": "当前调试条件：关键数据算法=${ywsf || '-'}，业务内容分类=${ywnrfl || '-'}。打开弹窗时会自动生成基础调试模板，也可手工修改后再调试。"
+                                    },
+                                    {
+                                        "type": "alert",
+                                        "level": "warning",
+                                        "showIcon": true,
+                                        "body": "${debugDispatchTip || '当前仍通过统一入口执行，未选择关键数据算法时不会进入具体算法分支。'}"
+                                    },
+                                    {
+                                        "type": "select",
+                                        "id": "debug_case_select",
+                                        "name": "selectedCaseId",
+                                        "label": "成功案例",
+                                        "placeholder": "请选择已保存案例",
+                                        "clearable": true,
+                                        "searchable": true,
+                                        "source": {
+                                            "method": "post",
+                                            "url": "${rule_debug_case_list_api}",
+                                            "data": {
+                                                "ywsf": "${ywsf}",
+                                                "ywnrfl": "${ywnrfl}"
+                                            }
+                                        },
+                                        "description": "案例会按当前算法和业务内容分类过滤。"
+                                    },
+                                    {
+                                        "type": "group",
+                                        "body": [
+                                            {
+                                                "type": "button",
+                                                "label": "自动生成入参",
+                                                "level": "default",
+                                                "onEvent": {
+                                                    "click": {
+                                                        "actions": [
+                                                            {
+                                                                "actionType": "ajax",
+                                                                "api": {
+                                                                    "method": "post",
+                                                                    "url": "${rule_debug_template_api}",
+                                                                    "data": {
+                                                                        "ywsf": "${ywsf}",
+                                                                        "ywnrfl": "${ywnrfl}"
+                                                                    },
+                                                                    "adaptor": "var data = payload.data || payload || {}; var template = data.template || {}; return Object.assign({}, template, data);"
+                                                                },
+                                                                "outputVar": "debugTemplateRes"
+                                                            },
+                                                            {
+                                                                "actionType": "setValue",
+                                                                "componentId": "debug_form_component",
+                                                                "args": {
+                                                                    "value": {
+                                                                        "debugInput": "${debugTemplateRes.debugInput}",
+                                                                        "debugTemplateTip": "${debugTemplateRes.debugTemplateTip || debugTemplateRes.tip}",
+                                                                        "debugDispatchTip": "${debugTemplateRes.debugDispatchTip}",
+                                                                        "debugOutput": "",
+                                                                        "pcid": "",
+                                                                        "selectedCaseId": ""
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "button",
+                                                "label": "反显案例",
+                                                "level": "default",
+                                                "disabledOn": "${!selectedCaseId}",
+                                                "onEvent": {
+                                                    "click": {
+                                                        "actions": [
+                                                            {
+                                                                "actionType": "ajax",
+                                                                "api": {
+                                                                    "method": "post",
+                                                                    "url": "${rule_debug_case_get_api}",
+                                                                    "data": {
+                                                                        "id": "${selectedCaseId}"
+                                                                    },
+                                                                    "adaptor": "return payload.data || payload || {};"
+                                                                },
+                                                                "outputVar": "debugCaseRes"
+                                                            },
+                                                            {
+                                                                "actionType": "setValue",
+                                                                "componentId": "debug_form_component",
+                                                                "args": {
+                                                                    "value": {
+                                                                        "debugInput": "${debugCaseRes.debugInput}",
+                                                                        "debugTemplateTip": "已反显成功案例，可直接调试或按需调整参数。",
+                                                                        "debugOutput": "",
+                                                                        "pcid": ""
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "button",
+                                                "label": "保存成功案例",
+                                                "level": "success",
+                                                "disabledOn": "${debugOutput === undefined || debugOutput === null || debugOutput === ''}",
+                                                "actionType": "dialog",
+                                                "dialog": {
+                                                    "title": "保存调试成功案例",
+                                                    "data": {
+                                                        "ywsf": "${ywsf}",
+                                                        "ywnrfl": "${ywnrfl}",
+                                                        "debugInput": "${debugInput}",
+                                                        "debugOutput": "${debugOutput}"
+                                                    },
+                                                    "body": {
+                                                        "type": "form",
+                                                        "api": {
+                                                            "method": "post",
+                                                            "url": "${rule_debug_case_save_api}",
+                                                            "data": {
+                                                                "ywsf": "${ywsf}",
+                                                                "ywnrfl": "${ywnrfl}",
+                                                                "case_name": "${case_name}",
+                                                                "request_json": "${debugInput}",
+                                                                "result_summary": "${debugOutput}"
+                                                            }
+                                                        },
+                                                        "onEvent": {
+                                                            "submitSucc": {
+                                                                "actions": [
+                                                                    {
+                                                                        "actionType": "reload",
+                                                                        "componentId": "debug_case_select"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "body": [
+                                                            {
+                                                                "type": "input-text",
+                                                                "name": "case_name",
+                                                                "label": "案例名称",
+                                                                "required": true,
+                                                                "placeholder": "请输入案例名称"
+                                                            },
+                                                            {
+                                                                "type": "static",
+                                                                "name": "result_summary",
+                                                                "label": "调试结果",
+                                                                "value": "${debugOutput}"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "static",
+                                        "name": "debugTemplateTip",
+                                        "label": "模板说明"
+                                    },
                                     {
                                         "type": "editor",
                                         "language": "json",
                                         "name": "debugInput",
                                         "label": "入参 (JSON)",
-                                        "value": "{\n  \"ywsf\": \"1\",\n  \"ywnrfl\": \"1\",\n  \"jgbh\": \"\",\n  \"zjgbh\": \"\"\n}",
-                                        "minRows": 15
+                                        "minRows": 15,
+                                        "onEvent": {
+                                            "change": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "debug_form_component",
+                                                        "args": {
+                                                            "value": {
+                                                                "debugOutput": "",
+                                                                "pcid": ""
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     },
                                     {
                                         "type": "group",
@@ -495,14 +711,10 @@
                                                                     "data": {
                                                                         "debugInput": "${debugInput}"
                                                                     },
-                                                                    "requestAdaptor": "console.log('[DEBUG v2] debugInput:', api.data.debugInput); try { api.data = JSON.parse(api.data.debugInput); } catch(e) { console.error('JSON parse error:', e); } console.log('[DEBUG v2] final data:', api.data); return api;"
+                                                                    "requestAdaptor": "try { api.data = JSON.parse(api.data.debugInput); } catch(e) { console.error('JSON parse error:', e); } return api;",
+                                                                    "adaptor": "return payload.data || payload || {};"
                                                                 },
                                                                 "outputVar": "debugRes"
-                                                            },
-                                                            {
-                                                                "actionType": "custom",
-                                                                "script": "console.log('debugRes:', event.data.debugRes); console.log('responseResult:', event.data.responseResult); console.log('Full event:', event);",
-                                                                "description": "Log debug response"
                                                             },
                                                             {
                                                                 "actionType": "setValue",
@@ -532,10 +744,11 @@
                                                         "api": {
                                                             "method": "post",
                                                             "url": "${rule_debug_log_api}",
-                                                            "data": {
-                                                                "pcid": "${pcid}"
-                                                            }
-                                                        },
+                                                                "data": {
+                                                                    "pcid": "${pcid}",
+                                                                    "ywsf": "${ywsf}"
+                                                                }
+                                                            },
                                                         "syncLocation": false,
                                                         "columns": [
                                                             {

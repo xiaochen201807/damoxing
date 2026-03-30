@@ -47,13 +47,14 @@ async function migrate() {
         logger.info("Connected to Oracle.");
 
         // Tables to migrate in order (Parents first for Insert, Children first for Delete)
-        // Migration Order: gjj_ywbzk -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbz -> gjj_ywbzsx
-        // Delete Order: gjj_ywbzsx -> gjj_ywbz -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbzk
+        // Migration Order: gjj_ywbzk -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbz -> gjj_ywbzsx -> gjj_ywbz_debug_case
+        // Delete Order: gjj_ywbzsx -> gjj_ywbz -> gjj_ywbz_debug_case -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbzk
         
         // 3. Clear Oracle Data
         logger.info("Clearing existing data in Oracle...");
         await oracleConn.execute("DELETE FROM gjj_ywbzsx");
         await oracleConn.execute("DELETE FROM gjj_ywbz");
+        await oracleConn.execute("DELETE FROM gjj_ywbz_debug_case");
         await oracleConn.execute("DELETE FROM gjj_ywbzkhc");
         await oracleConn.execute("DELETE FROM gjj_ywbzksx");
         await oracleConn.execute("DELETE FROM gjj_ywbzk");
@@ -132,6 +133,20 @@ async function migrate() {
             logger.info(`Migrated ${ywbzsxRows.length} rows to gjj_ywbzsx.`);
         } else {
             await oracleConn.commit();
+        }
+
+        // 9. Migrate gjj_ywbz_debug_case
+        logger.info("Migrating gjj_ywbz_debug_case...");
+        const debugCaseRows = await getSqliteData(sqliteDb, 'gjj_ywbz_debug_case');
+        if (debugCaseRows.length > 0) {
+            const sql = `INSERT INTO gjj_ywbz_debug_case (id, ywsf, ywnrfl, case_name, request_json, result_summary, creator_name, jgbh, zjgbh, cjsj, gxsj) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11)`;
+            const binds = debugCaseRows.map(row => [
+                row.id, row.ywsf, row.ywnrfl, row.case_name, row.request_json, row.result_summary, row.creator_name, row.jgbh, row.zjgbh,
+                row.cjsj ? new Date(row.cjsj) : new Date(),
+                row.gxsj ? new Date(row.gxsj) : new Date()
+            ]);
+            await oracleConn.executeMany(sql, binds, { autoCommit: true });
+            logger.info(`Migrated ${debugCaseRows.length} rows to gjj_ywbz_debug_case.`);
         }
 
         logger.info("Migration completed successfully.");

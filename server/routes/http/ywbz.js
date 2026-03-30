@@ -10,6 +10,7 @@ const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
 const { authenticateToken } = require('../../middleware/auth');
 const algorithmConfig = require('../../utils/business-algorithms');
+const { getAlgorithmDispatchMeta, buildDebugDispatchTip } = require('../../utils/business-algorithm-dispatch');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -29,6 +30,171 @@ function formatConflictMessage(rows) {
             return `${left} 与 ${right}`;
         })
         .join('；');
+}
+
+function getDefinedValue(source, ...keys) {
+    if (!source) {
+        return undefined;
+    }
+
+    for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(source, key) && source[key] !== undefined && source[key] !== null) {
+            return source[key];
+        }
+    }
+
+    return undefined;
+}
+
+function isBlankValue(value) {
+    return value === undefined || value === null || value === '';
+}
+
+function applyCurrentRuleValue(cleanedValues, currentRuleValue) {
+    if (isBlankValue(currentRuleValue)) {
+        return cleanedValues;
+    }
+
+    if (cleanedValues.length === 0) {
+        return [{ result: currentRuleValue }];
+    }
+
+    if (cleanedValues.length === 1 && isBlankValue(cleanedValues[0].result)) {
+        return [{
+            ...cleanedValues[0],
+            result: currentRuleValue
+        }];
+    }
+
+    return cleanedValues;
+}
+
+function getRequestJgbh(req) {
+    return req.body?.jgbh || req.query?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+}
+
+function getRequestZjgbh(req) {
+    return req.body?.zjgbh || req.query?.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+}
+
+function getRequestCreatorName(req) {
+    return req.body?.creator_name
+        || req.headers['xm']
+        || req.headers['user-name']
+        || req.headers['username']
+        || req.headers['userid']
+        || req.headers['operator-name']
+        || '';
+}
+
+function stringifyJson(value) {
+    return JSON.stringify(value, null, 2);
+}
+
+function parseJsonPayload(payload) {
+    if (typeof payload === 'string') {
+        const trimmed = payload.trim();
+        if (!trimmed) {
+            throw new Error('请求参数 JSON 不能为空');
+        }
+
+        return JSON.parse(trimmed);
+    }
+
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        return payload;
+    }
+
+    throw new Error('请求参数必须为 JSON 对象或 JSON 字符串');
+}
+
+function buildDebugCaseLabel(row) {
+    const caseName = getDefinedValue(row, 'case_name', 'CASE_NAME') || '未命名案例';
+    const ywsf = getDefinedValue(row, 'ywsf', 'YWSF');
+    const ywnrfl = getDefinedValue(row, 'ywnrfl', 'YWNRFL');
+    const resultSummary = getDefinedValue(row, 'result_summary', 'RESULT_SUMMARY');
+    const creatorName = getDefinedValue(row, 'creator_name', 'CREATOR_NAME');
+    const createdAt = getDefinedValue(row, 'cjsj', 'CJSJ');
+    const parts = [caseName];
+
+    if (!isBlankValue(ywsf)) {
+        parts.push(`算法=${String(ywsf)}`);
+    }
+
+    if (!isBlankValue(ywnrfl)) {
+        parts.push(`分类=${String(ywnrfl)}`);
+    }
+
+    if (!isBlankValue(resultSummary)) {
+        parts.push(String(resultSummary));
+    }
+
+    if (!isBlankValue(creatorName)) {
+        parts.push(String(creatorName));
+    }
+
+    if (!isBlankValue(createdAt)) {
+        parts.push(String(createdAt));
+    }
+
+    return parts.join(' | ');
+}
+
+function buildDebugTemplateResponseData(template, extra) {
+    return Object.assign({}, template, extra || {}, { template });
+}
+
+function isPayloadParseError(err) {
+    if (!err || typeof err.message !== 'string') {
+        return false;
+    }
+
+    return err.message.includes('JSON') || err.message.includes('请求参数');
+}
+
+async function loadDebugTemplateFieldRows(adapter, { ywsf, ywnrfl, jgbh, zjgbh }) {
+    const coalesce = 'COALESCE';
+    let rows = [];
+
+    if (!isBlankValue(ywsf)) {
+        let sql = `
+            SELECT DISTINCT s.id, s.ywblbzsx, s.sxbm
+            FROM gjj_ywbz r
+            INNER JOIN gjj_ywbzksx s ON s.mbid = r.mbid
+            WHERE ${coalesce}(r.jgbh, '') = ?
+              AND ${coalesce}(r.zjgbh, '') = ?
+              AND ${coalesce}(r.ywsf, '') = ?
+        `;
+        const params = [jgbh || '', zjgbh || '', String(ywsf)];
+
+        if (!isBlankValue(ywnrfl)) {
+            sql += ` AND ${coalesce}(r.ywnrfl, '') = ?`;
+            params.push(String(ywnrfl));
+        }
+
+        sql += ' ORDER BY s.id ASC';
+        rows = await adapter.all(sql, params);
+
+        if (rows.length === 0) {
+            let fallbackSql = `
+                SELECT DISTINCT s.id, s.ywblbzsx, s.sxbm
+                FROM gjj_ywbzk t
+                INNER JOIN gjj_ywbzksx s ON s.mbid = t.id
+                WHERE ${coalesce}(t.gjsjsf, '') = ?
+            `;
+            const fallbackParams = [String(ywsf)];
+
+            if (!isBlankValue(ywnrfl)) {
+                fallbackSql += ` AND ${coalesce}(t.ywnrfl, '') = ?`;
+                fallbackParams.push(String(ywnrfl));
+            }
+
+            fallbackSql += ' ORDER BY s.id ASC';
+            rows = await adapter.all(fallbackSql, fallbackParams);
+        }
+    }
+
+    return rows;
 }
 
 /**
@@ -124,10 +290,12 @@ router.post('/get', async (req, res) => {
         const attributes = [];
         sxRows.forEach(row => {
             for (let i = 1; i <= 10; i++) {
-                if (row[`k${i}`] || row[`K${i}`]) { // Oracle might return uppercase
+                const key = getDefinedValue(row, `k${i}`, `K${i}`);
+                const value = getDefinedValue(row, `v${i}`, `V${i}`);
+                if (!isBlankValue(key)) { // Oracle might return uppercase
                     attributes.push({
-                        sxmc: row[`k${i}`] || row[`K${i}`],
-                        sxz: row[`v${i}`] || row[`V${i}`]
+                        sxmc: key,
+                        sxz: isBlankValue(value) ? '' : value
                     });
                 }
             }
@@ -161,6 +329,29 @@ router.post('/config_form', async (req, res) => {
     }
 
     try {
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const ruleSql = `
+            SELECT t1.id, t1.mbid, t1.gzmc, t1.ywsf, t1.ywnrfl, t1.ywbzz,
+                   t2.ywblbz as template_name, t2.ywblbzsm as template_desc
+            FROM gjj_ywbz t1
+            LEFT JOIN gjj_ywbzk t2 ON t1.mbid = t2.id
+            WHERE t1.id = ?
+        `;
+        const ruleRow = await _adapter.get(ruleSql, [id]);
+
+        if (!ruleRow) {
+            return res.json({
+                status: 0,
+                msg: "ok",
+                data: {
+                    type: "alert",
+                    body: "未找到对应业务规则"
+                }
+            });
+        }
+
+        const resolvedMbid = getDefinedValue(ruleRow, 'mbid', 'MBID') || mbid;
+
         // 1. 查询标准库定义的属性 (gjj_ywbzksx)
         const sqlSchema = `SELECT * FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC`;
 
@@ -171,7 +362,7 @@ router.post('/config_form', async (req, res) => {
             ORDER BY row_index ASC, id ASC
         `;
 
-        const schemaRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sqlSchema, [mbid]);
+        const schemaRows = await _adapter.all(sqlSchema, [resolvedMbid]);
 
         // ============================================================
         // gjj_ywbzksx 表字段实际含义说明（与字段名不完全一致）：
@@ -185,43 +376,53 @@ router.post('/config_form', async (req, res) => {
         // 用于回显时兼容旧数据（宽表 k 列可能存的是中文名称）
         const chineseNameToFieldId = {};
         schemaRows.forEach(row => {
-            const chineseName = row.sxbm || row.SXBM;         // 中文名称
-            const fieldId = row.ywblbzsx || row.YWBLBZSX;     // 程序化标识
+            const chineseName = getDefinedValue(row, 'sxbm', 'SXBM');         // 中文名称
+            const fieldId = getDefinedValue(row, 'ywblbzsx', 'YWBLBZSX');     // 程序化标识
 
             if (chineseName && fieldId) {
                 chineseNameToFieldId[chineseName] = fieldId;
             }
         });
 
-        const valueRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sqlValues, [id]);
+        const valueRows = await _adapter.all(sqlValues, [id]);
 
         // 将宽表结构 (k1,v1...) 还原为对象数组
         // 宽表 k 列可能存的是旧的中文名(sxbm)或新的程序化标识(ywblbzsx)
         // 统一转换为 ywblbzsx 作为 key，与表单 name 对应
         const cleanedValues = valueRows.map(row => {
             const item = {
-                id: row.id || row.ID,
-                result: row.result || row.RESULT
+                id: getDefinedValue(row, 'id', 'ID'),
+                result: getDefinedValue(row, 'result', 'RESULT')
             };
 
             for (let i = 1; i <= 10; i++) {
-                const k = row[`k${i}`] || row[`K${i}`];
-                const v = row[`v${i}`] || row[`V${i}`];
-                if (k) {
+                const k = getDefinedValue(row, `k${i}`, `K${i}`);
+                const v = getDefinedValue(row, `v${i}`, `V${i}`);
+                if (!isBlankValue(k)) {
                     // 如果 k 是中文名称，转换为程序化标识；否则原样使用
                     const key = chineseNameToFieldId[k] || k;
-                    item[key] = v;
+                    item[key] = isBlankValue(v) ? '' : v;
                 }
             }
             return item;
         });
 
+        const currentRuleValue = getDefinedValue(ruleRow, 'ywbzz', 'YWBZZ');
+        const hasSavedValues = cleanedValues.length > 0;
+        const formValues = applyCurrentRuleValue(cleanedValues, currentRuleValue);
+        const currentRuleValueDisplay = isBlankValue(currentRuleValue) ? '未配置' : String(currentRuleValue);
+        const currentRuleValueTip = isBlankValue(currentRuleValue)
+            ? '当前业务标准值未配置，可在下方“结果”列录入具体值。'
+            : hasSavedValues
+                ? `当前业务标准值：${currentRuleValueDisplay}。下方优先回显已保存的参数明细。`
+                : `当前业务标准值：${currentRuleValueDisplay}。已在下方结果区自动带出，可直接核对或调整。`;
+
         // 动态构建 Combo 的内部 items (表单列)
         const comboItems = schemaRows.map(field => {
-            const chineseName = field.sxbm || field.SXBM;           // 中文名称，如 "贷款情况"
-            const displayLabel = field.fwdxbq || field.FWDXBQ;      // 服务对象标签，如 "缴存人"
-            const syObjectNumber = field.ywblbzdx || field.YWBLBZDX; // syObjectNumber
-            const fieldId = field.ywblbzsx || field.YWBLBZSX;       // 程序化标识 / fieldIdentification
+            const chineseName = getDefinedValue(field, 'sxbm', 'SXBM');             // 中文名称，如 "贷款情况"
+            const displayLabel = getDefinedValue(field, 'fwdxbq', 'FWDXBQ');        // 服务对象标签，如 "缴存人"
+            const syObjectNumber = getDefinedValue(field, 'ywblbzdx', 'YWBLBZDX');  // syObjectNumber
+            const fieldId = getDefinedValue(field, 'ywblbzsx', 'YWBLBZSX');          // 程序化标识 / fieldIdentification
 
             // 标签组合：如 "缴存人-贷款情况"
             const label = (displayLabel && chineseName)
@@ -263,6 +464,12 @@ router.post('/config_form', async (req, res) => {
                 type: "form",
                 title: "规则参数配置",
                 wrapWithPanel: false,
+                data: {
+                    ruleName: getDefinedValue(ruleRow, 'gzmc', 'GZMC') || '-',
+                    templateName: getDefinedValue(ruleRow, 'template_name', 'TEMPLATE_NAME') || '-',
+                    currentRuleValueDisplay,
+                    currentRuleValueTip
+                },
                 api: {
                     method: "post",
                     url: `${process.env.API_ROUTE_PREFIX || '/api'}/ywbz/save_params`,
@@ -273,6 +480,47 @@ router.post('/config_form', async (req, res) => {
                 },
                 body: [
                     {
+                        type: "grid",
+                        columns: [
+                            {
+                                md: 4,
+                                body: [
+                                    {
+                                        type: "static",
+                                        label: "规则名称",
+                                        name: "ruleName"
+                                    }
+                                ]
+                            },
+                            {
+                                md: 4,
+                                body: [
+                                    {
+                                        type: "static",
+                                        label: "标准模板",
+                                        name: "templateName"
+                                    }
+                                ]
+                            },
+                            {
+                                md: 4,
+                                body: [
+                                    {
+                                        type: "static",
+                                        label: "当前业务标准值",
+                                        name: "currentRuleValueDisplay"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "alert",
+                        level: isBlankValue(currentRuleValue) ? "warning" : "info",
+                        showIcon: true,
+                        body: "${currentRuleValueTip}"
+                    },
+                    {
                         type: "combo",
                         name: "rules", // 对应提交数据的 key
                         label: false,
@@ -280,7 +528,7 @@ router.post('/config_form', async (req, res) => {
                         multiLine: true,
                         addable: true,
                         removable: true,
-                        value: cleanedValues, // 回填数据
+                        value: formValues, // 回填数据
                         items: comboItems
                     },
                     {
@@ -316,7 +564,7 @@ router.post('/save_params', async (req, res) => {
     try {
         // 0. 查询该规则对应的 mbid，再查标准库属性定义，确定字段顺序
         const ruleRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [id]);
-        const mbid = ruleRow?.mbid || ruleRow?.MBID;
+        const mbid = getDefinedValue(ruleRow, 'mbid', 'MBID');
 
         // 按 id ASC 获取字段定义顺序
         let fieldOrder = [];
@@ -342,7 +590,7 @@ router.post('/save_params', async (req, res) => {
 
             for (let rowIndex = 0; rowIndex < rules.length; rowIndex++) {
                 const row = rules[rowIndex];
-                const params = [id, rowIndex, row.result || ''];
+                const params = [id, rowIndex, isBlankValue(row.result) ? '' : row.result];
                 let kIndex = 1;
 
                 // 按标准库属性定义的固定顺序写入 k/v 对
@@ -398,14 +646,15 @@ router.get('/:id(\\d+)', authenticateToken, async (req, res) => {
         const rule_params = {};
         sxRows.forEach(row => {
             for (let i = 1; i <= 10; i++) {
-                const k = row[`k${i}`] || row[`K${i}`];
-                const v = row[`v${i}`] || row[`V${i}`];
-                if (k) {
-                    rule_params[k] = v;
+                const key = getDefinedValue(row, `k${i}`, `K${i}`);
+                const value = getDefinedValue(row, `v${i}`, `V${i}`);
+                if (!isBlankValue(key)) {
+                    rule_params[key] = isBlankValue(value) ? '' : value;
                 }
             }
-            if (row.result || row.RESULT) {
-                rule_params.result = row.result || row.RESULT;
+            const resultValue = getDefinedValue(row, 'result', 'RESULT');
+            if (!isBlankValue(resultValue)) {
+                rule_params.result = resultValue;
             }
         });
 
@@ -458,7 +707,7 @@ router.post('/save', async (req, res) => {
                 const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
                 const insertRow = async (rowIndex, rowData) => {
-                    const params = [ywid, rowIndex, rowData.result || ''];
+                    const params = [ywid, rowIndex, isBlankValue(rowData.result) ? '' : rowData.result];
                     let kIndex = 1;
                     Object.keys(rowData).forEach(key => {
                         if (key !== 'result' && key !== 'id' && kIndex <= 10) {
@@ -524,7 +773,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
                 const placeholders = columns.map(() => '?').join(',');
                 const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
-                const params = [id, 0, rule_params.result || ''];
+                const params = [id, 0, isBlankValue(rule_params.result) ? '' : rule_params.result];
                 let kIndex = 1;
                 Object.keys(rule_params).forEach(key => {
                     if (key !== 'result' && key !== 'id' && kIndex <= 10) {
@@ -1498,14 +1747,234 @@ router.post('/selection_list', async (req, res) => {
 
 
 /**
- * 11. 调试接口 (POST /debug)
+ * 11. 调试模板生成 (POST /debug_template)
+ */
+router.post('/debug_template', async (req, res) => {
+    const ywsf = isBlankValue(req.body.ywsf) ? '' : String(req.body.ywsf);
+    const ywnrfl = isBlankValue(req.body.ywnrfl) ? '' : String(req.body.ywnrfl);
+    const jgbh = getRequestJgbh(req);
+    const zjgbh = getRequestZjgbh(req);
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    const template = { ywsf, ywnrfl, jgbh, zjgbh };
+    const dispatchMeta = getAlgorithmDispatchMeta(ywsf);
+    const debugDispatchTip = buildDebugDispatchTip(dispatchMeta, ywnrfl);
+
+    try {
+        let fieldRows = [];
+        let fieldKeys = [];
+        let tip = '';
+
+        if (isBlankValue(ywsf)) {
+            tip = '未选择关键数据算法，已生成基础调试模板。';
+        } else if (ywsf === '1' && isBlankValue(ywnrfl)) {
+            tip = '最大可提取额需先选择业务内容分类，已生成基础调试模板。';
+        } else {
+            fieldRows = await loadDebugTemplateFieldRows(_adapter, { ywsf, ywnrfl, jgbh, zjgbh });
+
+            fieldRows.forEach(row => {
+                const key = getDefinedValue(row, 'ywblbzsx', 'YWBLBZSX', 'sxbm', 'SXBM');
+                if (!isBlankValue(key) && !fieldKeys.includes(String(key))) {
+                    fieldKeys.push(String(key));
+                }
+            });
+
+            fieldKeys.forEach(key => {
+                if (!Object.prototype.hasOwnProperty.call(template, key)) {
+                    template[key] = '';
+                }
+            });
+
+            tip = fieldKeys.length > 0
+                ? `已根据当前算法与业务内容分类生成 ${fieldKeys.length} 个业务参数。`
+                : '当前筛选条件下未找到业务参数定义，已生成基础调试模板。';
+        }
+
+        res.json({
+            status: 0,
+            msg: 'ok',
+            data: buildDebugTemplateResponseData(template, {
+                debugInput: stringifyJson(template),
+                fieldCount: fieldKeys.length,
+                tip,
+                debugTemplateTip: tip,
+                debugDispatchTip,
+                dispatchMeta
+            })
+        });
+    } catch (err) {
+        logger.error(`Failed to build debug template: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '生成调试模板失败: ' + err.message });
+    }
+});
+
+/**
+ * 12. 调试案例列表 (POST /debug_case/list)
+ */
+router.post('/debug_case/list', async (req, res) => {
+    const { ywsf, ywnrfl, keyword } = req.body;
+    const jgbh = getRequestJgbh(req);
+    const zjgbh = getRequestZjgbh(req);
+    const coalesce = 'COALESCE';
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+    let sql = `
+        SELECT id, case_name, ywsf, ywnrfl, result_summary, creator_name, cjsj
+        FROM gjj_ywbz_debug_case
+        WHERE ${coalesce}(jgbh, '') = ?
+          AND ${coalesce}(zjgbh, '') = ?
+    `;
+    const params = [jgbh || '', zjgbh || ''];
+
+    if (!isBlankValue(ywsf)) {
+        sql += ` AND ${coalesce}(ywsf, '') = ?`;
+        params.push(String(ywsf));
+    }
+
+    if (!isBlankValue(ywnrfl)) {
+        sql += ` AND ${coalesce}(ywnrfl, '') = ?`;
+        params.push(String(ywnrfl));
+    }
+
+    if (!isBlankValue(keyword)) {
+        sql += ' AND case_name LIKE ?';
+        params.push(`%${String(keyword).trim()}%`);
+    }
+
+    sql += ' ORDER BY cjsj DESC, id DESC';
+
+    try {
+        const rows = await _adapter.all(sql, params);
+        res.json({
+            status: 0,
+            msg: 'ok',
+            data: rows.map(row => ({
+                ...row,
+                value: String(getDefinedValue(row, 'id', 'ID')),
+                label: buildDebugCaseLabel(row)
+            }))
+        });
+    } catch (err) {
+        logger.error(`Failed to query debug cases: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '查询调试案例失败: ' + err.message });
+    }
+});
+
+/**
+ * 13. 调试案例详情 (POST /debug_case/get)
+ */
+router.post('/debug_case/get', async (req, res) => {
+    const { id } = req.body;
+    const jgbh = getRequestJgbh(req);
+    const zjgbh = getRequestZjgbh(req);
+    const coalesce = 'COALESCE';
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+
+    if (!id) {
+        return res.status(400).json({ status: 1, msg: '案例ID不能为空' });
+    }
+
+    try {
+        const row = await _adapter.get(
+            `
+                SELECT *
+                FROM gjj_ywbz_debug_case
+                WHERE id = ?
+                  AND ${coalesce}(jgbh, '') = ?
+                  AND ${coalesce}(zjgbh, '') = ?
+            `,
+            [id, jgbh || '', zjgbh || '']
+        );
+
+        if (!row) {
+            return res.status(404).json({ status: 1, msg: '调试案例不存在' });
+        }
+
+        const requestJsonText = getDefinedValue(row, 'request_json', 'REQUEST_JSON') || '{}';
+        const requestJson = parseJsonPayload(requestJsonText);
+
+        res.json({
+            status: 0,
+            msg: 'ok',
+            data: {
+                ...row,
+                request_json: requestJson,
+                debugInput: stringifyJson(requestJson)
+            }
+        });
+    } catch (err) {
+        logger.error(`Failed to load debug case: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '查询调试案例详情失败: ' + err.message });
+    }
+});
+
+/**
+ * 14. 保存调试案例 (POST /debug_case/save)
+ */
+router.post('/debug_case/save', async (req, res) => {
+    const ywsf = isBlankValue(req.body.ywsf) ? '' : String(req.body.ywsf);
+    const ywnrfl = isBlankValue(req.body.ywnrfl) ? '' : String(req.body.ywnrfl);
+    const caseName = req.body.case_name ? String(req.body.case_name).trim() : '';
+    const resultSummary = getDefinedValue(req.body, 'result_summary');
+    const jgbh = getRequestJgbh(req);
+    const zjgbh = getRequestZjgbh(req);
+    const creatorName = getRequestCreatorName(req);
+    const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+
+    if (!caseName) {
+        return res.status(400).json({ status: 1, msg: '案例名称不能为空' });
+    }
+
+    if (isBlankValue(resultSummary)) {
+        return res.status(400).json({ status: 1, msg: '仅支持保存调试成功的案例，请先完成调试' });
+    }
+
+    try {
+        const requestJson = parseJsonPayload(req.body.request_json);
+        const requestJsonText = stringifyJson(requestJson);
+        const columns = ['ywsf', 'ywnrfl', 'case_name', 'request_json', 'result_summary', 'creator_name', 'jgbh', 'zjgbh', 'cjsj', 'gxsj'];
+        const params = [
+            ywsf || null,
+            ywnrfl || null,
+            caseName,
+            requestJsonText,
+            String(resultSummary),
+            creatorName || null,
+            jgbh || '',
+            zjgbh || ''
+        ];
+        const placeholders = columns
+            .map((_, index) => (index >= columns.length - 2 ? SqlHelper.now(_adapter) : SqlHelper.param(index, _adapter)))
+            .join(', ');
+        const sql = `INSERT INTO gjj_ywbz_debug_case (${columns.join(', ')}) VALUES (${placeholders})`;
+        const result = await _adapter.run(sql, params);
+
+        res.json({
+            status: 0,
+            msg: '保存成功',
+            data: {
+                id: result?.lastID || null
+            }
+        });
+    } catch (err) {
+        if (isPayloadParseError(err)) {
+            return res.status(400).json({ status: 1, msg: err.message });
+        }
+
+        logger.error(`Failed to save debug case: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '保存调试案例失败: ' + err.message });
+    }
+});
+
+/**
+ * 15. 调试接口 (POST /debug)
  * 转发请求至网关 HFB/business/ywbz/zhixing$m=execute.service
  */
 const { gatewayRequest } = require('../../services/gatewayService');
 
 router.post('/debug', async (req, res) => {
     try {
-        const payload = req.body;
+        const payload = typeof req.body?.debugInput === 'string'
+            ? parseJsonPayload(req.body.debugInput)
+            : req.body;
         logger.info(`Debug Payload: ${JSON.stringify(payload)}`);
 
         // 构建网关请求参数
@@ -1532,17 +2001,22 @@ router.post('/debug', async (req, res) => {
         return res.json({ status: 0, msg: "调试成功", data: result });
 
     } catch (err) {
+        if (isPayloadParseError(err)) {
+            return res.status(400).json({ status: 1, msg: err.message });
+        }
+
         logger.error(`Debug failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: "调试失败: " + err.message });
     }
 });
 
 /**
- * 12. 调试日志查询 (POST /debug_log)
+ * 16. 调试日志查询 (POST /debug_log)
  * 查询 gjj_ywblbz_log 表
  */
 router.post('/debug_log', async (req, res) => {
-    const { pcid } = req.body;
+    const { pcid, ywsf } = req.body;
+    const jgbh = getRequestJgbh(req);
     if (!pcid) {
         return res.status(400).json({ status: 1, msg: "PCID is required" });
     }
@@ -1566,10 +2040,24 @@ router.post('/debug_log', async (req, res) => {
             id: index + 1,
             step: `步骤 ${index + 1}`,
             content: row.content || row.CONTENT || row.zxyj,
-            result: row.result || row.RESULT || row.zxjg,
+            result: getDefinedValue(row, 'result', 'RESULT', 'zxjg', 'ZXJG'),
             time: row.time || row.TIME || row.cjsj,
             type: (row.type || row.TYPE || row.yjlx) === '1' ? 'SQL' : '标准结果'
         }));
+        const dispatchMeta = getAlgorithmDispatchMeta(ywsf);
+
+        if (!isBlankValue(dispatchMeta.algorithmCode)) {
+            formattedRows.unshift({
+                id: 0,
+                step: '分发信息',
+                content: `统一入口 ${dispatchMeta.entryProcedure} 已按算法 ${dispatchMeta.algorithmCode}（${dispatchMeta.algorithmLabel}）进入 ${dispatchMeta.currentBranch}。`,
+                result: dispatchMeta.plannedProcedure
+                    ? `规划子过程：${dispatchMeta.plannedProcedure}`
+                    : dispatchMeta.currentBranch,
+                time: '',
+                type: '算法分支'
+            });
+        }
 
         res.json({
             status: 0,
