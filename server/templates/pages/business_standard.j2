@@ -28,6 +28,7 @@
         "service_objects_params": {{ service_objects_params | default({}) | fromjson | tojson }},
         "business_standard_attribute_api": "{{ business_standard_attribute_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-attributes') }}",
         "business_standard_attribute_params": {{ business_standard_attribute_params | default({}) | fromjson | tojson }},
+        "mutual_standard_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/mutual-options",
         "standard_import_api": "{{ standard_import_api | default(GLOBAL_API_PREFIX + '/ywbzk/import') }}",
         "standard_export_api": "{{ standard_export_api | default(GLOBAL_API_PREFIX + '/ywbzk/export') }}",
         "mode_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/mode",
@@ -507,6 +508,25 @@
                                         ]
                                     },
                                     {
+                                        "type": "select",
+                                        "name": "hcbzIds",
+                                        "label": "互斥业务办理标准：",
+                                        "multiple": true,
+                                        "joinValues": false,
+                                        "extractValue": true,
+                                        "clearable": true,
+                                        "searchable": true,
+                                        "source": {
+                                            "method": "post",
+                                            "url": "${mutual_standard_api}",
+                                            "data": {
+                                                "gjsjsf": "${gjsjsf}",
+                                                "ywnrfl": "${ywnrfl}"
+                                            }
+                                        },
+                                        "disabledOn": "${!gjsjsf || !ywnrfl}"
+                                    },
+                                    {
                                         "type": "combo",
                                         "name": "ywblbzsxz",
                                         "label": "业务办理标准属性组：",
@@ -853,6 +873,26 @@
                                                     "body": { "type": "editor", "name": "ywbzjg_dialects.pg", "label": false, "language": "sql", "size": "md", "options": {"fontSize": 14} }
                                                 }
                                             ]
+                                        },
+                                        {
+                                            "type": "select",
+                                            "name": "hcbzIds",
+                                            "label": "互斥业务办理标准：",
+                                            "multiple": true,
+                                            "joinValues": false,
+                                            "extractValue": true,
+                                            "clearable": true,
+                                            "searchable": true,
+                                            "source": {
+                                                "method": "post",
+                                                "url": "${mutual_standard_api}",
+                                                "data": {
+                                                    "id": "${id}",
+                                                    "gjsjsf": "${gjsjsf}",
+                                                    "ywnrfl": "${ywnrfl}"
+                                                }
+                                            },
+                                            "disabledOn": "${!gjsjsf || !ywnrfl}"
                                         },
                                         {
                                             "type": "combo",

@@ -26,6 +26,20 @@ function getCountValue(row) {
     return row.total || row.TOTAL || 0;
 }
 
+function normalizeIdList(value) {
+    if (!value) {
+        return [];
+    }
+
+    const list = Array.isArray(value) ? value : String(value).split(',');
+
+    return [...new Set(
+        list
+            .map(item => String(item).trim())
+            .filter(item => item !== '')
+    )];
+}
+
 /**
  * 1. 获取列表 (POST /list)
  * 支持分页和关键字查询
@@ -121,6 +135,14 @@ router.post('/get', async (req, res) => {
 
         const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
         const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
+        const mutualSql = `
+            SELECT t.id as value, t.ywblbz as label
+            FROM gjj_ywbzkhc h
+            INNER JOIN gjj_ywbzk t ON t.id = h.hcmbid
+            WHERE h.mbid = ?
+            ORDER BY t.pxh ASC, t.id ASC
+        `;
+        const mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(mutualSql, [id]);
 
         // 拆解每行属性的 ywblbzyg 方言
         sxRows.forEach(sx => {
@@ -128,6 +150,8 @@ router.post('/get', async (req, res) => {
         });
 
         row.ywblbzsxz = sxRows;
+        row.hcbzIds = mutualRows.map(item => String(item.value || item.VALUE));
+        row.hcbzOptions = mutualRows;
         // 返回方言列表供前端渲染 Tab 页签
         row.dialect_list = DIALECT_LIST;
         res.json({ status: 0, msg: "ok", data: row });
@@ -141,7 +165,7 @@ router.post('/get', async (req, res) => {
  * 自动处理事务和属性组同步
  */
 router.post('/save', async (req, res) => {
-    let { id, pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, ywblbzsxz } = req.body;
+    let { id, pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, ywblbzsxz, hcbzIds } = req.body;
     const { ywbzjg_dialects } = req.body;
 
     // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
@@ -165,6 +189,7 @@ router.post('/save', async (req, res) => {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
         zdybm = zdybm ? String(zdybm).trim() : '';
         ywblfl = ywblfl ? String(ywblfl) : '1';
+        hcbzIds = normalizeIdList(hcbzIds);
 
         if (!['1', '2'].includes(ywblfl)) {
             return res.status(400).json({ status: 1, msg: `无效的业务办理分类编码: ${ywblfl}` });
@@ -194,6 +219,27 @@ router.post('/save', async (req, res) => {
 
             if (!classRow) {
                 return res.status(400).json({ status: 1, msg: `业务内容分类不存在: ${ywnrfl}` });
+            }
+        }
+
+        if (hcbzIds.length > 0) {
+            if (!gjsjsf || !ywnrfl) {
+                return res.status(400).json({ status: 1, msg: '设置互斥业务办理标准时必须先选择关键数据算法和业务内容分类' });
+            }
+
+            const placeholders = hcbzIds.map(() => '?').join(',');
+            const mutualRows = await _adapter.all(
+                `SELECT id FROM gjj_ywbzk WHERE id IN (${placeholders}) AND gjsjsf = ? AND ywnrfl = ?`,
+                [...hcbzIds, gjsjsf, ywnrfl]
+            );
+            const validIds = new Set(mutualRows.map(row => String(row.id || row.ID)));
+
+            if (id && validIds.has(String(id))) {
+                return res.status(400).json({ status: 1, msg: '互斥业务办理标准不能选择自身' });
+            }
+
+            if (validIds.size !== hcbzIds.length) {
+                return res.status(400).json({ status: 1, msg: '互斥业务办理标准必须与当前模板属于同一关键数据算法和业务内容分类' });
             }
         }
 
@@ -227,6 +273,19 @@ router.post('/save', async (req, res) => {
                 }
             }
 
+            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :1', [mbid]);
+
+            for (const mutualId of hcbzIds) {
+                await tx.run(
+                    `INSERT INTO gjj_ywbzkhc (mbid, hcmbid, cjsj, gxsj) VALUES (:1, :2, ${SqlHelper.now(_adapter)}, ${SqlHelper.now(_adapter)})`,
+                    [mbid, mutualId]
+                );
+                await tx.run(
+                    `INSERT INTO gjj_ywbzkhc (mbid, hcmbid, cjsj, gxsj) VALUES (:1, :2, ${SqlHelper.now(_adapter)}, ${SqlHelper.now(_adapter)})`,
+                    [mutualId, mbid]
+                );
+            }
+
             return { id: mbid };
         });
 
@@ -254,11 +313,43 @@ router.post('/delete', async (req, res) => {
     }
 
     try {
-        const sql = "DELETE FROM gjj_ywbzk WHERE id = ?";
-        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(sql, [id]);
+        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :1', [id]);
+            await tx.run('DELETE FROM gjj_ywbzk WHERE id = :1', [id]);
+        });
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
         logger.error(`Failed to delete ywbzk: ${err.message}`);
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
+router.post('/mutual-options', async (req, res) => {
+    const { id, gjsjsf, ywnrfl } = req.body;
+    const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+
+    if (!gjsjsf || !ywnrfl) {
+        return res.json({ status: 0, msg: "ok", data: [] });
+    }
+
+    try {
+        let sql = `
+            SELECT id as value, ywblbz as label, zdybm, ywblbzsm
+            FROM gjj_ywbzk
+            WHERE gjsjsf = ? AND ywnrfl = ?
+        `;
+        const params = [gjsjsf, ywnrfl];
+
+        if (id) {
+            sql += ' AND id <> ?';
+            params.push(id);
+        }
+
+        sql += ' ORDER BY pxh ASC, id ASC';
+        const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, params);
+        res.json({ status: 0, msg: "ok", data: rows });
+    } catch (err) {
+        logger.error(`Failed to query mutual options: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
     }
 });
@@ -307,13 +398,15 @@ router.all('/export', authenticateToken, async (req, res) => {
         // 1. 获取所有数据
         const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzk");
         const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzksx");
+        const mutualStandards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzkhc");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
-        let sqlScript = "-- 业务标准全量导出 (包含标准表和属性表)\n";
+        let sqlScript = "-- 业务标准全量导出 (包含标准表、属性表和互斥关系表)\n";
         sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
         // sqlScript += "BEGIN TRANSACTION;\n\n"; // Oracle 不需要显式 BEGIN TRANSACTION
 
         // 清空旧数据
+        sqlScript += "DELETE FROM gjj_ywbzkhc;\n";
         sqlScript += "DELETE FROM gjj_ywbzksx;\n";
         sqlScript += "DELETE FROM gjj_ywbzk;\n\n";
 
@@ -346,6 +439,12 @@ router.all('/export', authenticateToken, async (req, res) => {
             const keys = Object.keys(row);
             const values = Object.values(row).map(formatValue);
             sqlScript += `INSERT INTO gjj_ywbzksx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+
+        for (const row of mutualStandards) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(formatValue);
+            sqlScript += `INSERT INTO gjj_ywbzkhc (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
         // sqlScript += "\nCOMMIT;"; // 导入时自动提交

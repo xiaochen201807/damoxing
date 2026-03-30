@@ -17,6 +17,20 @@ const path = require('path');
 // 配置 Multer 内存存储，用于处理文件上传
 const upload = multer({ storage: multer.memoryStorage() });
 
+function formatConflictMessage(rows) {
+    if (!rows || rows.length === 0) {
+        return '';
+    }
+
+    return rows
+        .map(row => {
+            const left = row.mbid_label || row.MBID_LABEL || row.left_label || row.LEFT_LABEL || row.mbid || row.MBID;
+            const right = row.hcmbid_label || row.HCMBID_LABEL || row.right_label || row.RIGHT_LABEL || row.hcmbid || row.HCMBID;
+            return `${left} 与 ${right}`;
+        })
+        .join('；');
+}
+
 /**
  * 1. 获取列表 (POST /list)
  */
@@ -599,6 +613,30 @@ router.post('/batch', async (req, res) => {
         const existingRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(existingSql, existingParams);
 
         const selectedMbids = new Set(syncIds.map(String));
+
+        if (selectedMbids.size > 1) {
+            const selectedIdList = Array.from(selectedMbids);
+            const placeholders = selectedIdList.map(() => '?').join(',');
+            const mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
+                `
+                    SELECT DISTINCT h.mbid, h.hcmbid, t1.ywblbz as mbid_label, t2.ywblbz as hcmbid_label
+                    FROM gjj_ywbzkhc h
+                    INNER JOIN gjj_ywbzk t1 ON t1.id = h.mbid
+                    INNER JOIN gjj_ywbzk t2 ON t2.id = h.hcmbid
+                    WHERE h.mbid IN (${placeholders})
+                    AND h.hcmbid IN (${placeholders})
+                    AND h.mbid < h.hcmbid
+                `,
+                [...selectedIdList, ...selectedIdList]
+            );
+
+            if (mutualRows.length > 0) {
+                return res.status(400).json({
+                    status: 1,
+                    msg: `存在互斥业务办理标准，不能同时同步：${formatConflictMessage(mutualRows)}`
+                });
+            }
+        }
 
         // 2. 计算需要删除的 (已存在但未选中) - 遍历所有行以处理潜在的重复数据
         const idsToDelete = [];
@@ -1402,15 +1440,44 @@ router.post('/selection_list', async (req, res) => {
     try {
         const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(standardsSql, standardsParams);
         const selectedRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(selectedSql, selectedParams);
+        const standardIds = standards.map(item => item.id || item.ID);
+        let mutualRows = [];
+
+        if (standardIds.length > 0) {
+            const placeholders = standardIds.map(() => '?').join(',');
+            mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
+                `
+                    SELECT h.mbid, h.hcmbid, t.ywblbz as hc_label
+                    FROM gjj_ywbzkhc h
+                    INNER JOIN gjj_ywbzk t ON t.id = h.hcmbid
+                    WHERE h.mbid IN (${placeholders})
+                `,
+                standardIds
+            );
+        }
 
         // 内存合并: 构建 Set 加速查找
         const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
         logger.info(`[Selection Fix] Selected IDs: ${Array.from(selectedIds).join(',')}`);
+        const mutualMap = new Map();
+
+        mutualRows.forEach(row => {
+            const key = Number(row.mbid || row.MBID);
+            const current = mutualMap.get(key) || [];
+            current.push({
+                id: Number(row.hcmbid || row.HCMBID),
+                label: row.hc_label || row.HC_LABEL
+            });
+            mutualMap.set(key, current);
+        });
 
         // 遍历标准库列表，标记 checked
         const items = standards.map(item => ({
             ...item,
-            checked: selectedIds.has(Number(item.id))
+            checked: selectedIds.has(Number(item.id)),
+            mutualIds: (mutualMap.get(Number(item.id)) || []).map(row => row.id),
+            mutualLabels: (mutualMap.get(Number(item.id)) || []).map(row => row.label),
+            disabled: !selectedIds.has(Number(item.id)) && (mutualMap.get(Number(item.id)) || []).some(row => selectedIds.has(Number(row.id)))
         }));
 
         res.json({

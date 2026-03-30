@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS gjj_ywbzksx;
 -- 业务标准库属性表
 DROP TABLE IF EXISTS gjj_ywbzk;
 -- 业务标准库主表
+DROP TABLE IF EXISTS gjj_ywbzkhc;
 
 -- 1. 业务标准库主表 (规则模板定义)
 CREATE TABLE gjj_ywbzk (
@@ -27,6 +28,16 @@ CREATE TABLE gjj_ywbzk (
     ywnrfl VARCHAR(50), -- 业务内容分类
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE gjj_ywbzkhc (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mbid INTEGER NOT NULL,
+    hcmbid INTEGER NOT NULL,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE,
+    FOREIGN KEY (hcmbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE
 );
 
 -- 2. 业务标准库属性表 (规则模板绑定的要素属性)

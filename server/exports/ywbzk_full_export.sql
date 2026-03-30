@@ -3,6 +3,7 @@
 
 BEGIN TRANSACTION;
 
+DELETE FROM gjj_ywbzkhc;
 DELETE FROM gjj_ywbzksx;
 DELETE FROM gjj_ywbzk;
 

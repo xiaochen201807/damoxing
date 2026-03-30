@@ -47,13 +47,14 @@ async function migrate() {
         logger.info("Connected to Oracle.");
 
         // Tables to migrate in order (Parents first for Insert, Children first for Delete)
-        // Migration Order: gjj_ywbzk -> gjj_ywbzksx -> gjj_ywbz -> gjj_ywbzsx
-        // Delete Order: gjj_ywbzsx -> gjj_ywbz -> gjj_ywbzksx -> gjj_ywbzk
+        // Migration Order: gjj_ywbzk -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbz -> gjj_ywbzsx
+        // Delete Order: gjj_ywbzsx -> gjj_ywbz -> gjj_ywbzkhc -> gjj_ywbzksx -> gjj_ywbzk
         
         // 3. Clear Oracle Data
         logger.info("Clearing existing data in Oracle...");
         await oracleConn.execute("DELETE FROM gjj_ywbzsx");
         await oracleConn.execute("DELETE FROM gjj_ywbz");
+        await oracleConn.execute("DELETE FROM gjj_ywbzkhc");
         await oracleConn.execute("DELETE FROM gjj_ywbzksx");
         await oracleConn.execute("DELETE FROM gjj_ywbzk");
         logger.info("Cleared existing data.");
@@ -72,7 +73,21 @@ async function migrate() {
             logger.info(`Migrated ${ywbzkRows.length} rows to gjj_ywbzk.`);
         }
 
-        // 5. Migrate gjj_ywbzksx
+        // 5. Migrate gjj_ywbzkhc
+        logger.info("Migrating gjj_ywbzkhc...");
+        const ywbzkhcRows = await getSqliteData(sqliteDb, 'gjj_ywbzkhc');
+        if (ywbzkhcRows.length > 0) {
+            const sql = `INSERT INTO gjj_ywbzkhc (id, mbid, hcmbid, cjsj, gxsj) VALUES (:1, :2, :3, :4, :5)`;
+            const binds = ywbzkhcRows.map(row => [
+                row.id, row.mbid, row.hcmbid,
+                row.cjsj ? new Date(row.cjsj) : new Date(),
+                row.gxsj ? new Date(row.gxsj) : new Date()
+            ]);
+            await oracleConn.executeMany(sql, binds, { autoCommit: false });
+            logger.info(`Migrated ${ywbzkhcRows.length} rows to gjj_ywbzkhc.`);
+        }
+
+        // 6. Migrate gjj_ywbzksx
         logger.info("Migrating gjj_ywbzksx...");
         const ywbzksxRows = await getSqliteData(sqliteDb, 'gjj_ywbzksx');
         if (ywbzksxRows.length > 0) {
@@ -86,7 +101,7 @@ async function migrate() {
             logger.info(`Migrated ${ywbzksxRows.length} rows to gjj_ywbzksx.`);
         }
 
-        // 6. Migrate gjj_ywbz
+        // 7. Migrate gjj_ywbz
         logger.info("Migrating gjj_ywbz...");
         const ywbzRows = await getSqliteData(sqliteDb, 'gjj_ywbz');
         if (ywbzRows.length > 0) {
@@ -100,7 +115,7 @@ async function migrate() {
             logger.info(`Migrated ${ywbzRows.length} rows to gjj_ywbz.`);
         }
 
-        // 7. Migrate gjj_ywbzsx
+        // 8. Migrate gjj_ywbzsx
         logger.info("Migrating gjj_ywbzsx...");
         const ywbzsxRows = await getSqliteData(sqliteDb, 'gjj_ywbzsx');
         if (ywbzsxRows.length > 0) {

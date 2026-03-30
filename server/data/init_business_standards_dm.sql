@@ -33,6 +33,18 @@ CREATE TABLE gjj_ywbzk (
     CONSTRAINT pk_ywbzk PRIMARY KEY (id)
 );
 
+CREATE TABLE gjj_ywbzkhc (
+    id BIGINT AUTO_INCREMENT NOT NULL,
+    mbid BIGINT NOT NULL,
+    hcmbid BIGINT NOT NULL,
+    cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    gxsj TIMESTAMP DEFAULT SYSTIMESTAMP,
+    CONSTRAINT pk_ywbzkhc PRIMARY KEY (id),
+    CONSTRAINT uq_ywbzkhc_pair UNIQUE (mbid, hcmbid),
+    CONSTRAINT fk_ywbzkhc_mbid FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE,
+    CONSTRAINT fk_ywbzkhc_hcmbid FOREIGN KEY (hcmbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE
+);
+
 -- 2. 业务标准库属性表 (规则模板绑定的要素属性)
 CREATE TABLE gjj_ywbzksx (
     id BIGINT AUTO_INCREMENT NOT NULL,
@@ -133,6 +145,7 @@ CREATE TABLE t_wa_sys_log_err (
 -- 库表索引
 CREATE INDEX idx_gjj_ywbzk_pxh ON gjj_ywbzk (pxh);
 CREATE UNIQUE INDEX idx_gjj_ywbzk_zdybm ON gjj_ywbzk (zdybm);
+CREATE INDEX idx_gjj_ywbzkhc_mbid ON gjj_ywbzkhc (mbid);
 CREATE INDEX idx_gjj_ywnrfl_sf ON gjj_ywnrfl (gjsjsf, sfqy);
 
 -- 库属性表索引

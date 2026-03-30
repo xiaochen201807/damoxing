@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS gjj_ywbzksx;
 -- 业务标准库属性表
 DROP TABLE IF EXISTS gjj_ywbzk;
 -- 业务标准库主表
+DROP TABLE IF EXISTS gjj_ywbzkhc;
 DROP TABLE IF EXISTS gjj_ywnrfl;
 
 CREATE TABLE gjj_ywnrfl (
@@ -39,6 +40,16 @@ CREATE TABLE gjj_ywbzk (
     bzfl VARCHAR(50), -- 标准分类
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE gjj_ywbzkhc (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mbid INTEGER NOT NULL,
+    hcmbid INTEGER NOT NULL,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE,
+    FOREIGN KEY (hcmbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE
 );
 
 -- 2. 业务标准库属性表 (规则模板绑定的要素属性)
@@ -236,6 +247,8 @@ CREATE INDEX IF NOT EXISTS idx_gjj_ywbzk_pxh ON gjj_ywbzk (pxh);
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzk_sf ON gjj_ywbzk (gjsjsf);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gjj_ywbzk_zdybm ON gjj_ywbzk (zdybm);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gjj_ywbzkhc_pair ON gjj_ywbzkhc (mbid, hcmbid);
+CREATE INDEX IF NOT EXISTS idx_gjj_ywbzkhc_mbid ON gjj_ywbzkhc (mbid);
 
 CREATE INDEX IF NOT EXISTS idx_gjj_ywnrfl_sf ON gjj_ywnrfl (gjsjsf, sfqy);
 

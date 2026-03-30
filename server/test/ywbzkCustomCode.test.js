@@ -184,4 +184,51 @@ describe('ywbzk zdybm and ywblfl support', () => {
             expect.arrayContaining(['2'])
         );
     });
+
+    test('save 会校验互斥标准必须同算法同分类', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.get.mockResolvedValueOnce({ id: 1 });
+        adapter.all.mockResolvedValueOnce([{ id: 12 }]);
+
+        const response = await request(app)
+            .post('/save')
+            .send({
+                ywblbz: '标准模板',
+                gjsjsf: '1',
+                ywnrfl: 'A01',
+                hcbzIds: ['11', '12'],
+                jgbh: '1001',
+                ywblbzsxz: [],
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body.msg).toContain('同一关键数据算法和业务内容分类');
+    });
+
+    test('mutual-options 会按算法分类返回互斥候选项', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.all.mockResolvedValueOnce([
+            { value: 2, label: '标准B' },
+        ]);
+
+        const response = await request(app)
+            .post('/mutual-options')
+            .send({
+                id: 1,
+                gjsjsf: '1',
+                ywnrfl: 'A01',
+                jgbh: '1001',
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toEqual([{ value: 2, label: '标准B' }]);
+        expect(adapter.all).toHaveBeenCalledWith(
+            expect.stringContaining('FROM gjj_ywbzk'),
+            ['1', 'A01', 1]
+        );
+    });
 });
