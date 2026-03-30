@@ -266,7 +266,7 @@ router.post('/list', async (req, res) => {
  * 2. 获取详情 (POST /get)
  */
 router.post('/get', async (req, res) => {
-    const { id } = req.body;
+    const { id, ywsf } = req.body;
     if (!id) return res.status(400).json({ status: 1, msg: "ID is required" });
 
     // 从请求头获取当前机构信息
@@ -1060,6 +1060,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
  */
 router.get('/options/categories', async (req, res) => {
     const sql = "SELECT DISTINCT ywnrfl as value, ywnrfl as label FROM gjj_ywbzk WHERE ywnrfl IS NOT NULL";
+    const jgbh = getRequestJgbh(req);
     try {
         const rows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sql, []);
         res.json({ status: 0, msg: "ok", data: rows });
@@ -1405,6 +1406,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 // -----------------------------------------------------------------------------
 router.post('/partial_export', authenticateToken, async (req, res) => {
     const { ids } = req.body;
+    const jgbh = getRequestJgbh(req);
     if (!ids) {
         return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
     }
