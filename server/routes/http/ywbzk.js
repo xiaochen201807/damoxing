@@ -273,7 +273,7 @@ router.post('/save', async (req, res) => {
                 }
             }
 
-            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :1', [mbid]);
+            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :2', [mbid, mbid]);
 
             for (const mutualId of hcbzIds) {
                 await tx.run(
@@ -314,7 +314,7 @@ router.post('/delete', async (req, res) => {
 
     try {
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
-            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :1', [id]);
+            await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :2', [id, id]);
             await tx.run('DELETE FROM gjj_ywbzk WHERE id = :1', [id]);
         });
         res.json({ status: 0, msg: "删除成功" });

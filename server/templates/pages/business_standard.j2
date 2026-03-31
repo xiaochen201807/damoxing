@@ -3,6 +3,7 @@
     "title": "业务办理标准库",
     "data": {
         "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
+        "algorithm_options": [],
         "standard_class_options": [
             { "label": "缴存人账户余额", "value": "1" },
             { "label": "冻结金额", "value": "2" },
@@ -42,14 +43,22 @@
         {
             "type": "service",
             "api": {
-                "method": "post",
-                "url": "${business_content_class_api}",
-                "data": "${business_content_class_params}",
-                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+                "method": "get",
+                "url": "${algorithm_options_api}",
+                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { algorithm_options: list };"
             },
             "body": [
                 {
-                    "type": "crud",
+                    "type": "service",
+                    "api": {
+                        "method": "post",
+                        "url": "${business_content_class_api}",
+                        "data": "${business_content_class_params}",
+                        "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+                    },
+                    "body": [
+                        {
+                            "type": "crud",
             "columnsTogglable": false,
             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/list",
             "filter": {
@@ -65,10 +74,11 @@
                         "label": "关键数据算法",
                         "placeholder": "请选择关键数据算法",
                         "clearable": true,
-                        "source": "${algorithm_options_api}"
+                        "source": "${algorithm_options}"
                     },
                     {
                         "type": "select",
+                        "id": "main_business_content_class_select",
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择业务内容分类",
@@ -94,21 +104,6 @@
                             "method": "post",
                             "url": "{{ GLOBAL_API_PREFIX | default('/api') }}/ywbzk/standards"
                         }
-                    },
-                    {
-                        "type": "input-text",
-                        "name": "zdybm",
-                        "label": "自定义编码",
-                        "placeholder": "请输入自定义编码",
-                        "clearable": true
-                    },
-                    {
-                        "type": "select",
-                        "name": "ywblfl",
-                        "label": "业务办理分类",
-                        "placeholder": "请选择业务办理分类",
-                        "clearable": true,
-                        "source": "${handle_class_options}"
                     },
                     {
                         "type": "submit",
@@ -147,7 +142,7 @@
                                             "name": "gjsjsf",
                                             "label": "关键数据算法",
                                             "clearable": true,
-                                            "source": "${algorithm_options_api}"
+                                            "source": "${algorithm_options}"
                                         },
                                         {
                                             "type": "input-text",
@@ -190,13 +185,27 @@
                                                 "body": {
                                                     "type": "form",
                                                     "api": "post:${business_content_class_manage_save_api}",
+                                                    "onEvent": {
+                                                        "submitSucc": {
+                                                            "actions": [
+                                                                {
+                                                                    "actionType": "reload",
+                                                                    "componentId": "business_content_class_crud"
+                                                                },
+                                                                {
+                                                                    "actionType": "reload",
+                                                                    "componentId": "main_business_content_class_select"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
                                                     "body": [
                                                         {
                                                             "type": "select",
                                                             "name": "gjsjsf",
                                                             "label": "关键数据算法",
                                                             "required": true,
-                                                            "source": "${algorithm_options_api}"
+                                                            "source": "${algorithm_options}"
                                                         },
                                                         {
                                                             "type": "input-text",
@@ -227,16 +236,6 @@
                                                             ]
                                                         }
                                                     ]
-                                                },
-                                                "onEvent": {
-                                                    "submitSucc": {
-                                                        "actions": [
-                                                            {
-                                                                "actionType": "reload",
-                                                                "componentId": "business_content_class_crud"
-                                                            }
-                                                        ]
-                                                    }
                                                 }
                                             }
                                         }
@@ -247,7 +246,7 @@
                                         "name": "gjsjsf",
                                         "label": "关键数据算法",
                                         "type": "mapping",
-                                        "source": "${algorithm_options_api}"
+                                        "source": "${algorithm_options}"
                                     },
                                     {
                                         "name": "flbm",
@@ -285,6 +284,20 @@
                                                     "body": {
                                                         "type": "form",
                                                         "api": "post:${business_content_class_manage_save_api}",
+                                                        "onEvent": {
+                                                            "submitSucc": {
+                                                                "actions": [
+                                                                    {
+                                                                        "actionType": "reload",
+                                                                        "componentId": "business_content_class_crud"
+                                                                    },
+                                                                    {
+                                                                        "actionType": "reload",
+                                                                        "componentId": "main_business_content_class_select"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
                                                         "body": [
                                                             {
                                                                 "type": "hidden",
@@ -295,7 +308,7 @@
                                                                 "name": "gjsjsf",
                                                                 "label": "关键数据算法",
                                                                 "required": true,
-                                                                "source": "${algorithm_options_api}"
+                                                                "source": "${algorithm_options}"
                                                             },
                                                             {
                                                                 "type": "input-text",
@@ -324,16 +337,6 @@
                                                                 ]
                                                             }
                                                         ]
-                                                    },
-                                                    "onEvent": {
-                                                        "submitSucc": {
-                                                            "actions": [
-                                                                {
-                                                                    "actionType": "reload",
-                                                                    "componentId": "business_content_class_crud"
-                                                                }
-                                                            ]
-                                                        }
                                                     }
                                                 }
                                             },
@@ -370,7 +373,7 @@
                     },
                     {
                         "type": "tpl",
-                        "visibleOn": "!${business_standard_editable}",
+                        "visibleOn": "${!business_standard_editable}",
                         "className": "text-warning m-l-sm",
                         "tpl": "当前机构为非模型机构，标准库仅支持查看、导出和全量导入；新增、编辑、删除请在模型机构执行。"
                     },
@@ -417,7 +420,7 @@
                                         "type": "select",
                                         "name": "gjsjsf",
                                         "label": "关键数据算法：",
-                                        "source": "${algorithm_options_api}"
+                                        "source": "${algorithm_options}"
                                     },
                                     {
                                         "type": "select",
@@ -722,7 +725,7 @@
                     "label": "关键数据算法",
                     "width": 150,
                     "type": "mapping",
-                    "source": "${algorithm_options_api}"
+                    "source": "${algorithm_options}"
                 },
                 {
                     "name": "ywnrfl_label",
@@ -784,7 +787,7 @@
                                             "type": "select",
                                             "name": "gjsjsf",
                                             "label": "关键数据算法：",
-                                            "source": "${algorithm_options_api}"
+                                            "source": "${algorithm_options}"
                                         },
                                         {
                                             "type": "select",
@@ -1028,11 +1031,13 @@
                             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
                         }
                     ]
-                }
-            ]
+                        }
+                    ]
                 }
             ]
         }
+    ]
+}
     ]
 }
 

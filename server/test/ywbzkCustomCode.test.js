@@ -185,6 +185,33 @@ describe('ywbzk zdybm and ywblfl support', () => {
         );
     });
 
+    test('save 会用两个绑定值清理互斥关系，兼容 Oracle 重复占位符限制', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.get
+            .mockResolvedValueOnce({ id: 1 });
+        adapter.run.mockResolvedValue({ lastID: 12, rowsAffected: 1 });
+
+        const response = await request(app)
+            .post('/save')
+            .send({
+                ywblbz: '条件模板',
+                ywblfl: '2',
+                gjsjsf: '1',
+                ywnrfl: 'A01',
+                hcbzIds: [],
+                jgbh: '1001',
+                ywblbzsxz: [],
+            });
+
+        expect(response.status).toBe(200);
+        expect(adapter.run).toHaveBeenCalledWith(
+            'DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :2',
+            [12, 12]
+        );
+    });
+
     test('save 会校验互斥标准必须同算法同分类', async () => {
         const app = express();
         app.use(express.json());
@@ -229,6 +256,27 @@ describe('ywbzk zdybm and ywblfl support', () => {
         expect(adapter.all).toHaveBeenCalledWith(
             expect.stringContaining('FROM gjj_ywbzk'),
             ['1', 'A01', 1]
+        );
+    });
+
+    test('delete 会用两个绑定值清理互斥关系，兼容 Oracle 重复占位符限制', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.run.mockResolvedValue({ rowsAffected: 1 });
+
+        const response = await request(app)
+            .post('/delete')
+            .send({
+                id: 15,
+                jgbh: '1001',
+            });
+
+        expect(response.status).toBe(200);
+        expect(adapter.run).toHaveBeenNthCalledWith(
+            1,
+            'DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :2',
+            [15, 15]
         );
     });
 });

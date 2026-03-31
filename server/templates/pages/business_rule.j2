@@ -35,6 +35,7 @@
         "rule_debug_case_get_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/get",
         "rule_debug_case_save_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/save",
         "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
+        "algorithm_options": [],
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
         "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
     },
@@ -42,14 +43,22 @@
         {
             "type": "service",
             "api": {
-                "method": "post",
-                "url": "${business_content_class_api}",
-                "data": "${business_content_class_params}",
-                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+                "method": "get",
+                "url": "${algorithm_options_api}",
+                "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { algorithm_options: list };"
             },
             "body": [
-        {
-            "id": "main_crud",
+                {
+                    "type": "service",
+                    "api": {
+                        "method": "post",
+                        "url": "${business_content_class_api}",
+                        "data": "${business_content_class_params}",
+                        "adaptor": "var data = payload.data || payload.options || payload; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.options)) { list = data.options; } else if (data && Array.isArray(data.rows)) { list = data.rows; } return { class_options: list };"
+                    },
+                    "body": [
+                        {
+                            "id": "main_crud",
             "type": "crud",
             "columnsTogglable": false,
             "selectable": true,
@@ -72,7 +81,7 @@
                         "name": "ywsf",
                         "label": "关键数据算法",
                         "placeholder": "请选择",
-                        "source": "${algorithm_options_api}",
+                        "source": "${algorithm_options}",
                         "clearable": true
                     },
                     {
@@ -831,7 +840,7 @@
                     "name": "ywsf",
                     "label": "关键数据算法",
                     "type": "mapping",
-                    "source": "${algorithm_options_api}"
+                    "source": "${algorithm_options}"
                 },
                 {
                     "name": "ywnrfl_label",
@@ -899,9 +908,11 @@
                         }
                     ]
                 }
+                    ]
+                }
             ]
         }
-            ]
-        }
+    ]
+}
     ]
 }

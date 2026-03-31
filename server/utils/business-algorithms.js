@@ -4,13 +4,26 @@ const logger = require('./logger');
 
 let algorithmsConfig = null;
 let algorithmMap = null;
+let loadedConfigMtimeMs = null;
+
+function getConfigPath() {
+    return path.join(__dirname, '../config/business-algorithms.json');
+}
+
+function getConfigMtimeMs() {
+    try {
+        return fs.statSync(getConfigPath()).mtimeMs;
+    } catch {
+        return null;
+    }
+}
 
 /**
  * 加载关键数据算法配置
  */
 function loadAlgorithms() {
     try {
-        const configPath = path.join(__dirname, '../config/business-algorithms.json');
+        const configPath = getConfigPath();
         const fileContent = fs.readFileSync(configPath, 'utf8');
         const parsed = JSON.parse(fileContent);
         
@@ -24,6 +37,7 @@ function loadAlgorithms() {
         algorithmsConfig.forEach(item => {
             algorithmMap[item.value] = item.label;
         });
+        loadedConfigMtimeMs = getConfigMtimeMs();
         
         logger.info(`[Config] Successfully loaded ${algorithmsConfig.length} business algorithms.`);
     } catch (err) {
@@ -41,6 +55,14 @@ function loadAlgorithms() {
             "3": "最高可贷年限",
             "4": "借款人最大可对冲支取金额"
         };
+        loadedConfigMtimeMs = null;
+    }
+}
+
+function ensureAlgorithmsLoaded() {
+    const currentMtimeMs = getConfigMtimeMs();
+    if (!algorithmsConfig || !algorithmMap || loadedConfigMtimeMs !== currentMtimeMs) {
+        loadAlgorithms();
     }
 }
 
@@ -52,7 +74,7 @@ module.exports = {
      * 获取算法列表配置 (用于前端下拉框)
      */
     getAlgorithms() {
-        if (!algorithmsConfig) loadAlgorithms();
+        ensureAlgorithmsLoaded();
         return algorithmsConfig;
     },
     
@@ -60,7 +82,7 @@ module.exports = {
      * 获取算法映射表 (用于前端展示或后端校验)
      */
     getAlgorithmMap() {
-        if (!algorithmMap) loadAlgorithms();
+        ensureAlgorithmsLoaded();
         return algorithmMap;
     },
     
@@ -70,7 +92,7 @@ module.exports = {
      * @returns {boolean}
      */
     isValidAlgorithm(value) {
-        if (!algorithmMap) loadAlgorithms();
+        ensureAlgorithmsLoaded();
         return algorithmMap.hasOwnProperty(value);
     },
     
