@@ -1,0 +1,33 @@
+{
+    "status": 0,
+    "msg": "ok",
+    "data": [
+        { "label": "购买住房", "value": "1", "sequenceNumber": 1, "isShow": 1 },
+        { "label": "建造、翻建、大修住房", "value": "2", "sequenceNumber": 2, "isShow": 1 },
+        { "label": "偿还购房贷款本息", "value": "3", "sequenceNumber": 3, "isShow": 1 },
+        { "label": "既有住宅加装电梯", "value": "4", "sequenceNumber": 4, "isShow": 1 },
+        { "label": "租赁住房", "value": "5", "sequenceNumber": 5, "isShow": 1 },
+        { "label": "大病医疗", "value": "6", "sequenceNumber": 6, "isShow": 1 },
+        { "label": "物业费", "value": "7", "sequenceNumber": 7, "isShow": 1 },
+        { "label": "其他（部分）", "value": "8", "sequenceNumber": 8, "isShow": 1 },
+        { "label": "重大灾害", "value": "9", "sequenceNumber": 9, "isShow": 1 },
+        { "label": "家庭生活困难", "value": "10", "sequenceNumber": 10, "isShow": 1 },
+        { "label": "司法扣划", "value": "11", "sequenceNumber": 11, "isShow": 1 },
+        { "label": "离休、退休", "value": "12", "sequenceNumber": 12, "isShow": 1 },
+        { "label": "完全丧失劳动能力，并与单位终止劳动关系", "value": "13", "sequenceNumber": 13, "isShow": 1 },
+        { "label": "出境定居", "value": "14", "sequenceNumber": 14, "isShow": 1 },
+        { "label": "死亡或宣告死亡", "value": "15", "sequenceNumber": 15, "isShow": 1 },
+        { "label": "其他（销户）", "value": "16", "sequenceNumber": 16, "isShow": 1 },
+        { "label": "灵活就业人员自由提取", "value": "17", "sequenceNumber": 17, "isShow": 1 },
+        { "label": "封存满半年未再缴存", "value": "18", "sequenceNumber": 18, "isShow": 1 },
+        { "label": "异地转移转出", "value": "19", "sequenceNumber": 19, "isShow": 1 },
+        { "label": "灵活就业人员退出", "value": "20", "sequenceNumber": 20, "isShow": 1 },
+        { "label": "其他住房消费", "value": "21", "sequenceNumber": 21, "isShow": 1 },
+        { "label": "其他非住房消费", "value": "22", "sequenceNumber": 22, "isShow": 1 },
+        { "label": "宣告失踪", "value": "23", "sequenceNumber": 23, "isShow": 1 },
+        { "label": "缴纳房屋维修基金", "value": "24", "sequenceNumber": 24, "isShow": 1 },
+        { "label": "车位费提取", "value": "25", "sequenceNumber": 25, "isShow": 1 },
+        { "label": "休眠账户上缴", "value": "26", "sequenceNumber": 26, "isShow": 1 },
+        { "label": "购房税费提取", "value": "27", "sequenceNumber": 27, "isShow": 1 }
+    ]
+}

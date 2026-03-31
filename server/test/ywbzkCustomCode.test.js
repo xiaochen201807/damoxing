@@ -17,6 +17,10 @@ jest.mock('../utils/business-standard-access', () => ({
     getBusinessStandardWriteDeniedMessage: jest.fn(() => 'denied'),
 }));
 
+jest.mock('../middleware/auth', () => ({
+    authenticateToken: (req, res, next) => next(),
+}));
+
 jest.mock('../utils/sqlDialectHelper', () => ({
     parseDialectSql: jest.fn(() => ({})),
     buildDialectSql: jest.fn(() => '[]'),
@@ -25,12 +29,15 @@ jest.mock('../utils/sqlDialectHelper', () => ({
 }));
 
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const db = require('../db');
 const ywbzkRouter = require('../routes/http/ywbzk');
 
 describe('ywbzk zdybm and ywblfl support', () => {
     let adapter;
+    const exportFilePath = path.join(__dirname, '../exports/ywbzk_full_export.csv');
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -39,13 +46,21 @@ describe('ywbzk zdybm and ywblfl support', () => {
             all: jest.fn(),
             get: jest.fn(),
             run: jest.fn(),
+            exec: jest.fn(),
             transaction: jest.fn(async (work) => work({
                 run: adapter.run,
                 get: adapter.get,
                 all: adapter.all,
+                exec: adapter.exec,
             })),
         };
         db.getByJgbh.mockReturnValue(adapter);
+    });
+
+    afterEach(() => {
+        if (fs.existsSync(exportFilePath)) {
+            fs.unlinkSync(exportFilePath);
+        }
     });
 
     test('list 支持按自定义编码筛选', async () => {
@@ -256,6 +271,55 @@ describe('ywbzk zdybm and ywblfl support', () => {
         expect(adapter.all).toHaveBeenCalledWith(
             expect.stringContaining('FROM gjj_ywbzk'),
             ['1', 'A01', 1]
+        );
+    });
+
+    test('export 会包含业务内容分类表数据', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.all
+            .mockResolvedValueOnce([
+                { id: 1, gjsjsf: '1', flbm: 'A01', flmc: '购房类' },
+            ])
+            .mockResolvedValueOnce([
+                { id: 10, ywblbz: '标准A', zdybm: 'STD_A', ywblfl: '1' },
+            ])
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([]);
+
+        const response = await request(app)
+            .get('/export')
+            .query({ jgbh: '1001' });
+
+        expect(response.status).toBe(200);
+        expect(adapter.all).toHaveBeenNthCalledWith(1, 'SELECT * FROM gjj_ywnrfl');
+        const content = fs.readFileSync(exportFilePath, 'utf8');
+        expect(content).toContain('DELETE FROM gjj_ywnrfl;');
+        expect(content).toContain('INSERT INTO gjj_ywnrfl (id, gjsjsf, flbm, flmc)');
+        expect(content).toContain("'A01'");
+    });
+
+    test('import 会执行业务内容分类表 SQL', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        const sql = [
+            '-- 业务标准全量导入',
+            'DELETE FROM gjj_ywnrfl;',
+            "INSERT INTO gjj_ywnrfl (id, gjsjsf, flbm, flmc) VALUES (1, '1', 'A01', '购房类');",
+            "INSERT INTO gjj_ywbzk (id, ywblbz, gjsjsf, ywnrfl, ywblfl) VALUES (10, '标准A', '1', 'A01', '1');",
+        ].join('\n');
+
+        const response = await request(app)
+            .post('/import')
+            .field('jgbh', '1001')
+            .attach('file', Buffer.from(`\ufeff${sql}`, 'utf8'), 'ywbzk_import.csv');
+
+        expect(response.status).toBe(200);
+        expect(adapter.exec).toHaveBeenCalledWith('DELETE FROM gjj_ywnrfl');
+        expect(adapter.exec).toHaveBeenCalledWith(
+            "INSERT INTO gjj_ywnrfl (id, gjsjsf, flbm, flmc) VALUES (1, '1', 'A01', '购房类')"
         );
     });
 

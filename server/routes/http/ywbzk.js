@@ -396,12 +396,13 @@ router.all('/export', authenticateToken, async (req, res) => {
     // }
     try {
         // 1. 获取所有数据
+        const contentClasses = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywnrfl");
         const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzk");
         const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzksx");
         const mutualStandards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzkhc");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
-        let sqlScript = "-- 业务标准全量导出 (包含标准表、属性表和互斥关系表)\n";
+        let sqlScript = "-- 业务标准全量导出 (包含业务内容分类表、标准表、属性表和互斥关系表)\n";
         sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
         // sqlScript += "BEGIN TRANSACTION;\n\n"; // Oracle 不需要显式 BEGIN TRANSACTION
 
@@ -409,6 +410,7 @@ router.all('/export', authenticateToken, async (req, res) => {
         sqlScript += "DELETE FROM gjj_ywbzkhc;\n";
         sqlScript += "DELETE FROM gjj_ywbzksx;\n";
         sqlScript += "DELETE FROM gjj_ywbzk;\n\n";
+        sqlScript += "DELETE FROM gjj_ywnrfl;\n\n";
 
         // 辅助函数：格式化值
         const formatValue = (val) => {
@@ -426,6 +428,13 @@ router.all('/export', authenticateToken, async (req, res) => {
             }
             return val;
         };
+
+        // 插入业务内容分类表数据
+        for (const row of contentClasses) {
+            const keys = Object.keys(row);
+            const values = Object.values(row).map(formatValue);
+            sqlScript += `INSERT INTO gjj_ywnrfl (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
 
         // 插入标准表数据
         for (const row of standards) {
@@ -490,6 +499,12 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
             sqlContent = sqlContent.slice(1);
         }
 
+        // 先移除纯注释行，避免导出文件头部注释与首条 SQL 合并后被整段跳过
+        sqlContent = sqlContent
+            .split(/\r?\n/)
+            .filter(line => !line.trim().startsWith('--'))
+            .join('\n');
+
         // 简单的 SQL 检查
         if (!sqlContent.includes('INSERT INTO') && !sqlContent.includes('DELETE FROM')) {
             return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
@@ -536,8 +551,6 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                 if (['BEGIN TRANSACTION', 'COMMIT', 'ROLLBACK'].includes(sql.toUpperCase())) {
                     continue;
                 }
-                // 忽略注释行（简单处理）
-                if (sql.startsWith('--')) continue;
 
                 await tx.exec(sql);
             }
