@@ -509,7 +509,7 @@
                                 "mode": "normal",
                                 "initApi": {
                                     "method": "post",
-                                    "url": "${rule_debug_template_api}",
+                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_template",
                                     "data": {
                                         "ywsf": "${ywsf}",
                                         "ywnrfl": "${ywnrfl}"
@@ -551,7 +551,7 @@
                                         "searchable": true,
                                         "source": {
                                             "method": "post",
-                                            "url": "${rule_debug_case_list_api}",
+                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/list",
                                             "data": {
                                                 "ywsf": "${ywsf}",
                                                 "ywnrfl": "${ywnrfl}"
@@ -573,7 +573,7 @@
                                                                 "actionType": "ajax",
                                                                 "api": {
                                                                     "method": "post",
-                                                                    "url": "${rule_debug_template_api}",
+                                                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_template",
                                                                     "data": {
                                                                         "ywsf": "${ywsf}",
                                                                         "ywnrfl": "${ywnrfl}"
@@ -612,7 +612,7 @@
                                                                 "actionType": "ajax",
                                                                 "api": {
                                                                     "method": "post",
-                                                                    "url": "${rule_debug_case_get_api}",
+                                                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/get",
                                                                     "data": {
                                                                         "id": "${selectedCaseId}"
                                                                     },
@@ -654,7 +654,7 @@
                                                         "type": "form",
                                                         "api": {
                                                             "method": "post",
-                                                            "url": "${rule_debug_case_save_api}",
+                                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/save",
                                                             "data": {
                                                                 "ywsf": "${ywsf}",
                                                                 "ywnrfl": "${ywnrfl}",
@@ -735,7 +735,7 @@
                                                                 "actionType": "ajax",
                                                                 "api": {
                                                                     "method": "post",
-                                                                    "url": "${rule_debug_api}",
+                                                                    "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug",
                                                                     "data": {
                                                                         "debugInput": "${debugInput}"
                                                                     },
@@ -771,7 +771,7 @@
                                                         "type": "crud",
                                                         "api": {
                                                             "method": "post",
-                                                            "url": "${rule_debug_log_api}",
+                                                            "url": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_log",
                                                                 "data": {
                                                                     "pcid": "${pcid}",
                                                                     "ywsf": "${ywsf}"

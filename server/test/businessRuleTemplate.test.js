@@ -112,4 +112,58 @@ describe('business_rule template', () => {
             }
         });
     });
+
+    test('调试弹窗内部接口使用固定 URL，避免弹窗作用域丢失 API 变量', () => {
+        const rendered = env.render('pages/business_rule.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        const urls = [];
+        let debugForm = null;
+        let caseSelect = null;
+        let saveCaseForm = null;
+        let detailCrud = null;
+
+        walk(schema, node => {
+            if (node?.id === 'debug_form_component') {
+                debugForm = node;
+            }
+
+            if (node?.id === 'debug_case_select') {
+                caseSelect = node;
+            }
+
+            if (node?.type === 'form' && node.api?.url === '/api/ywbz/debug_case/save') {
+                saveCaseForm = node;
+            }
+
+            if (node?.type === 'crud' && node.api?.url === '/api/ywbz/debug_log') {
+                detailCrud = node;
+            }
+
+            if (typeof node?.url === 'string' && node.url.includes('/ywbz/debug')) {
+                urls.push(node.url);
+            }
+        });
+
+        expect(debugForm?.initApi?.url).toBe('/api/ywbz/debug_template');
+        expect(caseSelect?.source?.url).toBe('/api/ywbz/debug_case/list');
+        expect(saveCaseForm?.api?.url).toBe('/api/ywbz/debug_case/save');
+        expect(detailCrud?.api?.url).toBe('/api/ywbz/debug_log');
+        expect(urls).toEqual(expect.arrayContaining([
+            '/api/ywbz/debug_template',
+            '/api/ywbz/debug_case/list',
+            '/api/ywbz/debug_case/get',
+            '/api/ywbz/debug_case/save',
+            '/api/ywbz/debug',
+            '/api/ywbz/debug_log'
+        ]));
+        expect(rendered.includes('${rule_debug_template_api}')).toBe(false);
+        expect(rendered.includes('${rule_debug_case_list_api}')).toBe(false);
+        expect(rendered.includes('${rule_debug_case_get_api}')).toBe(false);
+        expect(rendered.includes('${rule_debug_case_save_api}')).toBe(false);
+        expect(rendered.includes('${rule_debug_api}')).toBe(false);
+        expect(rendered.includes('${rule_debug_log_api}')).toBe(false);
+    });
 });
