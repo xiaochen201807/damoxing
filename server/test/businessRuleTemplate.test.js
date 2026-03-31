@@ -73,4 +73,43 @@ describe('business_rule template', () => {
             expect(source).toBe('${algorithm_options}');
         });
     });
+
+    test('主查询区业务内容分类会随关键数据算法切换即时刷新', () => {
+        const rendered = env.render('pages/business_rule.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        const mainFilter = (((schema.body || [])[0] || {}).body || [])[0]?.body?.[0]?.filter;
+        const filterBody = mainFilter?.body || [];
+        const algorithmSelect = filterBody.find(item => item?.name === 'ywsf');
+        const classSelect = filterBody.find(item => item?.name === 'ywnrfl');
+
+        expect(mainFilter?.id).toBe('main_filter_form');
+        expect(algorithmSelect?.id).toBe('main_rule_algorithm_select');
+        expect(algorithmSelect?.onEvent?.change?.actions).toEqual([
+            {
+                actionType: 'setValue',
+                componentId: 'main_filter_form',
+                args: {
+                    value: {
+                        ywnrfl: ''
+                    }
+                }
+            }
+        ]);
+        expect(classSelect).toMatchObject({
+            id: 'main_rule_business_content_class_select',
+            clearValueOnOptionsChange: true,
+            source: {
+                method: 'post',
+                url: '${business_content_class_api}',
+                data: {
+                    '&': '${business_content_class_params}',
+                    gjsjsf: '${ywsf}'
+                },
+                trackExpression: '${ywsf}'
+            }
+        });
+    });
 });

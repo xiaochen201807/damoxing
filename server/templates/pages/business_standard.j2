@@ -62,6 +62,7 @@
             "columnsTogglable": false,
             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/list",
             "filter": {
+                "id": "business_standard_filter_form",
                 "title": "",
                 "submitText": "",
                 "type": "form",
@@ -70,11 +71,27 @@
                 "body": [
                     {
                         "type": "select",
+                        "id": "main_algorithm_select",
                         "name": "gjsjsf",
                         "label": "关键数据算法",
                         "placeholder": "请选择关键数据算法",
                         "clearable": true,
-                        "source": "${algorithm_options}"
+                        "source": "${algorithm_options}",
+                        "onEvent": {
+                            "change": {
+                                "actions": [
+                                    {
+                                        "actionType": "setValue",
+                                        "componentId": "business_standard_filter_form",
+                                        "args": {
+                                            "value": {
+                                                "ywnrfl": ""
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
                     },
                     {
                         "type": "select",
@@ -83,13 +100,15 @@
                         "label": "业务内容分类",
                         "placeholder": "请选择业务内容分类",
                         "clearable": true,
+                        "clearValueOnOptionsChange": true,
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
                             "data": {
                                 "&": "${business_content_class_params}",
                                 "gjsjsf": "${gjsjsf}"
-                            }
+                            },
+                            "trackExpression": "${gjsjsf}"
                         },
                         "disabledOn": "${!gjsjsf}"
                     },
@@ -431,22 +450,14 @@
                                                         "componentId": "business_standard_add_form",
                                                         "args": {
                                                             "value": {
-                                                                "ywnrfl": "",
-                                                                "hcbzIds": []
+                                                                    "ywnrfl": "",
+                                                                    "hcbzIds": []
+                                                                }
                                                             }
                                                         }
-                                                    },
-                                                    {
-                                                        "actionType": "reload",
-                                                        "componentId": "business_standard_add_ywnrfl_select"
-                                                    },
-                                                    {
-                                                        "actionType": "reload",
-                                                        "componentId": "business_standard_add_hcbz_select"
-                                                    }
-                                                ]
+                                                    ]
+                                                }
                                             }
-                                        }
                                     },
                                     {
                                         "type": "select",
@@ -477,10 +488,6 @@
                                                                 "hcbzIds": []
                                                             }
                                                         }
-                                                    },
-                                                    {
-                                                        "actionType": "reload",
-                                                        "componentId": "business_standard_add_hcbz_select"
                                                     }
                                                 ]
                                             }
@@ -849,22 +856,14 @@
                                                             "componentId": "business_standard_edit_form",
                                                             "args": {
                                                                 "value": {
-                                                                    "ywnrfl": "",
-                                                                    "hcbzIds": []
+                                                                        "ywnrfl": "",
+                                                                        "hcbzIds": []
+                                                                    }
                                                                 }
                                                             }
-                                                        },
-                                                        {
-                                                            "actionType": "reload",
-                                                            "componentId": "business_standard_edit_ywnrfl_select"
-                                                        },
-                                                        {
-                                                            "actionType": "reload",
-                                                            "componentId": "business_standard_edit_hcbz_select"
-                                                        }
-                                                    ]
+                                                        ]
+                                                    }
                                                 }
-                                            }
                                         },
                                         {
                                             "type": "select",
@@ -895,10 +894,6 @@
                                                                     "hcbzIds": []
                                                                 }
                                                             }
-                                                        },
-                                                        {
-                                                            "actionType": "reload",
-                                                            "componentId": "business_standard_edit_hcbz_select"
                                                         }
                                                     ]
                                                 }

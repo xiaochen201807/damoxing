@@ -78,25 +78,44 @@
                 "body": [
                     {
                         "type": "select",
+                        "id": "main_rule_algorithm_select",
                         "name": "ywsf",
                         "label": "关键数据算法",
                         "placeholder": "请选择",
                         "source": "${algorithm_options}",
-                        "clearable": true
+                        "clearable": true,
+                        "onEvent": {
+                            "change": {
+                                "actions": [
+                                    {
+                                        "actionType": "setValue",
+                                        "componentId": "main_filter_form",
+                                        "args": {
+                                            "value": {
+                                                "ywnrfl": ""
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
                     },
                     {
                         "type": "select",
+                        "id": "main_rule_business_content_class_select",
                         "name": "ywnrfl",
                         "label": "业务内容分类",
                         "placeholder": "请选择",
                         "className": "wider-select",
+                        "clearValueOnOptionsChange": true,
                         "source": {
                             "method": "post",
                             "url": "${business_content_class_api}",
                             "data": {
                                 "&": "${business_content_class_params}",
                                 "gjsjsf": "${ywsf}"
-                            }
+                            },
+                            "trackExpression": "${ywsf}"
                         },
                         "clearable": true,
                         "disabledOn": "${!ywsf}"
