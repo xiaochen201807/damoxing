@@ -388,6 +388,7 @@
                             "size": "lg",
                             "body": {
                                 "type": "form",
+                                "id": "business_standard_add_form",
                                 "mode": "normal",
                                 "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/save",
                                 "body": [
@@ -418,25 +419,72 @@
                                     },
                                     {
                                         "type": "select",
+                                        "id": "business_standard_add_gjsjsf_select",
                                         "name": "gjsjsf",
                                         "label": "关键数据算法：",
-                                        "source": "${algorithm_options}"
+                                        "source": "${algorithm_options}",
+                                        "onEvent": {
+                                            "change": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "business_standard_add_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "ywnrfl": "",
+                                                                "hcbzIds": []
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "actionType": "reload",
+                                                        "componentId": "business_standard_add_ywnrfl_select"
+                                                    },
+                                                    {
+                                                        "actionType": "reload",
+                                                        "componentId": "business_standard_add_hcbz_select"
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     },
                                     {
                                         "type": "select",
+                                        "id": "business_standard_add_ywnrfl_select",
                                         "name": "ywnrfl",
                                         "label": "业务内容分类：",
                                         "placeholder": "请选择业务内容分类",
                                         "clearable": true,
+                                        "clearValueOnOptionsChange": true,
                                         "source": {
                                             "method": "post",
                                             "url": "${business_content_class_api}",
                                             "data": {
                                                 "&": "${business_content_class_params}",
                                                 "gjsjsf": "${gjsjsf}"
-                                            }
+                                            },
+                                            "trackExpression": "${gjsjsf}"
                                         },
-                                        "disabledOn": "${!gjsjsf}"
+                                        "disabledOn": "${!gjsjsf}",
+                                        "onEvent": {
+                                            "change": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "business_standard_add_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "hcbzIds": []
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "actionType": "reload",
+                                                        "componentId": "business_standard_add_hcbz_select"
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     },
                                     {
                                         "type": "select",
@@ -512,12 +560,14 @@
                                     },
                                     {
                                         "type": "select",
+                                        "id": "business_standard_add_hcbz_select",
                                         "name": "hcbzIds",
                                         "label": "互斥业务办理标准：",
                                         "multiple": true,
                                         "joinValues": false,
                                         "extractValue": true,
                                         "clearable": true,
+                                        "clearValueOnOptionsChange": true,
                                         "searchable": true,
                                         "source": {
                                             "method": "post",
@@ -525,7 +575,8 @@
                                             "data": {
                                                 "gjsjsf": "${gjsjsf}",
                                                 "ywnrfl": "${ywnrfl}"
-                                            }
+                                            },
+                                            "trackExpression": "${gjsjsf}-${ywnrfl}"
                                         },
                                         "disabledOn": "${!gjsjsf || !ywnrfl}"
                                     },
@@ -748,6 +799,7 @@
                                 "size": "lg",
                                 "body": {
                                     "type": "form",
+                                    "id": "business_standard_edit_form",
                                     "mode": "normal",
                                     "initApi": {
                                         "method": "post",
@@ -785,25 +837,72 @@
                                         },
                                         {
                                             "type": "select",
+                                            "id": "business_standard_edit_gjsjsf_select",
                                             "name": "gjsjsf",
                                             "label": "关键数据算法：",
-                                            "source": "${algorithm_options}"
+                                            "source": "${algorithm_options}",
+                                            "onEvent": {
+                                                "change": {
+                                                    "actions": [
+                                                        {
+                                                            "actionType": "setValue",
+                                                            "componentId": "business_standard_edit_form",
+                                                            "args": {
+                                                                "value": {
+                                                                    "ywnrfl": "",
+                                                                    "hcbzIds": []
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "actionType": "reload",
+                                                            "componentId": "business_standard_edit_ywnrfl_select"
+                                                        },
+                                                        {
+                                                            "actionType": "reload",
+                                                            "componentId": "business_standard_edit_hcbz_select"
+                                                        }
+                                                    ]
+                                                }
+                                            }
                                         },
                                         {
                                             "type": "select",
+                                            "id": "business_standard_edit_ywnrfl_select",
                                             "name": "ywnrfl",
                                             "label": "业务内容分类：",
                                             "placeholder": "请选择业务内容分类",
                                             "clearable": true,
+                                            "clearValueOnOptionsChange": true,
                                             "source": {
                                                 "method": "post",
                                                 "url": "${business_content_class_api}",
                                                 "data": {
                                                     "&": "${business_content_class_params}",
                                                     "gjsjsf": "${gjsjsf}"
-                                                }
+                                                },
+                                                "trackExpression": "${gjsjsf}"
                                             },
-                                            "disabledOn": "${!gjsjsf}"
+                                            "disabledOn": "${!gjsjsf}",
+                                            "onEvent": {
+                                                "change": {
+                                                    "actions": [
+                                                        {
+                                                            "actionType": "setValue",
+                                                            "componentId": "business_standard_edit_form",
+                                                            "args": {
+                                                                "value": {
+                                                                    "hcbzIds": []
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "actionType": "reload",
+                                                            "componentId": "business_standard_edit_hcbz_select"
+                                                        }
+                                                    ]
+                                                }
+                                            }
                                         },
                                         {
                                             "type": "select",
@@ -879,12 +978,14 @@
                                         },
                                         {
                                             "type": "select",
+                                            "id": "business_standard_edit_hcbz_select",
                                             "name": "hcbzIds",
                                             "label": "互斥业务办理标准：",
                                             "multiple": true,
                                             "joinValues": false,
                                             "extractValue": true,
                                             "clearable": true,
+                                            "clearValueOnOptionsChange": true,
                                             "searchable": true,
                                             "source": {
                                                 "method": "post",
@@ -893,7 +994,8 @@
                                                     "id": "${id}",
                                                     "gjsjsf": "${gjsjsf}",
                                                     "ywnrfl": "${ywnrfl}"
-                                                }
+                                                },
+                                                "trackExpression": "${id}-${gjsjsf}-${ywnrfl}"
                                             },
                                             "disabledOn": "${!gjsjsf || !ywnrfl}"
                                         },

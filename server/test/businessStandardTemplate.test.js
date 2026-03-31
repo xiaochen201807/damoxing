@@ -172,4 +172,86 @@ describe('business_standard template', () => {
             expect(fieldNames).toContain('ywblfl');
         });
     });
+
+    test('新增编辑表单中互斥标准会随算法和业务内容分类即时联动刷新', () => {
+        const rendered = env.render('pages/business_standard.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}',
+            business_standard_value_params: '{}',
+            service_objects_params: '{}',
+            business_standard_attribute_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        const formsById = {};
+
+        walk(schema, node => {
+            if (node?.type === 'form' && node?.id) {
+                formsById[node.id] = node;
+            }
+        });
+
+        ['business_standard_add_form', 'business_standard_edit_form'].forEach(formId => {
+            const form = formsById[formId];
+            expect(form).toBeTruthy();
+
+            const algorithmSelect = (form.body || []).find(item => item?.name === 'gjsjsf');
+            const classSelect = (form.body || []).find(item => item?.name === 'ywnrfl');
+            const mutualSelect = (form.body || []).find(item => item?.name === 'hcbzIds');
+
+            expect(algorithmSelect.id).toMatch(/gjsjsf/);
+            expect(algorithmSelect.onEvent.change.actions).toEqual([
+                {
+                    actionType: 'setValue',
+                    componentId: formId,
+                    args: {
+                        value: {
+                            ywnrfl: '',
+                            hcbzIds: []
+                        }
+                    }
+                },
+                {
+                    actionType: 'reload',
+                    componentId: formId === 'business_standard_add_form'
+                        ? 'business_standard_add_ywnrfl_select'
+                        : 'business_standard_edit_ywnrfl_select'
+                },
+                {
+                    actionType: 'reload',
+                    componentId: formId === 'business_standard_add_form'
+                        ? 'business_standard_add_hcbz_select'
+                        : 'business_standard_edit_hcbz_select'
+                }
+            ]);
+
+            expect(classSelect.clearValueOnOptionsChange).toBe(true);
+            expect(classSelect.source.trackExpression).toBe('${gjsjsf}');
+            expect(classSelect.onEvent.change.actions).toEqual([
+                {
+                    actionType: 'setValue',
+                    componentId: formId,
+                    args: {
+                        value: {
+                            hcbzIds: []
+                        }
+                    }
+                },
+                {
+                    actionType: 'reload',
+                    componentId: formId === 'business_standard_add_form'
+                        ? 'business_standard_add_hcbz_select'
+                        : 'business_standard_edit_hcbz_select'
+                }
+            ]);
+
+            expect(mutualSelect.clearValueOnOptionsChange).toBe(true);
+            expect(mutualSelect.disabledOn).toBe('${!gjsjsf || !ywnrfl}');
+            expect(mutualSelect.source.url).toBe('${mutual_standard_api}');
+            expect(mutualSelect.source.trackExpression).toBe(
+                formId === 'business_standard_add_form'
+                    ? '${gjsjsf}-${ywnrfl}'
+                    : '${id}-${gjsjsf}-${ywnrfl}'
+            );
+        });
+    });
 });
