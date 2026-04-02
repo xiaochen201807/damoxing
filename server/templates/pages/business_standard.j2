@@ -619,8 +619,10 @@
                                                     {
                                                         "type": "select",
                                                         "name": "ywblbzsx",
+                                                        "labelField": "label",
+                                                        "valueField": "value",
                                                         "autoFill": {
-                                                            "sxbm": "${sxbm}"
+                                                            "sxbm": "${sxbm || label}"
                                                         },
                                                         "label": "业务办理标准属性：",
                                                         "placeholder": "请选择属性",
@@ -631,7 +633,7 @@
                                                             "url": "${business_standard_attribute_api}",
                                                             "data": {
                                                                 "&": "${business_standard_attribute_params}",
-                                                                "syObjectNumber": "${_syObjectNumber || _coding || _id}",
+                                                                "syObjectNumber": "${ywblbzdx || _syObjectNumber || _coding || _id}",
                                                                 "fieldName": "${term}"
                                                             },
                                                             "trackExpression": "${ywblbzdx}"
@@ -1026,8 +1028,10 @@
                                                         {
                                                             "type": "select",
                                                             "name": "ywblbzsx",
+                                                            "labelField": "label",
+                                                            "valueField": "value",
                                                             "autoFill": {
-                                                                "sxbm": "${sxbm}"
+                                                                "sxbm": "${sxbm || label}"
                                                             },
                                                             "label": "业务办理标准属性：",
                                                             "placeholder": "请选择属性",
@@ -1038,7 +1042,7 @@
                                                                 "url": "${business_standard_attribute_api}",
                                                                 "data": {
                                                                     "&": "${business_standard_attribute_params}",
-                                                                    "syObjectNumber": "${_syObjectNumber || _coding || _id}",
+                                                                    "syObjectNumber": "${ywblbzdx || _syObjectNumber || _coding || _id}",
                                                                     "fieldName": "${term}"
                                                                 },
                                                                 "trackExpression": "${ywblbzdx}"

@@ -22,6 +22,61 @@ const GATEWAY_BASE_URL = (() => {
     }
 })();
 
+function getFirstNonBlankValue(item, keys) {
+    if (!item || !Array.isArray(keys)) {
+        return undefined;
+    }
+
+    for (const key of keys) {
+        const value = item[key];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return value;
+        }
+    }
+
+    return undefined;
+}
+
+function normalizeBusinessStandardAttribute(item) {
+    const value = getFirstNonBlankValue(item, [
+        'fieldIdentification',
+        'fieldName',
+        'coding',
+        'id'
+    ]);
+    const label = getFirstNonBlankValue(item, [
+        'sxbm',
+        'fieldAliasName',
+        'fieldLabel',
+        'fieldComment',
+        'fieldDescription',
+        'fieldDesc',
+        'chineseName',
+        'name',
+        'fieldName',
+        'fieldIdentification'
+    ]);
+
+    return {
+        ...item,
+        label: label || value,
+        value,
+        // 标准库子表 sxbm 约定存中文名称，供编辑回显和导出使用
+        sxbm: getFirstNonBlankValue(item, [
+            'sxbm',
+            'fieldAliasName',
+            'fieldLabel',
+            'fieldComment',
+            'fieldDescription',
+            'fieldDesc',
+            'chineseName',
+            'name',
+            'fieldName',
+            'fieldIdentification'
+        ]) || label || value
+    };
+}
+
 /**
  * 1. 获取业务内容分类 (POST /business-content-classes)
  * 原：从 ywbzk 表中提取唯一的业务内容分类
@@ -280,12 +335,9 @@ router.post('/business-standard-attributes', normalizeMalformedBody(), async (re
         }
 
         // 转换数据格式为 AMIS 下拉框所需的 { label, value, sxbm }
-        // 根据最新的返回样例：fieldName -> label/value, fieldIdentification -> sxbm
-        const resultData = list.map(item => ({
-            label: item.fieldName,
-            value: item.fieldIdentification,
-            ...item
-        }));
+        // 这里统一兜底多种网关字段，优先取中文别名/标签作为展示名，
+        // 同时保持程序化标识(fieldIdentification)作为实际提交值。
+        const resultData = list.map(normalizeBusinessStandardAttribute);
 
         res.json({ status: 0, msg: "ok", data: resultData });
     } catch (err) {

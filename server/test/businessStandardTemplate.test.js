@@ -215,6 +215,38 @@ describe('business_standard template', () => {
         });
     });
 
+    test('标准属性选择会把中文展示名兜底写回 sxbm', () => {
+        const rendered = env.render('pages/business_standard.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}',
+            business_standard_value_params: '{}',
+            service_objects_params: '{}',
+            business_standard_attribute_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        const attributeSelects = [];
+
+        walk(schema, node => {
+            if (node?.type === 'select' && node?.name === 'ywblbzsx') {
+                attributeSelects.push(node);
+            }
+        });
+
+        expect(attributeSelects.length).toBeGreaterThan(0);
+        attributeSelects.forEach(select => {
+            expect(select.autoFill).toMatchObject({
+                sxbm: '${sxbm || label}'
+            });
+            expect(select.labelField).toBe('label');
+            expect(select.valueField).toBe('value');
+            expect(select.source).toMatchObject({
+                data: expect.objectContaining({
+                    syObjectNumber: '${ywblbzdx || _syObjectNumber || _coding || _id}'
+                })
+            });
+        });
+    });
+
     test('新增编辑表单中互斥标准会随算法和业务内容分类即时联动刷新', () => {
         const rendered = env.render('pages/business_standard.j2', {
             GLOBAL_API_PREFIX: '/api',

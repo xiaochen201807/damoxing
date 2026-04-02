@@ -125,6 +125,50 @@ describe('business content class upgrade', () => {
         );
     });
 
+    test('tools/business-standard-attributes 优先使用中文别名作为展示名并保留编码值', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', toolsRouter);
+        axios.post.mockResolvedValue({
+            data: {
+                data: [
+                    {
+                        fieldName: 'dx_03160_rclx',
+                        fieldIdentification: 'dx_03160_rclx',
+                        fieldAliasName: '人才类型',
+                    },
+                ],
+            },
+        });
+
+        const response = await request(app)
+            .post('/business-standard-attributes')
+            .set('login-token', 'token-1')
+            .send({
+                jgbh: '1001',
+                syObjectNumber: '03160',
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toEqual([
+            expect.objectContaining({
+                label: '人才类型',
+                value: 'dx_03160_rclx',
+                sxbm: '人才类型',
+                fieldName: 'dx_03160_rclx',
+            }),
+        ]);
+        expect(axios.post).toHaveBeenCalledWith(
+            expect.stringContaining('manageObjectProperties'),
+            expect.objectContaining({
+                organizationNumber: '1001',
+                syObjectNumber: '03160',
+                fieldName: '',
+            }),
+            expect.any(Object)
+        );
+    });
+
     test('ywnrfl/save 拒绝同算法下重复分类编码', async () => {
         const app = express();
         app.use(express.json());
