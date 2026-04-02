@@ -40,6 +40,95 @@ function normalizeIdList(value) {
     )];
 }
 
+function getDefinedValue(source, ...keys) {
+    if (!source) {
+        return undefined;
+    }
+
+    for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(source, key) && source[key] !== undefined && source[key] !== null) {
+            return source[key];
+        }
+    }
+
+    return undefined;
+}
+
+function isBlankValue(value) {
+    return value === undefined || value === null || value === '';
+}
+
+function normalizeOptionalText(value) {
+    if (isBlankValue(value)) {
+        return '';
+    }
+
+    return String(value).trim();
+}
+
+function normalizeBusinessStandardAttributeRows(rows) {
+    if (!Array.isArray(rows)) {
+        return [];
+    }
+
+    return rows.map((row, index) => {
+        const objectModeFlag = normalizeOptionalText(getDefinedValue(row, 'sfdxsx', 'SFDXSX'));
+        const objectNumber = normalizeOptionalText(getDefinedValue(row, 'ywblbzdx', 'YWBLBZDX'));
+        const isObjectProperty = objectModeFlag
+            ? objectModeFlag !== '0'
+            : !isBlankValue(objectNumber);
+
+        if (!isObjectProperty) {
+            const customName = normalizeOptionalText(getDefinedValue(row, 'zdsxmc', 'ZDSXMC'));
+            const customCode = normalizeOptionalText(getDefinedValue(row, 'zdsxbm', 'ZDSXBM'));
+
+            if (!customName) {
+                throw new Error(`第${index + 1}行属性名称不能为空`);
+            }
+
+            if (!customCode) {
+                throw new Error(`第${index + 1}行属性编码不能为空`);
+            }
+
+            return {
+                sfdxsx: '0',
+                ywblbzdx: null,
+                fwdxbq: null,
+                sxbm: customName,
+                ywblbzsx: customCode,
+                sxly: 'page',
+                ywblbzyg: null,
+                ywblbzyg_dialects: null
+            };
+        }
+
+        const fieldId = normalizeOptionalText(getDefinedValue(row, 'ywblbzsx', 'YWBLBZSX'));
+        const fieldName = normalizeOptionalText(getDefinedValue(row, 'sxbm', 'SXBM')) || fieldId;
+        const sourceType = normalizeOptionalText(getDefinedValue(row, 'sxly', 'SXLY')).toLowerCase() === 'sql'
+            ? 'sql'
+            : 'page';
+
+        if (!objectNumber) {
+            throw new Error(`第${index + 1}行业务办理标准属性所属对象不能为空`);
+        }
+
+        if (!fieldId) {
+            throw new Error(`第${index + 1}行业务办理标准属性不能为空`);
+        }
+
+        return {
+            sfdxsx: '1',
+            ywblbzdx: objectNumber,
+            fwdxbq: normalizeOptionalText(getDefinedValue(row, 'fwdxbq', 'FWDXBQ')) || null,
+            sxbm: fieldName,
+            ywblbzsx: fieldId,
+            sxly: sourceType,
+            ywblbzyg: sourceType === 'sql' ? getDefinedValue(row, 'ywblbzyg', 'YWBLBZYG') : null,
+            ywblbzyg_dialects: sourceType === 'sql' ? getDefinedValue(row, 'ywblbzyg_dialects') : null
+        };
+    });
+}
+
 /**
  * 1. 获取列表 (POST /list)
  * 支持分页和关键字查询
@@ -144,9 +233,13 @@ router.post('/get', async (req, res) => {
         `;
         const mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(mutualSql, [id]);
 
-        // 拆解每行属性的 ywblbzyg 方言
+        // 拆解每行属性的 ywblbzyg 方言，并补充前端双模式表单所需字段
         sxRows.forEach(sx => {
             sx.ywblbzyg_dialects = parseDialectSql(sx.ywblbzyg || sx.YWBLBZYG);
+            sx.sfdxsx = isBlankValue(getDefinedValue(sx, 'ywblbzdx', 'YWBLBZDX')) ? '0' : '1';
+            sx.zdsxmc = normalizeOptionalText(getDefinedValue(sx, 'sxbm', 'SXBM'));
+            sx.zdsxbm = normalizeOptionalText(getDefinedValue(sx, 'ywblbzsx', 'YWBLBZSX'));
+            sx.sxly = normalizeOptionalText(getDefinedValue(sx, 'sxly', 'SXLY')) || 'page';
         });
 
         row.ywblbzsxz = sxRows;
@@ -192,6 +285,7 @@ router.post('/save', async (req, res) => {
         parseDialectSql(ywbzjg, '业务办理标准结果执行语句');
     }
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    let normalizedAttributeRows = [];
 
     if (!isBusinessStandardMasterEnabled(req)) {
         return res.status(403).json({ status: 403, msg: getBusinessStandardWriteDeniedMessage() });
@@ -208,6 +302,12 @@ router.post('/save', async (req, res) => {
         zdybm = zdybm ? String(zdybm).trim() : '';
         ywblfl = ywblfl ? String(ywblfl) : '1';
         hcbzIds = normalizeIdList(hcbzIds);
+
+        try {
+            normalizedAttributeRows = normalizeBusinessStandardAttributeRows(ywblbzsxz);
+        } catch (validationError) {
+            return res.status(400).json({ status: 1, msg: validationError.message });
+        }
 
         if (!['1', '2'].includes(ywblfl)) {
             return res.status(400).json({ status: 1, msg: `无效的业务办理分类编码: ${ywblfl}` });
@@ -300,15 +400,17 @@ router.post('/save', async (req, res) => {
                 mbid = insertResult.lastID;
             }
 
-            if (ywblbzsxz && Array.isArray(ywblbzsxz)) {
-                for (const sx of ywblbzsxz) {
+            if (normalizedAttributeRows.length > 0) {
+                for (const sx of normalizedAttributeRows) {
                     // 如果属性行传入了方言对象，组装为 JSON 字符串
                     let sxYwblbzyg = sx.ywblbzyg;
-                    if (sx.ywblbzyg_dialects && typeof sx.ywblbzyg_dialects === 'object') {
+                    if (sx.sxly === 'sql' && sx.ywblbzyg_dialects && typeof sx.ywblbzyg_dialects === 'object') {
                         validateDialectSqlObject(sx.ywblbzyg_dialects, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
                         sxYwblbzyg = buildDialectSql(sx.ywblbzyg_dialects, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
-                    } else if (typeof sxYwblbzyg === 'string' && sxYwblbzyg.trim().startsWith('[')) {
+                    } else if (sx.sxly === 'sql' && typeof sxYwblbzyg === 'string' && sxYwblbzyg.trim().startsWith('[')) {
                         parseDialectSql(sxYwblbzyg, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
+                    } else if (sx.sxly !== 'sql') {
+                        sxYwblbzyg = null;
                     }
                     const sxInsertSql = `
                         INSERT INTO gjj_ywbzksx (mbid, ywblbzdx, fwdxbq, sxbm, ywblbzsx, sxly, ywblbzyg)

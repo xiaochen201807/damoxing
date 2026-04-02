@@ -160,6 +160,80 @@ describe('ywbzk zdybm and ywblfl support', () => {
         );
     });
 
+    test('save 会将自定义属性保存为页面录入模式', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.get.mockResolvedValueOnce(null);
+        adapter.run.mockResolvedValue({ lastID: 10, rowsAffected: 1 });
+
+        const response = await request(app)
+            .post('/save')
+            .send({
+                ywblbz: '测试标准',
+                gjsjsf: '1',
+                jgbh: '1001',
+                ywblbzsxz: [
+                    {
+                        sfdxsx: '0',
+                        zdsxmc: '提示金额',
+                        zdsxbm: 'tipAmount',
+                        ywblbzdx: 'SHOULD_IGNORE',
+                        sxly: 'sql',
+                        ywblbzyg: 'select 1'
+                    }
+                ],
+            });
+
+        expect(response.status).toBe(200);
+        expect(adapter.run).toHaveBeenCalledWith(
+            expect.stringContaining('INSERT INTO gjj_ywbzksx'),
+            [10, null, null, '提示金额', 'tipAmount', 'page', null]
+        );
+    });
+
+    test('get 会将自定义属性回填为页面开关和手工输入字段', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.get.mockResolvedValueOnce({
+            id: 10,
+            ywblbz: '测试标准',
+            ywblfl: '1',
+        });
+        adapter.all
+            .mockResolvedValueOnce([
+                {
+                    id: 21,
+                    mbid: 10,
+                    ywblbzdx: null,
+                    fwdxbq: null,
+                    sxbm: '提示金额',
+                    ywblbzsx: 'tipAmount',
+                    sxly: null,
+                    ywblbzyg: null
+                }
+            ])
+            .mockResolvedValueOnce([]);
+
+        const response = await request(app)
+            .post('/get')
+            .send({
+                id: 10,
+                jgbh: '1001',
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.ywblbzsxz).toEqual([
+            expect.objectContaining({
+                sfdxsx: '0',
+                zdsxmc: '提示金额',
+                zdsxbm: 'tipAmount',
+                sxly: 'page'
+            })
+        ]);
+    });
+
     test('list 支持按业务办理分类筛选并默认回填历史值', async () => {
         const app = express();
         app.use(express.json());

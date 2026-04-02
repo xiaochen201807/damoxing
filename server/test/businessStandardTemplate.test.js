@@ -249,6 +249,58 @@ describe('business_standard template', () => {
         });
     });
 
+    test('业务办理标准属性组支持对象属性和自定义属性两种录入方式', () => {
+        const rendered = env.render('pages/business_standard.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}',
+            business_standard_value_params: '{}',
+            service_objects_params: '{}',
+            business_standard_attribute_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        const attributeCombos = [];
+
+        walk(schema, node => {
+            if (node?.type === 'combo' && node?.name === 'ywblbzsxz') {
+                attributeCombos.push(node);
+            }
+        });
+
+        expect(attributeCombos.length).toBeGreaterThan(0);
+
+        attributeCombos.forEach(combo => {
+            const objectGroup = (combo.items || []).find(item => item?.type === 'group' && !item?.visibleOn);
+            const customGroup = (combo.items || []).find(item => item?.type === 'group' && item?.visibleOn === "${sfdxsx === '0'}");
+            const sourceRadio = (combo.items || []).find(item => item?.name === 'sxly');
+
+            expect(objectGroup?.body?.map(item => item?.name)).toEqual(['sfdxsx', 'ywblbzdx', 'ywblbzsx']);
+            expect(objectGroup.body[0]).toMatchObject({
+                type: 'select',
+                name: 'sfdxsx',
+                value: '1',
+                options: [
+                    { label: '是', value: '1' },
+                    { label: '否', value: '0' }
+                ]
+            });
+            expect(objectGroup.body[1]).toMatchObject({
+                name: 'ywblbzdx',
+                visibleOn: "${sfdxsx !== '0'}",
+                requiredOn: "${sfdxsx !== '0'}"
+            });
+            expect(objectGroup.body[2]).toMatchObject({
+                name: 'ywblbzsx',
+                visibleOn: "${sfdxsx !== '0'}",
+                requiredOn: "${sfdxsx !== '0'}"
+            });
+            expect(customGroup?.body?.map(item => item?.name)).toEqual(['zdsxmc', 'zdsxbm']);
+            expect(sourceRadio).toMatchObject({
+                name: 'sxly',
+                visibleOn: "${sfdxsx !== '0'}"
+            });
+        });
+    });
+
     test('新增编辑表单中互斥标准会随算法和业务内容分类即时联动刷新', () => {
         const rendered = env.render('pages/business_standard.j2', {
             GLOBAL_API_PREFIX: '/api',

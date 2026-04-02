@@ -429,6 +429,16 @@ router.post('/config_form', async (req, res) => {
                 ? `${displayLabel}-${chineseName}`
                 : (displayLabel || chineseName || fieldId);
 
+            if (isBlankValue(syObjectNumber)) {
+                return {
+                    type: "input-text",
+                    name: fieldId,
+                    label: label,
+                    required: true,
+                    clearable: true
+                };
+            }
+
             return {
                 type: "select",
                 name: fieldId,                   // 用程序化标识作为表单字段 name

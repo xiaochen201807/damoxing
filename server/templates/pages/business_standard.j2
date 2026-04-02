@@ -613,9 +613,26 @@
                                                 "body": [
                                                     {
                                                         "type": "select",
+                                                        "name": "sfdxsx",
+                                                        "label": "是否对象属性：",
+                                                        "value": "1",
+                                                        "options": [
+                                                            {
+                                                                "label": "是",
+                                                                "value": "1"
+                                                            },
+                                                            {
+                                                                "label": "否",
+                                                                "value": "0"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "select",
                                                         "name": "ywblbzdx",
                                                         "label": "业务办理标准属性所属对象：",
-                                                        "required": true,
+                                                        "requiredOn": "${sfdxsx !== '0'}",
+                                                        "visibleOn": "${sfdxsx !== '0'}",
                                                         "source": {
                                                             "method": "post",
                                                             "url": "${service_objects_api}",
@@ -637,6 +654,8 @@
                                                             "sxbm": "${sxbm || label}"
                                                         },
                                                         "label": "业务办理标准属性：",
+                                                        "requiredOn": "${sfdxsx !== '0'}",
+                                                        "visibleOn": "${sfdxsx !== '0'}",
                                                         "placeholder": "请选择属性",
                                                         "clearValueOnOptionsChange": true,
                                                         "searchable": true,
@@ -650,6 +669,26 @@
                                                             },
                                                             "trackExpression": "${ywblbzdx}"
                                                         }
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "type": "group",
+                                                "visibleOn": "${sfdxsx === '0'}",
+                                                "body": [
+                                                    {
+                                                        "type": "input-text",
+                                                        "name": "zdsxmc",
+                                                        "label": "属性名称：",
+                                                        "requiredOn": "${sfdxsx === '0'}",
+                                                        "placeholder": "请输入属性名称"
+                                                    },
+                                                    {
+                                                        "type": "input-text",
+                                                        "name": "zdsxbm",
+                                                        "label": "属性编码：",
+                                                        "requiredOn": "${sfdxsx === '0'}",
+                                                        "placeholder": "请输入属性编码"
                                                     }
                                                 ]
                                             },
@@ -668,6 +707,7 @@
                                                 "type": "radios",
                                                 "name": "sxly",
                                                 "label": "属性来源：",
+                                                "visibleOn": "${sfdxsx !== '0'}",
                                                 "inline": true,
                                                 "options": [
                                                     {
@@ -685,12 +725,12 @@
                                                 "type": "tpl",
                                                 "tpl": "<b>业务办理标准属性来源执行语句：</b>",
                                                 "className": "m-t-sm m-b-xs block",
-                                                "visibleOn": "${sxly === 'sql'}"
+                                                "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}"
                                             },
                                             {
                                                 "type": "tabs",
                                                 "tabsMode": "simple",
-                                                "visibleOn": "${sxly === 'sql'}",
+                                                "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}",
                                                 "tabs": [
                                                     {
                                                         "title": "默认数据库",
@@ -1034,9 +1074,26 @@
                                                     "body": [
                                                         {
                                                             "type": "select",
+                                                            "name": "sfdxsx",
+                                                            "label": "是否对象属性：",
+                                                            "value": "1",
+                                                            "options": [
+                                                                {
+                                                                    "label": "是",
+                                                                    "value": "1"
+                                                                },
+                                                                {
+                                                                    "label": "否",
+                                                                    "value": "0"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "select",
                                                             "name": "ywblbzdx",
                                                             "label": "业务办理标准属性所属对象：",
-                                                            "required": true,
+                                                            "requiredOn": "${sfdxsx !== '0'}",
+                                                            "visibleOn": "${sfdxsx !== '0'}",
                                                             "source": {
                                                                 "method": "post",
                                                                 "url": "${service_objects_api}",
@@ -1058,6 +1115,8 @@
                                                                 "sxbm": "${sxbm || label}"
                                                             },
                                                             "label": "业务办理标准属性：",
+                                                            "requiredOn": "${sfdxsx !== '0'}",
+                                                            "visibleOn": "${sfdxsx !== '0'}",
                                                             "placeholder": "请选择属性",
                                                             "clearValueOnOptionsChange": true,
                                                             "searchable": true,
@@ -1071,6 +1130,26 @@
                                                                 },
                                                                 "trackExpression": "${ywblbzdx}"
                                                             }
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "group",
+                                                    "visibleOn": "${sfdxsx === '0'}",
+                                                    "body": [
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "zdsxmc",
+                                                            "label": "属性名称：",
+                                                            "requiredOn": "${sfdxsx === '0'}",
+                                                            "placeholder": "请输入属性名称"
+                                                        },
+                                                        {
+                                                            "type": "input-text",
+                                                            "name": "zdsxbm",
+                                                            "label": "属性编码：",
+                                                            "requiredOn": "${sfdxsx === '0'}",
+                                                            "placeholder": "请输入属性编码"
                                                         }
                                                     ]
                                                 },
@@ -1089,6 +1168,7 @@
                                                     "type": "radios",
                                                     "name": "sxly",
                                                     "label": "属性来源：",
+                                                    "visibleOn": "${sfdxsx !== '0'}",
                                                     "inline": true,
                                                     "options": [
                                                         {
@@ -1106,12 +1186,12 @@
                                                     "type": "tpl",
                                                     "tpl": "<b>业务办理标准属性来源执行语句：</b>",
                                                     "className": "m-t-sm m-b-xs block",
-                                                    "visibleOn": "${sxly === 'sql'}"
+                                                    "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}"
                                                 },
                                                 {
                                                     "type": "tabs",
                                                     "tabsMode": "simple",
-                                                    "visibleOn": "${sxly === 'sql'}",
+                                                    "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}",
                                                     "tabs": [
                                                         {
                                                             "title": "默认数据库",

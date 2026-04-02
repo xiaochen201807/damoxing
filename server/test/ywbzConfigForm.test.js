@@ -123,6 +123,49 @@ describe('ywbz config_form value reflection', () => {
         ]);
     });
 
+    test('config_form 会将自定义属性渲染为文本输入框', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzRouter);
+
+        adapter.get.mockResolvedValueOnce({
+            id: 1,
+            mbid: 10,
+            gzmc: '规则A',
+            ywbzz: '36',
+            template_name: '模板A',
+        });
+        adapter.all
+            .mockResolvedValueOnce([
+                { sxbm: '贷款情况', ywblbzsx: 'loanStatus', fwdxbq: '缴存人', ywblbzdx: 'DX001' },
+                { sxbm: '提示金额', ywblbzsx: 'tipAmount', fwdxbq: null, ywblbzdx: null },
+            ])
+            .mockResolvedValueOnce([]);
+
+        const response = await request(app)
+            .post('/config_form')
+            .send({
+                id: 1,
+                mbid: 10,
+                jgbh: '1001',
+            });
+
+        expect(response.status).toBe(200);
+
+        const combo = response.body.data.body.find(item => item.type === 'combo');
+        const loanStatusField = combo.items.find(item => item.name === 'loanStatus');
+        const tipAmountField = combo.items.find(item => item.name === 'tipAmount');
+
+        expect(loanStatusField).toMatchObject({
+            type: 'select',
+            label: '缴存人-贷款情况'
+        });
+        expect(tipAmountField).toMatchObject({
+            type: 'input-text',
+            label: '提示金额'
+        });
+    });
+
     test('save_params 会保留结果和参数中的 0 值', async () => {
         const app = express();
         app.use(express.json());
