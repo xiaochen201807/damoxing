@@ -1,6 +1,6 @@
 -- ============================================
 -- 业务标准升级投产脚本（Oracle）
--- 适用改造点：1-5、8-9
+-- 适用改造点：1-5、8-10
 -- 对应文档：docs/业务标准升级方案.md
 -- ============================================
 --
@@ -161,6 +161,37 @@ BEGIN
 END;
 /
 
+-- [改造点 10] gjj_ywbzk 新增提示语属性字段
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWBZK'
+       AND column_name = 'TSYSXMC';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywbzk ADD tsysxmc VARCHAR2(200 CHAR)';
+    END IF;
+END;
+/
+
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWBZK'
+       AND column_name = 'TSYSXDW';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywbzk ADD tsysxdw VARCHAR2(100 CHAR)';
+    END IF;
+END;
+/
+
 -- [改造点 9] 调试成功案例表 gjj_ywbz_debug_case
 DECLARE
     v_count NUMBER;
@@ -212,7 +243,7 @@ COMMIT;
 --
 -- SELECT column_name FROM user_tab_columns
 --  WHERE table_name = 'GJJ_YWBZK'
---    AND column_name IN ('ZDYBM', 'YWBLFL');
+--    AND column_name IN ('ZDYBM', 'YWBLFL', 'TSYSXMC', 'TSYSXDW');
 --
 -- SELECT column_name FROM user_tab_columns
 --  WHERE table_name = 'GJJ_YWBZ'

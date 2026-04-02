@@ -109,7 +109,7 @@ describe('ywbzk zdybm and ywblfl support', () => {
         expect(response.body.msg).toContain('自定义编码已存在');
     });
 
-    test('save 新增时会写入自定义编码', async () => {
+    test('save 新增时会写入提示语字段和自定义编码', async () => {
         const app = express();
         app.use(express.json());
         app.use('/', ywbzkRouter);
@@ -120,6 +120,8 @@ describe('ywbzk zdybm and ywblfl support', () => {
             .post('/save')
             .send({
                 ywblbz: '测试标准',
+                tsysxmc: '最高可贷额度',
+                tsysxdw: '元',
                 zdybm: 'STD_002',
                 gjsjsf: '1',
                 jgbh: '1001',
@@ -128,8 +130,33 @@ describe('ywbzk zdybm and ywblfl support', () => {
 
         expect(response.status).toBe(200);
         expect(adapter.run).toHaveBeenCalledWith(
-            expect.stringContaining('INSERT INTO gjj_ywbzk'),
-            expect.arrayContaining(['STD_002'])
+            expect.stringContaining('INSERT INTO gjj_ywbzk (pxh, ywblbz, tsysxmc, tsysxdw, zdybm'),
+            expect.arrayContaining(['最高可贷额度', '元', 'STD_002'])
+        );
+    });
+
+    test('save 编辑时会更新提示语字段', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzkRouter);
+        adapter.run.mockResolvedValue({ rowsAffected: 1 });
+
+        const response = await request(app)
+            .post('/save')
+            .send({
+                id: 10,
+                ywblbz: '测试标准',
+                tsysxmc: '最高可贷额度',
+                tsysxdw: '万元',
+                gjsjsf: '1',
+                jgbh: '1001',
+                ywblbzsxz: [],
+            });
+
+        expect(response.status).toBe(200);
+        expect(adapter.run).toHaveBeenCalledWith(
+            expect.stringContaining('UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, tsysxmc=:3, tsysxdw=:4'),
+            expect.arrayContaining(['最高可贷额度', '万元', 10])
         );
     });
 

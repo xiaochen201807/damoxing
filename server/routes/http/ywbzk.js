@@ -165,7 +165,23 @@ router.post('/get', async (req, res) => {
  * 自动处理事务和属性组同步
  */
 router.post('/save', async (req, res) => {
-    let { id, pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, ywblbzsxz, hcbzIds } = req.body;
+    let {
+        id,
+        pxh,
+        ywblbz,
+        tsysxmc,
+        tsysxdw,
+        zdybm,
+        ywbzz,
+        ywbzjg,
+        ywblbzsm,
+        gjsjsf,
+        ywnrfl,
+        ywblfl,
+        bzfl,
+        ywblbzsxz,
+        hcbzIds
+    } = req.body;
     const { ywbzjg_dialects } = req.body;
 
     // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
@@ -187,6 +203,8 @@ router.post('/save', async (req, res) => {
 
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        tsysxmc = tsysxmc ? String(tsysxmc).trim() : '';
+        tsysxdw = tsysxdw ? String(tsysxdw).trim() : '';
         zdybm = zdybm ? String(zdybm).trim() : '';
         ywblfl = ywblfl ? String(ywblfl) : '1';
         hcbzIds = normalizeIdList(hcbzIds);
@@ -246,12 +264,39 @@ router.post('/save', async (req, res) => {
         const { id: savedId } = await _adapter.transaction(async (tx) => {
             let mbid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, zdybm=:3, ywbzz=:4, ywbzjg=:5, ywblbzsm=:6, gjsjsf=:7, ywnrfl=:8, ywblfl=:9, bzfl=:10, gxsj=${SqlHelper.now(_adapter)} WHERE id=:11`;
-                await tx.run(updateSql, [pxh, ywblbz, zdybm || null, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl, id]);
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, tsysxmc=:3, tsysxdw=:4, zdybm=:5, ywbzz=:6, ywbzjg=:7, ywblbzsm=:8, gjsjsf=:9, ywnrfl=:10, ywblfl=:11, bzfl=:12, gxsj=${SqlHelper.now(_adapter)} WHERE id=:13`;
+                await tx.run(updateSql, [
+                    pxh,
+                    ywblbz,
+                    tsysxmc || null,
+                    tsysxdw || null,
+                    zdybm || null,
+                    ywbzz,
+                    ywbzjg,
+                    ywblbzsm,
+                    gjsjsf,
+                    ywnrfl,
+                    ywblfl,
+                    bzfl,
+                    id
+                ]);
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10)`;
-                const insertResult = await tx.run(insertSql, [pxh, ywblbz, zdybm || null, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl]);
+                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, tsysxmc, tsysxdw, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)`;
+                const insertResult = await tx.run(insertSql, [
+                    pxh,
+                    ywblbz,
+                    tsysxmc || null,
+                    tsysxdw || null,
+                    zdybm || null,
+                    ywbzz,
+                    ywbzjg,
+                    ywblbzsm,
+                    gjsjsf,
+                    ywnrfl,
+                    ywblfl,
+                    bzfl
+                ]);
                 mbid = insertResult.lastID;
             }
 

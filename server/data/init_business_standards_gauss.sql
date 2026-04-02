@@ -1,3 +1,7 @@
+-- ============================================
+-- 业务规则配置系统数据库初始化脚本 (GaussDB版)
+-- ============================================
+
 DROP TABLE IF EXISTS gjj_ywbzsx;
 DROP TABLE IF EXISTS gjj_ywbzksx;
 DROP TABLE IF EXISTS gjj_ywbz;

@@ -31,6 +31,8 @@ CREATE TABLE gjj_ywbzk (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pxh INTEGER DEFAULT 0, -- 排序号
     ywblbz VARCHAR(200) NOT NULL, -- 业务办理标准
+    tsysxmc VARCHAR(200), -- 提示语属性名称
+    tsysxdw VARCHAR(100), -- 提示语属性单位
     zdybm VARCHAR(100), -- 自定义编码
     ywbzz VARCHAR(100), -- 业务标准值
     ywbzjg TEXT, -- 业务标准结果SQL

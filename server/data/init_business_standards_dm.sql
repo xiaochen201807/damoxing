@@ -20,6 +20,8 @@ CREATE TABLE gjj_ywbzk (
     id BIGINT AUTO_INCREMENT NOT NULL,
     pxh NUMBER DEFAULT 0, -- 排序号
     ywblbz VARCHAR2 (200 CHAR) NOT NULL, -- 业务办理标准
+    tsysxmc VARCHAR2 (200 CHAR), -- 提示语属性名称
+    tsysxdw VARCHAR2 (100 CHAR), -- 提示语属性单位
     zdybm VARCHAR2 (100 CHAR), -- 自定义编码
     ywbzz VARCHAR2 (100 CHAR), -- 业务标准值
     ywbzjg CLOB, -- 业务标准结果SQL

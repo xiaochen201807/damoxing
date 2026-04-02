@@ -210,6 +210,8 @@ describe('business_standard template', () => {
 
         saveForms.forEach(form => {
             const fieldNames = (form.body || []).map(item => item?.name).filter(Boolean);
+            expect(fieldNames).toContain('tsysxmc');
+            expect(fieldNames).toContain('tsysxdw');
             expect(fieldNames).toContain('zdybm');
             expect(fieldNames).toContain('ywblfl');
         });
