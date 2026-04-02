@@ -16,97 +16,97 @@ DROP TABLE IF EXISTS gjj_ywbz_debug_case;
 DROP TABLE IF EXISTS gjj_ywnrfl;
 
 CREATE TABLE gjj_ywnrfl (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    gjsjsf VARCHAR(100) NOT NULL,
-    flbm VARCHAR(50) NOT NULL,
-    flmc VARCHAR(200) NOT NULL,
-    pxh INTEGER DEFAULT 0,
-    sfqy BOOLEAN DEFAULT 1,
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
+    gjsjsf VARCHAR(100) NOT NULL, -- 关键数据算法编码
+    flbm VARCHAR(50) NOT NULL, -- 业务内容分类编码
+    flmc VARCHAR(200) NOT NULL, -- 业务内容分类名称
+    pxh INTEGER DEFAULT 0, -- 排序号
+    sfqy BOOLEAN DEFAULT 1, -- 是否启用
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 更新时间
 );
 
 -- 1. 业务标准库主表 (规则模板定义)
 CREATE TABLE gjj_ywbzk (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
     pxh INTEGER DEFAULT 0, -- 排序号
     ywblbz VARCHAR(200) NOT NULL, -- 业务办理标准
     tsysxmc VARCHAR(200), -- 提示语属性名称
     tsysxdw VARCHAR(100), -- 提示语属性单位
     zdybm VARCHAR(100), -- 自定义编码
     ywbzz VARCHAR(100), -- 业务标准值
-    ywbzjg TEXT, -- 业务标准结果SQL
+    ywbzjg TEXT, -- 业务标准结果执行语句
     ywblbzsm TEXT, -- 业务办理标准说明
-    gjsjsf VARCHAR(100), -- 关键数据算法
-    ywnrfl VARCHAR(50), -- 业务内容分类
+    gjsjsf VARCHAR(100), -- 关键数据算法编码
+    ywnrfl VARCHAR(50), -- 业务内容分类编码
     ywblfl VARCHAR(10) DEFAULT '1', -- 业务办理分类: 1标准 2条件
-    bzfl VARCHAR(50), -- 标准分类
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    bzfl VARCHAR(50), -- 业务办理标准分类
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 更新时间
 );
 
 CREATE TABLE gjj_ywbzkhc (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    mbid INTEGER NOT NULL,
-    hcmbid INTEGER NOT NULL,
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
+    mbid INTEGER NOT NULL, -- 当前业务标准模板ID
+    hcmbid INTEGER NOT NULL, -- 互斥业务标准模板ID
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 更新时间
     FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE,
     FOREIGN KEY (hcmbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE
 );
 
 -- 2. 业务标准库属性表 (规则模板绑定的要素属性)
 CREATE TABLE gjj_ywbzksx (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
     mbid INTEGER NOT NULL, -- 关联业务标准库的ID
-    ywblbzdx VARCHAR(100), -- 业务办理标准对象
-    fwdxbq VARCHAR(100), -- 服务对象标签 (Label)
-    sxbm VARCHAR(50), -- 属性编码
-    ywblbzsx VARCHAR(100), -- 业务办理标准属性 (如:贷款状态)
+    ywblbzdx VARCHAR(100), -- 业务办理标准属性所属对象编码
+    fwdxbq VARCHAR(100), -- 服务对象标签
+    sxbm VARCHAR(50), -- 属性名称/展示名称
+    ywblbzsx VARCHAR(100), -- 属性编码/程序化标识
     sxly VARCHAR(20), -- 属性来源 (page/sql)
-    ywblbzyg TEXT, -- 业务办理标准语句 (当来源为sql时)
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ywblbzyg TEXT, -- 属性来源执行语句
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 更新时间
     FOREIGN KEY (mbid) REFERENCES gjj_ywbzk (id) ON DELETE CASCADE
 );
 
 -- 3. 业务标准主表 (业务规则实例配置)
 CREATE TABLE gjj_ywbz (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
     mbid INTEGER, -- 关联业务标准库的模板ID
-    ywsf VARCHAR(50) NOT NULL, -- 业务算法
-    ywnrfl VARCHAR(50), -- 业务内容分类
+    ywsf VARCHAR(50) NOT NULL, -- 业务算法编码
+    ywnrfl VARCHAR(50), -- 业务内容分类编码
     gzmc VARCHAR(200) NOT NULL, -- 规则名称
     gzljsm TEXT, -- 规则逻辑说明
     yxj INTEGER DEFAULT 0, -- 优先级
     sfqy BOOLEAN DEFAULT 1, -- 是否启用
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 更新时间
 );
 
 -- 4. 业务标准属性表 (业务规则实例具体的参数/属性值)
 CREATE TABLE gjj_ywbzsx (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
     ywid INTEGER NOT NULL, -- 关联业务标准主表的ID
     sxmc VARCHAR(100) NOT NULL, -- 属性名称
     sxz TEXT, -- 属性值
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 更新时间
     FOREIGN KEY (ywid) REFERENCES gjj_ywbz (id) ON DELETE CASCADE
 );
 
 CREATE TABLE gjj_ywbz_debug_case (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ywsf VARCHAR(50),
-    ywnrfl VARCHAR(50),
-    case_name VARCHAR(200) NOT NULL,
-    request_json TEXT NOT NULL,
-    result_summary TEXT NOT NULL,
-    creator_name VARCHAR(100),
-    jgbh VARCHAR(50),
-    zjgbh VARCHAR(50),
-    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键ID
+    ywsf VARCHAR(50), -- 业务算法编码
+    ywnrfl VARCHAR(50), -- 业务内容分类编码
+    case_name VARCHAR(200) NOT NULL, -- 案例名称
+    request_json TEXT NOT NULL, -- 调试请求报文
+    result_summary TEXT NOT NULL, -- 调试结果摘要
+    creator_name VARCHAR(100), -- 创建人
+    jgbh VARCHAR(50), -- 机构编号
+    zjgbh VARCHAR(50), -- 子机构编号
+    cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 更新时间
 );
 
 -- ============================================

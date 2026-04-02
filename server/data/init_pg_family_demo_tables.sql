@@ -165,6 +165,108 @@ CREATE TABLE public.pt_dxsl_1305282028_01 (
     dx_01_zjbzxbm CHARACTER VARYING(100)
 );
 
+COMMENT ON TABLE public.gjj_ywnrfl IS '业务内容分类基础表';
+COMMENT ON COLUMN public.gjj_ywnrfl.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywnrfl.gjsjsf IS '关键数据算法编码';
+COMMENT ON COLUMN public.gjj_ywnrfl.flbm IS '业务内容分类编码';
+COMMENT ON COLUMN public.gjj_ywnrfl.flmc IS '业务内容分类名称';
+COMMENT ON COLUMN public.gjj_ywnrfl.pxh IS '排序号';
+COMMENT ON COLUMN public.gjj_ywnrfl.sfqy IS '是否启用';
+COMMENT ON COLUMN public.gjj_ywnrfl.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywnrfl.gxsj IS '更新时间';
+
+COMMENT ON TABLE public.gjj_ywbzk IS '业务标准库模板主表';
+COMMENT ON COLUMN public.gjj_ywbzk.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbzk.pxh IS '排序号';
+COMMENT ON COLUMN public.gjj_ywbzk.ywblbz IS '业务办理标准';
+COMMENT ON COLUMN public.gjj_ywbzk.tsysxmc IS '提示语属性名称';
+COMMENT ON COLUMN public.gjj_ywbzk.tsysxdw IS '提示语属性单位';
+COMMENT ON COLUMN public.gjj_ywbzk.zdybm IS '自定义编码';
+COMMENT ON COLUMN public.gjj_ywbzk.ywbzz IS '业务标准值';
+COMMENT ON COLUMN public.gjj_ywbzk.ywbzjg IS '业务标准结果执行语句';
+COMMENT ON COLUMN public.gjj_ywbzk.ywblbzsm IS '业务办理标准说明';
+COMMENT ON COLUMN public.gjj_ywbzk.gjsjsf IS '关键数据算法编码';
+COMMENT ON COLUMN public.gjj_ywbzk.ywnrfl IS '业务内容分类编码';
+COMMENT ON COLUMN public.gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件)';
+COMMENT ON COLUMN public.gjj_ywbzk.bzfl IS '业务办理标准分类';
+COMMENT ON COLUMN public.gjj_ywbzk.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbzk.gxsj IS '更新时间';
+
+COMMENT ON TABLE public.gjj_ywbzkhc IS '业务标准互斥关系表';
+COMMENT ON COLUMN public.gjj_ywbzkhc.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbzkhc.mbid IS '当前业务标准模板ID';
+COMMENT ON COLUMN public.gjj_ywbzkhc.hcmbid IS '互斥业务标准模板ID';
+COMMENT ON COLUMN public.gjj_ywbzkhc.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbzkhc.gxsj IS '更新时间';
+
+COMMENT ON TABLE public.gjj_ywbzksx IS '业务标准库属性定义表';
+COMMENT ON COLUMN public.gjj_ywbzksx.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbzksx.mbid IS '所属业务标准模板ID';
+COMMENT ON COLUMN public.gjj_ywbzksx.ywblbzdx IS '业务办理标准属性所属对象编码';
+COMMENT ON COLUMN public.gjj_ywbzksx.fwdxbq IS '服务对象标签';
+COMMENT ON COLUMN public.gjj_ywbzksx.sxbm IS '属性名称/展示名称';
+COMMENT ON COLUMN public.gjj_ywbzksx.ywblbzsx IS '属性编码/程序化标识';
+COMMENT ON COLUMN public.gjj_ywbzksx.sxly IS '属性来源(page/sql)';
+COMMENT ON COLUMN public.gjj_ywbzksx.ywblbzyg IS '属性来源执行语句';
+COMMENT ON COLUMN public.gjj_ywbzksx.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbzksx.gxsj IS '更新时间';
+
+COMMENT ON TABLE public.gjj_ywbz IS '业务规则配置主表';
+COMMENT ON COLUMN public.gjj_ywbz.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbz.mbid IS '关联业务标准模板ID';
+COMMENT ON COLUMN public.gjj_ywbz.ywsf IS '业务算法编码';
+COMMENT ON COLUMN public.gjj_ywbz.ywnrfl IS '业务内容分类编码';
+COMMENT ON COLUMN public.gjj_ywbz.gzmc IS '规则名称';
+COMMENT ON COLUMN public.gjj_ywbz.gzljsm IS '规则逻辑说明';
+COMMENT ON COLUMN public.gjj_ywbz.yxj IS '优先级';
+COMMENT ON COLUMN public.gjj_ywbz.sfqy IS '是否启用';
+COMMENT ON COLUMN public.gjj_ywbz.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbz.gxsj IS '更新时间';
+COMMENT ON COLUMN public.gjj_ywbz.jgbh IS '机构编号';
+COMMENT ON COLUMN public.gjj_ywbz.zjgbh IS '子机构编号';
+COMMENT ON COLUMN public.gjj_ywbz.ywbzz IS '业务标准值';
+
+COMMENT ON TABLE public.gjj_ywbzsx IS '业务规则参数明细表';
+COMMENT ON COLUMN public.gjj_ywbzsx.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbzsx.ywid IS '所属业务规则ID';
+COMMENT ON COLUMN public.gjj_ywbzsx.row_index IS '明细行序号';
+COMMENT ON COLUMN public.gjj_ywbzsx.k1 IS '参数编码1';
+COMMENT ON COLUMN public.gjj_ywbzsx.v1 IS '参数值1';
+COMMENT ON COLUMN public.gjj_ywbzsx.k2 IS '参数编码2';
+COMMENT ON COLUMN public.gjj_ywbzsx.v2 IS '参数值2';
+COMMENT ON COLUMN public.gjj_ywbzsx.k3 IS '参数编码3';
+COMMENT ON COLUMN public.gjj_ywbzsx.v3 IS '参数值3';
+COMMENT ON COLUMN public.gjj_ywbzsx.k4 IS '参数编码4';
+COMMENT ON COLUMN public.gjj_ywbzsx.v4 IS '参数值4';
+COMMENT ON COLUMN public.gjj_ywbzsx.k5 IS '参数编码5';
+COMMENT ON COLUMN public.gjj_ywbzsx.v5 IS '参数值5';
+COMMENT ON COLUMN public.gjj_ywbzsx.k6 IS '参数编码6';
+COMMENT ON COLUMN public.gjj_ywbzsx.v6 IS '参数值6';
+COMMENT ON COLUMN public.gjj_ywbzsx.k7 IS '参数编码7';
+COMMENT ON COLUMN public.gjj_ywbzsx.v7 IS '参数值7';
+COMMENT ON COLUMN public.gjj_ywbzsx.k8 IS '参数编码8';
+COMMENT ON COLUMN public.gjj_ywbzsx.v8 IS '参数值8';
+COMMENT ON COLUMN public.gjj_ywbzsx.k9 IS '参数编码9';
+COMMENT ON COLUMN public.gjj_ywbzsx.v9 IS '参数值9';
+COMMENT ON COLUMN public.gjj_ywbzsx.k10 IS '参数编码10';
+COMMENT ON COLUMN public.gjj_ywbzsx.v10 IS '参数值10';
+COMMENT ON COLUMN public.gjj_ywbzsx.result IS '结果值';
+COMMENT ON COLUMN public.gjj_ywbzsx.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbzsx.gxsj IS '更新时间';
+
+COMMENT ON TABLE public.gjj_ywbz_debug_case IS '业务规则调试成功案例表';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.id IS '主键ID';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.ywsf IS '业务算法编码';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.ywnrfl IS '业务内容分类编码';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.case_name IS '案例名称';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.request_json IS '调试请求报文';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.result_summary IS '调试结果摘要';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.creator_name IS '创建人';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.jgbh IS '机构编号';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.zjgbh IS '子机构编号';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.cjsj IS '创建时间';
+COMMENT ON COLUMN public.gjj_ywbz_debug_case.gxsj IS '更新时间';
+
 CREATE INDEX idx_gjj_ywbz_jg ON public.gjj_ywbz (jgbh, zjgbh);
 CREATE INDEX idx_gjj_ywbz_mb ON public.gjj_ywbz (mbid);
 CREATE INDEX idx_gjj_ywbz_yxj ON public.gjj_ywbz (yxj);
