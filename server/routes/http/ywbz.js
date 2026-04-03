@@ -454,14 +454,7 @@ router.post('/config_form', async (req, res) => {
         });
 
         const currentRuleValue = getDefinedValue(ruleRow, 'ywbzz', 'YWBZZ');
-        const hasSavedValues = cleanedValues.length > 0;
         const formValues = applyCurrentRuleValue(cleanedValues, currentRuleValue);
-        const currentRuleValueDisplay = isBlankValue(currentRuleValue) ? '未配置' : String(currentRuleValue);
-        const currentRuleValueTip = isBlankValue(currentRuleValue)
-            ? '当前业务标准值未配置，可在下方“结果”列录入具体值。'
-            : hasSavedValues
-                ? `当前业务标准值：${currentRuleValueDisplay}。下方优先回显已保存的参数明细。`
-                : `当前业务标准值：${currentRuleValueDisplay}。已在下方结果区自动带出，可直接核对或调整。`;
 
         // 动态构建 Combo 的内部 items (表单列)
         const comboItems = schemaRows.map(field => {
@@ -520,12 +513,6 @@ router.post('/config_form', async (req, res) => {
                 type: "form",
                 title: "规则参数配置",
                 wrapWithPanel: false,
-                data: {
-                    ruleName: getDefinedValue(ruleRow, 'gzmc', 'GZMC') || '-',
-                    templateName: getDefinedValue(ruleRow, 'template_name', 'TEMPLATE_NAME') || '-',
-                    currentRuleValueDisplay,
-                    currentRuleValueTip
-                },
                 api: {
                     method: "post",
                     url: `${process.env.API_ROUTE_PREFIX || '/api'}/ywbz/save_params`,
@@ -535,47 +522,6 @@ router.post('/config_form', async (req, res) => {
                     }
                 },
                 body: [
-                    {
-                        type: "grid",
-                        columns: [
-                            {
-                                md: 4,
-                                body: [
-                                    {
-                                        type: "static",
-                                        label: "规则名称",
-                                        name: "ruleName"
-                                    }
-                                ]
-                            },
-                            {
-                                md: 4,
-                                body: [
-                                    {
-                                        type: "static",
-                                        label: "标准模板",
-                                        name: "templateName"
-                                    }
-                                ]
-                            },
-                            {
-                                md: 4,
-                                body: [
-                                    {
-                                        type: "static",
-                                        label: "当前业务标准值",
-                                        name: "currentRuleValueDisplay"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        type: "alert",
-                        level: isBlankValue(currentRuleValue) ? "warning" : "info",
-                        showIcon: true,
-                        body: "${currentRuleValueTip}"
-                    },
                     {
                         type: "combo",
                         name: "rules", // 对应提交数据的 key

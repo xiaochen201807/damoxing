@@ -72,13 +72,14 @@ describe('ywbz config_form value reflection', () => {
             });
 
         expect(response.status).toBe(200);
-        expect(response.body.data.data.currentRuleValueDisplay).toBe('36');
         expect(adapter.all).toHaveBeenNthCalledWith(
             1,
             expect.stringContaining('FROM gjj_ywbzksx WHERE mbid = ?'),
             [10]
         );
 
+        expect(response.body.data.body.some(item => item.type === 'grid')).toBe(false);
+        expect(response.body.data.body.some(item => item.type === 'alert')).toBe(false);
         const combo = response.body.data.body.find(item => item.type === 'combo');
         expect(combo.value).toEqual([{ result: '36' }]);
     });
