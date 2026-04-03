@@ -1,0 +1,321 @@
+{
+    "title": "查看业务标准模板",
+    "size": "lg",
+    "actions": [
+        {
+            "type": "button",
+            "label": "关闭",
+            "actionType": "close",
+            "level": "primary"
+        }
+    ],
+    "body": {
+        "type": "form",
+        "id": "business_standard_view_form",
+        "mode": "normal",
+        "actions": [],
+        "initApi": {
+            "method": "post",
+            "url": "{{ GLOBAL_API_PREFIX }}/ywbzk/get",
+            "data": {
+                "id": "${mbid}"
+            }
+        },
+        "body": [
+            {
+                "type": "alert",
+                "level": "info",
+                "showIcon": true,
+                "body": "当前为查看模式，可切换不同数据库 SQL 页签查看内容，但不提供保存。"
+            },
+            {
+                "type": "input-number",
+                "name": "pxh",
+                "label": "排序号："
+            },
+            {
+                "type": "input-text",
+                "name": "ywblbz",
+                "label": "业务办理标准："
+            },
+            {
+                "type": "input-text",
+                "name": "tsysxmc",
+                "label": "提示语属性名称："
+            },
+            {
+                "type": "input-text",
+                "name": "tsysxdw",
+                "label": "提示语属性单位："
+            },
+            {
+                "type": "input-text",
+                "name": "zdybm",
+                "label": "自定义编码："
+            },
+            {
+                "type": "input-text",
+                "name": "ywblbzsm",
+                "label": "业务办理标准描述："
+            },
+            {
+                "type": "select",
+                "name": "gjsjsf",
+                "label": "关键数据算法：",
+                "source": "${algorithm_options}"
+            },
+            {
+                "type": "select",
+                "name": "ywnrfl",
+                "label": "业务内容分类：",
+                "clearable": true,
+                "clearValueOnOptionsChange": true,
+                "source": {
+                    "method": "post",
+                    "url": "${business_content_class_api}",
+                    "data": {
+                        "&": "${business_content_class_params}",
+                        "gjsjsf": "${gjsjsf}"
+                    },
+                    "trackExpression": "${gjsjsf}"
+                },
+                "disabledOn": "${!gjsjsf}"
+            },
+            {
+                "type": "select",
+                "name": "ywblfl",
+                "label": "业务办理分类：",
+                "source": "${handle_class_options}"
+            },
+            {
+                "type": "select",
+                "name": "bzfl",
+                "label": "业务办理标准分类：",
+                "source": "${standard_class_options}"
+            },
+            {
+                "type": "select",
+                "name": "ywbzz",
+                "label": "业务标准值：",
+                "clearable": true,
+                "searchable": true,
+                "visibleOn": "${ywblfl !== '2'}",
+                "source": {
+                    "method": "post",
+                    "url": "${business_standard_value_api}",
+                    "data": {
+                        "&": "${business_standard_value_params}",
+                        "name": "${term}"
+                    }
+                }
+            },
+            {
+                "type": "tpl",
+                "tpl": "<b>业务办理标准结果执行语句：</b>",
+                "visibleOn": "${ywblfl !== '2'}",
+                "className": "m-t-sm m-b-xs block"
+            },
+            {
+                "type": "tpl",
+                "tpl": "<b>业务条件执行语句：</b>",
+                "visibleOn": "${ywblfl === '2'}",
+                "className": "m-t-sm m-b-xs block"
+            },
+            {
+                "type": "tabs",
+                "tabsMode": "simple",
+                "tabs": [
+                    {
+                        "title": "默认数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.default", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    },
+                    {
+                        "title": "oracle数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.oracle", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    },
+                    {
+                        "title": "达梦数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.dm", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    },
+                    {
+                        "title": "高斯数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.gauss", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    },
+                    {
+                        "title": "人大金仓数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.kingbase", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    },
+                    {
+                        "title": "postgresql数据库",
+                        "body": { "type": "editor", "name": "ywbzjg_dialects.pg", "label": false, "language": "sql", "size": "md", "readOnly": true, "options": { "fontSize": 14 } }
+                    }
+                ]
+            },
+            {
+                "type": "select",
+                "name": "hcbzIds",
+                "label": "互斥业务办理标准：",
+                "multiple": true,
+                "joinValues": false,
+                "extractValue": true,
+                "clearable": true,
+                "source": "${hcbzOptions || []}"
+            },
+            {
+                "type": "combo",
+                "name": "ywblbzsxz",
+                "label": "业务办理标准属性组：",
+                "multiple": true,
+                "multiLine": true,
+                "addable": false,
+                "removable": false,
+                "items": [
+                    {
+                        "type": "group",
+                        "body": [
+                            {
+                                "type": "select",
+                                "name": "sfdxsx",
+                                "label": "是否对象属性：",
+                                "value": "1",
+                                "options": [
+                                    { "label": "是", "value": "1" },
+                                    { "label": "否", "value": "0" }
+                                ]
+                            },
+                            {
+                                "type": "select",
+                                "name": "ywblbzdx",
+                                "label": "业务办理标准属性所属对象：",
+                                "requiredOn": "${sfdxsx !== '0'}",
+                                "visibleOn": "${sfdxsx !== '0'}",
+                                "source": {
+                                    "method": "post",
+                                    "url": "${service_objects_api}",
+                                    "data": "${service_objects_params}"
+                                },
+                                "autoFill": {
+                                    "fwdxbq": "${label}",
+                                    "_syObjectNumber": "${syObjectNumber}",
+                                    "_coding": "${coding}",
+                                    "_id": "${id}"
+                                }
+                            },
+                            {
+                                "type": "select",
+                                "name": "ywblbzsx",
+                                "label": "业务办理标准属性：",
+                                "labelField": "label",
+                                "valueField": "value",
+                                "requiredOn": "${sfdxsx !== '0'}",
+                                "visibleOn": "${sfdxsx !== '0'}",
+                                "clearValueOnOptionsChange": true,
+                                "searchable": true,
+                                "autoFill": {
+                                    "sxbm": "${sxbm || label}"
+                                },
+                                "source": {
+                                    "method": "post",
+                                    "url": "${business_standard_attribute_api}",
+                                    "data": {
+                                        "&": "${business_standard_attribute_params}",
+                                        "syObjectNumber": "${ywblbzdx || _syObjectNumber || _coding || _id}",
+                                        "fieldName": "${term}"
+                                    },
+                                    "trackExpression": "${ywblbzdx}"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "type": "group",
+                        "visibleOn": "${sfdxsx === '0'}",
+                        "body": [
+                            {
+                                "type": "input-text",
+                                "name": "zdsxmc",
+                                "label": "属性名称：",
+                                "requiredOn": "${sfdxsx === '0'}"
+                            },
+                            {
+                                "type": "input-text",
+                                "name": "zdsxbm",
+                                "label": "属性编码：",
+                                "requiredOn": "${sfdxsx === '0'}"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "hidden",
+                        "name": "fwdxbq"
+                    },
+                    {
+                        "type": "hidden",
+                        "name": "_syObjectNumber"
+                    },
+                    {
+                        "type": "hidden",
+                        "name": "_coding"
+                    },
+                    {
+                        "type": "hidden",
+                        "name": "_id"
+                    },
+                    {
+                        "type": "hidden",
+                        "name": "sxbm"
+                    },
+                    {
+                        "type": "radios",
+                        "name": "sxly",
+                        "label": "属性来源：",
+                        "visibleOn": "${sfdxsx !== '0'}",
+                        "inline": true,
+                        "options": [
+                            { "label": "页面", "value": "page" },
+                            { "label": "SQL", "value": "sql" }
+                        ],
+                        "value": "page"
+                    },
+                    {
+                        "type": "tpl",
+                        "tpl": "<b>业务办理标准属性来源执行语句：</b>",
+                        "className": "m-t-sm m-b-xs block",
+                        "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}"
+                    },
+                    {
+                        "type": "tabs",
+                        "tabsMode": "simple",
+                        "visibleOn": "${sfdxsx !== '0' && sxly === 'sql'}",
+                        "tabs": [
+                            {
+                                "title": "默认数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.default", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            },
+                            {
+                                "title": "oracle数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.oracle", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            },
+                            {
+                                "title": "达梦数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.dm", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            },
+                            {
+                                "title": "高斯数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.gauss", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            },
+                            {
+                                "title": "人大金仓数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.kingbase", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            },
+                            {
+                                "title": "postgresql数据库",
+                                "body": { "type": "editor", "name": "ywblbzyg_dialects.pg", "label": false, "language": "sql", "size": "sm", "readOnly": true, "options": { "fontSize": 13 } }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

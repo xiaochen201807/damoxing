@@ -36,8 +36,28 @@
         "rule_debug_case_save_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/save",
         "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
         "algorithm_options": [],
+        "standard_class_options": [
+            { "label": "缴存人账户余额", "value": "1" },
+            { "label": "冻结金额", "value": "2" },
+            { "label": "账户保留金额", "value": "3" },
+            { "label": "材料提取限额", "value": "4" },
+            { "label": "累计提取金额", "value": "5" },
+            { "label": "精度值", "value": "6" },
+            { "label": "保留方式", "value": "7" },
+            { "label": "在途提取金额", "value": "8" }
+        ],
+        "handle_class_options": [
+            { "label": "标准", "value": "1" },
+            { "label": "条件", "value": "2" }
+        ],
         "business_content_class_api": "{{ business_content_class_api | default(GLOBAL_API_PREFIX + '/tools/business-content-classes') }}",
-        "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }}
+        "business_content_class_params": {{ business_content_class_params | default({}) | fromjson | tojson }},
+        "business_standard_value_api": "{{ business_standard_value_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-values') }}",
+        "business_standard_value_params": {{ business_standard_value_params | default({}) | fromjson | tojson }},
+        "service_objects_api": "{{ service_objects_api | default(GLOBAL_API_PREFIX + '/tools/service-objects') }}",
+        "service_objects_params": {{ service_objects_params | default({}) | fromjson | tojson }},
+        "business_standard_attribute_api": "{{ business_standard_attribute_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-attributes') }}",
+        "business_standard_attribute_params": {{ business_standard_attribute_params | default({}) | fromjson | tojson }}
     },
     "body": [
         {
@@ -894,6 +914,13 @@
                     "type": "operation",
                     "label": "操作",
                     "buttons": [
+                        {
+                            "type": "button",
+                            "label": "查看",
+                            "actionType": "dialog",
+                            "level": "link",
+                            "dialog": {% include "partials/business_standard_view_dialog.j2" %}
+                        },
                         {
                             "type": "button",
                             "label": "规则参数配置",

@@ -199,4 +199,76 @@ describe('business_rule template', () => {
         expect(rendered.includes('${rule_debug_api}')).toBe(false);
         expect(rendered.includes('${rule_debug_log_api}')).toBe(false);
     });
+
+    test('操作列提供只读标准查看弹窗，复用标准库详情接口', () => {
+        const rendered = env.render('pages/business_rule.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}',
+            business_standard_value_params: '{}',
+            service_objects_params: '{}',
+            business_standard_attribute_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        let viewButton = null;
+
+        walk(schema, node => {
+            if (node?.type === 'button' && node?.label === '查看' && node?.dialog?.body?.id === 'business_standard_view_form') {
+                viewButton = node;
+            }
+        });
+
+        expect(schema.data.standard_class_options).toEqual(expect.arrayContaining([
+            expect.objectContaining({ label: '缴存人账户余额', value: '1' }),
+            expect.objectContaining({ label: '在途提取金额', value: '8' })
+        ]));
+        expect(schema.data.handle_class_options).toEqual([
+            { label: '标准', value: '1' },
+            { label: '条件', value: '2' }
+        ]);
+        expect(schema.data.business_standard_value_api).toBe('/api/tools/business-standard-values');
+        expect(schema.data.service_objects_api).toBe('/api/tools/service-objects');
+        expect(schema.data.business_standard_attribute_api).toBe('/api/tools/business-standard-attributes');
+
+        expect(viewButton).toBeTruthy();
+        expect(viewButton.dialog).toMatchObject({
+            title: '查看业务标准模板',
+            size: 'lg',
+            body: {
+                type: 'form',
+                id: 'business_standard_view_form',
+                actions: [],
+                initApi: {
+                    method: 'post',
+                    url: '/api/ywbzk/get',
+                    data: {
+                        id: '${mbid}'
+                    }
+                }
+            }
+        });
+        expect(viewButton.dialog.actions).toEqual([
+            expect.objectContaining({
+                label: '关闭',
+                actionType: 'close'
+            })
+        ]);
+        expect(viewButton.dialog.body.body).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                type: 'alert',
+                body: '当前为查看模式，可切换不同数据库 SQL 页签查看内容，但不提供保存。'
+            })
+        ]));
+        expect(viewButton.dialog.body.body).toEqual(expect.arrayContaining([
+            expect.objectContaining({ name: 'ywblbz', label: '业务办理标准：' }),
+            expect.objectContaining({ name: 'ywbzz', label: '业务标准值：' }),
+            expect.objectContaining({ name: 'hcbzIds', label: '互斥业务办理标准：' }),
+            expect.objectContaining({
+                type: 'combo',
+                name: 'ywblbzsxz',
+                addable: false,
+                removable: false
+            })
+        ]));
+        expect(JSON.stringify(viewButton.dialog)).toContain('"readOnly":true');
+    });
 });
