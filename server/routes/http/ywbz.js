@@ -69,6 +69,45 @@ function applyCurrentRuleValue(cleanedValues, currentRuleValue) {
     return cleanedValues;
 }
 
+function buildDisplayBusinessStandardName(templateName, publicParamValue) {
+    const rawTemplateName = isBlankValue(templateName) ? '' : String(templateName);
+
+    if (!rawTemplateName.includes('X') || isBlankValue(publicParamValue)) {
+        return rawTemplateName;
+    }
+
+    return rawTemplateName.replace(/X/g, String(publicParamValue));
+}
+
+async function loadPublicParamValueMap(publicParamIds, organizationNumber, zjgbh, headers = {}) {
+    const valueMap = {};
+    const distinctParamIds = [...new Set(
+        (publicParamIds || [])
+            .filter(paramId => !isBlankValue(paramId))
+            .map(paramId => String(paramId).trim())
+            .filter(Boolean)
+    )];
+
+    if (distinctParamIds.length === 0) {
+        return valueMap;
+    }
+
+    await Promise.all(distinctParamIds.map(async (paramId) => {
+        try {
+            const result = await fetchPublicParamValue(paramId, organizationNumber || '', zjgbh || '', headers);
+            const paramValue = getDefinedValue(result, 'value', 'VALUE');
+
+            if (!isBlankValue(paramValue)) {
+                valueMap[paramId] = String(paramValue);
+            }
+        } catch (err) {
+            logger.warn(`[Public Param] Failed to fetch value for ${paramId}: ${err.message}`);
+        }
+    }));
+
+    return valueMap;
+}
+
 function getRequestJgbh(req) {
     return req.body?.jgbh || req.query?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 }
@@ -247,12 +286,19 @@ router.post('/list', async (req, res) => {
     try {
         const countRow = await _adapter.get(countSql, params);
         const rows = await _adapter.all(paged.sql, paged.params);
+        const items = rows.map(row => ({
+            ...row,
+            display_ywblbz: buildDisplayBusinessStandardName(
+                getDefinedValue(row, 'template_name', 'TEMPLATE_NAME'),
+                getDefinedValue(row, 'ywbzz', 'YWBZZ')
+            )
+        }));
 
         res.json({
             status: 0,
             msg: "ok",
             data: {
-                items: rows,
+                items,
                 total: countRow ? (countRow.total || countRow.TOTAL) : 0
             }
         });
@@ -1651,11 +1697,13 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
  * 包含 check 状态反显
  */
 router.post('/selection_list', async (req, res) => {
-    const { ywblbz, ywblbzsm, gjsjsf, ywnrfl, jgbh, zjgbh } = req.body;
+    const { ywblbz, ywblbzsm, gjsjsf, ywnrfl } = req.body;
+    const requestJgbh = getRequestJgbh(req);
+    const requestZjgbh = getRequestZjgbh(req);
 
     // 规范化查询参数：将 null/undefined 统一转为空字符串，防止 join 失败
-    const queryJgbh = jgbh || '';
-    const queryZjgbh = zjgbh || '';
+    const queryJgbh = requestJgbh || '';
+    const queryZjgbh = requestZjgbh || '';
 
     // 1. 查询标准库全量列表(前端分页)
     let standardsSql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
@@ -1699,14 +1747,21 @@ router.post('/selection_list', async (req, res) => {
     }
 
     try {
-        const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(standardsSql, standardsParams);
-        const selectedRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(selectedSql, selectedParams);
+        const _adapter = db.getByJgbh(typeof requestJgbh !== 'undefined' ? requestJgbh : '');
+        const standards = await _adapter.all(standardsSql, standardsParams);
+        const selectedRows = await _adapter.all(selectedSql, selectedParams);
         const standardIds = standards.map(item => item.id || item.ID);
         let mutualRows = [];
+        const headers = {
+            'channel': req.headers['channel'] || '',
+            'login-token': req.headers['login-token'] || '',
+            'zzbs': req.headers['zzbs'] || '',
+            'zzjgdmz': req.headers['zzjgdmz'] || ''
+        };
 
         if (standardIds.length > 0) {
             const placeholders = standardIds.map(() => '?').join(',');
-            mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
+            mutualRows = await _adapter.all(
                 `
                     SELECT h.mbid, h.hcmbid, t.ywblbz as hc_label
                     FROM gjj_ywbzkhc h
@@ -1716,6 +1771,21 @@ router.post('/selection_list', async (req, res) => {
                 standardIds
             );
         }
+
+        const publicParamValueMap = await loadPublicParamValueMap(
+            standards
+                .filter(item => {
+                    const templateName = getDefinedValue(item, 'ywblbz', 'YWBLBZ');
+                    const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
+                    return !isBlankValue(publicParamId)
+                        && !isBlankValue(templateName)
+                        && String(templateName).includes('X');
+                })
+                .map(item => getDefinedValue(item, 'ywbzz', 'YWBZZ')),
+            queryJgbh,
+            queryZjgbh,
+            headers
+        );
 
         // 内存合并: 构建 Set 加速查找
         const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
@@ -1733,13 +1803,25 @@ router.post('/selection_list', async (req, res) => {
         });
 
         // 遍历标准库列表，标记 checked
-        const items = standards.map(item => ({
-            ...item,
-            checked: selectedIds.has(Number(item.id)),
-            mutualIds: (mutualMap.get(Number(item.id)) || []).map(row => row.id),
-            mutualLabels: (mutualMap.get(Number(item.id)) || []).map(row => row.label),
-            disabled: !selectedIds.has(Number(item.id)) && (mutualMap.get(Number(item.id)) || []).some(row => selectedIds.has(Number(row.id)))
-        }));
+        const items = standards.map(item => {
+            const itemId = Number(getDefinedValue(item, 'id', 'ID'));
+            const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
+            const publicParamValue = isBlankValue(publicParamId)
+                ? ''
+                : publicParamValueMap[String(publicParamId).trim()];
+
+            return {
+                ...item,
+                display_ywblbz: buildDisplayBusinessStandardName(
+                    getDefinedValue(item, 'ywblbz', 'YWBLBZ'),
+                    publicParamValue
+                ),
+                checked: selectedIds.has(itemId),
+                mutualIds: (mutualMap.get(itemId) || []).map(row => row.id),
+                mutualLabels: (mutualMap.get(itemId) || []).map(row => row.label),
+                disabled: !selectedIds.has(itemId) && (mutualMap.get(itemId) || []).some(row => selectedIds.has(Number(row.id)))
+            };
+        });
 
         res.json({
             status: 0,

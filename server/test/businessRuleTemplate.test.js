@@ -113,6 +113,39 @@ describe('business_rule template', () => {
         });
     });
 
+    test('清册选择弹窗和外层主列表都使用 display_ywblbz 展示替换后的业务办理标准文案', () => {
+        const rendered = env.render('pages/business_rule.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        let mainCrud = null;
+        let selectionCrud = null;
+
+        walk(schema, node => {
+            if (node?.id === 'main_crud') {
+                mainCrud = node;
+            }
+
+            if (node?.type === 'crud' && node.api?.url === '/api/ywbz/selection_list') {
+                selectionCrud = node;
+            }
+        });
+
+        expect(mainCrud?.columns).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: 'display_ywblbz',
+                label: '业务办理标准'
+            })
+        ]));
+        expect(selectionCrud?.columns).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: 'display_ywblbz',
+                label: '业务办理标准'
+            })
+        ]));
+    });
+
     test('调试弹窗内部接口使用固定 URL，避免弹窗作用域丢失 API 变量', () => {
         const rendered = env.render('pages/business_rule.j2', {
             GLOBAL_API_PREFIX: '/api',
