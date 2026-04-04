@@ -248,7 +248,7 @@
                                         "mode": "table",
                                         "primaryField": "id",
                                         "selectable": true,
-                                        "itemCheckableOn": "${!disabled || checked}",
+                                        "itemCheckableOn": "(selectedItems || []).some(function(item) { return item && item.id == id; }) || !(mutualIds || []).some(function(mutualId) { return (selectedItems || []).some(function(item) { return item && item.id == mutualId; }); })",
                                         "multiple": true,
                                         "loadDataOnce": true,
                                         "filter": {
