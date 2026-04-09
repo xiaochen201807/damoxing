@@ -394,7 +394,7 @@
                         "type": "tpl",
                         "visibleOn": "${!business_standard_editable}",
                         "className": "text-warning m-l-sm",
-                        "tpl": "当前机构为非模型机构，标准库仅支持查看、导出和全量导入；新增、编辑、删除请在模型机构执行。"
+                        "tpl": "当前机构为非模型机构，标准库仅支持查看和导出；新增、编辑、删除请在模型机构执行。"
                     },
                     {
                         "type": "button",
@@ -759,33 +759,6 @@
                                                 ]
                                             }
                                         ]
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "type": "button",
-                        "label": "全量导入",
-                        "level": "primary",
-                        "actionType": "dialog",
-                        "dialog": {
-                            "title": "全量导入业务标准",
-                            "body": {
-                                "type": "form",
-                                "api": {
-                                    "method": "post",
-                                    "url": "${standard_import_api}",
-                                    "dataType": "form-data"
-                                },
-                                "body": [
-                                    {
-                                        "type": "input-file",
-                                        "name": "file",
-                                        "label": "选择CSV或SQL文件",
-                                        "accept": ".csv,.sql",
-                                        "asBlob": true,
-                                        "required": true
                                     }
                                 ]
                             }
@@ -1245,4 +1218,3 @@
 }
     ]
 }
-

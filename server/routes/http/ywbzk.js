@@ -9,7 +9,11 @@ const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
 const { parseDialectSql, buildDialectSql, validateDialectSqlObject, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
-const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
+const {
+    isBusinessStandardMasterEnabled,
+    getBusinessStandardWriteDeniedMessage,
+    getBusinessStandardImportDisabledMessage
+} = require('../../utils/business-standard-access');
 const algorithmConfig = require('../../utils/business-algorithms');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
@@ -633,6 +637,11 @@ router.all('/export', authenticateToken, async (req, res) => {
 // 导入接口 (支持 CSV/SQL 单文件上传)
 // -----------------------------------------------------------------------------
 router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
+    return res.status(403).json({
+        status: 403,
+        msg: getBusinessStandardImportDisabledMessage()
+    });
+
     const jgbh = req.body?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     if (!req.file) {
         return res.status(400).json({ status: 1, msg: "请选择文件" });
