@@ -226,7 +226,7 @@ router.post('/get', async (req, res) => {
         // 拆解 ywbzjg 方言
         row.ywbzjg_dialects = parseDialectSql(row.ywbzjg || row.YWBZJG);
 
-        const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ?";
+        const sxSql = "SELECT * FROM gjj_ywbzksx WHERE mbid = ? order by id ASC";
         const sxRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(sxSql, [id]);
         const mutualSql = `
             SELECT t.id as value, t.ywblbz as label

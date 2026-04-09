@@ -50,6 +50,59 @@ function isBlankValue(value) {
     return value === undefined || value === null || value === '';
 }
 
+async function getBusinessRuleFieldOrder(adapter, mbid) {
+    if (!mbid) {
+        return [];
+    }
+
+    const schemaRows = await adapter.all(
+        "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC",
+        [mbid]
+    );
+
+    return schemaRows
+        .map(row => getDefinedValue(row, 'ywblbzsx', 'YWBLBZSX'))
+        .filter(Boolean);
+}
+
+async function resolveBusinessRuleFieldOrder(adapter, ruleId, mbid) {
+    let resolvedMbid = mbid;
+
+    if (!resolvedMbid && ruleId) {
+        const ruleRow = await adapter.get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [ruleId]);
+        resolvedMbid = getDefinedValue(ruleRow, 'mbid', 'MBID');
+    }
+
+    return getBusinessRuleFieldOrder(adapter, resolvedMbid);
+}
+
+function appendRuleParamsByFieldOrder(params, rowData, fieldOrder) {
+    let kIndex = 1;
+
+    if (fieldOrder.length > 0) {
+        for (const fieldName of fieldOrder) {
+            if (kIndex > 10) {
+                break;
+            }
+
+            params.push(fieldName, rowData[fieldName] !== undefined ? rowData[fieldName] : null);
+            kIndex++;
+        }
+    } else {
+        Object.keys(rowData).forEach(key => {
+            if (key !== 'result' && key !== 'id' && kIndex <= 10) {
+                params.push(key, rowData[key]);
+                kIndex++;
+            }
+        });
+    }
+
+    while (kIndex <= 10) {
+        params.push(null, null);
+        kIndex++;
+    }
+}
+
 function applyCurrentRuleValue(cleanedValues, currentRuleValue) {
     if (isBlankValue(currentRuleValue)) {
         return cleanedValues;
@@ -564,20 +617,10 @@ router.post('/save_params', async (req, res) => {
     }
 
     try {
-        // 0. 查询该规则对应的 mbid，再查标准库属性定义，确定字段顺序
-        const ruleRow = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').get("SELECT mbid FROM gjj_ywbz WHERE id = ?", [id]);
-        const mbid = getDefinedValue(ruleRow, 'mbid', 'MBID');
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const fieldOrder = await resolveBusinessRuleFieldOrder(_adapter, id, null);
 
-        // 按 id ASC 获取字段定义顺序
-        let fieldOrder = [];
-        if (mbid) {
-            const schemaRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
-                "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC", [mbid]
-            );
-            fieldOrder = schemaRows.map(r => r.ywblbzsx || r.YWBLBZSX).filter(Boolean);
-        }
-
-        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+        await _adapter.transaction(async (tx) => {
             // 1. 删除旧属性
             await tx.run("DELETE FROM gjj_ywbzsx WHERE ywid = :1", [id]);
 
@@ -593,30 +636,7 @@ router.post('/save_params', async (req, res) => {
             for (let rowIndex = 0; rowIndex < rules.length; rowIndex++) {
                 const row = rules[rowIndex];
                 const params = [id, rowIndex, isBlankValue(row.result) ? '' : row.result];
-                let kIndex = 1;
-
-                // 按标准库属性定义的固定顺序写入 k/v 对
-                if (fieldOrder.length > 0) {
-                    for (const fieldName of fieldOrder) {
-                        if (kIndex > 10) break;
-                        params.push(fieldName, row[fieldName] !== undefined ? row[fieldName] : null);
-                        kIndex++;
-                    }
-                } else {
-                    // 降级：无法获取字段定义时，按 Object.keys 顺序
-                    Object.keys(row).forEach(key => {
-                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                            params.push(key, row[key]);
-                            kIndex++;
-                        }
-                    });
-                }
-
-                // 补齐剩余的 k, v 为空
-                while (kIndex <= 10) {
-                    params.push(null, null);
-                    kIndex++;
-                }
+                appendRuleParamsByFieldOrder(params, row, fieldOrder);
 
                 await tx.run(insSql, params);
             }
@@ -686,6 +706,7 @@ router.post('/save', async (req, res) => {
 
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const fieldOrder = await resolveBusinessRuleFieldOrder(_adapter, id, mbid);
         const { id: savedId } = await _adapter.transaction(async (tx) => {
             let ywid = id;
             if (id) {
@@ -710,15 +731,7 @@ router.post('/save', async (req, res) => {
 
                 const insertRow = async (rowIndex, rowData) => {
                     const params = [ywid, rowIndex, isBlankValue(rowData.result) ? '' : rowData.result];
-                    let kIndex = 1;
-                    Object.keys(rowData).forEach(key => {
-                        if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                            params.push(key);
-                            params.push(rowData[key]);
-                            kIndex++;
-                        }
-                    });
-                    while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+                    appendRuleParamsByFieldOrder(params, rowData, fieldOrder);
                     await tx.run(insSql, params);
                 };
 
@@ -756,6 +769,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const fieldOrder = await resolveBusinessRuleFieldOrder(_adapter, id, mbid);
         await _adapter.transaction(async (tx) => {
             const updateSql = `
                 UPDATE gjj_ywbz SET
@@ -776,15 +790,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
                 const insSql = `INSERT INTO gjj_ywbzsx (${columns.join(',')}) VALUES (${placeholders})`;
 
                 const params = [id, 0, isBlankValue(rule_params.result) ? '' : rule_params.result];
-                let kIndex = 1;
-                Object.keys(rule_params).forEach(key => {
-                    if (key !== 'result' && key !== 'id' && kIndex <= 10) {
-                        params.push(key);
-                        params.push(rule_params[key]);
-                        kIndex++;
-                    }
-                });
-                while (kIndex <= 10) { params.push(null); params.push(null); kIndex++; }
+                appendRuleParamsByFieldOrder(params, rule_params, fieldOrder);
                 await tx.run(insSql, params);
             }
         });

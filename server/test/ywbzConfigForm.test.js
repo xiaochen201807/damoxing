@@ -225,4 +225,96 @@ describe('ywbz config_form value reflection', () => {
             result: 0,
         });
     });
+
+    test('POST /save 会按标准库属性 id 顺序写入 k/v 对', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzRouter);
+
+        adapter.all.mockResolvedValueOnce([
+            { ywblbzsx: 'firstField' },
+            { ywblbzsx: 'secondField' },
+        ]);
+        adapter.run.mockResolvedValueOnce({ lastID: 88 });
+
+        const response = await request(app)
+            .post('/save')
+            .send({
+                mbid: 10,
+                gzmc: '规则A',
+                ywsf: '1',
+                gzljsm: '说明',
+                yxj: 1,
+                sfqy: 1,
+                jgbh: '1001',
+                rule_params: {
+                    secondField: 'B',
+                    firstField: 'A',
+                    result: 'R',
+                },
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.status).toBe(0);
+        expect(adapter.all).toHaveBeenCalledWith(
+            "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC",
+            [10]
+        );
+
+        const insertParams = adapter.run.mock.calls[1][1];
+        expect(insertParams.slice(0, 7)).toEqual([
+            88,
+            0,
+            'R',
+            'firstField',
+            'A',
+            'secondField',
+            'B',
+        ]);
+    });
+
+    test('PUT /:id 会按标准库属性 id 顺序写入 k/v 对', async () => {
+        const app = express();
+        app.use(express.json());
+        app.use('/', ywbzRouter);
+
+        adapter.all.mockResolvedValueOnce([
+            { ywblbzsx: 'firstField' },
+            { ywblbzsx: 'secondField' },
+        ]);
+
+        const response = await request(app)
+            .put('/88')
+            .send({
+                mbid: 10,
+                gzmc: '规则A',
+                ywsf: '1',
+                gzljsm: '说明',
+                yxj: 1,
+                sfqy: 1,
+                rule_params: {
+                    secondField: 'B',
+                    firstField: 'A',
+                    result: 'R',
+                },
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.status).toBe(0);
+        expect(adapter.all).toHaveBeenCalledWith(
+            "SELECT ywblbzsx FROM gjj_ywbzksx WHERE mbid = ? ORDER BY id ASC",
+            [10]
+        );
+
+        const insertParams = adapter.run.mock.calls[2][1];
+        expect(insertParams.slice(0, 7)).toEqual([
+            '88',
+            0,
+            'R',
+            'firstField',
+            'A',
+            'secondField',
+            'B',
+        ]);
+    });
 });
