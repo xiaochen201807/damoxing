@@ -1,4 +1,4 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   app:
@@ -24,6 +24,7 @@ services:
       - JWT_SECRET=4671d0ca-6bc0-41e2-95f0-ade07b6eef0c
       - JWT_EXPIRES_IN=24h
       - GATEWAY_VALIDATE_URL=https://appcs.jbysoft.com/tyrz/cheque/validate.service
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
       - GATEWAY_ENABLED=true
       - SKIP_LOCAL_AUTH=true
 
@@ -32,9 +33,9 @@ services:
       - ./config/datasources.json:/app/config/datasources.json:ro
 
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
-      timeout: 3s
+      timeout: 3så
       retries: 3
       start_period: 10s
 
