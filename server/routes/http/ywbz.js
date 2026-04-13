@@ -73,7 +73,11 @@ function normalizeSelectionIds(input) {
 }
 
 function extractSelectedIdsFromAiResult(payload, candidateIds) {
-    const candidateIdSet = new Set((candidateIds || []).map(id => String(id)));
+    const candidateIdSet = new Set(
+        (candidateIds || [])
+            .map(id => Number(id))
+            .filter(id => !Number.isNaN(id))
+    );
     const summaryParts = [];
 
     const collectIds = (value) => {
@@ -142,7 +146,8 @@ function extractSelectedIdsFromAiResult(payload, candidateIds) {
 
     const selectedIds = [...new Set(
         collectIds(payload)
-            .map(id => String(id).trim())
+            .map(id => Number(id))
+            .filter(id => !Number.isNaN(id))
             .filter(id => candidateIdSet.has(id))
     )];
 

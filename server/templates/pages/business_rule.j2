@@ -340,8 +340,12 @@
                                                                             "actionType": "select",
                                                                             "componentId": "crud_selection_dialog",
                                                                             "args": {
-                                                                                "condition": "${ARRAYINCLUDES(event.data.responseData.selectedIds, id)}"
+                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id)}"
                                                                             }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "reload",
+                                                                            "componentId": "crud_selection_dialog"
                                                                         },
                                                                         {
                                                                             "actionType": "reload",
