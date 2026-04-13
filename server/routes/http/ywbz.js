@@ -1272,19 +1272,24 @@ router.post('/selection_ai_apply', async (req, res) => {
             });
         }
 
+        let standardRows = [];
+        if (!isBlankValue(ywsf)) {
+            let standardsSql = 'SELECT id,ywblbz,ywblbzsm FROM gjj_ywbzk WHERE 1=1 AND gjsjsf = ?';
+            const standardsParams = [ywsf];
+
+            if (!isBlankValue(ywnrfl)) {
+                standardsSql += ' AND ywnrfl = ?';
+                standardsParams.push(ywnrfl);
+            }
+
+            standardsSql += ' ORDER BY pxh ASC, id DESC';
+            standardRows = await adapter.all(standardsSql, standardsParams);
+        }
+
         const requestPayload = {
             inputs: {
-                query: analysisPrompt || policyText,
-                pageId,
-                workflow_type: workflowType,
-                policy_text: policyText,
-                analysis_prompt: analysisPrompt,
-                ywsf,
-                ywnrfl,
-                ywblbz,
-                ywblbzsm,
-                current_selected_ids: selectionData.selectedIds,
-                candidate_items: candidateItems
+                text: policyText,
+                data: stringifyJson(standardRows)
             },
             response_mode: 'blocking',
             user: 'amis-user-001'
@@ -1309,7 +1314,7 @@ router.post('/selection_ai_apply', async (req, res) => {
             });
         }
 
-        let aiResult = workflowData?.data?.outputs?.result;
+        let aiResult = workflowData?.data?.outputs?.text;
         if (typeof aiResult === 'string') {
             try {
                 aiResult = JSON.parse(aiResult);
