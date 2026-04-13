@@ -99,7 +99,7 @@ describe('ywbz selection_ai_apply', () => {
             .post('/selection_ai_apply')
             .send({
                 page_key: 'business_rule_demo',
-                workflow_type: 'business_rule_policy_analysis',
+                workflow_type: 'ai_analysis',
                 policy_text: '购买住房提取时，优先匹配标准B。',
                 ywsf: '1',
                 ywnrfl: 'A01',
@@ -113,14 +113,14 @@ describe('ywbz selection_ai_apply', () => {
         expect(response.body.data.summary).toBe('AI 建议保留标准B');
         expect(db.get).toHaveBeenCalledWith(
             'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1',
-            ['business_rule_demo', 'business_rule_policy_analysis']
+            ['business_rule_demo', 'ai_analysis']
         );
         expect(axios.post).toHaveBeenCalledWith(
             'https://dify.example.com/v1/workflows/run',
             expect.objectContaining({
                 inputs: expect.objectContaining({
                     policy_text: '购买住房提取时，优先匹配标准B。',
-                    workflow_type: 'business_rule_policy_analysis',
+                    workflow_type: 'ai_analysis',
                     ywsf: '1',
                     ywnrfl: 'A01',
                     candidate_items: expect.arrayContaining([

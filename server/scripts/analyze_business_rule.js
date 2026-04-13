@@ -73,7 +73,7 @@ const API_PARAMS = {
         type: 'string',
         title: 'AI 工作流类型',
         description: '用于匹配当前页面 Dify 工作流配置的 workflow_type',
-        default: 'business_rule_policy_analysis',
+        default: 'ai_analysis',
         group: '🤖 Dify AI 配置',
         groupOrder: 2,
         order: 3

@@ -1219,7 +1219,7 @@ router.post('/selection_ai_apply', async (req, res) => {
     const ywblbz = req.body.ywblbz || '';
     const ywblbzsm = req.body.ywblbzsm || '';
     const pageId = req.body.pageId || req.body.page_key || 'business_rule';
-    const workflowType = req.body.workflow_type || 'business_rule_policy_analysis';
+    const workflowType = req.body.workflow_type || 'ai_analysis';
 
     if (isBlankValue(policyText)) {
         return res.status(400).json({
