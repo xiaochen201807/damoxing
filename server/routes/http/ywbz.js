@@ -1336,7 +1336,7 @@ router.post('/selection_ai_apply', async (req, res) => {
 
         const normalized = extractSelectedIdsFromAiResult(
             aiResult,
-            candidateItems.map(item => item.id)
+            candidateItems.map(item => Number(item.id))
         );
 
         if (normalized.selectedIds.length === 0) {

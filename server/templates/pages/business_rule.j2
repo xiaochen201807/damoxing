@@ -321,6 +321,13 @@
                                                                 "submitSucc": {
                                                                     "actions": [
                                                                         {
+                                                                            "actionType": "setEventData",
+                                                                            "args": {
+                                                                                "key": "selectedIds",
+                                                                                "value": "${event.data.responseData.selectedIds}"
+                                                                            }
+                                                                        },
+                                                                        {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
@@ -330,8 +337,11 @@
                                                                             }
                                                                         },
                                                                         {
-                                                                            "actionType": "reload",
-                                                                            "componentId": "crud_selection_dialog"
+                                                                            "actionType": "select",
+                                                                            "componentId": "crud_selection_dialog",
+                                                                            "args": {
+                                                                                "condition": "${ARRAYINCLUDES(event.data.responseData.selectedIds, id)}"
+                                                                            }
                                                                         },
                                                                         {
                                                                             "actionType": "reload",
