@@ -95,6 +95,7 @@ const handleTemplateForm = async (req, res) => {
                     label: schema.title || schema.description || key, // Use title first
                     required: (paramsSchema.required && paramsSchema.required.includes(key)) || false
                 };
+                const defaultValue = schema.default !== undefined ? schema.default : defaultParams[key];
 
                 // 根据类型生成不同的表单控件
                 if (schema.type === 'string') {
@@ -109,14 +110,25 @@ const handleTemplateForm = async (req, res) => {
                         field.type = 'input-text';
                     }
                     field.placeholder = schema.default || '';
+                    if (defaultValue !== undefined) {
+                        field.value = defaultValue;
+                    }
                 } else if (schema.type === 'integer' || schema.type === 'number') {
                     field.type = 'input-number';
-                    field.value = schema.default || defaultParams[key] || 0;
+                    field.value = defaultValue !== undefined ? defaultValue : 0;
                     if (schema.minimum !== undefined) field.min = schema.minimum;
                     if (schema.maximum !== undefined) field.max = schema.maximum;
                 } else if (schema.type === 'boolean') {
                     field.type = 'switch';
-                    field.value = schema.default !== undefined ? schema.default : (defaultParams[key] || false);
+                    field.value = defaultValue !== undefined ? defaultValue : false;
+                } else if (schema.type === 'combo') {
+                    field.type = 'combo';
+                    field.multiple = schema.multiple !== false;
+                    field.multiLine = schema.multiLine !== false;
+                    field.draggable = schema.draggable !== false;
+                    field.addButtonText = schema.addButtonText || '新增项目';
+                    field.items = schema.items || [];
+                    field.value = Array.isArray(defaultValue) ? defaultValue : [];
                 } else if (schema.type === 'array') {
                     // 数组类型转换为 Combo 组件
                     field.type = 'combo';
@@ -169,17 +181,28 @@ const handleTemplateForm = async (req, res) => {
                         // 简单数组 (string array etc) - 暂不支持或使用 input-array
                         field.type = 'input-array';
                     }
-                    field.value = schema.default || defaultParams[key] || [];
+                    field.value = Array.isArray(defaultValue) ? defaultValue : [];
 
-                } else if (schema.type === 'json') {
+                } else if (schema.type === 'json' || schema.type === 'json-editor') {
                     field.type = 'editor';
                     field.language = 'json';
-                    field.placeholder = schema.default || '{}';
+                    field.placeholder = '{}';
+                    if (defaultValue !== undefined) {
+                        field.value = typeof defaultValue === 'string'
+                            ? defaultValue
+                            : JSON.stringify(defaultValue, null, 2);
+                    }
                 } else if (schema.enum) {
                     field.type = 'select';
                     field.options = schema.enum.map(v => ({ label: v, value: v }));
+                    if (defaultValue !== undefined) {
+                        field.value = defaultValue;
+                    }
                 } else {
                     field.type = 'input-text';
+                    if (defaultValue !== undefined) {
+                        field.value = defaultValue;
+                    }
                 }
 
                 return field;
@@ -1010,5 +1033,4 @@ router.get('/env-config', (req, res) => {
 });
 
 module.exports = router;
-
 

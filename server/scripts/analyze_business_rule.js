@@ -50,6 +50,52 @@ const API_PARAMS = {
         group: '🔗 平台接口配置',
         groupOrder: 1,
         order: 6
+    },
+    selection_policy_ai_enabled: {
+        type: 'boolean',
+        title: '启用 AI 政策分析',
+        description: '是否在清册选择弹窗中展示 AI 政策分析入口',
+        default: true,
+        group: '🤖 Dify AI 配置',
+        groupOrder: 2,
+        order: 1
+    },
+    selection_policy_ai_api: {
+        type: 'string',
+        title: 'AI 政策分析接口 URL',
+        description: '清册选择弹窗中 AI 政策分析提交接口',
+        default: '/api/ywbz/selection_ai_apply',
+        group: '🤖 Dify AI 配置',
+        groupOrder: 2,
+        order: 2
+    },
+    selection_policy_ai_workflow_type: {
+        type: 'string',
+        title: 'AI 工作流类型',
+        description: '用于匹配当前页面 Dify 工作流配置的 workflow_type',
+        default: 'business_rule_policy_analysis',
+        group: '🤖 Dify AI 配置',
+        groupOrder: 2,
+        order: 3
+    },
+    selection_policy_ai_button_text: {
+        type: 'string',
+        title: 'AI 按钮文案',
+        description: '清册选择弹窗中的 AI 分析按钮名称',
+        default: 'AI政策分析',
+        group: '🤖 Dify AI 配置',
+        groupOrder: 2,
+        order: 4
+    },
+    selection_policy_ai_prompt: {
+        type: 'string',
+        format: 'textarea',
+        title: 'AI 分析提示词',
+        description: '提交给 Dify 工作流的附加提示，用于约束返回的标准 ID 列表',
+        default: '请结合政策文本、当前算法、业务内容分类、候选业务办理标准列表与已选规则，筛选最匹配的业务办理标准。仅返回最终应勾选的标准 ID 列表，并尽量附带简短说明。',
+        group: '🤖 Dify AI 配置',
+        groupOrder: 2,
+        order: 5
     }
 };
 

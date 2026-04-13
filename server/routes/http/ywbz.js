@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
@@ -48,6 +49,107 @@ function getDefinedValue(source, ...keys) {
 
 function isBlankValue(value) {
     return value === undefined || value === null || value === '';
+}
+
+function normalizeSelectionIds(input) {
+    if (Array.isArray(input)) {
+        return [...new Set(
+            input
+                .map(item => String(item).trim())
+                .filter(Boolean)
+        )];
+    }
+
+    if (isBlankValue(input)) {
+        return [];
+    }
+
+    return [...new Set(
+        String(input)
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+    )];
+}
+
+function extractSelectedIdsFromAiResult(payload, candidateIds) {
+    const candidateIdSet = new Set((candidateIds || []).map(id => String(id)));
+    const summaryParts = [];
+
+    const collectIds = (value) => {
+        if (Array.isArray(value)) {
+            return value.flatMap(item => collectIds(item));
+        }
+
+        if (value && typeof value === 'object') {
+            if (Array.isArray(value.selectedIds)) {
+                return collectIds(value.selectedIds);
+            }
+            if (Array.isArray(value.ids)) {
+                return collectIds(value.ids);
+            }
+            if (Array.isArray(value.matchedIds)) {
+                return collectIds(value.matchedIds);
+            }
+            if (Array.isArray(value.recommendationIds)) {
+                return collectIds(value.recommendationIds);
+            }
+            if (Array.isArray(value.items)) {
+                return value.items.flatMap(item => {
+                    if (typeof item === 'object' && item && (item.selected === true || item.checked === true || item.recommended === true)) {
+                        return collectIds(item.id || item.value || item.mbid);
+                    }
+                    return collectIds(item);
+                });
+            }
+            return [];
+        }
+
+        if (isBlankValue(value)) {
+            return [];
+        }
+
+        const rawValue = String(value).trim();
+        if (rawValue.includes(',') || rawValue.includes('，') || rawValue.includes('\n')) {
+            return rawValue
+                .split(/[\s,，]+/)
+                .map(item => item.trim())
+                .filter(Boolean);
+        }
+
+        return [rawValue];
+    };
+
+    const collectSummary = (value) => {
+        if (!value || typeof value !== 'object') {
+            return;
+        }
+
+        ['summary', 'message', 'reason', 'reasoning', 'analysis', 'comment'].forEach(key => {
+            const current = value[key];
+            if (!isBlankValue(current) && typeof current !== 'object') {
+                summaryParts.push(String(current).trim());
+            }
+        });
+    };
+
+    collectSummary(payload);
+    if (payload && typeof payload === 'object') {
+        collectSummary(payload.data);
+        collectSummary(payload.result);
+        collectSummary(payload.outputs);
+    }
+
+    const selectedIds = [...new Set(
+        collectIds(payload)
+            .map(id => String(id).trim())
+            .filter(id => candidateIdSet.has(id))
+    )];
+
+    return {
+        selectedIds,
+        summary: [...new Set(summaryParts.filter(Boolean))].join('\n')
+    };
 }
 
 async function getBusinessRuleFieldOrder(adapter, mbid) {
@@ -177,6 +279,247 @@ function getRequestCreatorName(req) {
         || req.headers['userid']
         || req.headers['operator-name']
         || '';
+}
+
+async function buildSelectionListData({
+    adapter,
+    ywblbz,
+    ywblbzsm,
+    gjsjsf,
+    ywnrfl,
+    queryJgbh,
+    queryZjgbh,
+    headers = {}
+}) {
+    let standardsSql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
+    const standardsParams = [];
+
+    if (ywblbz) {
+        standardsSql += " AND ywblbz LIKE ?";
+        standardsParams.push(`%${ywblbz}%`);
+    }
+    if (ywblbzsm) {
+        standardsSql += " AND ywblbzsm LIKE ?";
+        standardsParams.push(`%${ywblbzsm}%`);
+    }
+    if (gjsjsf) {
+        standardsSql += " AND gjsjsf = ?";
+        standardsParams.push(gjsjsf);
+    }
+    if (ywnrfl) {
+        standardsSql += " AND ywnrfl = ?";
+        standardsParams.push(ywnrfl);
+    }
+
+    standardsSql += " ORDER BY pxh ASC, id DESC";
+
+    const coalesce = 'COALESCE';
+    let selectedSql = `
+        SELECT DISTINCT mbid FROM gjj_ywbz 
+        WHERE ${coalesce}(jgbh, '') = ? 
+        AND ${coalesce}(zjgbh, '') = ?
+    `;
+    const selectedParams = [queryJgbh, queryZjgbh];
+
+    if (gjsjsf && gjsjsf.trim() !== '') {
+        selectedSql += ` AND ${coalesce}(ywsf, '') = ?`;
+        selectedParams.push(gjsjsf);
+    }
+    if (ywnrfl && ywnrfl.trim() !== '') {
+        selectedSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
+        selectedParams.push(ywnrfl);
+    }
+
+    const standards = await adapter.all(standardsSql, standardsParams);
+    const selectedRows = await adapter.all(selectedSql, selectedParams);
+    const standardIds = standards.map(item => item.id || item.ID);
+    let mutualRows = [];
+
+    if (standardIds.length > 0) {
+        const placeholders = standardIds.map(() => '?').join(',');
+        mutualRows = await adapter.all(
+            `
+                SELECT h.mbid, h.hcmbid, t.ywblbz as hc_label
+                FROM gjj_ywbzkhc h
+                INNER JOIN gjj_ywbzk t ON t.id = h.hcmbid
+                WHERE h.mbid IN (${placeholders})
+            `,
+            standardIds
+        );
+    }
+
+    const publicParamValueMap = await loadPublicParamValueMap(
+        standards
+            .filter(item => {
+                const templateName = getDefinedValue(item, 'ywblbz', 'YWBLBZ');
+                const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
+                return !isBlankValue(publicParamId)
+                    && !isBlankValue(templateName)
+                    && String(templateName).includes('X');
+            })
+            .map(item => getDefinedValue(item, 'ywbzz', 'YWBZZ')),
+        queryJgbh,
+        queryZjgbh,
+        headers
+    );
+
+    const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
+    const mutualMap = new Map();
+
+    mutualRows.forEach(row => {
+        const key = Number(row.mbid || row.MBID);
+        const current = mutualMap.get(key) || [];
+        current.push({
+            id: Number(row.hcmbid || row.HCMBID),
+            label: row.hc_label || row.HC_LABEL
+        });
+        mutualMap.set(key, current);
+    });
+
+    const items = standards.map(item => {
+        const itemId = Number(getDefinedValue(item, 'id', 'ID'));
+        const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
+        const publicParamValue = isBlankValue(publicParamId)
+            ? ''
+            : publicParamValueMap[String(publicParamId).trim()];
+
+        return {
+            ...item,
+            display_ywblbz: buildDisplayBusinessStandardName(
+                getDefinedValue(item, 'ywblbz', 'YWBLBZ'),
+                publicParamValue
+            ),
+            checked: selectedIds.has(itemId),
+            mutualIds: (mutualMap.get(itemId) || []).map(row => row.id),
+            mutualLabels: (mutualMap.get(itemId) || []).map(row => row.label),
+            disabled: !selectedIds.has(itemId) && (mutualMap.get(itemId) || []).some(row => selectedIds.has(Number(row.id)))
+        };
+    });
+
+    return {
+        items,
+        selectedIds: Array.from(selectedIds),
+        total: items.length
+    };
+}
+
+async function syncBusinessRuleSelections({
+    adapter,
+    syncIds,
+    jgbh,
+    zjgbh,
+    ywsf,
+    ywnrfl,
+    headers = {}
+}) {
+    const coalesce = 'COALESCE';
+    let existingSql = `
+        SELECT id, mbid FROM gjj_ywbz 
+        WHERE ${coalesce}(jgbh, '') = ? 
+        AND ${coalesce}(zjgbh, '') = ?
+    `;
+    const existingParams = [jgbh, zjgbh];
+
+    if (ywsf && ywsf.trim() !== '') {
+        existingSql += ` AND ${coalesce}(ywsf, '') = ?`;
+        existingParams.push(ywsf);
+    }
+    if (ywnrfl && ywnrfl.trim() !== '') {
+        existingSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
+        existingParams.push(ywnrfl);
+    }
+
+    const existingRows = await adapter.all(existingSql, existingParams);
+    const selectedMbids = new Set(normalizeSelectionIds(syncIds).map(String));
+
+    if (selectedMbids.size > 1) {
+        const selectedIdList = Array.from(selectedMbids);
+        const placeholders = selectedIdList.map(() => '?').join(',');
+        const mutualRows = await adapter.all(
+            `
+                SELECT DISTINCT h.mbid, h.hcmbid, t1.ywblbz as mbid_label, t2.ywblbz as hcmbid_label
+                FROM gjj_ywbzkhc h
+                INNER JOIN gjj_ywbzk t1 ON t1.id = h.mbid
+                INNER JOIN gjj_ywbzk t2 ON t2.id = h.hcmbid
+                WHERE h.mbid IN (${placeholders})
+                AND h.hcmbid IN (${placeholders})
+                AND h.mbid < h.hcmbid
+            `,
+            [...selectedIdList, ...selectedIdList]
+        );
+
+        if (mutualRows.length > 0) {
+            throw new Error(`存在互斥业务办理标准，不能同时同步：${formatConflictMessage(mutualRows)}`);
+        }
+    }
+
+    const idsToDelete = [];
+    existingRows.forEach(row => {
+        const mbid = String(row.mbid || row.MBID);
+        if (!selectedMbids.has(mbid)) {
+            idsToDelete.push(row.id || row.ID);
+        }
+    });
+
+    const existingMbids = new Set(existingRows.map(r => String(r.mbid || r.MBID)));
+    const mbidsToInsert = [];
+    for (const mbid of selectedMbids) {
+        if (!existingMbids.has(mbid)) {
+            mbidsToInsert.push(mbid);
+        }
+    }
+
+    if (idsToDelete.length > 0) {
+        const placeholders = idsToDelete.map(() => '?').join(',');
+        await adapter.run(
+            `DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`,
+            [...idsToDelete, jgbh, zjgbh]
+        );
+        await adapter.run(
+            `DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`,
+            [...idsToDelete, jgbh, zjgbh]
+        );
+    }
+
+    let insertCount = 0;
+    if (mbidsToInsert.length > 0) {
+        const placeholders = mbidsToInsert.map(() => '?').join(',');
+        const templates = await adapter.all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, mbidsToInsert);
+        const publicParamValuesMap = {};
+        const distinctPublicParamIds = [...new Set(templates.map(t => t.ywbzz).filter(id => id))];
+
+        if (distinctPublicParamIds.length > 0) {
+            await Promise.all(distinctPublicParamIds.map(async (paramId) => {
+                try {
+                    const result = await fetchPublicParamValue(paramId, jgbh, zjgbh, headers);
+                    if (result && result.value) {
+                        publicParamValuesMap[paramId] = result.value;
+                    }
+                } catch (e) {
+                    logger.warn(`Batch Sync: Failed to pre-fetch public param value for ${paramId}: ${e.message}`);
+                }
+            }));
+        }
+
+        for (const tpl of templates) {
+            const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
+
+            await adapter.transaction(async (tx) => {
+                const insertSql = `
+                    INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
+                    VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                `;
+                await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh, fetchedYwbzzValue]);
+            });
+            insertCount++;
+        }
+    }
+
+    return {
+        insertCount,
+        deleteCount: idsToDelete.length,
+        keepCount: existingRows.length - idsToDelete.length
+    };
 }
 
 function stringifyJson(value) {
@@ -819,13 +1162,10 @@ router.post('/batch', async (req, res) => {
     let syncIds = [];
 
     if (selected_ids) {
-        syncIds = Array.isArray(selected_ids) ? selected_ids : String(selected_ids).split(',');
+        syncIds = normalizeSelectionIds(selected_ids);
     } else if (ids) {
-        syncIds = Array.isArray(ids) ? ids : String(ids).split(',');
+        syncIds = normalizeSelectionIds(ids);
     }
-
-    // 过滤空值并去重
-    syncIds = [...new Set(syncIds.filter(item => item && String(item).trim() !== '').map(item => String(item).trim()))];
 
     logger.info(`Parsed syncIds: ${JSON.stringify(syncIds)}, Type: ${typeof syncIds}, IsArray: ${Array.isArray(syncIds)}`);
 
@@ -849,130 +1189,187 @@ router.post('/batch', async (req, res) => {
     };
 
     try {
-        // 1. 查询该范围下已存在的规则
-        const coalesce = 'COALESCE';
-        let existingSql = `
-            SELECT id, mbid FROM gjj_ywbz 
-            WHERE ${coalesce}(jgbh, '') = ? 
-            AND ${coalesce}(zjgbh, '') = ?
-        `;
-        const existingParams = [jgbh, zjgbh];
-
-        if (ywsf && ywsf.trim() !== '') {
-            existingSql += ` AND ${coalesce}(ywsf, '') = ?`;
-            existingParams.push(ywsf);
-        }
-        if (ywnrfl && ywnrfl.trim() !== '') {
-            existingSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
-            existingParams.push(ywnrfl);
-        }
-
-        const existingRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(existingSql, existingParams);
-
-        const selectedMbids = new Set(syncIds.map(String));
-
-        if (selectedMbids.size > 1) {
-            const selectedIdList = Array.from(selectedMbids);
-            const placeholders = selectedIdList.map(() => '?').join(',');
-            const mutualRows = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(
-                `
-                    SELECT DISTINCT h.mbid, h.hcmbid, t1.ywblbz as mbid_label, t2.ywblbz as hcmbid_label
-                    FROM gjj_ywbzkhc h
-                    INNER JOIN gjj_ywbzk t1 ON t1.id = h.mbid
-                    INNER JOIN gjj_ywbzk t2 ON t2.id = h.hcmbid
-                    WHERE h.mbid IN (${placeholders})
-                    AND h.hcmbid IN (${placeholders})
-                    AND h.mbid < h.hcmbid
-                `,
-                [...selectedIdList, ...selectedIdList]
-            );
-
-            if (mutualRows.length > 0) {
-                return res.status(400).json({
-                    status: 1,
-                    msg: `存在互斥业务办理标准，不能同时同步：${formatConflictMessage(mutualRows)}`
-                });
-            }
-        }
-
-        // 2. 计算需要删除的 (已存在但未选中) - 遍历所有行以处理潜在的重复数据
-        const idsToDelete = [];
-        existingRows.forEach(row => {
-            const mbid = String(row.mbid || row.MBID);
-            if (!selectedMbids.has(mbid)) {
-                idsToDelete.push(row.id || row.ID);
-            }
+        const adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
+        const syncResult = await syncBusinessRuleSelections({
+            adapter,
+            syncIds,
+            jgbh,
+            zjgbh,
+            ywsf,
+            ywnrfl,
+            headers
         });
-
-        // 3. 计算需要新增的 (选中但不存在)
-        const existingMbids = new Set(existingRows.map(r => String(r.mbid || r.MBID)));
-        const mbidsToInsert = [];
-        for (const mbid of selectedMbids) {
-            if (!existingMbids.has(mbid)) {
-                mbidsToInsert.push(mbid);
-            }
-        }
-
-        logger.info(`Batch Sync: Existing: ${existingRows.length}, To Delete: ${idsToDelete.length}, To Insert: ${mbidsToInsert.length}`);
-
-        // 4. 执行删除
-        if (idsToDelete.length > 0) {
-            const placeholders = idsToDelete.map(() => '?').join(',');
-            // 先删除关联的属性表
-            await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_ywbzsx WHERE ywid IN (SELECT id FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?)`, [...idsToDelete, jgbh, zjgbh]);
-            // 再删除主表
-            await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').run(`DELETE FROM gjj_ywbz WHERE id IN (${placeholders}) AND ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`, [...idsToDelete, jgbh, zjgbh]);
-        }
-
-        // 5. 执行新增
-        let insertCount = 0;
-        if (mbidsToInsert.length > 0) {
-            const getStandards = (ids) => {
-                const placeholders = ids.map(() => '?').join(',');
-                return db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzk WHERE id IN (${placeholders})`, ids);
-            };
-
-            const templates = await getStandards(mbidsToInsert);
-
-            // --- 预取公共参数值 ---
-            const publicParamValuesMap = {};
-            const distinctPublicParamIds = [...new Set(templates.map(t => t.ywbzz).filter(id => id))];
-
-            if (distinctPublicParamIds.length > 0) {
-                await Promise.all(distinctPublicParamIds.map(async (paramId) => {
-                    try {
-                        const result = await fetchPublicParamValue(paramId, jgbh, zjgbh, headers);
-                        if (result && result.value) {
-                            publicParamValuesMap[paramId] = result.value;
-                        }
-                    } catch (e) {
-                        logger.warn(`Batch Sync: Failed to pre-fetch public param value for ${paramId}: ${e.message}`);
-                    }
-                }));
-            }
-
-            for (const tpl of templates) {
-                const fetchedYwbzzValue = tpl.ywbzz ? (publicParamValuesMap[tpl.ywbzz] || '') : null;
-
-                await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
-                    const insertSql = `
-                        INSERT INTO gjj_ywbz (mbid, gzmc, ywsf, ywnrfl, sfqy, jgbh, zjgbh, ywbzz)
-                        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
-                    `;
-                    await tx.run(insertSql, [tpl.id, tpl.ywblbz, tpl.gjsjsf, tpl.ywnrfl, jgbh, zjgbh, fetchedYwbzzValue]);
-                });
-                insertCount++;
-            }
-        }
 
         res.json({
             status: 0,
-            msg: `同步成功：新增 ${insertCount} 条，移除 ${idsToDelete.length} 条，保留 ${existingRows.length - idsToDelete.length} 条`
+            msg: `同步成功：新增 ${syncResult.insertCount} 条，移除 ${syncResult.deleteCount} 条，保留 ${syncResult.keepCount} 条`
         });
 
     } catch (err) {
         logger.error(`Batch sync failed: ${err.message}`);
-        res.status(500).json({ status: 1, msg: err.message });
+        res.status(err.message.includes('存在互斥业务办理标准') ? 400 : 500).json({ status: 1, msg: err.message });
+    }
+});
+
+router.post('/selection_ai_apply', async (req, res) => {
+    const policyText = req.body.policy_text || req.body.policyText || req.body.content;
+    const analysisPrompt = req.body.analysis_prompt || req.body.analysisPrompt || '';
+    const ywsf = req.body.ywsf || req.body.gjsjsf || '';
+    const ywnrfl = req.body.ywnrfl || '';
+    const ywblbz = req.body.ywblbz || '';
+    const ywblbzsm = req.body.ywblbzsm || '';
+    const pageId = req.body.pageId || req.body.page_key || 'business_rule';
+    const workflowType = req.body.workflow_type || 'business_rule_policy_analysis';
+
+    if (isBlankValue(policyText)) {
+        return res.status(400).json({
+            status: 1,
+            msg: '请输入需要分析的政策文本'
+        });
+    }
+
+    const requestJgbh = getRequestJgbh(req) || '';
+    const requestZjgbh = getRequestZjgbh(req) || '';
+    const headers = {
+        'channel': req.headers['channel'] || '',
+        'login-token': req.headers['login-token'] || '',
+        'zzbs': req.headers['zzbs'] || '',
+        'zzjgdmz': req.headers['zzjgdmz'] || ''
+    };
+
+    try {
+        const adapter = db.getByJgbh(typeof requestJgbh !== 'undefined' ? requestJgbh : '');
+        const selectionData = await buildSelectionListData({
+            adapter,
+            ywblbz,
+            ywblbzsm,
+            gjsjsf: ywsf,
+            ywnrfl,
+            queryJgbh: requestJgbh,
+            queryZjgbh: requestZjgbh,
+            headers
+        });
+
+        const candidateItems = selectionData.items.map(item => ({
+            id: getDefinedValue(item, 'id', 'ID'),
+            name: item.display_ywblbz || getDefinedValue(item, 'ywblbz', 'YWBLBZ'),
+            description: getDefinedValue(item, 'ywblbzsm', 'YWBLBZSM'),
+            mutualIds: item.mutualIds || [],
+            checked: !!item.checked
+        }));
+
+        const difyConfig = await db.get(
+            'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1',
+            [pageId, workflowType]
+        );
+        const difyApiUrl = difyConfig?.api_url || process.env.DIFY_API_URL || 'https://api.dify.ai/v1';
+        const difyApiKey = difyConfig?.api_key || process.env.DIFY_API_KEY;
+
+        if (!difyApiKey || difyApiKey === 'YOUR_DIFY_API_KEY') {
+            return res.status(500).json({
+                status: 1,
+                msg: `页面 ${pageId} 的工作流类型 ${workflowType} 未配置`
+            });
+        }
+
+        const requestPayload = {
+            inputs: {
+                query: analysisPrompt || policyText,
+                pageId,
+                workflow_type: workflowType,
+                policy_text: policyText,
+                analysis_prompt: analysisPrompt,
+                ywsf,
+                ywnrfl,
+                ywblbz,
+                ywblbzsm,
+                current_selected_ids: selectionData.selectedIds,
+                candidate_items: candidateItems
+            },
+            response_mode: 'blocking',
+            user: 'amis-user-001'
+        };
+
+        logger.info(`[Selection AI] 调用 Dify 工作流: pageId=${pageId}, workflowType=${workflowType}, candidates=${candidateItems.length}`);
+        const difyResponse = await axios.post(`${difyApiUrl}/workflows/run`, requestPayload, {
+            headers: {
+                Authorization: `Bearer ${difyApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: parseInt(process.env.DIFY_API_TIMEOUT || '300000', 10)
+        });
+
+        const workflowData = difyResponse.data;
+        if (workflowData?.data?.status !== 'succeeded') {
+            return res.status(500).json({
+                status: 1,
+                msg: 'AI 工作流执行失败',
+                difyStatus: workflowData?.data?.status,
+                difyError: workflowData?.data?.error || workflowData?.data?.outputs
+            });
+        }
+
+        let aiResult = workflowData?.data?.outputs?.result;
+        if (typeof aiResult === 'string') {
+            try {
+                aiResult = JSON.parse(aiResult);
+            } catch (error) {
+                logger.warn(`[Selection AI] 结果不是 JSON，按纯文本处理: ${error.message}`);
+            }
+        }
+
+        if (aiResult && aiResult.content && Array.isArray(aiResult.content)) {
+            const innerText = aiResult.content[0]?.text;
+            if (innerText) {
+                try {
+                    aiResult = JSON.parse(innerText);
+                } catch (error) {
+                    logger.warn(`[Selection AI] MCP 包装结果解析失败: ${error.message}`);
+                }
+            }
+        }
+
+        const normalized = extractSelectedIdsFromAiResult(
+            aiResult,
+            candidateItems.map(item => item.id)
+        );
+
+        if (normalized.selectedIds.length === 0) {
+            return res.status(400).json({
+                status: 1,
+                msg: 'AI 未返回可匹配的业务办理标准',
+                data: {
+                    summary: normalized.summary || '',
+                    rawResult: aiResult
+                }
+            });
+        }
+
+        const syncResult = await syncBusinessRuleSelections({
+            adapter,
+            syncIds: normalized.selectedIds,
+            jgbh: requestJgbh,
+            zjgbh: requestZjgbh,
+            ywsf,
+            ywnrfl,
+            headers
+        });
+
+        res.json({
+            status: 0,
+            msg: `AI 分析完成，已自动同步 ${normalized.selectedIds.length} 条业务办理标准`,
+            data: {
+                selectedIds: normalized.selectedIds,
+                summary: normalized.summary || '',
+                syncResult
+            }
+        });
+    } catch (err) {
+        logger.error(`[Selection AI] 分析失败: ${err.message}`);
+        res.status(err.message.includes('存在互斥业务办理标准') ? 400 : 500).json({
+            status: 1,
+            msg: err.message
+        });
     }
 });
 
@@ -1657,132 +2054,31 @@ router.post('/selection_list', async (req, res) => {
     const queryJgbh = requestJgbh || '';
     const queryZjgbh = requestZjgbh || '';
 
-    // 1. 查询标准库全量列表(前端分页)
-    let standardsSql = "SELECT * FROM gjj_ywbzk WHERE 1=1";
-    const standardsParams = [];
-
-    if (ywblbz) {
-        standardsSql += " AND ywblbz LIKE ?";
-        standardsParams.push(`%${ywblbz}%`);
-    }
-    if (ywblbzsm) {
-        standardsSql += " AND ywblbzsm LIKE ?";
-        standardsParams.push(`%${ywblbzsm}%`);
-    }
-    if (gjsjsf) {
-        standardsSql += " AND gjsjsf = ?";
-        standardsParams.push(gjsjsf);
-    }
-    if (ywnrfl) {
-        standardsSql += " AND ywnrfl = ?";
-        standardsParams.push(ywnrfl);
-    }
-
-    standardsSql += " ORDER BY pxh ASC, id DESC";
-
-    // 2. 查询已选中的 mbid
-    const coalesce = 'COALESCE';
-    let selectedSql = `
-        SELECT DISTINCT mbid FROM gjj_ywbz 
-        WHERE ${coalesce}(jgbh, '') = ? 
-        AND ${coalesce}(zjgbh, '') = ?
-    `;
-    const selectedParams = [queryJgbh, queryZjgbh];
-
-    if (gjsjsf && gjsjsf.trim() !== '') {
-        selectedSql += ` AND ${coalesce}(ywsf, '') = ?`;
-        selectedParams.push(gjsjsf);
-    }
-    if (ywnrfl && ywnrfl.trim() !== '') {
-        selectedSql += ` AND ${coalesce}(ywnrfl, '') = ?`;
-        selectedParams.push(ywnrfl);
-    }
-
     try {
         const _adapter = db.getByJgbh(typeof requestJgbh !== 'undefined' ? requestJgbh : '');
-        const standards = await _adapter.all(standardsSql, standardsParams);
-        const selectedRows = await _adapter.all(selectedSql, selectedParams);
-        const standardIds = standards.map(item => item.id || item.ID);
-        let mutualRows = [];
         const headers = {
             'channel': req.headers['channel'] || '',
             'login-token': req.headers['login-token'] || '',
             'zzbs': req.headers['zzbs'] || '',
             'zzjgdmz': req.headers['zzjgdmz'] || ''
         };
-
-        if (standardIds.length > 0) {
-            const placeholders = standardIds.map(() => '?').join(',');
-            mutualRows = await _adapter.all(
-                `
-                    SELECT h.mbid, h.hcmbid, t.ywblbz as hc_label
-                    FROM gjj_ywbzkhc h
-                    INNER JOIN gjj_ywbzk t ON t.id = h.hcmbid
-                    WHERE h.mbid IN (${placeholders})
-                `,
-                standardIds
-            );
-        }
-
-        const publicParamValueMap = await loadPublicParamValueMap(
-            standards
-                .filter(item => {
-                    const templateName = getDefinedValue(item, 'ywblbz', 'YWBLBZ');
-                    const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
-                    return !isBlankValue(publicParamId)
-                        && !isBlankValue(templateName)
-                        && String(templateName).includes('X');
-                })
-                .map(item => getDefinedValue(item, 'ywbzz', 'YWBZZ')),
+        const data = await buildSelectionListData({
+            adapter: _adapter,
+            ywblbz,
+            ywblbzsm,
+            gjsjsf,
+            ywnrfl,
             queryJgbh,
             queryZjgbh,
             headers
-        );
-
-        // 内存合并: 构建 Set 加速查找
-        const selectedIds = new Set(selectedRows.map(row => Number(row.mbid || row.MBID)));
-        logger.info(`[Selection Fix] Selected IDs: ${Array.from(selectedIds).join(',')}`);
-        const mutualMap = new Map();
-
-        mutualRows.forEach(row => {
-            const key = Number(row.mbid || row.MBID);
-            const current = mutualMap.get(key) || [];
-            current.push({
-                id: Number(row.hcmbid || row.HCMBID),
-                label: row.hc_label || row.HC_LABEL
-            });
-            mutualMap.set(key, current);
         });
 
-        // 遍历标准库列表，标记 checked
-        const items = standards.map(item => {
-            const itemId = Number(getDefinedValue(item, 'id', 'ID'));
-            const publicParamId = getDefinedValue(item, 'ywbzz', 'YWBZZ');
-            const publicParamValue = isBlankValue(publicParamId)
-                ? ''
-                : publicParamValueMap[String(publicParamId).trim()];
-
-            return {
-                ...item,
-                display_ywblbz: buildDisplayBusinessStandardName(
-                    getDefinedValue(item, 'ywblbz', 'YWBLBZ'),
-                    publicParamValue
-                ),
-                checked: selectedIds.has(itemId),
-                mutualIds: (mutualMap.get(itemId) || []).map(row => row.id),
-                mutualLabels: (mutualMap.get(itemId) || []).map(row => row.label),
-                disabled: !selectedIds.has(itemId) && (mutualMap.get(itemId) || []).some(row => selectedIds.has(Number(row.id)))
-            };
-        });
+        logger.info(`[Selection Fix] Selected IDs: ${data.selectedIds.join(',')}`);
 
         res.json({
             status: 0,
             msg: "ok",
-            data: {
-                items: items,
-                selectedIds: Array.from(selectedIds),
-                total: items.length
-            }
+            data
         });
     } catch (err) {
         logger.error(`Failed to query selection_list: ${err.message}`);

@@ -146,6 +146,57 @@ describe('business_rule template', () => {
         ]));
     });
 
+    test('清册选择弹窗提供 AI 政策分析入口，并透传页面级工作流配置', () => {
+        const rendered = env.render('pages/business_rule.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            page_key: 'business_rule_demo',
+            business_content_class_params: '{}'
+        });
+        const schema = JSON.parse(rendered);
+        let aiButton = null;
+        let aiForm = null;
+
+        walk(schema, node => {
+            if (node?.type === 'button' && node?.label === '${selection_policy_ai_button_text}') {
+                aiButton = node;
+            }
+
+            if (node?.id === 'selection_ai_policy_form') {
+                aiForm = node;
+            }
+        });
+
+        expect(schema.data.selection_policy_ai_enabled).toBe(true);
+        expect(schema.data.selection_policy_ai_api).toBe('/api/ywbz/selection_ai_apply');
+        expect(schema.data.selection_policy_ai_workflow_type).toBe('business_rule_policy_analysis');
+        expect(aiButton?.actionType).toBe('dialog');
+        expect(aiForm?.api).toMatchObject({
+            method: 'post',
+            url: '${selection_policy_ai_api}',
+            data: {
+                pageId: 'business_rule_demo',
+                page_key: 'business_rule_demo',
+                workflow_type: '${selection_policy_ai_workflow_type}',
+                analysis_prompt: '${selection_policy_ai_prompt}',
+                policy_text: '${policy_text}',
+                ywsf: '${ywsf}',
+                ywnrfl: '${ywnrfl}',
+                ywblbz: '${ywblbz}',
+                ywblbzsm: '${ywblbzsm}'
+            }
+        });
+        expect(aiForm?.onEvent?.submitSucc?.actions).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                actionType: 'reload',
+                componentId: 'crud_selection_dialog'
+            }),
+            expect.objectContaining({
+                actionType: 'reload',
+                componentId: 'main_crud'
+            })
+        ]));
+    });
+
     test('调试弹窗内部接口使用固定 URL，避免弹窗作用域丢失 API 变量', () => {
         const rendered = env.render('pages/business_rule.j2', {
             GLOBAL_API_PREFIX: '/api',

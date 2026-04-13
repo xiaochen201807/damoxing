@@ -57,7 +57,12 @@
         "service_objects_api": "{{ service_objects_api | default(GLOBAL_API_PREFIX + '/tools/service-objects') }}",
         "service_objects_params": {{ service_objects_params | default({}) | fromjson | tojson }},
         "business_standard_attribute_api": "{{ business_standard_attribute_api | default(GLOBAL_API_PREFIX + '/tools/business-standard-attributes') }}",
-        "business_standard_attribute_params": {{ business_standard_attribute_params | default({}) | fromjson | tojson }}
+        "business_standard_attribute_params": {{ business_standard_attribute_params | default({}) | fromjson | tojson }},
+        "selection_policy_ai_enabled": {{ selection_policy_ai_enabled | default(true) | tojson }},
+        "selection_policy_ai_api": "{{ selection_policy_ai_api | default(GLOBAL_API_PREFIX + '/ywbz/selection_ai_apply') }}",
+        "selection_policy_ai_workflow_type": "{{ selection_policy_ai_workflow_type | default('business_rule_policy_analysis') }}",
+        "selection_policy_ai_button_text": "{{ selection_policy_ai_button_text | default('AI政策分析') }}",
+        "selection_policy_ai_prompt": {{ selection_policy_ai_prompt | default('请结合政策文本、当前算法、业务内容分类、候选业务办理标准列表与已选规则，筛选最匹配的业务办理标准。仅返回最终应勾选的标准 ID 列表，并尽量附带简短说明。') | tojson }}
     },
     "body": [
         {
@@ -284,6 +289,90 @@
                                                 {
                                                     "type": "reset",
                                                     "label": "重置"
+                                                },
+                                                {
+                                                    "type": "button",
+                                                    "label": "${selection_policy_ai_button_text}",
+                                                    "level": "danger",
+                                                    "visibleOn": "${selection_policy_ai_enabled !== false}",
+                                                    "actionType": "dialog",
+                                                    "dialog": {
+                                                        "title": "AI政策分析",
+                                                        "size": "md",
+                                                        "body": {
+                                                            "type": "form",
+                                                            "id": "selection_ai_policy_form",
+                                                            "api": {
+                                                                "method": "post",
+                                                                "url": "${selection_policy_ai_api}",
+                                                                "data": {
+                                                                    "pageId": "{{ page_key | default('business_rule') }}",
+                                                                    "page_key": "{{ page_key | default('business_rule') }}",
+                                                                    "workflow_type": "${selection_policy_ai_workflow_type}",
+                                                                    "analysis_prompt": "${selection_policy_ai_prompt}",
+                                                                    "policy_text": "${policy_text}",
+                                                                    "ywsf": "${ywsf}",
+                                                                    "ywnrfl": "${ywnrfl}",
+                                                                    "ywblbz": "${ywblbz}",
+                                                                    "ywblbzsm": "${ywblbzsm}"
+                                                                }
+                                                            },
+                                                            "onEvent": {
+                                                                "submitSucc": {
+                                                                    "actions": [
+                                                                        {
+                                                                            "actionType": "setValue",
+                                                                            "componentId": "selection_form",
+                                                                            "args": {
+                                                                                "value": {
+                                                                                    "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "reload",
+                                                                            "componentId": "crud_selection_dialog"
+                                                                        },
+                                                                        {
+                                                                            "actionType": "reload",
+                                                                            "componentId": "main_crud"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "body": [
+                                                                {
+                                                                    "type": "alert",
+                                                                    "level": "info",
+                                                                    "showIcon": true,
+                                                                    "body": "输入政策文本后，系统会结合当前算法、业务内容分类、候选业务办理标准和已选结果发起 AI 分析，并自动同步勾选结果。"
+                                                                },
+                                                                {
+                                                                    "type": "textarea",
+                                                                    "name": "policy_text",
+                                                                    "label": "政策文本",
+                                                                    "placeholder": "请输入需要分析的政策内容",
+                                                                    "minRows": 8,
+                                                                    "maxRows": 16,
+                                                                    "required": true,
+                                                                    "clearable": true
+                                                                }
+                                                            ]
+                                                        },
+                                                        "actions": [
+                                                            {
+                                                                "type": "button",
+                                                                "label": "取消",
+                                                                "actionType": "close"
+                                                            },
+                                                            {
+                                                                "type": "button",
+                                                                "label": "开始分析",
+                                                                "level": "primary",
+                                                                "actionType": "submit"
+                                                            }
+                                                        ]
+                                                    }
                                                 }
                                             ]
                                         },
