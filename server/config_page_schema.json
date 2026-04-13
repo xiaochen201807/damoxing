@@ -644,14 +644,7 @@
                                                 "body": {
                                                     "type": "crud",
                                                     "syncLocation": false,
-                                                    "api": {
-                                                        "method": "get",
-                                                        "url": "/api/dify/config",
-                                                        "data": {
-                                                            "page_key": "${page_key}"
-                                                        },
-                                                        "requestAdaptor": "const pageKey = (api.data && api.data.page_key) || (context && context.page_key) || ''; api.url = api.url + (pageKey ? ('?page_key=' + encodeURIComponent(pageKey)) : ''); api.data = {}; return api;"
-                                                    },
+                                                    "api": "/api/dify/config?page_key=${page_key}",
                                                     "headerToolbar": [
                                                         {
                                                             "type": "button",
