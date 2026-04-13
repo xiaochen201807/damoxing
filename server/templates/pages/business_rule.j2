@@ -321,17 +321,11 @@
                                                                 "submitSucc": {
                                                                     "actions": [
                                                                         {
-                                                                            "actionType": "setEventData",
-                                                                            "args": {
-                                                                                "key": "selectedIds",
-                                                                                "value": "${event.data.responseData.selectedIds}"
-                                                                            }
-                                                                        },
-                                                                        {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
                                                                                 "value": {
+                                                                                    "selectedIds": "${event.data.responseData.selectedIds}",
                                                                                     "syncIds": "${event.data.responseData.selectedIds | join}"
                                                                                 }
                                                                             }
@@ -342,14 +336,6 @@
                                                                             "args": {
                                                                                 "condition": "${ARRAYINCLUDES(selectedIds, id)}"
                                                                             }
-                                                                        },
-                                                                        {
-                                                                            "actionType": "reload",
-                                                                            "componentId": "crud_selection_dialog"
-                                                                        },
-                                                                        {
-                                                                            "actionType": "reload",
-                                                                            "componentId": "main_crud"
                                                                         }
                                                                     ]
                                                                 }
