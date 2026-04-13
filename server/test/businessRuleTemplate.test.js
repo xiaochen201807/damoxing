@@ -172,12 +172,12 @@ describe('business_rule template', () => {
         expect(aiButton?.actionType).toBe('dialog');
         expect(aiForm?.api).toMatchObject({
             method: 'post',
-            url: '${selection_policy_ai_api}',
+            url: '/api/ywbz/selection_ai_apply',
             data: {
                 pageId: 'business_rule_demo',
                 page_key: 'business_rule_demo',
-                workflow_type: '${selection_policy_ai_workflow_type}',
-                analysis_prompt: '${selection_policy_ai_prompt}',
+                workflow_type: 'business_rule_policy_analysis',
+                analysis_prompt: '请结合政策文本、当前算法、业务内容分类、候选业务办理标准列表与已选规则，筛选最匹配的业务办理标准。仅返回最终应勾选的标准 ID 列表，并尽量附带简短说明。',
                 policy_text: '${policy_text}',
                 ywsf: '${ywsf}',
                 ywnrfl: '${ywnrfl}',
