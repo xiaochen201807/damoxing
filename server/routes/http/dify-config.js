@@ -10,9 +10,13 @@ const logger = require('../../utils/logger');
 const { validate, schemas } = require('../../middleware/validator');
 
 
-// 获取所有配置 (支持按 page_key 过滤)
-router.get('/config', async (req, res) => {
-    const { page_key } = req.query;
+function getPageKeyFromRequest(req) {
+    const rawPageKey = req.method === 'GET' ? req.query.page_key : req.body.page_key;
+    return Array.isArray(rawPageKey) ? rawPageKey[0] : rawPageKey;
+}
+
+async function handleListConfigs(req, res) {
+    const page_key = getPageKeyFromRequest(req);
 
     const sql = page_key
         ? 'SELECT * FROM sys_dify_config WHERE page_key = ? ORDER BY created_at DESC'
@@ -35,7 +39,11 @@ router.get('/config', async (req, res) => {
             error: err.message
         });
     }
-});
+}
+
+// 获取所有配置 (支持按 page_key 过滤)
+router.get('/config', handleListConfigs);
+router.post('/config/list', handleListConfigs);
 
 // 根据 id 获取单个配置
 router.get('/config/:id', async (req, res) => {
