@@ -255,7 +255,7 @@
                                         "mode": "table",
                                         "primaryField": "id",
                                         "selectable": true,
-                                        "itemCheckableOn": "(typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && typeof id !== 'undefined' && item.id == id; }) || !(typeof mutualIds !== 'undefined' ? mutualIds : []).some(function(mutualId) { return (typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && item.id == mutualId; }); })",
+                                        "itemCheckableOn": "(selectedItems || []).some(function(item) { return item && item.id == id; }) || !(mutualIds || []).some(function(mutualId) { return (selectedItems || []).some(function(item) { return item && item.id == mutualId; }); })",
                                         "multiple": true,
                                         "loadDataOnce": true,
                                         "filter": {
@@ -323,39 +323,21 @@
                                                                 "submitSucc": {
                                                                     "actions": [
                                                                         {
-                                                                            "actionType": "custom",
-                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; console.log('🚀🚀🚀 [Amis AI Selection] TRIGGERED 🚀🚀🚀'); console.log('📦 Payload:', payload); console.log('🎯 Computed IDs:', ids); event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), exportSyncIds: ids.join(','), exportSelectedIds: ids }));"
-                                                                        },
-                                                                        {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
                                                                                 "value": {
-                                                                                    "syncIds": "${exportSyncIds}",
-                                                                                    "selectedIds": "${exportSelectedIds}"
-                                                                                }
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "actionType": "clear",
-                                                                            "componentId": "crud_selection_dialog"
-                                                                        },
-                                                                        {
-                                                                            "actionType": "setValue",
-                                                                            "componentId": "crud_selection_dialog",
-                                                                            "args": {
-                                                                                "value": {
-                                                                                    "selectedItems": "${mappedItems}",
-                                                                                    "myGlobalIds": "${exportSelectedIds}"
+                                                                                    "selectedIds": "${event.data.responseData.selectedIds}",
+                                                                                    "syncIds": "${event.data.responseData.selectedIds | join}"
                                                                                 }
                                                                             }
                                                                         },
                                                                         {
                                                                             "actionType": "select",
                                                                             "componentId": "crud_selection_dialog",
-                                                                            "delay": 300,
+                                                                            "delay": 100,
                                                                             "args": {
-                                                                                "condition": "${ARRAYINCLUDES(myGlobalIds, id) || ARRAYINCLUDES(myGlobalIds, id * 1) || ARRAYINCLUDES(myGlobalIds, id + '')}"
+                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                                             }
                                                                         }
                                                                     ]
@@ -401,40 +383,21 @@
                                             "fetchInited": {
                                                 "actions": [
                                                     {
-                                                        "actionType": "custom",
-                                                        "expression": "!this.initedSelection",
-                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; console.log('🚀🚀🚀 [Amis Inited Selection] TRIGGERED 🚀🚀🚀'); console.log('📦 Payload:', payload); console.log('🎯 Computed IDs:', ids); event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), exportSyncIds: ids.join(','), exportSelectedIds: ids }));"
-                                                    },
-                                                    {
                                                         "actionType": "setValue",
                                                         "componentId": "selection_form",
-                                                        "expression": "!this.initedSelection",
                                                         "args": {
                                                             "value": {
-                                                                "initedSelection": true,
-                                                                "syncIds": "${exportSyncIds}",
-                                                                "selectedIds": "${exportSelectedIds}"
-                                                            }
-                                                        }
-                                                    },
-                                                    {
-                                                        "actionType": "setValue",
-                                                        "componentId": "crud_selection_dialog",
-                                                        "expression": "!this.initedSelection && mappedItems",
-                                                        "args": {
-                                                            "value": {
-                                                                "selectedItems": "${mappedItems}",
-                                                                "myGlobalIds": "${exportSelectedIds}"
+                                                                "selectedIds": "${event.data.responseData.selectedIds}",
+                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
                                                             }
                                                         }
                                                     },
                                                     {
                                                         "actionType": "select",
                                                         "componentId": "crud_selection_dialog",
-                                                        "expression": "!this.initedSelection",
-                                                        "delay": 300,
+                                                        "delay": 100,
                                                         "args": {
-                                                            "condition": "${ARRAYINCLUDES(myGlobalIds, id) || ARRAYINCLUDES(myGlobalIds, id * 1) || ARRAYINCLUDES(myGlobalIds, id + '')}"
+                                                            "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                         }
                                                     }
                                                 ]
@@ -474,7 +437,7 @@
                                             {
                                                 "type": "tpl",
                                                 "label": "互斥标准",
-                                                "tpl": "<%= data.mutualLabels && data.mutualLabels.length ? data.mutualLabels.join('、') : '-' %>"
+                                                "tpl": "${mutualLabels && mutualLabels.length ? mutualLabels.join('、') : '-'}"
                                             }
                                         ]
                                     }
