@@ -336,12 +336,24 @@
                                                                             }
                                                                         },
                                                                         {
+                                                                            "actionType": "clear",
+                                                                            "componentId": "crud_selection_dialog"
+                                                                        },
+                                                                        {
                                                                             "actionType": "setValue",
                                                                             "componentId": "crud_selection_dialog",
                                                                             "args": {
                                                                                 "value": {
                                                                                     "selectedItems": "${mappedItems}"
                                                                                 }
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "select",
+                                                                            "componentId": "crud_selection_dialog",
+                                                                            "delay": 100,
+                                                                            "args": {
+                                                                                "condition": "${ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id + '') || ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id * 1)}"
                                                                             }
                                                                         }
                                                                     ]
@@ -410,6 +422,15 @@
                                                             "value": {
                                                                 "selectedItems": "${mappedItems}"
                                                             }
+                                                        }
+                                                    },
+                                                    {
+                                                        "actionType": "select",
+                                                        "componentId": "crud_selection_dialog",
+                                                        "expression": "!this.initedSelection",
+                                                        "delay": 100,
+                                                        "args": {
+                                                            "condition": "${ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id + '') || ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id * 1)}"
                                                         }
                                                     }
                                                 ]
