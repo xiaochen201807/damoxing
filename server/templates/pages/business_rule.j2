@@ -382,10 +382,13 @@
                                             "fetchInited": {
                                                 "actions": [
                                                     {
-                                                        "actionType": "setEventData",
+                                                        "actionType": "setValue",
+                                                        "componentId": "selection_form",
                                                         "args": {
-                                                            "key": "selectedIds",
-                                                            "value": "${event.data.responseData.selectedIds}"
+                                                            "value": {
+                                                                "selectedIds": "${event.data.responseData.selectedIds}",
+                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                            }
                                                         }
                                                     },
                                                     {
@@ -393,15 +396,6 @@
                                                         "componentId": "crud_selection_dialog",
                                                         "args": {
                                                             "condition": "${ARRAYINCLUDES(selectedIds, id)}"
-                                                        }
-                                                    },
-                                                    {
-                                                        "actionType": "setValue",
-                                                        "componentId": "selection_form",
-                                                        "args": {
-                                                            "value": {
-                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
-                                                            }
                                                         }
                                                     }
                                                 ]
