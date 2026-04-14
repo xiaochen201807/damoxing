@@ -137,8 +137,10 @@ CREATE TABLE gjj_ywblbz_log (
     pcid VARCHAR2(200) DEFAULT ' ' NOT NULL, -- 批次id
     zxyj CLOB, -- 执行的sql语句
     cjsj TIMESTAMP(6) DEFAULT SYSTIMESTAMP, -- 插入时间
-    yjlx VARCHAR2(10), -- 日志类型，1--sql语句，2--标准结果
-    zxjg VARCHAR2(200) -- 执行结果
+    yjlx VARCHAR2(10), -- 日志类型，1--sql语句，2--标准结果, 3--最终结果
+    zxjg VARCHAR2(200), -- 执行结果
+    sxjgnr VARCHAR2(2000), -- 属性结果内容
+    sfxs VARCHAR2(2) -- 是否显示提示语 1是 0否
 );
 
 -- 7. 系统异常日志表
@@ -242,6 +244,15 @@ COMMENT ON COLUMN gjj_ywbzsx.v10 IS '参数值10';
 COMMENT ON COLUMN gjj_ywbzsx.result IS '结果值';
 COMMENT ON COLUMN gjj_ywbzsx.cjsj IS '创建时间';
 COMMENT ON COLUMN gjj_ywbzsx.gxsj IS '更新时间';
+
+COMMENT ON TABLE gjj_ywblbz_log IS '业务办理标准执行日志表';
+COMMENT ON COLUMN gjj_ywblbz_log.pcid IS '批次id';
+COMMENT ON COLUMN gjj_ywblbz_log.zxyj IS '执行的sql语句';
+COMMENT ON COLUMN gjj_ywblbz_log.cjsj IS '插入时间';
+COMMENT ON COLUMN gjj_ywblbz_log.yjlx IS '日志类型，1--sql语句，2--标准结果 ,3--最终结果';
+COMMENT ON COLUMN gjj_ywblbz_log.zxjg IS '执行结果';
+COMMENT ON COLUMN gjj_ywblbz_log.sxjgnr IS '属性结果内容';
+COMMENT ON COLUMN gjj_ywblbz_log.sfxs IS '是否显示提示语 1是 0否';
 
 COMMENT ON TABLE gjj_ywbz_debug_case IS '业务规则调试成功案例表';
 COMMENT ON COLUMN gjj_ywbz_debug_case.id IS '主键ID';

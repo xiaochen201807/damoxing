@@ -235,6 +235,37 @@ BEGIN
 END;
 /
 
+-- [改造点 6 配套] gjj_ywblbz_log 新增提示语日志字段
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWBLBZ_LOG'
+       AND column_name = 'SXJGNR';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywblbz_log ADD sxjgnr VARCHAR2(2000 CHAR)';
+    END IF;
+END;
+/
+
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWBLBZ_LOG'
+       AND column_name = 'SFXS';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywblbz_log ADD sfxs VARCHAR2(2 CHAR)';
+    END IF;
+END;
+/
+
 -- 表及列注释
 COMMENT ON TABLE gjj_ywnrfl IS '业务内容分类基础表';
 COMMENT ON COLUMN gjj_ywnrfl.id IS '主键ID';
@@ -324,6 +355,15 @@ COMMENT ON COLUMN gjj_ywbzsx.v10 IS '参数值10';
 COMMENT ON COLUMN gjj_ywbzsx.result IS '结果值';
 COMMENT ON COLUMN gjj_ywbzsx.cjsj IS '创建时间';
 COMMENT ON COLUMN gjj_ywbzsx.gxsj IS '更新时间';
+
+COMMENT ON TABLE gjj_ywblbz_log IS '业务办理标准执行日志表';
+COMMENT ON COLUMN gjj_ywblbz_log.pcid IS '批次id';
+COMMENT ON COLUMN gjj_ywblbz_log.zxyj IS '执行的sql语句';
+COMMENT ON COLUMN gjj_ywblbz_log.cjsj IS '插入时间';
+COMMENT ON COLUMN gjj_ywblbz_log.yjlx IS '日志类型，1--sql语句，2--标准结果 ,3--最终结果';
+COMMENT ON COLUMN gjj_ywblbz_log.zxjg IS '执行结果';
+COMMENT ON COLUMN gjj_ywblbz_log.sxjgnr IS '属性结果内容';
+COMMENT ON COLUMN gjj_ywblbz_log.sfxs IS '是否显示提示语 1是 0否';
 
 COMMENT ON TABLE gjj_ywbz_debug_case IS '业务规则调试成功案例表';
 COMMENT ON COLUMN gjj_ywbz_debug_case.id IS '主键ID';
