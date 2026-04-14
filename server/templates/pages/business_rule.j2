@@ -345,16 +345,17 @@
                                                                             "componentId": "crud_selection_dialog",
                                                                             "args": {
                                                                                 "value": {
-                                                                                    "selectedItems": "${mappedItems}"
+                                                                                    "selectedItems": "${mappedItems}",
+                                                                                    "myGlobalIds": "${exportSelectedIds}"
                                                                                 }
                                                                             }
                                                                         },
                                                                         {
                                                                             "actionType": "select",
                                                                             "componentId": "crud_selection_dialog",
-                                                                            "delay": 100,
+                                                                            "delay": 300,
                                                                             "args": {
-                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
+                                                                                "condition": "${ARRAYINCLUDES(myGlobalIds, id) || ARRAYINCLUDES(myGlobalIds, id * 1) || ARRAYINCLUDES(myGlobalIds, id + '')}"
                                                                             }
                                                                         }
                                                                     ]
@@ -422,7 +423,8 @@
                                                         "expression": "!this.initedSelection && mappedItems",
                                                         "args": {
                                                             "value": {
-                                                                "selectedItems": "${mappedItems}"
+                                                                "selectedItems": "${mappedItems}",
+                                                                "myGlobalIds": "${exportSelectedIds}"
                                                             }
                                                         }
                                                     },
@@ -430,9 +432,9 @@
                                                         "actionType": "select",
                                                         "componentId": "crud_selection_dialog",
                                                         "expression": "!this.initedSelection",
-                                                        "delay": 100,
+                                                        "delay": 300,
                                                         "args": {
-                                                            "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
+                                                            "condition": "${ARRAYINCLUDES(myGlobalIds, id) || ARRAYINCLUDES(myGlobalIds, id * 1) || ARRAYINCLUDES(myGlobalIds, id + '')}"
                                                         }
                                                     }
                                                 ]
