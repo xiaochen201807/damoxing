@@ -326,12 +326,24 @@
                                                                 "submitSucc": {
                                                                     "actions": [
                                                                         {
+                                                                            "actionType": "custom",
+                                                                            "script": "const ids = event.data.responseData.selectedIds || []; event.setData({...event.data, mappedItems: ids.map(id => ({id: String(id)}))});"
+                                                                        },
+                                                                        {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
                                                                                 "value": {
-                                                                                    "selectedIds": "${event.data.responseData.selectedIds}",
                                                                                     "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "setValue",
+                                                                            "componentId": "crud_selection_dialog",
+                                                                            "args": {
+                                                                                "value": {
+                                                                                    "selectedItems": "${mappedItems}"
                                                                                 }
                                                                             }
                                                                         }
@@ -378,12 +390,41 @@
                                             "fetchInited": {
                                                 "actions": [
                                                     {
+                                                        "actionType": "custom",
+                                                        "expression": "!this.initedSelection",
+                                                        "script": "const ids = event.data.responseData.selectedIds || []; event.setData({...event.data, mappedItems: ids.map(id => ({id: String(id)}))});"
+                                                    },
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "selection_form",
+                                                        "expression": "!this.initedSelection",
+                                                        "args": {
+                                                            "value": {
+                                                                "initedSelection": true,
+                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "crud_selection_dialog",
+                                                        "expression": "!this.initedSelection && mappedItems",
+                                                        "args": {
+                                                            "value": {
+                                                                "selectedItems": "${mappedItems}"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "selectedChange": {
+                                                "actions": [
+                                                    {
                                                         "actionType": "setValue",
                                                         "componentId": "selection_form",
                                                         "args": {
                                                             "value": {
-                                                                "selectedIds": "${event.data.responseData.selectedIds}",
-                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                                "syncIds": "${event.data.selectedItems | pick:id | join}"
                                                             }
                                                         }
                                                     }
