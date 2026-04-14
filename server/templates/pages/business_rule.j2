@@ -255,7 +255,7 @@
                                         "mode": "table",
                                         "primaryField": "id",
                                         "selectable": true,
-                                        "itemCheckableOn": "(typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && item.id == id; }) || !(typeof mutualIds !== 'undefined' ? mutualIds : []).some(function(mutualId) { return (typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && item.id == mutualId; }); })",
+                                        "itemCheckableOn": "(typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && typeof id !== 'undefined' && item.id == id; }) || !(typeof mutualIds !== 'undefined' ? mutualIds : []).some(function(mutualId) { return (typeof selectedItems !== 'undefined' ? selectedItems : []).some(function(item) { return item && item.id == mutualId; }); })",
                                         "multiple": true,
                                         "loadDataOnce": true,
                                         "filter": {
