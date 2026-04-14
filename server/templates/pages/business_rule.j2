@@ -327,14 +327,14 @@
                                                                     "actions": [
                                                                         {
                                                                             "actionType": "custom",
-                                                                            "script": "const ids = event.data.responseData.selectedIds || []; event.setData({...event.data, mappedItems: ids.map(id => ({id: String(id)}))});"
+                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: String(id)})), computedSyncIds: ids.join(',') }));"
                                                                         },
                                                                         {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
                                                                                 "value": {
-                                                                                    "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                                                    "syncIds": "${computedSyncIds}"
                                                                                 }
                                                                             }
                                                                         },
@@ -392,7 +392,7 @@
                                                     {
                                                         "actionType": "custom",
                                                         "expression": "!this.initedSelection",
-                                                        "script": "const ids = event.data.responseData.selectedIds || []; event.setData({...event.data, mappedItems: ids.map(id => ({id: String(id)}))});"
+                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: String(id)})), computedSyncIds: ids.join(',') }));"
                                                     },
                                                     {
                                                         "actionType": "setValue",
@@ -401,7 +401,7 @@
                                                         "args": {
                                                             "value": {
                                                                 "initedSelection": true,
-                                                                "syncIds": "${event.data.responseData.selectedIds | join}"
+                                                                "syncIds": "${computedSyncIds}"
                                                             }
                                                         }
                                                     },
@@ -452,7 +452,7 @@
                                             {
                                                 "type": "tpl",
                                                 "label": "互斥标准",
-                                                "tpl": "${mutualLabels && mutualLabels.length ? mutualLabels.join('、') : '-'}"
+                                                "tpl": "<%= data.mutualLabels && data.mutualLabels.length ? data.mutualLabels.join('、') : '-' %>"
                                             }
                                         ]
                                     }
