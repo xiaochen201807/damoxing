@@ -335,8 +335,9 @@
                                                                         {
                                                                             "actionType": "select",
                                                                             "componentId": "crud_selection_dialog",
+                                                                            "delay": 100,
                                                                             "args": {
-                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id)}"
+                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                                             }
                                                                         }
                                                                     ]
@@ -394,8 +395,9 @@
                                                     {
                                                         "actionType": "select",
                                                         "componentId": "crud_selection_dialog",
+                                                        "delay": 100,
                                                         "args": {
-                                                            "condition": "${ARRAYINCLUDES(selectedIds, id)}"
+                                                            "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                         }
                                                     }
                                                 ]
