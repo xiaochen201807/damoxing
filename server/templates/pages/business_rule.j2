@@ -324,7 +324,7 @@
                                                                     "actions": [
                                                                         {
                                                                             "actionType": "custom",
-                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: String(id)})), computedSyncIds: ids.join(',') }));"
+                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), computedSyncIds: ids.join(',') }));"
                                                                         },
                                                                         {
                                                                             "actionType": "setValue",
@@ -389,7 +389,7 @@
                                                     {
                                                         "actionType": "custom",
                                                         "expression": "!this.initedSelection",
-                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: String(id)})), computedSyncIds: ids.join(',') }));"
+                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), computedSyncIds: ids.join(',') }));"
                                                     },
                                                     {
                                                         "actionType": "setValue",
