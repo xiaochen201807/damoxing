@@ -324,14 +324,15 @@
                                                                     "actions": [
                                                                         {
                                                                             "actionType": "custom",
-                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), computedSyncIds: ids.join(',') }));"
+                                                                            "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; console.log('🚀🚀🚀 [Amis AI Selection] TRIGGERED 🚀🚀🚀'); console.log('📦 Payload:', payload); console.log('🎯 Computed IDs:', ids); event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), exportSyncIds: ids.join(','), exportSelectedIds: ids }));"
                                                                         },
                                                                         {
                                                                             "actionType": "setValue",
                                                                             "componentId": "selection_form",
                                                                             "args": {
                                                                                 "value": {
-                                                                                    "syncIds": "${computedSyncIds}"
+                                                                                    "syncIds": "${exportSyncIds}",
+                                                                                    "selectedIds": "${exportSelectedIds}"
                                                                                 }
                                                                             }
                                                                         },
@@ -353,7 +354,7 @@
                                                                             "componentId": "crud_selection_dialog",
                                                                             "delay": 100,
                                                                             "args": {
-                                                                                "condition": "${ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id + '') || ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id * 1)}"
+                                                                                "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                                             }
                                                                         }
                                                                     ]
@@ -401,7 +402,7 @@
                                                     {
                                                         "actionType": "custom",
                                                         "expression": "!this.initedSelection",
-                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), computedSyncIds: ids.join(',') }));"
+                                                        "script": "const scope = event.data || {}; const payload = scope.responseData || scope.responseResult || scope.result || scope; const selectedIds = payload.selectedIds || (payload.data && payload.data.selectedIds) || scope.selectedIds || []; const ids = Array.isArray(selectedIds) ? selectedIds : []; console.log('🚀🚀🚀 [Amis Inited Selection] TRIGGERED 🚀🚀🚀'); console.log('📦 Payload:', payload); console.log('🎯 Computed IDs:', ids); event.setData(Object.assign({}, scope, { mappedItems: ids.map(id => ({id: Number(id)})), exportSyncIds: ids.join(','), exportSelectedIds: ids }));"
                                                     },
                                                     {
                                                         "actionType": "setValue",
@@ -410,7 +411,8 @@
                                                         "args": {
                                                             "value": {
                                                                 "initedSelection": true,
-                                                                "syncIds": "${computedSyncIds}"
+                                                                "syncIds": "${exportSyncIds}",
+                                                                "selectedIds": "${exportSelectedIds}"
                                                             }
                                                         }
                                                     },
@@ -430,7 +432,7 @@
                                                         "expression": "!this.initedSelection",
                                                         "delay": 100,
                                                         "args": {
-                                                            "condition": "${ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id + '') || ARRAYINCLUDES(SPLIT(computedSyncIds, ','), id * 1)}"
+                                                            "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                         }
                                                     }
                                                 ]
