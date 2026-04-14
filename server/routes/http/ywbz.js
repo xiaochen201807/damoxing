@@ -1367,7 +1367,7 @@ router.post('/selection_ai_apply', async (req, res) => {
 
         res.json({
             status: 0,
-            msg: `AI 分析完成，已自动同步 ${normalized.selectedIds.length} 条业务办理标准`,
+            msg: `AI 分析完成，已自动勾选当前页命中结果并同步 ${normalized.selectedIds.length} 条业务办理标准。建议先将每页显示条数设置为最大后，再重新进行分析。`,
             data: {
                 selectedIds: normalized.selectedIds,
                 summary: normalized.summary || '',

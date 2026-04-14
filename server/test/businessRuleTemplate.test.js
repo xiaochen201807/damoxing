@@ -187,12 +187,12 @@ describe('business_rule template', () => {
         });
         expect(aiForm?.onEvent?.submitSucc?.actions).toEqual(expect.arrayContaining([
             expect.objectContaining({
-                actionType: 'reload',
-                componentId: 'crud_selection_dialog'
+                actionType: 'setValue',
+                componentId: 'selection_form'
             }),
             expect.objectContaining({
-                actionType: 'reload',
-                componentId: 'main_crud'
+                actionType: 'select',
+                componentId: 'crud_selection_dialog'
             })
         ]));
     });

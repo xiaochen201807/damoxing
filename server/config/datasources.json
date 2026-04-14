@@ -1,33 +1,50 @@
 {
-    "default_datasource": "oracle_main",
-    "strict_routing": true,
     "datasources": [
         {
-            "id": "oracle_main",
-            "type": "oracle",
-            "jgbh_list": ["1305282025"],
             "config": {
-                "user": "sy_ptdx",
-                "password": "sy_ptdx",
                 "connectString": "10.99.1.37:1521/orcl",
+                "password": "sy_ptdx",
+                "poolMax": 10,
                 "poolMin": 2,
-                "poolMax": 10
-            }
+                "user": "sy_ptdx"
+            },
+            "id": "oracle_main",
+            "jgbh_list": [
+                "1305282025"
+            ],
+            "type": "oracle"
         },
         {
+            "config": {
+                "connectString": "127.0.0.1:54321",
+                "loginEncrypt": false,
+                "password": "Kd#0!Py2t1",
+                "poolMax": 10,
+                "poolMin": 2,
+                "user": "sy_ptdx"
+            },
+            "id": "kingbase_dev",
+            "jgbh_list": [
+                "3607010001"
+            ],
+            "type": "kingbase"
+        },
+        {
+            "config": {
+                "connectString": "127.0.0.1:5236",
+                "loginEncrypt": false,
+                "password": "SY_PTDX_CS",
+                "poolMax": 10,
+                "poolMin": 2,
+                "user": "SY_PTDX_CS"
+            },
             "id": "dm_jiangxi_dev",
-            "type": "dm",
             "jgbh_list": [
                 "3601032003"
             ],
-            "config": {
-                "user": "SY_PTDX_CS",
-                "password": "SY_PTDX_CS",
-                "connectString": "127.0.0.1:5236",
-                "loginEncrypt": false,
-                "poolMin": 2,
-                "poolMax": 10
-            }
+            "type": "dm"
         }
-    ]
+    ],
+    "default_datasource": "oracle_main",
+    "strict_routing": true
 }

@@ -339,6 +339,13 @@
                                                                             "args": {
                                                                                 "condition": "${ARRAYINCLUDES(selectedIds, id) || ARRAYINCLUDES(selectedIds, id * 1) || ARRAYINCLUDES(selectedIds, id + '')}"
                                                                             }
+                                                                        },
+                                                                        {
+                                                                            "actionType": "toast",
+                                                                            "args": {
+                                                                                "msgType": "success",
+                                                                                "msg": "${event.data.responseResult.msg || 'AI 分析完成，已自动勾选当前页命中结果。建议先将每页显示条数设置为最大后，再重新进行分析。'}"
+                                                                            }
                                                                         }
                                                                     ]
                                                                 }
@@ -348,7 +355,7 @@
                                                                     "type": "alert",
                                                                     "level": "info",
                                                                     "showIcon": true,
-                                                                    "body": "输入政策文本后，系统会结合当前算法、业务内容分类、候选业务办理标准和已选结果发起 AI 分析，并自动同步勾选结果。"
+                                                                    "body": "输入政策文本后，系统会结合当前算法、业务内容分类、候选业务办理标准和已选结果发起 AI 分析，并自动同步勾选结果。建议先将每页显示条数设置为最大后再执行分析，以便一次性查看更多命中结果。"
                                                                 },
                                                                 {
                                                                     "type": "textarea",

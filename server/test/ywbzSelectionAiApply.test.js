@@ -75,6 +75,10 @@ describe('ywbz selection_ai_apply', () => {
             ])
             .mockResolvedValueOnce([])
             .mockResolvedValueOnce([
+                { id: 1, ywblbz: '标准A', ywblbzsm: '描述A' },
+                { id: 2, ywblbz: '标准B', ywblbzsm: '描述B' },
+            ])
+            .mockResolvedValueOnce([
                 { id: 11, mbid: 1 },
             ])
             .mockResolvedValueOnce([
@@ -86,7 +90,7 @@ describe('ywbz selection_ai_apply', () => {
                 data: {
                     status: 'succeeded',
                     outputs: {
-                        result: JSON.stringify({
+                        text: JSON.stringify({
                             selectedIds: [2],
                             summary: 'AI 建议保留标准B'
                         })
@@ -109,7 +113,8 @@ describe('ywbz selection_ai_apply', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.status).toBe(0);
-        expect(response.body.data.selectedIds).toEqual(['2']);
+        expect(response.body.msg).toBe('AI 分析完成，已自动勾选当前页命中结果并同步 1 条业务办理标准。建议先将每页显示条数设置为最大后，再重新进行分析。');
+        expect(response.body.data.selectedIds).toEqual([2]);
         expect(response.body.data.summary).toBe('AI 建议保留标准B');
         expect(db.get).toHaveBeenCalledWith(
             'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1',
@@ -119,14 +124,8 @@ describe('ywbz selection_ai_apply', () => {
             'https://dify.example.com/v1/workflows/run',
             expect.objectContaining({
                 inputs: expect.objectContaining({
-                    policy_text: '购买住房提取时，优先匹配标准B。',
-                    workflow_type: 'ai_analysis',
-                    ywsf: '1',
-                    ywnrfl: 'A01',
-                    candidate_items: expect.arrayContaining([
-                        expect.objectContaining({ id: 1, name: '标准A' }),
-                        expect.objectContaining({ id: 2, name: '标准B' })
-                    ])
+                    text: '购买住房提取时，优先匹配标准B。',
+                    data: expect.stringContaining('"ywblbz": "标准A"')
                 })
             }),
             expect.objectContaining({
