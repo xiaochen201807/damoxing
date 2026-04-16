@@ -8,6 +8,7 @@
 
 - PostgreSQL
 - openGauss
+- 人大金仓
 - Oracle Free
 - 达梦 8 ARM
 
@@ -15,6 +16,7 @@
 
 - PostgreSQL：用于验证 `pg` 方言链路
 - openGauss：用于验证高斯类数据库链路
+- 人大金仓：用于验证 `kingbase` 方言链路
 - Oracle Free：用于验证 `oracle` 方言链路
 - 达梦 8 ARM：用于补齐 `dm` 方言链路与存储过程实库验证
 
@@ -124,7 +126,34 @@
 - 容器已启动
 - `select 1 from dual;` 已验证可执行
 
-### 4.4 Dameng 8 ARM
+### 4.4 人大金仓
+
+容器名称：
+
+- `damoxing-kingbase`
+
+端口映射：
+
+- 宿主机 `55434` -> 容器 `54321`
+
+卷映射：
+
+- `kingbase_data` -> `/home/kingbase/userdata`
+- `${KINGBASE_LICENSE_PATH:-/Users/xiaochen/Downloads/license_4_V009R001C-开发版-365天.dat}` -> `/home/kingbase/userdata/etc/license.dat`
+
+连接信息：
+
+- 用户名：`system`
+- 密码：`Damoxing123!`
+- 协议兼容模式：`pg`
+
+当前状态：
+
+- 容器已启动
+- 端口映射已生效
+- 编排已支持 `KINGBASE_IMAGE` 与 `KINGBASE_LICENSE_PATH` 覆盖
+
+### 4.5 Dameng 8 ARM
 
 容器名称：
 
@@ -184,10 +213,22 @@ docker compose -f docker-compose.multidb-lab.yml up -d opengauss
 docker compose -f docker-compose.multidb-lab.yml up -d oracle23
 ```
 
+单独启动人大金仓：
+
+```bash
+docker compose -f docker-compose.multidb-lab.yml up -d kingbase
+```
+
 单独启动达梦：
 
 ```bash
 docker compose -f docker-compose.multidb-lab.yml up -d dm8
+```
+
+使用自定义 license 启动人大金仓：
+
+```bash
+KINGBASE_LICENSE_PATH=/path/to/license.dat docker compose -f docker-compose.multidb-lab.yml up -d kingbase
 ```
 
 使用回退镜像启动达梦：
@@ -238,13 +279,15 @@ docker compose -f docker-compose.multidb-lab.yml down -v
 
 1. PostgreSQL
 2. openGauss
-3. Oracle Free
-4. Dameng 8 ARM
+3. 人大金仓
+4. Oracle Free
+5. Dameng 8 ARM
 
 原因：
 
 - PostgreSQL 起得最快，适合先打通 `pg` 链路
 - openGauss 可验证高斯类数据库兼容性
+- 人大金仓可补齐 `kingbase` 适配验证
 - Oracle Free 可用于最终补充 `oracle` 侧联调
 - 达梦镜像为第三方源，放在最后单独收口验证更稳妥
 

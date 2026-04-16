@@ -1,0 +1,111 @@
+services:
+  pg16:
+    image: postgres:16-alpine
+    container_name: damoxing-pg16
+    restart: unless-stopped
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_DB: damoxing
+      POSTGRES_USER: damoxing
+      POSTGRES_PASSWORD: Damoxing123!
+    volumes:
+      - pg16_data:/var/lib/postgresql/data
+    shm_size: 4gb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U damoxing -d damoxing"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  opengauss:
+    image: opengauss/opengauss:latest
+    container_name: damoxing-opengauss
+    restart: unless-stopped
+    privileged: true
+    security_opt:
+      - label=disable
+    ports:
+      - "55433:5432"
+    environment:
+      GS_PASSWORD: Damoxing123!
+      PGDATA: /var/lib/opengauss/data
+    volumes:
+      - opengauss_data:/var/lib/opengauss
+    shm_size: 4gb
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  kingbase:
+    image: ${KINGBASE_IMAGE:-kingbase_v009r001c010b0004_single_arm:v1}
+    platform: linux/arm64
+    container_name: damoxing-kingbase
+    restart: unless-stopped
+    ports:
+      - "55434:54321"
+    environment:
+      DB_MODE: pg
+      DB_USER: system
+      DB_PASSWORD: Damoxing123!
+    volumes:
+      - kingbase_data:/home/kingbase/userdata
+      - "${KINGBASE_LICENSE_PATH:-/Users/xiaochen/Downloads/license_4_V009R001C-开发版-365天.dat}:/home/kingbase/userdata/etc/license.dat:ro"
+    shm_size: 4gb
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  oracle23:
+    image: gvenzl/oracle-free:23-slim-faststart
+    container_name: damoxing-oracle23
+    restart: unless-stopped
+    ports:
+      - "51521:1521"
+      - "55500:5500"
+    environment:
+      ORACLE_PASSWORD: Damoxing123!
+      APP_USER: damoxing
+      APP_USER_PASSWORD: Damoxing123!
+    volumes:
+      - oracle23_data:/opt/oracle/oradata
+    shm_size: 1gb
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  dm8:
+    image: ${DM8_IMAGE:-qinchz/dm8-arm64:latest}
+    platform: linux/arm64
+    container_name: damoxing-dm8
+    restart: unless-stopped
+    ports:
+      - "5236:5236"
+    volumes:
+      - dm8_data:/home/dmdba/data
+    shm_size: 4gb
+    mem_limit: 1g
+    memswap_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+volumes:
+  pg16_data:
+  opengauss_data:
+  kingbase_data:
+  oracle23_data:
+  dm8_data:
