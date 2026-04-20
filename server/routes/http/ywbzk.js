@@ -70,6 +70,19 @@ function normalizeOptionalText(value) {
     return String(value).trim();
 }
 
+function normalizeOptionalInteger(value) {
+    if (isBlankValue(value)) {
+        return null;
+    }
+
+    const num = Number(value);
+    if (!Number.isInteger(num)) {
+        return Number.NaN;
+    }
+
+    return num;
+}
+
 function normalizeBusinessStandardAttributeRows(rows) {
     if (!Array.isArray(rows)) {
         return [];
@@ -186,6 +199,7 @@ router.post('/list', async (req, res) => {
         const rows = await _adapter.all(paged.sql, paged.params);
         rows.forEach(row => {
             row.ywblfl = row.ywblfl || row.YWBLFL || '1';
+            row.fenzhi = getDefinedValue(row, 'fenzhi', 'FENZHI');
         });
 
         res.json({
@@ -222,6 +236,7 @@ router.post('/get', async (req, res) => {
         }
 
         row.ywblfl = row.ywblfl || row.YWBLFL || '1';
+        row.fenzhi = getDefinedValue(row, 'fenzhi', 'FENZHI');
 
         // 拆解 ywbzjg 方言
         row.ywbzjg_dialects = parseDialectSql(row.ywbzjg || row.YWBZJG);
@@ -271,6 +286,7 @@ router.post('/save', async (req, res) => {
         zdybm,
         ywbzz,
         ywbzjg,
+        fenzhi,
         ywblbzsm,
         gjsjsf,
         ywnrfl,
@@ -280,14 +296,6 @@ router.post('/save', async (req, res) => {
         hcbzIds
     } = req.body;
     const { ywbzjg_dialects } = req.body;
-
-    // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
-    if (ywbzjg_dialects && typeof ywbzjg_dialects === 'object') {
-        validateDialectSqlObject(ywbzjg_dialects, '业务办理标准结果执行语句');
-        ywbzjg = buildDialectSql(ywbzjg_dialects, '业务办理标准结果执行语句');
-    } else if (typeof ywbzjg === 'string' && ywbzjg.trim().startsWith('[')) {
-        parseDialectSql(ywbzjg, '业务办理标准结果执行语句');
-    }
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     let normalizedAttributeRows = [];
 
@@ -304,8 +312,24 @@ router.post('/save', async (req, res) => {
         tsysxmc = tsysxmc ? String(tsysxmc).trim() : '';
         tsysxdw = tsysxdw ? String(tsysxdw).trim() : '';
         zdybm = zdybm ? String(zdybm).trim() : '';
+        ywbzz = isBlankValue(ywbzz) ? null : String(ywbzz).trim();
         ywblfl = ywblfl ? String(ywblfl) : '1';
+        fenzhi = normalizeOptionalInteger(fenzhi);
         hcbzIds = normalizeIdList(hcbzIds);
+
+        const ywbzjgFieldLabel = ywblfl === '2'
+            ? '业务条件执行语句'
+            : ywblfl === '3'
+                ? '业务风险执行语句'
+                : '业务办理标准结果执行语句';
+
+        // 如果前端传入了方言对象，则组装为 JSON 字符串覆盖 ywbzjg
+        if (ywbzjg_dialects && typeof ywbzjg_dialects === 'object') {
+            validateDialectSqlObject(ywbzjg_dialects, ywbzjgFieldLabel);
+            ywbzjg = buildDialectSql(ywbzjg_dialects, ywbzjgFieldLabel);
+        } else if (typeof ywbzjg === 'string' && ywbzjg.trim().startsWith('[')) {
+            parseDialectSql(ywbzjg, ywbzjgFieldLabel);
+        }
 
         try {
             normalizedAttributeRows = normalizeBusinessStandardAttributeRows(ywblbzsxz);
@@ -313,8 +337,24 @@ router.post('/save', async (req, res) => {
             return res.status(400).json({ status: 1, msg: validationError.message });
         }
 
-        if (!['1', '2'].includes(ywblfl)) {
+        if (!['1', '2', '3'].includes(ywblfl)) {
             return res.status(400).json({ status: 1, msg: `无效的业务办理分类编码: ${ywblfl}` });
+        }
+
+        if (ywblfl === '3') {
+            if (fenzhi === null) {
+                return res.status(400).json({ status: 1, msg: '风险模式下分值不能为空' });
+            }
+
+            if (Number.isNaN(fenzhi) || fenzhi < 1 || fenzhi > 100) {
+                return res.status(400).json({ status: 1, msg: '风险分值必须为 1-100 的整数' });
+            }
+        } else {
+            fenzhi = null;
+        }
+
+        if (ywblfl !== '1') {
+            ywbzz = null;
         }
 
         if (zdybm) {
@@ -368,7 +408,7 @@ router.post('/save', async (req, res) => {
         const { id: savedId } = await _adapter.transaction(async (tx) => {
             let mbid = id;
             if (id) {
-                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, tsysxmc=:3, tsysxdw=:4, zdybm=:5, ywbzz=:6, ywbzjg=:7, ywblbzsm=:8, gjsjsf=:9, ywnrfl=:10, ywblfl=:11, bzfl=:12, gxsj=${SqlHelper.now(_adapter)} WHERE id=:13`;
+                const updateSql = `UPDATE gjj_ywbzk SET pxh=:1, ywblbz=:2, tsysxmc=:3, tsysxdw=:4, zdybm=:5, ywbzz=:6, ywbzjg=:7, fenzhi=:8, ywblbzsm=:9, gjsjsf=:10, ywnrfl=:11, ywblfl=:12, bzfl=:13, gxsj=${SqlHelper.now(_adapter)} WHERE id=:14`;
                 await tx.run(updateSql, [
                     pxh,
                     ywblbz,
@@ -377,6 +417,7 @@ router.post('/save', async (req, res) => {
                     zdybm || null,
                     ywbzz,
                     ywbzjg,
+                    fenzhi,
                     ywblbzsm,
                     gjsjsf,
                     ywnrfl,
@@ -386,7 +427,7 @@ router.post('/save', async (req, res) => {
                 ]);
                 await tx.run("DELETE FROM gjj_ywbzksx WHERE mbid = :1", [id]);
             } else {
-                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, tsysxmc, tsysxdw, zdybm, ywbzz, ywbzjg, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)`;
+                const insertSql = `INSERT INTO gjj_ywbzk (pxh, ywblbz, tsysxmc, tsysxdw, zdybm, ywbzz, ywbzjg, fenzhi, ywblbzsm, gjsjsf, ywnrfl, ywblfl, bzfl) VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12, :13)`;
                 const insertResult = await tx.run(insertSql, [
                     pxh,
                     ywblbz,
@@ -395,6 +436,7 @@ router.post('/save', async (req, res) => {
                     zdybm || null,
                     ywbzz,
                     ywbzjg,
+                    fenzhi,
                     ywblbzsm,
                     gjsjsf,
                     ywnrfl,

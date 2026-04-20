@@ -7,6 +7,7 @@ CREATE TABLE gjj_ywnrfl (
     gjsjsf VARCHAR2 (100 CHAR) NOT NULL,
     flbm VARCHAR2 (50 CHAR) NOT NULL,
     flmc VARCHAR2 (200 CHAR) NOT NULL,
+    quanzhong NUMBER (5),
     pxh NUMBER DEFAULT 0,
     sfqy NUMBER (1) DEFAULT 1,
     cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -24,10 +25,11 @@ CREATE TABLE gjj_ywbzk (
     zdybm VARCHAR2 (100 CHAR), -- 自定义编码
     ywbzz VARCHAR2 (100 CHAR), -- 业务标准值
     ywbzjg CLOB, -- 业务标准结果SQL
+    fenzhi NUMBER (5), -- 风险分值
     ywblbzsm CLOB, -- 业务办理标准说明
     gjsjsf VARCHAR2 (100 CHAR), -- 关键数据算法
     ywnrfl VARCHAR2 (50 CHAR), -- 业务内容分类
-    ywblfl VARCHAR2 (10 CHAR) DEFAULT '1', -- 业务办理分类: 1标准 2条件
+    ywblfl VARCHAR2 (10 CHAR) DEFAULT '1', -- 业务办理分类: 1标准 2条件 3风险
     bzfl VARCHAR2 (50 CHAR), -- 标准分类
     cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
     gxsj TIMESTAMP DEFAULT SYSTIMESTAMP
@@ -161,6 +163,7 @@ COMMENT ON COLUMN gjj_ywnrfl.id IS '主键ID';
 COMMENT ON COLUMN gjj_ywnrfl.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN gjj_ywnrfl.flbm IS '业务内容分类编码';
 COMMENT ON COLUMN gjj_ywnrfl.flmc IS '业务内容分类名称';
+COMMENT ON COLUMN gjj_ywnrfl.quanzhong IS '权重值';
 COMMENT ON COLUMN gjj_ywnrfl.pxh IS '排序号';
 COMMENT ON COLUMN gjj_ywnrfl.sfqy IS '是否启用';
 COMMENT ON COLUMN gjj_ywnrfl.cjsj IS '创建时间';
@@ -175,10 +178,11 @@ COMMENT ON COLUMN gjj_ywbzk.tsysxdw IS '提示语属性单位';
 COMMENT ON COLUMN gjj_ywbzk.zdybm IS '自定义编码';
 COMMENT ON COLUMN gjj_ywbzk.ywbzz IS '业务标准值';
 COMMENT ON COLUMN gjj_ywbzk.ywbzjg IS '业务标准结果执行语句';
+COMMENT ON COLUMN gjj_ywbzk.fenzhi IS '风险分值';
 COMMENT ON COLUMN gjj_ywbzk.ywblbzsm IS '业务办理标准说明';
 COMMENT ON COLUMN gjj_ywbzk.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN gjj_ywbzk.ywnrfl IS '业务内容分类编码';
-COMMENT ON COLUMN gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件)';
+COMMENT ON COLUMN gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件 3风险)';
 COMMENT ON COLUMN gjj_ywbzk.bzfl IS '业务办理标准分类';
 COMMENT ON COLUMN gjj_ywbzk.cjsj IS '创建时间';
 COMMENT ON COLUMN gjj_ywbzk.gxsj IS '更新时间';

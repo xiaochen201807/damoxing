@@ -1,6 +1,6 @@
 -- ============================================
 -- 业务标准升级投产脚本（Oracle）
--- 适用改造点：1-5、8-10
+-- 适用改造点：1-5、8-10、14
 -- 对应文档：docs/业务标准升级方案.md
 -- ============================================
 --
@@ -30,6 +30,7 @@ BEGIN
                 gjsjsf VARCHAR2(100 CHAR) NOT NULL,
                 flbm VARCHAR2(50 CHAR) NOT NULL,
                 flmc VARCHAR2(200 CHAR) NOT NULL,
+                quanzhong NUMBER(5),
                 pxh NUMBER DEFAULT 0,
                 sfqy NUMBER(1) DEFAULT 1,
                 cjsj TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -37,6 +38,21 @@ BEGIN
                 CONSTRAINT uq_ywnrfl_code UNIQUE (gjsjsf, flbm)
             )
         ]';
+    END IF;
+END;
+/
+
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWNRFL'
+       AND column_name = 'QUANZHONG';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywnrfl ADD quanzhong NUMBER(5)';
     END IF;
 END;
 /
@@ -104,6 +120,21 @@ END;
 UPDATE gjj_ywbzk
    SET ywblfl = '1'
  WHERE ywblfl IS NULL;
+
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_count
+      FROM user_tab_columns
+     WHERE table_name = 'GJJ_YWBZK'
+       AND column_name = 'FENZHI';
+
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywbzk ADD fenzhi NUMBER(5)';
+    END IF;
+END;
+/
 
 -- [改造点 5] 互斥关系表 gjj_ywbzkhc
 DECLARE
@@ -272,6 +303,7 @@ COMMENT ON COLUMN gjj_ywnrfl.id IS '主键ID';
 COMMENT ON COLUMN gjj_ywnrfl.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN gjj_ywnrfl.flbm IS '业务内容分类编码';
 COMMENT ON COLUMN gjj_ywnrfl.flmc IS '业务内容分类名称';
+COMMENT ON COLUMN gjj_ywnrfl.quanzhong IS '权重值';
 COMMENT ON COLUMN gjj_ywnrfl.pxh IS '排序号';
 COMMENT ON COLUMN gjj_ywnrfl.sfqy IS '是否启用';
 COMMENT ON COLUMN gjj_ywnrfl.cjsj IS '创建时间';
@@ -286,10 +318,11 @@ COMMENT ON COLUMN gjj_ywbzk.tsysxdw IS '提示语属性单位';
 COMMENT ON COLUMN gjj_ywbzk.zdybm IS '自定义编码';
 COMMENT ON COLUMN gjj_ywbzk.ywbzz IS '业务标准值';
 COMMENT ON COLUMN gjj_ywbzk.ywbzjg IS '业务标准结果执行语句';
+COMMENT ON COLUMN gjj_ywbzk.fenzhi IS '风险分值';
 COMMENT ON COLUMN gjj_ywbzk.ywblbzsm IS '业务办理标准说明';
 COMMENT ON COLUMN gjj_ywbzk.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN gjj_ywbzk.ywnrfl IS '业务内容分类编码';
-COMMENT ON COLUMN gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件)';
+COMMENT ON COLUMN gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件 3风险)';
 COMMENT ON COLUMN gjj_ywbzk.bzfl IS '业务办理标准分类';
 COMMENT ON COLUMN gjj_ywbzk.cjsj IS '创建时间';
 COMMENT ON COLUMN gjj_ywbzk.gxsj IS '更新时间';

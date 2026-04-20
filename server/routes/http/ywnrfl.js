@@ -6,6 +6,8 @@ const logger = require('../../utils/logger');
 const algorithmConfig = require('../../utils/business-algorithms');
 const { isBusinessStandardMasterEnabled, getBusinessStandardWriteDeniedMessage } = require('../../utils/business-standard-access');
 
+const RISK_ENGINE_ALGORITHM_CODE = '19';
+
 function getRequestJgbh(req) {
     return req.body?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
 }
@@ -28,6 +30,23 @@ function getCountValue(row) {
     }
 
     return row.total || row.TOTAL || 0;
+}
+
+function isBlankValue(value) {
+    return value === undefined || value === null || value === '';
+}
+
+function normalizeOptionalInteger(value) {
+    if (isBlankValue(value)) {
+        return null;
+    }
+
+    const num = Number(value);
+    if (!Number.isInteger(num)) {
+        return Number.NaN;
+    }
+
+    return num;
 }
 
 router.post('/list', async (req, res) => {
@@ -69,6 +88,9 @@ router.post('/list', async (req, res) => {
     try {
         const countRow = await _adapter.get(countSql, params);
         const rows = await _adapter.all(paged.sql, paged.params);
+        rows.forEach((row) => {
+            row.quanzhong = row.quanzhong ?? row.QUANZHONG ?? null;
+        });
         res.json({
             status: 0,
             msg: 'ok',
@@ -92,6 +114,7 @@ router.post('/save', async (req, res) => {
     const flmc = String(req.body.flmc || '').trim();
     const pxh = Number(req.body.pxh || 0);
     const sfqy = normalizeStatus(req.body.sfqy);
+    let quanzhong = normalizeOptionalInteger(req.body.quanzhong);
 
     if (!isBusinessStandardMasterEnabled(req)) {
         return res.status(403).json({ status: 403, msg: getBusinessStandardWriteDeniedMessage() });
@@ -113,6 +136,18 @@ router.post('/save', async (req, res) => {
         return res.status(400).json({ status: 1, msg: '业务内容分类名称不能为空' });
     }
 
+    if (gjsjsf === RISK_ENGINE_ALGORITHM_CODE) {
+        if (quanzhong === null) {
+            return res.status(400).json({ status: 1, msg: '提取自动化风控引擎算法下权重不能为空' });
+        }
+
+        if (Number.isNaN(quanzhong) || quanzhong < 1 || quanzhong > 100) {
+            return res.status(400).json({ status: 1, msg: '权重必须为 1-100 的整数' });
+        }
+    } else {
+        quanzhong = null;
+    }
+
     try {
         const duplicateSql = id
             ? 'SELECT id FROM gjj_ywnrfl WHERE gjsjsf = ? AND flbm = ? AND id <> ?'
@@ -127,15 +162,15 @@ router.post('/save', async (req, res) => {
         const result = await _adapter.transaction(async (tx) => {
             if (id) {
                 await tx.run(
-                    `UPDATE gjj_ywnrfl SET gjsjsf = ?, flbm = ?, flmc = ?, pxh = ?, sfqy = ?, gxsj = ${SqlHelper.now(_adapter)} WHERE id = ?`,
-                    [gjsjsf, flbm, flmc, pxh, sfqy, id]
+                    `UPDATE gjj_ywnrfl SET gjsjsf = ?, flbm = ?, flmc = ?, quanzhong = ?, pxh = ?, sfqy = ?, gxsj = ${SqlHelper.now(_adapter)} WHERE id = ?`,
+                    [gjsjsf, flbm, flmc, quanzhong, pxh, sfqy, id]
                 );
                 return { id };
             }
 
             const insertResult = await tx.run(
-                'INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, pxh, sfqy) VALUES (?, ?, ?, ?, ?)',
-                [gjsjsf, flbm, flmc, pxh, sfqy]
+                'INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy) VALUES (?, ?, ?, ?, ?, ?)',
+                [gjsjsf, flbm, flmc, quanzhong, pxh, sfqy]
             );
             return { id: insertResult.lastID };
         });

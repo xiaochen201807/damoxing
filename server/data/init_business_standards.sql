@@ -20,6 +20,7 @@ CREATE TABLE gjj_ywnrfl (
     gjsjsf VARCHAR(100) NOT NULL, -- 关键数据算法编码
     flbm VARCHAR(50) NOT NULL, -- 业务内容分类编码
     flmc VARCHAR(200) NOT NULL, -- 业务内容分类名称
+    quanzhong INTEGER, -- 权重值
     pxh INTEGER DEFAULT 0, -- 排序号
     sfqy BOOLEAN DEFAULT 1, -- 是否启用
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
@@ -36,10 +37,11 @@ CREATE TABLE gjj_ywbzk (
     zdybm VARCHAR(100), -- 自定义编码
     ywbzz VARCHAR(100), -- 业务标准值
     ywbzjg TEXT, -- 业务标准结果执行语句
+    fenzhi INTEGER, -- 风险分值
     ywblbzsm TEXT, -- 业务办理标准说明
     gjsjsf VARCHAR(100), -- 关键数据算法编码
     ywnrfl VARCHAR(50), -- 业务内容分类编码
-    ywblfl VARCHAR(10) DEFAULT '1', -- 业务办理分类: 1标准 2条件
+    ywblfl VARCHAR(10) DEFAULT '1', -- 业务办理分类: 1标准 2条件 3风险
     bzfl VARCHAR(50), -- 业务办理标准分类
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 创建时间
     gxsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 更新时间

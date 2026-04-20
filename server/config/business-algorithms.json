@@ -106,5 +106,11 @@
         "label": "档案位置计算算法",
         "sort": 18,
         "enabled": true
+    },
+    {
+        "value": "19",
+        "label": "提取自动化风控引擎算法",
+        "sort": 19,
+        "enabled": true
     }
 ]

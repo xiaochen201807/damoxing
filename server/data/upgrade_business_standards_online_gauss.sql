@@ -1,6 +1,6 @@
 -- ============================================
 -- 业务标准升级投产脚本（GaussDB）
--- 适用改造点：1-5、8-10
+-- 适用改造点：1-5、8-10、14
 -- 对应文档：docs/业务标准升级方案.md
 -- ============================================
 --
@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.gjj_ywnrfl (
     gjsjsf CHARACTER VARYING(100) NOT NULL,
     flbm CHARACTER VARYING(50) NOT NULL,
     flmc CHARACTER VARYING(200) NOT NULL,
+    quanzhong NUMERIC(5, 0),
     pxh NUMERIC DEFAULT 0,
     sfqy NUMERIC(1, 0) DEFAULT 1,
     cjsj TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -28,6 +29,9 @@ CREATE TABLE IF NOT EXISTS public.gjj_ywnrfl (
 
 CREATE INDEX IF NOT EXISTS idx_gjj_ywnrfl_sf
     ON public.gjj_ywnrfl (gjsjsf, sfqy);
+
+ALTER TABLE public.gjj_ywnrfl
+    ADD COLUMN IF NOT EXISTS quanzhong NUMERIC(5, 0);
 
 -- [改造点 3] gjj_ywbzk 新增 zdybm
 ALTER TABLE public.gjj_ywbzk
@@ -43,6 +47,9 @@ ALTER TABLE public.gjj_ywbzk
 UPDATE public.gjj_ywbzk
    SET ywblfl = '1'
  WHERE ywblfl IS NULL;
+
+ALTER TABLE public.gjj_ywbzk
+    ADD COLUMN IF NOT EXISTS fenzhi NUMERIC(5, 0);
 
 -- [改造点 10] gjj_ywbzk 新增提示语属性字段
 ALTER TABLE public.gjj_ywbzk
@@ -91,6 +98,7 @@ COMMENT ON COLUMN public.gjj_ywnrfl.id IS '主键ID';
 COMMENT ON COLUMN public.gjj_ywnrfl.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN public.gjj_ywnrfl.flbm IS '业务内容分类编码';
 COMMENT ON COLUMN public.gjj_ywnrfl.flmc IS '业务内容分类名称';
+COMMENT ON COLUMN public.gjj_ywnrfl.quanzhong IS '权重值';
 COMMENT ON COLUMN public.gjj_ywnrfl.pxh IS '排序号';
 COMMENT ON COLUMN public.gjj_ywnrfl.sfqy IS '是否启用';
 COMMENT ON COLUMN public.gjj_ywnrfl.cjsj IS '创建时间';
@@ -105,10 +113,11 @@ COMMENT ON COLUMN public.gjj_ywbzk.tsysxdw IS '提示语属性单位';
 COMMENT ON COLUMN public.gjj_ywbzk.zdybm IS '自定义编码';
 COMMENT ON COLUMN public.gjj_ywbzk.ywbzz IS '业务标准值';
 COMMENT ON COLUMN public.gjj_ywbzk.ywbzjg IS '业务标准结果执行语句';
+COMMENT ON COLUMN public.gjj_ywbzk.fenzhi IS '风险分值';
 COMMENT ON COLUMN public.gjj_ywbzk.ywblbzsm IS '业务办理标准说明';
 COMMENT ON COLUMN public.gjj_ywbzk.gjsjsf IS '关键数据算法编码';
 COMMENT ON COLUMN public.gjj_ywbzk.ywnrfl IS '业务内容分类编码';
-COMMENT ON COLUMN public.gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件)';
+COMMENT ON COLUMN public.gjj_ywbzk.ywblfl IS '业务办理分类(1标准 2条件 3风险)';
 COMMENT ON COLUMN public.gjj_ywbzk.bzfl IS '业务办理标准分类';
 COMMENT ON COLUMN public.gjj_ywbzk.cjsj IS '创建时间';
 COMMENT ON COLUMN public.gjj_ywbzk.gxsj IS '更新时间';
@@ -198,10 +207,10 @@ COMMENT ON COLUMN public.gjj_ywbz_debug_case.gxsj IS '更新时间';
 --   FROM information_schema.columns
 --  WHERE table_schema = 'public'
 --    AND table_name = 'gjj_ywbzk'
---    AND column_name IN ('zdybm', 'ywblfl', 'tsysxmc', 'tsysxdw');
+--    AND column_name IN ('zdybm', 'ywblfl', 'tsysxmc', 'tsysxdw', 'fenzhi');
 --
 -- SELECT column_name
 --   FROM information_schema.columns
 --  WHERE table_schema = 'public'
---    AND table_name = 'gjj_ywbz'
---    AND column_name = 'ywbzz';
+--    AND table_name = 'gjj_ywnrfl'
+--    AND column_name = 'quanzhong';

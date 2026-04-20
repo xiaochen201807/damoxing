@@ -116,7 +116,7 @@ router.post('/business-content-classes', async (req, res) => {
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const gjsjsf = req.body.gjsjsf || req.body.ywsf || '';
     const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
-    let sql = 'SELECT id, gjsjsf, flbm as value, flmc as label, flbm, flmc, pxh, sfqy FROM gjj_ywnrfl WHERE sfqy = ?';
+    let sql = 'SELECT id, gjsjsf, flbm as value, flmc as label, flbm, flmc, quanzhong, pxh, sfqy FROM gjj_ywnrfl WHERE sfqy = ?';
     const params = [1];
 
     if (gjsjsf) {
@@ -426,6 +426,7 @@ router.post('/key-data-algorithm-usage', normalizeMalformedBody(), async (req, r
     const body = req.body || {};
     const jgbh = body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const ywsf = body.ywsf || body.gjsjsf || '';
+    const bzbds = '《关键数据算法计算额度$' + ywsf + '》';
     const loginToken = body.login_token || req.headers['login-token'] || '';
     const headers = {
         'channel': req.headers['channel'],
@@ -445,7 +446,7 @@ router.post('/key-data-algorithm-usage', normalizeMalformedBody(), async (req, r
 
     const payload = {
         jgbh,
-        ywsf
+        bzbds
     };
 
     logger.info(`[Tools API] Query key-data-algorithm-usage: ${JSON.stringify(payload)}`);
@@ -510,7 +511,7 @@ router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
     const payload = {
         // 使用前端传入的查询关键字和机构编号
         "sjrwmc": body.sjrwmc || body.jsrwmc || body.keyword || "",
-        "organizationNumber": body.zjgbh||body.jgbh || jgbh || ""
+        "organizationNumber": body.zjgbh || body.jgbh || jgbh || ""
     };
 
     logger.info(`[Tools API] Payload to gateway (task-info): ${JSON.stringify(payload)}`);
