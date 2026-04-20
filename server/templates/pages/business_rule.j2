@@ -508,7 +508,7 @@
                                     "api": {
                                         "method": "post",
                                         "url": "{{ GLOBAL_API_PREFIX }}/tools/key-data-algorithm-usage",
-                                        "adaptor": "const list = Array.isArray(payload.data) ? payload.data : []; return {...payload, data: {items: list, total: list.length}};",
+                                        "adaptor": "const src = payload.data || payload || {}; const list = Array.isArray(src.data) ? src.data : (Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : (Array.isArray(src) ? src : []))); const total = src.total !== undefined ? src.total : list.length; return {...payload, data: {items: list, total}};",
                                         "data": {
                                             "ywsf": "${ywsf}"
                                         }
