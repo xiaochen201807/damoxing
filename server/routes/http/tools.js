@@ -426,7 +426,7 @@ router.post('/key-data-algorithm-usage', normalizeMalformedBody(), async (req, r
     const body = req.body || {};
     const jgbh = body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const ywsf = body.ywsf || body.gjsjsf || '';
-    const bzbds = '《关键数据算法计算额度$' + ywsf + '》';
+    const bzbds = ywsf ? `《关键数据算法计算额度$${ywsf}》` : '';
     const loginToken = body.login_token || req.headers['login-token'] || '';
     const headers = {
         'channel': req.headers['channel'],

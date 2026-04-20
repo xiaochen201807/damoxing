@@ -507,7 +507,8 @@
                                     ],
                                     "api": {
                                         "method": "post",
-                                        "url": "${key_algorithm_usage_api}",
+                                        "url": "{{ GLOBAL_API_PREFIX }}/tools/key-data-algorithm-usage",
+                                        "adaptor": "var list = payload.data || []; if (!Array.isArray(list)) { list = []; } return { status: payload.status === undefined ? 0 : payload.status, msg: payload.msg || 'ok', data: { items: list, total: list.length } };",
                                         "data": {
                                             "ywsf": "${ywsf}"
                                         }
