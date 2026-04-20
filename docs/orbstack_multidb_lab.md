@@ -125,6 +125,8 @@
 - 编排已准备
 - 容器已启动
 - `select 1 from dual;` 已验证可执行
+- 编排已固定为非 `faststart` 的 `gvenzl/oracle-free:23.26.1`
+- compose 已补充 `healthcheck.sh` 健康检查
 
 ### 4.4 人大金仓
 

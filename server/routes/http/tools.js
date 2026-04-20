@@ -77,6 +77,36 @@ function normalizeBusinessStandardAttribute(item) {
     };
 }
 
+function extractGatewayList(gatewayData) {
+    if (Array.isArray(gatewayData?.data)) {
+        return gatewayData.data;
+    }
+    if (Array.isArray(gatewayData?.results)) {
+        return gatewayData.results;
+    }
+    if (Array.isArray(gatewayData?.datas)) {
+        return gatewayData.datas;
+    }
+    if (Array.isArray(gatewayData)) {
+        return gatewayData;
+    }
+    return [];
+}
+
+function normalizeKeyDataAlgorithmUsageItem(item) {
+    const rwxmc = String(item?.rwxmc || '').trim();
+    const mxmc = String(item?.mxmc || '').trim();
+    const jdmc = String(item?.jdmc || '').trim();
+    const displayPath = [rwxmc, mxmc, jdmc].filter(Boolean).join('-');
+
+    return {
+        rwxmc,
+        mxmc,
+        jdmc,
+        displayPath: displayPath || '-'
+    };
+}
+
 /**
  * 1. 获取业务内容分类 (POST /business-content-classes)
  * 原：从 ywbzk 表中提取唯一的业务内容分类
@@ -349,7 +379,7 @@ router.post('/business-standard-attributes', normalizeMalformedBody(), async (re
     }
 });
 
-const { fetchPublicParamValue } = require('../../services/gatewayService');
+const { fetchPublicParamValue, gatewayRequest } = require('../../services/gatewayService');
 
 // ... (existing imports)
 
@@ -389,7 +419,75 @@ router.post('/public-param-values', normalizeMalformedBody(), async (req, res) =
 });
 
 /**
- * 6. 获取任务项 (POST /task-info)
+ * 6. 获取关键数据算法应用位置 (POST /key-data-algorithm-usage)
+ * 调用第三方网关接口，查询当前关键数据算法被应用到的任务项、模型、节点位置
+ */
+router.post('/key-data-algorithm-usage', normalizeMalformedBody(), async (req, res) => {
+    const body = req.body || {};
+    const jgbh = body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
+    const ywsf = body.ywsf || body.gjsjsf || '';
+    const loginToken = body.login_token || req.headers['login-token'] || '';
+    const headers = {
+        'channel': req.headers['channel'],
+        'jgbh': jgbh,
+        'login-token': loginToken,
+        'zzbs': req.headers['zzbs'],
+        'zzjgdmz': req.headers['zzjgdmz']
+    };
+
+    if (!jgbh) {
+        return res.status(400).json({ status: 1, msg: '机构编号不能为空' });
+    }
+
+    if (!ywsf) {
+        return res.status(400).json({ status: 1, msg: '关键数据算法不能为空' });
+    }
+
+    const payload = {
+        jgbh,
+        ywsf
+    };
+
+    logger.info(`[Tools API] Query key-data-algorithm-usage: ${JSON.stringify(payload)}`);
+
+    try {
+        const gatewayData = await gatewayRequest(
+            '/GLDX/business/common/newBizStandardGroup/queryKeyDataAlgorithmStandardV2.service',
+            payload,
+            headers
+        );
+        const list = extractGatewayList(gatewayData);
+        const seen = new Set();
+        const resultData = [];
+
+        list.forEach(item => {
+            const normalizedItem = normalizeKeyDataAlgorithmUsageItem(item);
+            const dedupeKey = `${normalizedItem.rwxmc}__${normalizedItem.mxmc}__${normalizedItem.jdmc}`;
+
+            if (seen.has(dedupeKey)) {
+                return;
+            }
+
+            seen.add(dedupeKey);
+            resultData.push(normalizedItem);
+        });
+
+        res.json({
+            status: 0,
+            msg: 'ok',
+            data: resultData
+        });
+    } catch (err) {
+        logger.error(`[Tools API] Failed to query key-data-algorithm-usage: ${err.message}`);
+        if (err.response?.data) {
+            logger.error(`[Tools API] key-data-algorithm-usage error data: ${JSON.stringify(err.response.data)}`);
+        }
+        res.status(500).json({ status: 1, msg: err.message });
+    }
+});
+
+/**
+ * 7. 获取任务项 (POST /task-info)
  * 调用外部网关接口获取任务项列表（支持模糊查询）
  */
 router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
@@ -470,7 +568,7 @@ router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
 });
 
 /**
- * 7. 获取关键数据算法列表 (GET|POST /business-algorithms)
+ * 8. 获取关键数据算法列表 (GET|POST /business-algorithms)
  * 从本地配置文件读取
  */
 router.all('/business-algorithms', (req, res) => {

@@ -35,6 +35,7 @@
         "rule_debug_case_get_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/get",
         "rule_debug_case_save_api": "{{ GLOBAL_API_PREFIX }}/ywbz/debug_case/save",
         "algorithm_options_api": "{{ GLOBAL_API_PREFIX }}/tools/business-algorithms",
+        "key_algorithm_usage_api": "{{ GLOBAL_API_PREFIX }}/tools/key-data-algorithm-usage",
         "algorithm_options": [],
         "standard_class_options": [
             { "label": "缴存人账户余额", "value": "1" },
@@ -469,6 +470,76 @@
                         "type": "submit",
                         "label": "查询",
                         "level": "primary"
+                    },
+                    {
+                        "type": "button",
+                        "label": "关键数据算法应用位置",
+                        "level": "default",
+                        "className": "ml-2",
+                        "disabledOn": "${!ywsf}",
+                        "tooltip": "请先选择关键数据算法",
+                        "actionType": "dialog",
+                        "dialog": {
+                            "title": "关键数据算法应用位置",
+                            "size": "lg",
+                            "data": {
+                                "ywsf": "${ywsf}"
+                            },
+                            "body": [
+                                {
+                                    "type": "alert",
+                                    "level": "info",
+                                    "showIcon": true,
+                                    "className": "mb-3",
+                                    "body": "当前结果来自第三方程序配置，仅供查看。展示内容为任务项、模型、节点三段应用位置。"
+                                },
+                                {
+                                    "type": "crud",
+                                    "syncLocation": false,
+                                    "columnsTogglable": false,
+                                    "headerToolbar": [
+                                        "statistics"
+                                    ],
+                                    "footerToolbar": [
+                                        "switch-per-page",
+                                        "pagination",
+                                        "statistics"
+                                    ],
+                                    "api": {
+                                        "method": "post",
+                                        "url": "${key_algorithm_usage_api}",
+                                        "data": {
+                                            "ywsf": "${ywsf}"
+                                        }
+                                    },
+                                    "columns": [
+                                        {
+                                            "name": "rwxmc",
+                                            "label": "任务项"
+                                        },
+                                        {
+                                            "name": "mxmc",
+                                            "label": "模型"
+                                        },
+                                        {
+                                            "name": "jdmc",
+                                            "label": "节点"
+                                        },
+                                        {
+                                            "name": "displayPath",
+                                            "label": "应用位置"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "actions": [
+                                {
+                                    "type": "button",
+                                    "label": "关闭",
+                                    "actionType": "close"
+                                }
+                            ]
+                        }
                     },
                     {
                         "type": "button",

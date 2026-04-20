@@ -66,7 +66,7 @@ services:
         max-file: "5"
 
   oracle23:
-    image: gvenzl/oracle-free:23-slim-faststart
+    image: ${ORACLE23_IMAGE:-gvenzl/oracle-free:23.26.1}
     container_name: damoxing-oracle23
     restart: unless-stopped
     ports:
@@ -79,6 +79,12 @@ services:
     volumes:
       - oracle23_data:/opt/oracle/oradata
     shm_size: 1gb
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
     logging:
       driver: json-file
       options:
