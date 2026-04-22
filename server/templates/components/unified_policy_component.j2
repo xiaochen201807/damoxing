@@ -126,9 +126,43 @@
                 }
                 {% endif %}
 
+                {% if enable_policy_param_selection %}
+                {% if (final_groups | length > 0) or ((final_groups | length == 0) and form_fields) %},{% endif %}
+                {
+                    "type": "hidden",
+                    "name": "policy_params_all_json",
+                    "value": "[]"
+                },
+                {
+                    "type": "hidden",
+                    "name": "policy_params_selected_json",
+                    "value": "[]"
+                },
+                {
+                    "type": "hidden",
+                    "name": "policy_params_unselected_json",
+                    "value": "[]"
+                },
+                {
+                    "type": "hidden",
+                    "name": "policy_params_selected_labels",
+                    "value": ""
+                },
+                {
+                    "type": "hidden",
+                    "name": "policy_params_unselected_labels",
+                    "value": ""
+                },
+                {
+                    "type": "hidden",
+                    "name": "policy_adjustment_prompt",
+                    "value": ""
+                }
+                {% endif %}
+
                 {# 3. 分析需求输入区 #}
                 {% if enable_query_input | default(true) %}
-                {% if (final_groups | length > 0) or ((final_groups | length == 0) and form_fields) %},{% endif %}
+                {% if enable_policy_param_selection %},{% elif (final_groups | length > 0) or ((final_groups | length == 0) and form_fields) %},{% endif %}
                 {
                     "type": "container",
                     "className": "m-t-md m-b-md",
@@ -191,6 +225,12 @@
                         "click": {
                             "actions": [
                                 {% if action.actionType == 'ai_analysis' %}
+                                 {% if enable_policy_param_selection %}
+                                 {
+                                     "actionType": "custom",
+                                     "script": "(function(){ const checkboxes = Array.from(document.querySelectorAll('.policy-param-checkbox')); const readCard = (checkbox) => ({ key: checkbox.dataset.key || checkbox.dataset.label || '', label: checkbox.dataset.label || '', value: checkbox.dataset.value || '', unit: checkbox.dataset.unit || '' }); const allItems = checkboxes.map(readCard); const selectedItems = checkboxes.filter(item => item.checked).map(readCard); const unselectedItems = checkboxes.filter(item => !item.checked).map(readCard); const toSummary = (items) => items.length ? items.map(item => item.label + '=' + item.value + (item.unit || '')).join('；') : '无'; const policyPrompt = allItems.length ? '【政策参数约束】\\n当前政策参数：' + toSummary(allItems) + '\\n允许AI调整：' + toSummary(selectedItems) + '\\n禁止AI调整：' + toSummary(unselectedItems) + '\\n要求：后续分析、预测和建议时，只能调整“允许AI调整”中的政策参数，严禁调整“禁止AI调整”中的政策参数。' : ''; const setField = (name, value) => { const input = document.querySelector('[name=\"' + name + '\"]'); if (input) { input.value = value; input.setAttribute('value', value); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); } }; setField('policy_params_all_json', JSON.stringify(allItems)); setField('policy_params_selected_json', JSON.stringify(selectedItems)); setField('policy_params_unselected_json', JSON.stringify(unselectedItems)); setField('policy_params_selected_labels', selectedItems.map(item => item.label).join('、')); setField('policy_params_unselected_labels', unselectedItems.map(item => item.label).join('、')); setField('policy_adjustment_prompt', policyPrompt); })();"
+                                 },
+                                 {% endif %}
                                  
                                  {
                                      "actionType": "setValue",
@@ -244,7 +284,7 @@
                     "pageId": "{{ page_key }}",
                     "workflow_type": "{{ workflow_type | default('ai_analysis') }}",
                     "timestamp": "${date(now(), 'x')}",
-                    "query": "${data.query || query || '用户未指定要求'}"
+                    "query": "${(data.query || query || '用户未指定要求') {% if enable_policy_param_selection %}+ (policy_adjustment_prompt ? '\\n\\n' + policy_adjustment_prompt : ''){% endif %}}"
                 }
             },
             "onEvent": {

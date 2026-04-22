@@ -1,8 +1,9 @@
 /**
  * 同步现有模板文件到数据库
- * 为 chart_demo.j2、fx_demo.j2、risk_page_dynamic.j2 创建数据库记录
+ * 为模板创建/更新基础记录；policy_demo 的完整参数定义由 analyze_policy_demo.js 负责回填
  */
-const db = require('./db');
+const db = require('../db');
+const analyzePolicyDemo = require('./analyze_policy_demo');
 
 const missingTemplates = [
     {
@@ -19,6 +20,7 @@ const missingTemplates = [
                 current_data_title: { type: 'string', description: '当前数据标题', default: '当前政策数据' },
                 prediction_data_title: { type: 'string', description: '预测数据标题', default: '政策预测数据' },
                 form_title: { type: 'string', description: '表单标题', default: '调整政策参数' },
+                enable_policy_param_selection: { type: 'boolean', description: '启用政策参数勾选限制', default: false },
                 enable_ai_analysis: { type: 'boolean', description: '是否启用AI分析', default: true }
             },
             required: ['page_title']
@@ -28,6 +30,7 @@ const missingTemplates = [
             page_subtitle: '基于 AI 的政策参数调整与影响预测',
             current_data_title: '当前政策数据',
             current_data_quarter: '2025Q4',
+            enable_policy_param_selection: false,
             enable_ai_analysis: true,
             enable_prediction: true,
             footer_text: '住房公积金管理中心 政策研究部 © 2025'
@@ -62,34 +65,47 @@ const missingTemplates = [
 
 console.log('正在同步模板到数据库...\n');
 
-let count = 0;
-missingTemplates.forEach((tpl, index) => {
-    db.run(`
-        INSERT OR REPLACE INTO sys_page_templates_config 
-        (template_id, template_name, description, template_file, components, params_schema, default_params, preview_image, theme_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-        tpl.template_id,
-        tpl.template_name,
-        tpl.description,
-        tpl.template_file,
-        tpl.components,
-        tpl.params_schema,
-        tpl.default_params,
-        tpl.preview_image,
-        tpl.theme_id
-    ], (err) => {
-        count++;
-        if (err) {
-            console.error(`❌ 同步失败: ${tpl.template_name}`, err.message);
-        } else {
-            console.log(`✅ 同步成功: ${tpl.template_name} (${tpl.template_file})`);
-        }
+const run = async () => {
+    for (const tpl of missingTemplates) {
+        await new Promise((resolve) => {
+            db.run(`
+                INSERT OR REPLACE INTO sys_page_templates_config 
+                (template_id, template_name, description, template_file, components, params_schema, default_params, preview_image, theme_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                tpl.template_id,
+                tpl.template_name,
+                tpl.description,
+                tpl.template_file,
+                tpl.components,
+                tpl.params_schema,
+                tpl.default_params,
+                tpl.preview_image,
+                tpl.theme_id
+            ], (err) => {
+                if (err) {
+                    console.error(`❌ 同步失败: ${tpl.template_name}`, err.message);
+                } else {
+                    console.log(`✅ 同步成功: ${tpl.template_name} (${tpl.template_file})`);
+                }
+                resolve();
+            });
+        });
+    }
 
-        if (count === missingTemplates.length) {
-            console.log(`\n🎉 同步完成！共同步 ${count}/${missingTemplates.length} 个模板`);
-            console.log('\n刷新配置页面即可看到新模板。');
-            process.exit(0);
-        }
-    });
+    console.log('\n🔄 正在回填 policy_demo 的完整参数定义...');
+    const analyzeResult = await analyzePolicyDemo();
+    if (!analyzeResult.success) {
+        console.error(`❌ policy_demo 参数回填失败: ${analyzeResult.message}`);
+        process.exit(1);
+    }
+
+    console.log(`\n🎉 同步完成！共同步 ${missingTemplates.length} 个模板，并刷新了 policy_demo 参数定义`);
+    console.log('\n刷新配置页面即可看到新模板。');
+    process.exit(0);
+};
+
+run().catch((error) => {
+    console.error('❌ 模板同步失败:', error);
+    process.exit(1);
 });

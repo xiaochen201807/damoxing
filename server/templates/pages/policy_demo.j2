@@ -35,6 +35,7 @@
             },
             "body": [
                 {# 统计卡片 - 支持静态 items 或 API 动态加载（groups）#}
+                {% set policy_param_selectable = enable_policy_param_selection if enable_policy_param_selection is defined else false %}
                 {% include 'components/stats_cards.j2' %}
             ]
         },

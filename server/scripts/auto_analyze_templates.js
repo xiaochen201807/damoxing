@@ -136,7 +136,8 @@ function extractVariables(content) {
 
     const builtins = new Set([
         'theme', 'now', 'date', 'g', 'f', 'a', 'i', 'v', 'k', 'comma', 'btn_comma', 'inner_comma', 'footer_comma',
-        'subtitle_tpl', 'report_button_json', 'ai_loading', 'show_analysis_result', 'show_prediction'
+        'subtitle_tpl', 'report_button_json', 'ai_loading', 'show_analysis_result', 'show_prediction',
+        'policy_param_selectable'
     ]);
 
     const filtered = Array.from(vars).filter(v => {
@@ -171,6 +172,12 @@ function extractParamAnnotations(content) {
 // 类型推断
 function inferType(varName) {
     const result = { type: 'string', description: varName.replace(/_/g, ' '), default: '' };
+    if (varName === 'enable_policy_param_selection') {
+        result.type = 'boolean';
+        result.description = '启用政策参数勾选限制';
+        result.default = false;
+        return result;
+    }
     if (varName.startsWith('enable_') || varName.startsWith('is_')) {
         result.type = 'boolean';
         result.default = true;
@@ -366,12 +373,31 @@ function analyzeTemplate(templateFile, templatesDir) {
         'prediction_data_title': { group: '📊 统计卡片配置', order: 31, desc: '🏷️ 预测数据区域标题', groupOrder: 20 },
         'prediction_data_items': { group: '📊 统计卡片配置', order: 32, desc: '📑 预测数据项 (JSON)', groupOrder: 20 },
         'prediction_columns': { group: '📊 统计卡片配置', order: 33, desc: '🔢 预测显示列数', groupOrder: 20 },
+        'enable_policy_param_selection': { group: '⚙️ 表单及 AI组件配置', order: 44, desc: '☑️ 启用政策参数勾选限制', groupOrder: 30 },
         'form_title': { group: '⚙️ 表单及 AI组件配置', order: 40, desc: '📝 表单标题', groupOrder: 30 },
         'form_description': { group: '⚙️ 表单及 AI组件配置', order: 41, desc: '📄 表单描述', groupOrder: 30 },
         'policy_groups': { group: '⚙️ 表单及 AI组件配置', order: 42, desc: '📝 政策分组表单 (JSON)', groupOrder: 30 },
         'policy_actions': { group: '⚙️ 表单及 AI组件配置', order: 43, desc: '🔘 动作按钮配置 (JSON)', groupOrder: 30 },
         'enable_report_button': { group: '🎨 页面头部配置', order: 10, desc: '显示报告生成按钮', groupOrder: 10 }
     };
+
+    if (templateFile.includes('policy_demo')) {
+        delete paramsSchema.properties.policy_param_selectable;
+        delete defaultParams.policy_param_selectable;
+        delete paramsSchema.properties.key;
+        delete defaultParams.key;
+
+        paramsSchema.properties.enable_policy_param_selection = {
+            ...(paramsSchema.properties.enable_policy_param_selection || {}),
+            type: 'boolean',
+            description: '☑️ 启用政策参数勾选限制',
+            default: false,
+            'ui:group': '⚙️ 表单及 AI组件配置',
+            'ui:groupOrder': 30,
+            'ui:order': 44
+        };
+        defaultParams.enable_policy_param_selection = false;
+    }
 
     // 统一应用特殊映射（覆盖归类）
     if (templateFile.includes('policy_demo')) {
