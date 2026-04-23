@@ -153,7 +153,7 @@ router.post('/business-content-class-options', async (req, res) => {
         "syObjectNumber": req.body.syObjectNumber,
         "fieldIdentification": req.body.fieldIdentification,
         "superiorCodings": "",
-        "isDefault": req.body.isDefault !== undefined ? req.body.isDefault : 0
+        "isDefault": req.body.isDefault !== undefined ? req.body.isDefault : ""
     };
 
     logger.info(`[Tools API] Payload to gateway: ${JSON.stringify(payload)}`);
