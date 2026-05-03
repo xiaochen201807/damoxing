@@ -205,7 +205,7 @@ async function ensureTemplateConfig() {
         'SELECT * FROM sys_page_templates_config WHERE template_id = ?',
         [CONFIG.page.key]
     );
-    const components = JSON.stringify(['crud', 'form', 'dialog']);
+    const components = JSON.stringify(['react', 'custom', 'tpl']);
     const paramsSchema = JSON.stringify({ type: 'object', properties: {} });
     const defaultParams = JSON.stringify({});
 

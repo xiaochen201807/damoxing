@@ -16,15 +16,6 @@ const API_PARAMS = {
         groupOrder: 1,
         order: 1
     },
-    default_page_size: {
-        type: 'integer',
-        title: '默认每页条数',
-        description: '配置列表默认每页显示条数',
-        default: 10,
-        group: '📄 页面配置',
-        groupOrder: 1,
-        order: 2
-    },
     default_task: {
         type: 'string',
         title: '默认任务项',
@@ -32,7 +23,7 @@ const API_PARAMS = {
         default: 'tq',
         group: '📄 页面配置',
         groupOrder: 1,
-        order: 3
+        order: 2
     },
     default_related_party: {
         type: 'string',
@@ -41,7 +32,7 @@ const API_PARAMS = {
         default: 'person',
         group: '📄 页面配置',
         groupOrder: 1,
-        order: 4
+        order: 3
     },
     task_config_summary_api: {
         type: 'string',
@@ -126,7 +117,7 @@ async function analyzeTaskConfigUpgrade() {
         [templateId]
     );
 
-    const components = JSON.stringify(['crud', 'form', 'dialog', 'tpl']);
+    const components = JSON.stringify(['react', 'custom', 'tpl']);
 
     if (row) {
         await db.run(

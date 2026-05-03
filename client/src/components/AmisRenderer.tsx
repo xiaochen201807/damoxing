@@ -7,6 +7,8 @@ import { fetcher } from '../utils/fetcher';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { AmisSchema } from '../types/amis';
 import type { Api, ApiObject, Payload, RendererEnv } from 'amis-core';
+import TaskConfigUpgrade from '../pages/TaskConfigUpgrade';
+import type { TaskConfigUpgradeConfig } from '../pages/TaskConfigUpgrade';
 
 interface Props {
   schema: AmisSchema;
@@ -24,6 +26,21 @@ const hasResponseType = (api: ApiObject): api is ApiObject & { responseType: 'bl
 const AmisRenderer: React.FC<Props> = ({ schema, data = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const schemaRecord = schema as AmisSchema & {
+    xRenderer?: string;
+    title?: string;
+    data?: TaskConfigUpgradeConfig;
+  };
+
+  if (schemaRecord.xRenderer === 'task-config-upgrade') {
+    return (
+      <TaskConfigUpgrade
+        title={schemaRecord.title}
+        config={schemaRecord.data}
+      />
+    );
+  }
+
   const isCanceledRequest = (value: unknown) => (
     axios.isCancel(value) ||
     (typeof value === 'object' && value !== null && (value as { code?: string }).code === 'ERR_CANCELED')

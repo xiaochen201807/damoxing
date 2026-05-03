@@ -36,7 +36,7 @@ function walk(node, visitor) {
 }
 
 describe('task_config_upgrade template', () => {
-    test('渲染为合法 AMIS JSON 并声明 mock 数据接口', () => {
+    test('渲染为合法页面 JSON 并声明 React 渲染入口', () => {
         const rendered = env.render('pages/task_config_upgrade.j2', {
             title: '任务项运行配置工具',
             GLOBAL_API_PREFIX: '/api'
@@ -45,6 +45,7 @@ describe('task_config_upgrade template', () => {
 
         expect(schema.type).toBe('page');
         expect(schema.title).toBe('任务项运行配置工具');
+        expect(schema.xRenderer).toBe('task-config-upgrade');
         expect(schema.data).toMatchObject({
             task_config_summary_api: '/api/task_configmock/summary',
             task_config_rows_api: '/api/task_configmock/rows',
@@ -54,55 +55,26 @@ describe('task_config_upgrade template', () => {
         });
     });
 
-    test('清册查询区和配置弹窗保留原型主流程', () => {
+    test('模板保留任务默认值和 React 回退提示', () => {
         const rendered = env.render('pages/task_config_upgrade.j2', {
             title: '任务项运行配置工具',
-            GLOBAL_API_PREFIX: '/api'
+            GLOBAL_API_PREFIX: '/api',
+            default_task: 'dk',
+            default_related_party: 'developer'
         });
         const schema = JSON.parse(rendered);
-        let crud = null;
-        let filterForm = null;
-        let configDialog = null;
-        const columnNames = [];
+        const tplNodes = [];
 
         walk(schema, node => {
-            if (node?.id === 'task_config_crud') {
-                crud = node;
-            }
-            if (node?.id === 'task_config_filter_form') {
-                filterForm = node;
-            }
-            if (node?.dialog?.title === '配置应用业务') {
-                configDialog = node.dialog;
-            }
-            if (node?.label && node?.name) {
-                columnNames.push(node.name);
+            if (node?.type === 'tpl') {
+                tplNodes.push(node.tpl);
             }
         });
 
-        expect(crud?.api).toMatchObject({
-            method: 'post',
-            url: '${task_config_rows_api}'
+        expect(schema.data).toMatchObject({
+            default_task: 'dk',
+            default_related_party: 'developer'
         });
-        expect(filterForm?.body.map(item => item.name || item.type)).toEqual(expect.arrayContaining([
-            'relatedParty',
-            'task',
-            'businessCategory',
-            'groupId',
-            'keyword',
-            'submit'
-        ]));
-        expect(columnNames).toEqual(expect.arrayContaining([
-            'nodeTitle',
-            'elementTitle',
-            'objectName',
-            'formula',
-            'description',
-            'usageText',
-            'algorithmSummary'
-        ]));
-        expect(configDialog).toBeTruthy();
-        expect(JSON.stringify(configDialog)).toContain('appliedBusinesses');
-        expect(JSON.stringify(configDialog)).toContain('algorithmParamGroups');
+        expect(tplNodes.join('')).toContain('React 渲染器');
     });
 });

@@ -158,8 +158,10 @@ const AutoDashboard: React.FC = () => {
     return <div style={{ padding: '20px' }}>暂无配置数据</div>;
   }
 
+  const isDedicatedRenderer = (schema as AmisSchema & { xRenderer?: string }).xRenderer === 'task-config-upgrade';
+
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={isDedicatedRenderer ? undefined : { padding: '20px' }}>
       {/* 将获取到的 JSON 配置传递给 AMIS 渲染器 */}
       <AmisRenderer schema={schema} />
     </div>
