@@ -133,7 +133,7 @@ export const fetcher = <T = unknown>({
         if (typeof parsed === 'object' && parsed !== null) {
           requestData = parsed;
         }
-      } catch (e) {
+      } catch (_e) {
         // 解析失败，说明可能只是普通字符串，保持原样
       }
     }
@@ -192,7 +192,7 @@ export const fetcher = <T = unknown>({
           if (res.type === 'text/csv' || res.type === 'application/csv') {
             fileName += '.csv';
           }
-        } catch (e) {
+        } catch (_e) {
           // ignore
         }
       }
@@ -233,6 +233,10 @@ export const fetcher = <T = unknown>({
       headers: response.headers
     } as FetcherResponse<T>;
   }).catch((error: AxiosError) => {
+    if (axios.isCancel(error) || error.code === 'ERR_CANCELED') {
+      throw error;
+    }
+
     // 处理 401 未授权错误
     if (error.response?.status === 401 || error.response?.status === 403) {
       // 清除本地存储
