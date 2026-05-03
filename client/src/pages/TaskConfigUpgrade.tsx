@@ -770,10 +770,20 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     const compactTitle = group.elementTitle;
     const formulaOnly = ['角色', '时效', '待办任务描述', '消息', '任务结果'].includes(compactTitle);
     const attachmentLike = ['业务附件', '凭条'].includes(compactTitle);
+    const shouldMoveUsageLeft = formulaOnly || attachmentLike;
 
     return (
       <div className="table-wrap">
-        <table>
+        <table className={shouldMoveUsageLeft ? 'usage-left-table' : undefined}>
+          {shouldMoveUsageLeft && (
+            <colgroup>
+              <col className="content-col" />
+              {attachmentLike && <col className="description-col" />}
+              <col className="usage-col" />
+              <col className="spacer-col" />
+              <col className="action-col" />
+            </colgroup>
+          )}
           <thead>
             <tr>
               {!formulaOnly && !attachmentLike && <th className="index-cell">序号</th>}
@@ -797,6 +807,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
               </th>
               {!formulaOnly && <th>{attachmentLike ? '配置说明' : '描述'}</th>}
               <th className="usage-cell">应用于</th>
+              {shouldMoveUsageLeft && <th className="spacer-cell" aria-hidden="true" />}
               <th className="actions-cell">操作</th>
             </tr>
           </thead>
@@ -808,11 +819,12 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
                 <td>{formulaOnly || attachmentLike ? (row.objectName || row.formula || '-') : (row.formula || '-')}</td>
                 {!formulaOnly && <td>{row.description || '-'}</td>}
                 <td className="usage-cell">{renderUsage(row)}</td>
+                {shouldMoveUsageLeft && <td className="spacer-cell" aria-hidden="true" />}
                 <td className="actions-cell">{renderActionButton(group, row)}</td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={formulaOnly ? 3 : attachmentLike ? 4 : 6}>
+                <td colSpan={formulaOnly ? 4 : attachmentLike ? 5 : 6}>
                   <div className="table-empty-state">当前筛选条件下暂无清册</div>
                 </td>
               </tr>

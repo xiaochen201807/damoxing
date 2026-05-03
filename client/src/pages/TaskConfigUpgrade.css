@@ -571,6 +571,34 @@
   text-align: center;
 }
 
+.task-config-upgrade .usage-left-table .content-col {
+  width: 48%;
+}
+
+.task-config-upgrade .usage-left-table .description-col {
+  width: 22%;
+}
+
+.task-config-upgrade .usage-left-table .usage-col {
+  width: 260px;
+}
+
+.task-config-upgrade .usage-left-table .spacer-col {
+  width: auto;
+}
+
+.task-config-upgrade .usage-left-table .action-col {
+  width: 86px;
+}
+
+.task-config-upgrade .usage-left-table .usage-cell {
+  width: 260px;
+}
+
+.task-config-upgrade .spacer-cell {
+  padding: 0;
+}
+
 .task-config-upgrade .usage-list {
   display: flex;
   flex-wrap: wrap;
