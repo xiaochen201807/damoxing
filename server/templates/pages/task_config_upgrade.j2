@@ -1,0 +1,532 @@
+{#
+  任务项运行配置工具 AMIS 页面
+
+  @param title 页面标题
+  @param task_config_summary_api 页面汇总接口
+  @param task_config_rows_api 清单接口
+  @param task_config_business_options_api 应用业务选项接口
+  @param task_config_group_options_api 节点要素选项接口
+  @param task_config_save_api 配置保存接口
+#}
+{
+    "type": "page",
+    "title": "{{ title | default('任务项运行配置工具') }}",
+    "className": "task-config-page",
+    "css": {
+        ".task-config-page": {
+            "background": "#f5f7fb"
+        },
+        ".task-config-page .cxd-Page-body": {
+            "padding": "16px"
+        },
+        ".task-config-shell": {
+            "border": "1px solid #e4eaf3",
+            "borderRadius": "6px",
+            "background": "#ffffff",
+            "boxShadow": "0 8px 24px rgba(29, 53, 87, 0.06)",
+            "overflow": "hidden"
+        },
+        ".task-config-crud .cxd-CRUD-filter": {
+            "padding": "14px 16px 6px",
+            "borderBottom": "1px solid #edf1f7",
+            "background": "#ffffff"
+        },
+        ".task-config-crud .cxd-Form--inline .cxd-Form-item": {
+            "marginRight": "12px",
+            "marginBottom": "10px"
+        },
+        ".task-config-crud .cxd-Form--inline .cxd-Form-label": {
+            "fontSize": "12px",
+            "color": "#5d6b82"
+        },
+        ".task-config-crud .cxd-Form--inline .cxd-Form-control": {
+            "minWidth": "180px"
+        },
+        ".task-config-crud .cxd-CRUD-toolbar": {
+            "padding": "12px 16px",
+            "borderBottom": "1px solid #edf1f7",
+            "background": "#fbfcff"
+        },
+        ".task-config-crud .cxd-CRUD-body": {
+            "padding": "0 16px 12px"
+        },
+        ".task-config-crud table thead th": {
+            "background": "#eef4ff",
+            "color": "#35445c",
+            "fontSize": "12px",
+            "fontWeight": "600"
+        },
+        ".task-config-crud table tbody td": {
+            "color": "#3f4d63",
+            "fontSize": "12px",
+            "lineHeight": "1.5",
+            "verticalAlign": "middle"
+        },
+        ".task-config-crud table tbody tr:hover td": {
+            "background": "#f8fbff"
+        },
+        ".task-config-header": {
+            "display": "flex",
+            "justifyContent": "space-between",
+            "gap": "16px",
+            "alignItems": "flex-start",
+            "flexWrap": "wrap"
+        },
+        ".task-config-title": {
+            "display": "flex",
+            "alignItems": "center",
+            "gap": "8px",
+            "marginBottom": "8px",
+            "fontSize": "15px",
+            "fontWeight": "600",
+            "color": "#26364f"
+        },
+        ".task-config-title::before": {
+            "content": "\"\"",
+            "width": "3px",
+            "height": "15px",
+            "borderRadius": "2px",
+            "background": "#2368ff"
+        },
+        ".task-config-path": {
+            "fontSize": "12px",
+            "color": "#687891"
+        },
+        ".task-config-metrics": {
+            "display": "flex",
+            "gap": "8px",
+            "flexWrap": "wrap"
+        },
+        ".task-config-metric": {
+            "minWidth": "86px",
+            "padding": "6px 10px",
+            "border": "1px solid #dfe7f2",
+            "borderRadius": "4px",
+            "background": "#ffffff"
+        },
+        ".task-config-metric__value": {
+            "display": "block",
+            "fontSize": "16px",
+            "fontWeight": "700",
+            "color": "#1f3f78",
+            "lineHeight": "1.25"
+        },
+        ".task-config-metric__label": {
+            "fontSize": "11px",
+            "color": "#7b8797"
+        },
+        ".template-strip": {
+            "display": "flex",
+            "gap": "6px",
+            "marginTop": "8px",
+            "flexWrap": "wrap"
+        },
+        ".template-chip": {
+            "display": "inline-flex",
+            "alignItems": "center",
+            "height": "24px",
+            "padding": "0 10px",
+            "border": "1px solid #d8e2f0",
+            "borderRadius": "3px",
+            "background": "#ffffff",
+            "color": "#53627a",
+            "fontSize": "12px"
+        },
+        ".template-chip--active": {
+            "borderColor": "#2368ff",
+            "background": "#edf4ff",
+            "color": "#1f57cf",
+            "fontWeight": "600"
+        },
+        ".node-cell": {
+            "display": "flex",
+            "alignItems": "center",
+            "gap": "8px",
+            "minWidth": "0"
+        },
+        ".node-status": {
+            "display": "inline-flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "width": "34px",
+            "height": "20px",
+            "borderRadius": "3px",
+            "fontSize": "11px",
+            "whiteSpace": "nowrap"
+        },
+        ".node-status--on": {
+            "color": "#1a7f37",
+            "background": "#eaf8ef",
+            "border": "1px solid #bce4c8"
+        },
+        ".node-status--off": {
+            "color": "#8a4b0a",
+            "background": "#fff7e8",
+            "border": "1px solid #f2d6a2"
+        },
+        ".usage-chip": {
+            "display": "inline-flex",
+            "alignItems": "center",
+            "maxWidth": "100%",
+            "padding": "2px 8px",
+            "borderRadius": "3px",
+            "fontSize": "12px",
+            "lineHeight": "1.5",
+            "whiteSpace": "normal"
+        },
+        ".usage-chip--configured": {
+            "color": "#1f57cf",
+            "background": "#edf4ff",
+            "border": "1px solid #cbdcff"
+        },
+        ".usage-chip--empty": {
+            "color": "#8a5a12",
+            "background": "#fff8e8",
+            "border": "1px solid #f1d7a8"
+        },
+        ".param-chip": {
+            "display": "inline-flex",
+            "alignItems": "center",
+            "padding": "2px 8px",
+            "border": "1px solid #d8eee3",
+            "borderRadius": "3px",
+            "background": "#f0fbf5",
+            "color": "#23724b",
+            "fontSize": "12px"
+        },
+        ".param-chip--empty": {
+            "borderColor": "#e2e8f0",
+            "background": "#f8fafc",
+            "color": "#718096"
+        },
+        ".task-config-dialog-note": {
+            "padding": "10px 12px",
+            "marginBottom": "12px",
+            "border": "1px solid #dfe8f7",
+            "borderRadius": "4px",
+            "background": "#f8fbff",
+            "color": "#51627a",
+            "fontSize": "12px",
+            "lineHeight": "1.6"
+        }
+    },
+    "data": {
+        "task_config_summary_api": "{{ task_config_summary_api | default(GLOBAL_API_PREFIX + '/task_configmock/summary') }}",
+        "task_config_rows_api": "{{ task_config_rows_api | default(GLOBAL_API_PREFIX + '/task_configmock/rows') }}",
+        "task_config_business_options_api": "{{ task_config_business_options_api | default(GLOBAL_API_PREFIX + '/task_configmock/business-options') }}",
+        "task_config_group_options_api": "{{ task_config_group_options_api | default(GLOBAL_API_PREFIX + '/task_configmock/group-options') }}",
+        "task_config_save_api": "{{ task_config_save_api | default(GLOBAL_API_PREFIX + '/task_configmock/save-business-config') }}",
+        "default_task": "{{ default_task | default('tq') }}",
+        "default_related_party": "{{ default_related_party | default('person') }}"
+    },
+    "body": [
+        {
+            "type": "container",
+            "className": "task-config-shell",
+            "body": [
+                {
+                    "type": "crud",
+                    "id": "task_config_crud",
+                    "className": "task-config-crud",
+                    "syncLocation": false,
+                    "columnsTogglable": false,
+                    "primaryField": "id",
+                    "perPage": {{ default_page_size | default(10) }},
+                    "api": {
+                        "method": "post",
+                        "url": "${task_config_rows_api}",
+                        "data": {
+                            "relatedParty": "${relatedParty || default_related_party}",
+                            "task": "${task || default_task}",
+                            "businessCategory": "${businessCategory}",
+                            "groupId": "${groupId}",
+                            "keyword": "${keyword}"
+                        },
+                        "adaptor": "const src = payload.data || payload || {}; const items = Array.isArray(src.items) ? src.items : (Array.isArray(src.rows) ? src.rows : []); const total = src.total !== undefined ? src.total : items.length; return {...payload, data: {...src, items, total}};"
+                    },
+                    "filter": {
+                        "id": "task_config_filter_form",
+                        "title": "",
+                        "submitText": "",
+                        "type": "form",
+                        "mode": "inline",
+                        "wrapWithPanel": false,
+                        "body": [
+                            {
+                                "type": "select",
+                                "name": "relatedParty",
+                                "label": "相关方",
+                                "value": "person",
+                                "clearable": false,
+                                "options": [
+                                    { "label": "缴存人", "value": "person" },
+                                    { "label": "缴存单位", "value": "unit" },
+                                    { "label": "开发商", "value": "developer" }
+                                ]
+                            },
+                            {
+                                "type": "select",
+                                "name": "task",
+                                "label": "任务项",
+                                "value": "tq",
+                                "clearable": false,
+                                "options": [
+                                    { "label": "缴存", "value": "jc" },
+                                    { "label": "提取", "value": "tq" },
+                                    { "label": "贷款", "value": "dk" },
+                                    { "label": "还款", "value": "hk" }
+                                ],
+                                "onEvent": {
+                                    "change": {
+                                        "actions": [
+                                            {
+                                                "actionType": "setValue",
+                                                "componentId": "task_config_filter_form",
+                                                "args": {
+                                                    "value": {
+                                                        "groupId": "",
+                                                        "businessCategory": ""
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "actionType": "reload",
+                                                "componentId": "task_config_group_select"
+                                            },
+                                            {
+                                                "actionType": "reload",
+                                                "componentId": "task_config_business_select"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "type": "select",
+                                "id": "task_config_business_select",
+                                "name": "businessCategory",
+                                "label": "应用于",
+                                "clearable": true,
+                                "searchable": true,
+                                "source": {
+                                    "method": "post",
+                                    "url": "${task_config_business_options_api}",
+                                    "data": {
+                                        "task": "${task || default_task}",
+                                        "includeAll": true,
+                                        "includeUnapplied": true
+                                    },
+                                    "trackExpression": "${task}"
+                                },
+                                "labelField": "label",
+                                "valueField": "value"
+                            },
+                            {
+                                "type": "select",
+                                "id": "task_config_group_select",
+                                "name": "groupId",
+                                "label": "节点要素",
+                                "clearable": true,
+                                "searchable": true,
+                                "source": {
+                                    "method": "post",
+                                    "url": "${task_config_group_options_api}",
+                                    "data": {
+                                        "task": "${task || default_task}"
+                                    },
+                                    "trackExpression": "${task}"
+                                },
+                                "labelField": "label",
+                                "valueField": "value"
+                            },
+                            {
+                                "type": "input-text",
+                                "name": "keyword",
+                                "label": "关键字",
+                                "placeholder": "节点、要素、内容",
+                                "clearable": true
+                            },
+                            {
+                                "type": "submit",
+                                "label": "查询",
+                                "level": "primary",
+                                "icon": "fa fa-search",
+                                "disabledOnAction": true
+                            }
+                        ]
+                    },
+                    "headerToolbar": [
+                        {
+                            "type": "tpl",
+                            "inline": false,
+                            "tpl": "<div class='task-config-header'><div><div class='task-config-title'>节点-要素-内容清册</div><div class='task-config-path'>任务路径：${pathText || '缴存人 / 提取服务 / 提取服务 / 提取'}</div><div class='template-strip'><span class='template-chip template-chip--active'>统建版</span><span class='template-chip'>省会版</span><span class='template-chip'>地级市版</span><span class='template-chip'>行业版</span><span class='template-chip'>基础贯标版</span></div></div><div class='task-config-metrics'><span class='task-config-metric'><span class='task-config-metric__value'>${totalNodes || 0}</span><span class='task-config-metric__label'>流程节点</span></span><span class='task-config-metric'><span class='task-config-metric__value'>${totalElements || 0}</span><span class='task-config-metric__label'>节点要素</span></span><span class='task-config-metric'><span class='task-config-metric__value'>${configuredCount || 0}</span><span class='task-config-metric__label'>已配置项</span></span><span class='task-config-metric'><span class='task-config-metric__value'>${parameterCount || 0}</span><span class='task-config-metric__label'>参数项</span></span></div></div>"
+                        }
+                    ],
+                    "footerToolbar": ["statistics", "pagination", "switch-per-page"],
+                    "columns": [
+                        {
+                            "name": "nodeTitle",
+                            "label": "流程节点",
+                            "width": 190,
+                            "type": "tpl",
+                            "tpl": "<div class='node-cell'><span class='node-status node-status--${nodeEnabled ? \"on\" : \"off\"}'>${nodeStatus || '-'}</span><span>${nodeTitle}</span></div>"
+                        },
+                        {
+                            "name": "elementTitle",
+                            "label": "要素",
+                            "width": 130
+                        },
+                        {
+                            "name": "objectName",
+                            "label": "属性所属对象",
+                            "width": 150
+                        },
+                        {
+                            "name": "formula",
+                            "label": "配置项/公式",
+                            "minWidth": 210
+                        },
+                        {
+                            "name": "description",
+                            "label": "描述",
+                            "minWidth": 240
+                        },
+                        {
+                            "name": "usageText",
+                            "label": "应用于",
+                            "width": 180,
+                            "type": "tpl",
+                            "tpl": "<span class='usage-chip usage-chip--${usageStatus || \"empty\"}'>${usageText || '未配置'}</span>"
+                        },
+                        {
+                            "name": "algorithmSummary",
+                            "label": "算法参数",
+                            "width": 110,
+                            "type": "tpl",
+                            "tpl": "<span class='param-chip param-chip--${algorithmParamGroups && algorithmParamGroups.length ? \"ready\" : \"empty\"}'>${algorithmSummary || '未配置'}</span>"
+                        },
+                        {
+                            "type": "operation",
+                            "label": "操作",
+                            "width": 110,
+                            "buttons": [
+                                {
+                                    "type": "button",
+                                    "label": "配置",
+                                    "icon": "fa fa-cog",
+                                    "level": "link",
+                                    "actionType": "dialog",
+                                    "dialog": {
+                                        "title": "配置应用业务",
+                                        "size": "lg",
+                                        "body": {
+                                            "type": "form",
+                                            "id": "task_config_business_form",
+                                            "api": "post:${task_config_save_api}",
+                                            "submitText": "保存配置",
+                                            "body": [
+                                                {
+                                                    "type": "hidden",
+                                                    "name": "id"
+                                                },
+                                                {
+                                                    "type": "hidden",
+                                                    "name": "task"
+                                                },
+                                                {
+                                                    "type": "tpl",
+                                                    "inline": false,
+                                                    "tpl": "<div class='task-config-dialog-note'><strong>${nodeTitle}</strong> / ${elementTitle} / ${objectName}<br/>${formula || '-'}<br/>${description || '-'}</div>"
+                                                },
+                                                {
+                                                    "type": "select",
+                                                    "name": "appliedBusinesses",
+                                                    "label": "应用业务",
+                                                    "multiple": true,
+                                                    "joinValues": false,
+                                                    "extractValue": true,
+                                                    "clearable": true,
+                                                    "searchable": true,
+                                                    "source": {
+                                                        "method": "post",
+                                                        "url": "${task_config_business_options_api}",
+                                                        "data": {
+                                                            "task": "${task}",
+                                                            "includeAll": false,
+                                                            "includeUnapplied": false
+                                                        }
+                                                    },
+                                                    "labelField": "label",
+                                                    "valueField": "value"
+                                                },
+                                                {
+                                                    "type": "combo",
+                                                    "name": "algorithmParamGroups",
+                                                    "label": "算法参数配置",
+                                                    "multiple": true,
+                                                    "multiLine": true,
+                                                    "addable": true,
+                                                    "removable": true,
+                                                    "items": [
+                                                        {
+                                                            "type": "group",
+                                                            "body": [
+                                                                {
+                                                                    "type": "select",
+                                                                    "name": "paramName",
+                                                                    "label": "参数",
+                                                                    "searchable": true,
+                                                                    "options": [
+                                                                        { "label": "缴存时间", "value": "depositMonths" },
+                                                                        { "label": "账户余额", "value": "accountBalance" },
+                                                                        { "label": "月缴存额", "value": "monthlyDeposit" },
+                                                                        { "label": "房屋总价", "value": "housePrice" },
+                                                                        { "label": "贷款余额", "value": "loanBalance" },
+                                                                        { "label": "提取频次", "value": "withdrawFrequency" }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "input-text",
+                                                                    "name": "businessStandardValue",
+                                                                    "label": "业务标准值",
+                                                                    "placeholder": "选择或填写业务标准值"
+                                                                },
+                                                                {
+                                                                    "type": "input-text",
+                                                                    "name": "valueSource",
+                                                                    "label": "取值来源",
+                                                                    "placeholder": "接口、标准库或人工维护"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "textarea",
+                                                    "name": "remarks",
+                                                    "label": "配置说明",
+                                                    "minRows": 3,
+                                                    "placeholder": "记录本次配置口径、例外条件或后续接入说明"
+                                                }
+                                            ],
+                                            "onEvent": {
+                                                "submitSucc": {
+                                                    "actions": [
+                                                        {
+                                                            "actionType": "reload",
+                                                            "componentId": "task_config_crud"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

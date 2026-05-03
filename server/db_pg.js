@@ -100,6 +100,9 @@ class PgAdapter {
     async initialize() {
         try {
             const poolConfig = this._buildPoolConfig();
+            // 增加超时设置，防止挂起
+            poolConfig.connectionTimeoutMillis = 5000;
+            
             this.pool = new Pool(poolConfig);
             // 测试连接
             const client = await this.pool.connect();
