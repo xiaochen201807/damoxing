@@ -52,8 +52,7 @@
 .task-config-upgrade .status-main,
 .task-config-upgrade .status-tools,
 .task-config-upgrade .template-selector,
-.task-config-upgrade .template-list,
-.task-config-upgrade .summary-pills {
+.task-config-upgrade .template-list {
   display: flex;
   align-items: center;
 }
@@ -194,24 +193,6 @@
   color: #4e5969;
   font-size: 15px;
   line-height: 1.45;
-}
-
-.task-config-upgrade .summary-pills {
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.task-config-upgrade .summary-pills span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #62748e;
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .task-config-upgrade .status-tools {

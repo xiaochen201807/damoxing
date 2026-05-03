@@ -438,9 +438,6 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     expandedNodeKeys.includes(node.key) && node.items.every(item => expandedItemKeys.includes(itemStateKey(node.key, item.key)))
   ));
   const statusText = summary?.taskPathText || '缴存人 / 提取服务 / 提取服务 / 提取';
-  const totalRows = rows.length;
-  const configuredRows = rows.filter(row => (row.appliedBusinesses || []).length > 0).length;
-  const parameterRows = rows.filter(row => (row.algorithmParamGroups || []).length > 0).length;
 
   const updateNodeEnabled = (nodeKey: string, enabled: boolean) => {
     setNodeEnabledByTask(current => ({
@@ -863,13 +860,6 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
           <div className="status-bar">
             <div className="status-main">
               <div className="status-text">{statusText}</div>
-              <div className="summary-pills">
-                <span>{summary?.totalNodes || catalogNodes.length} 个节点</span>
-                <span>{summary?.totalElements || groups.length} 个要素</span>
-                <span>{configuredRows} 项已配置</span>
-                <span>{parameterRows} 组参数</span>
-                <span>{totalRows} 条内容</span>
-              </div>
             </div>
 
             <div className="template-selector">
