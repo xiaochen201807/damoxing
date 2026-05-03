@@ -985,9 +985,11 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
             </div>
           </div>
 
-          <div className="status-tools">
-            <div className="message">{message}</div>
-          </div>
+          {message && (
+            <div className="status-tools">
+              <div className="message">{message}</div>
+            </div>
+          )}
 
           {error && <div className="error-state">{error}</div>}
           {loading && <div className="loading-state">正在加载配置清册...</div>}

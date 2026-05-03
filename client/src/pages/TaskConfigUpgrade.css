@@ -179,7 +179,7 @@
   justify-content: space-between;
   gap: 18px 24px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .task-config-upgrade .status-main {
@@ -196,13 +196,11 @@
 }
 
 .task-config-upgrade .status-tools {
-  min-height: 24px;
   justify-content: flex-end;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .task-config-upgrade .message {
-  min-height: 22px;
   color: #2f7c4d;
   font-size: 13px;
   line-height: 1.5;
