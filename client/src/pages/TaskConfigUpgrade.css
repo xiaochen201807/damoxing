@@ -247,11 +247,37 @@
 }
 
 .task-config-upgrade .template-btn.add-btn {
+  width: 34px;
   min-width: 34px;
+  border-style: dashed;
+  border-color: #9bc6ff;
+  background: #f7fbff;
   justify-content: center;
   padding: 0;
   font-size: 18px;
   color: #1677ff;
+}
+
+.task-config-upgrade .template-btn.add-btn:hover {
+  border-style: solid;
+  background: #e8f3ff;
+}
+
+.task-config-upgrade .template-btn.add-btn:disabled {
+  border-color: #dce5f2;
+  background: #f8fafc;
+  color: #9aa8bd;
+}
+
+.task-config-upgrade .template-name-input {
+  width: 130px;
+  height: 34px;
+  padding: 0 10px;
+  border-color: #1677ff;
+  background: #ffffff;
+  color: #1f2329;
+  font-size: 13px;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
 }
 
 .task-config-upgrade .template-actions {

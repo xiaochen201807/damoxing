@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetcher } from '../utils/fetcher';
 import type { ApiResponse } from '../types/api';
 import './TaskConfigUpgrade.css';
@@ -274,8 +274,8 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   const defaultTask = config?.default_task || DEFAULT_CONFIG.defaultTask;
   const defaultRelatedParty = config?.default_related_party || DEFAULT_CONFIG.defaultRelatedParty;
 
-  const [relatedParty, setRelatedParty] = useState(defaultRelatedParty);
-  const [task, setTask] = useState(defaultTask);
+  const [relatedParty, setRelatedParty] = useState('');
+  const [task, setTask] = useState('');
   const [businessFilter, setBusinessFilter] = useState('');
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [rows, setRows] = useState<TaskRow[]>([]);
@@ -293,6 +293,12 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   const [draftBusinesses, setDraftBusinesses] = useState<string[]>([]);
   const [draftParamGroups, setDraftParamGroups] = useState<AlgorithmParamGroup[]>([getDefaultParamGroup()]);
   const [draftRemarks, setDraftRemarks] = useState('');
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const newTemplateInputRef = useRef<HTMLInputElement | null>(null);
+  const skipTemplateBlurRef = useRef(false);
+  const effectiveRelatedParty = relatedParty || defaultRelatedParty;
+  const effectiveTask = task || defaultTask;
 
   const showMessage = (text: string, timeout = 0) => {
     setMessage(text);
@@ -310,10 +316,10 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     setError('');
 
     Promise.all([
-      postApi<SummaryData>(summaryApi, { task, relatedParty }),
+      postApi<SummaryData>(summaryApi, { task: effectiveTask, relatedParty: effectiveRelatedParty }),
       postApi<RowsData>(rowsApi, {
-        task,
-        relatedParty,
+        task: effectiveTask,
+        relatedParty: effectiveRelatedParty,
         page: 1,
         perPage: 5000
       })
@@ -341,7 +347,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
             : summaryData.activeTemplateId || nextTemplates[0]?.id || 'tpl-1'
         ));
         setNodeEnabledByTask(current => (
-          current[task] ? current : { ...current, [task]: initialNodeState }
+          current[effectiveTask] ? current : { ...current, [effectiveTask]: initialNodeState }
         ));
       })
       .catch((err: Error) => {
@@ -358,7 +364,13 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     return () => {
       cancelled = true;
     };
-  }, [summaryApi, rowsApi, relatedParty, task]);
+  }, [summaryApi, rowsApi, effectiveRelatedParty, effectiveTask]);
+
+  useEffect(() => {
+    if (isAddingTemplate) {
+      newTemplateInputRef.current?.focus();
+    }
+  }, [isAddingTemplate]);
 
   const relatedPartyOptions = summary?.relatedParties?.length ? summary.relatedParties : DEFAULT_RELATED_PARTIES;
   const taskTypeOptions = summary?.taskTypes?.length ? summary.taskTypes : DEFAULT_TASK_TYPES;
@@ -367,12 +379,12 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   ), [relatedParty, taskTypeOptions]);
 
   useEffect(() => {
-    if (visibleTaskOptions.length && !visibleTaskOptions.some(item => item.value === task)) {
-      setTask(visibleTaskOptions[0].value);
+    if (task && visibleTaskOptions.length && !visibleTaskOptions.some(item => item.value === task)) {
+      setTask('');
     }
   }, [task, visibleTaskOptions]);
 
-  const nodeEnabledMap = useMemo(() => nodeEnabledByTask[task] || {}, [nodeEnabledByTask, task]);
+  const nodeEnabledMap = useMemo(() => nodeEnabledByTask[effectiveTask] || {}, [nodeEnabledByTask, effectiveTask]);
   const groups = useMemo(() => buildGroups(rows, nodeEnabledMap), [nodeEnabledMap, rows]);
   const catalogNodes = useMemo(() => buildCatalog(groups), [groups]);
   const catalogSignature = useMemo(() => (
@@ -388,7 +400,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     const firstItem = firstNode.items[0];
 
     setSelectionByTask(current => {
-      const selected = current[task];
+      const selected = current[effectiveTask];
       const selectedNode = catalogNodes.find(node => node.key === selected?.nodeKey) || firstNode;
       const selectedItem = selectedNode.items.find(item => item.key === selected?.itemKey) || selectedNode.items[0] || firstItem;
 
@@ -398,7 +410,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
 
       return {
         ...current,
-        [task]: {
+        [effectiveTask]: {
           nodeKey: selectedNode.key,
           itemKey: selectedItem.key
         }
@@ -406,15 +418,15 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     });
 
     setExpandedNodesByTask(current => (
-      current[task]?.length ? current : { ...current, [task]: [firstNode.key] }
+      current[effectiveTask]?.length ? current : { ...current, [effectiveTask]: [firstNode.key] }
     ));
 
     if (firstItem) {
       setExpandedItemsByTask(current => (
-        current[task]?.length ? current : { ...current, [task]: [itemStateKey(firstNode.key, firstItem.key)] }
+        current[effectiveTask]?.length ? current : { ...current, [effectiveTask]: [itemStateKey(firstNode.key, firstItem.key)] }
       ));
     }
-  }, [catalogNodes, catalogSignature, task]);
+  }, [catalogNodes, catalogSignature, effectiveTask]);
 
   const businessOptions = useMemo(() => summary?.businessOptions || [], [summary?.businessOptions]);
   const parameterOptions = summary?.parameterOptions || [];
@@ -426,14 +438,14 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   ), [businessOptions]);
 
   const filterBusinessOptions = useMemo(() => [
-    { label: '全部应用业务', value: '' },
+    { label: '全部应用业务', value: '__all__' },
     ...businessOptions,
     { label: '未配置', value: UNAPPLIED_VALUE }
   ], [businessOptions]);
 
-  const expandedNodeKeys = expandedNodesByTask[task] || [];
-  const expandedItemKeys = expandedItemsByTask[task] || [];
-  const selection = selectionByTask[task] || { nodeKey: catalogNodes[0]?.key || '', itemKey: catalogNodes[0]?.items[0]?.key || '' };
+  const expandedNodeKeys = expandedNodesByTask[effectiveTask] || [];
+  const expandedItemKeys = expandedItemsByTask[effectiveTask] || [];
+  const selection = selectionByTask[effectiveTask] || { nodeKey: catalogNodes[0]?.key || '', itemKey: catalogNodes[0]?.items[0]?.key || '' };
   const allExpanded = catalogNodes.length > 0 && catalogNodes.every(node => (
     expandedNodeKeys.includes(node.key) && node.items.every(item => expandedItemKeys.includes(itemStateKey(node.key, item.key)))
   ));
@@ -442,8 +454,8 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   const updateNodeEnabled = (nodeKey: string, enabled: boolean) => {
     setNodeEnabledByTask(current => ({
       ...current,
-      [task]: {
-        ...(current[task] || {}),
+      [effectiveTask]: {
+        ...(current[effectiveTask] || {}),
         [nodeKey]: enabled
       }
     }));
@@ -459,47 +471,47 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     }
 
     if (allExpanded) {
-      setExpandedNodesByTask(current => ({ ...current, [task]: [] }));
-      setExpandedItemsByTask(current => ({ ...current, [task]: [] }));
+      setExpandedNodesByTask(current => ({ ...current, [effectiveTask]: [] }));
+      setExpandedItemsByTask(current => ({ ...current, [effectiveTask]: [] }));
       return;
     }
 
     setExpandedNodesByTask(current => ({
       ...current,
-      [task]: catalogNodes.map(node => node.key)
+      [effectiveTask]: catalogNodes.map(node => node.key)
     }));
     setExpandedItemsByTask(current => ({
       ...current,
-      [task]: catalogNodes.flatMap(node => node.items.map(item => itemStateKey(node.key, item.key)))
+      [effectiveTask]: catalogNodes.flatMap(node => node.items.map(item => itemStateKey(node.key, item.key)))
     }));
   };
 
   const selectNode = (node: CatalogNode) => {
-    const current = selectionByTask[task];
+    const current = selectionByTask[effectiveTask];
     const isSameNode = current?.nodeKey === node.key;
     const firstItem = node.items[0];
 
     setSelectionByTask(prev => ({
       ...prev,
-      [task]: {
+      [effectiveTask]: {
         nodeKey: node.key,
         itemKey: isSameNode && current?.itemKey ? current.itemKey : firstItem?.key || ''
       }
     }));
 
     setExpandedNodesByTask(prev => {
-      const currentKeys = prev[task] || [];
+      const currentKeys = prev[effectiveTask] || [];
       const isExpanded = currentKeys.includes(node.key);
       const nextKeys = isSameNode && isExpanded
         ? currentKeys.filter(key => key !== node.key)
         : Array.from(new Set([...currentKeys, node.key]));
-      return { ...prev, [task]: nextKeys };
+      return { ...prev, [effectiveTask]: nextKeys };
     });
 
     if (firstItem) {
       setExpandedItemsByTask(prev => ({
         ...prev,
-        [task]: Array.from(new Set([...(prev[task] || []), itemStateKey(node.key, firstItem.key)]))
+        [effectiveTask]: Array.from(new Set([...(prev[effectiveTask] || []), itemStateKey(node.key, firstItem.key)]))
       }));
     }
   };
@@ -511,21 +523,21 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
 
     setSelectionByTask(prev => ({
       ...prev,
-      [task]: {
+      [effectiveTask]: {
         nodeKey: node.key,
         itemKey: item.key
       }
     }));
     setExpandedNodesByTask(prev => ({
       ...prev,
-      [task]: Array.from(new Set([...(prev[task] || []), node.key]))
+      [effectiveTask]: Array.from(new Set([...(prev[effectiveTask] || []), node.key]))
     }));
     setExpandedItemsByTask(prev => {
-      const currentKeys = prev[task] || [];
+      const currentKeys = prev[effectiveTask] || [];
       const nextKeys = isSameItem && isExpanded
         ? currentKeys.filter(itemKey => itemKey !== key)
         : Array.from(new Set([...currentKeys, key]));
-      return { ...prev, [task]: nextKeys };
+      return { ...prev, [effectiveTask]: nextKeys };
     });
   };
 
@@ -543,8 +555,8 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     setActiveTemplateId(templateId);
     setNodeEnabledByTask(current => ({
       ...current,
-      [task]: {
-        ...(current[task] || {}),
+      [effectiveTask]: {
+        ...(current[effectiveTask] || {}),
         ...nextNodeState
       }
     }));
@@ -557,14 +569,34 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   };
 
   const addTemplate = () => {
-    const name = window.prompt('请输入新模板名称：');
-    if (!name?.trim()) {
+    skipTemplateBlurRef.current = false;
+    setNewTemplateName('');
+    setIsAddingTemplate(true);
+  };
+
+  const cancelAddTemplate = () => {
+    skipTemplateBlurRef.current = true;
+    setNewTemplateName('');
+    setIsAddingTemplate(false);
+  };
+
+  const confirmAddTemplate = () => {
+    if (skipTemplateBlurRef.current) {
+      skipTemplateBlurRef.current = false;
+      return;
+    }
+
+    const name = newTemplateName.trim();
+    if (!name) {
+      cancelAddTemplate();
       return;
     }
 
     const id = `tpl-${Date.now()}`;
-    setTemplates(current => [...current, { id, name: name.trim() }]);
+    setTemplates(current => [...current, { id, name }]);
     setActiveTemplateId(id);
+    setNewTemplateName('');
+    setIsAddingTemplate(false);
     showMessage('已新增模板。', 2200);
   };
 
@@ -650,7 +682,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     const showAlgorithmParams = modalContext.group.elementTitle !== '内容';
     const payload = {
       id: modalContext.row.id,
-      task: modalContext.row.task || task,
+      task: modalContext.row.task || effectiveTask,
       appliedBusinesses: draftBusinesses,
       algorithmParamGroups: showAlgorithmParams ? cleanParamGroups(draftParamGroups) : [],
       remarks: draftRemarks
@@ -809,6 +841,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
                   }}
                   aria-label="业务关联方"
                 >
+                  <option value="" disabled hidden>业务关联方</option>
                   {relatedPartyOptions.map(item => (
                     <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
@@ -825,6 +858,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
                   }}
                   aria-label="任务项"
                 >
+                  <option value="" disabled hidden>任务项</option>
                   {visibleTaskOptions.map(item => (
                     <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
@@ -844,11 +878,12 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
               <div className="inline-filter">
                 <select
                   value={businessFilter}
-                  onChange={event => setBusinessFilter(event.target.value)}
+                  onChange={event => setBusinessFilter(event.target.value === '__all__' ? '' : event.target.value)}
                   aria-label="应用于"
                 >
+                  <option value="" disabled hidden>应用于</option>
                   {filterBusinessOptions.map(item => (
-                    <option key={item.value || 'all'} value={item.value}>{item.label}</option>
+                    <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
                 </select>
               </div>
@@ -903,7 +938,37 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
                     </span>
                   </div>
                 ))}
-                <button className="template-btn add-btn" type="button" title="新增模板" onClick={addTemplate}>+</button>
+                {isAddingTemplate && (
+                  <input
+                    ref={newTemplateInputRef}
+                    className="template-name-input"
+                    value={newTemplateName}
+                    placeholder="模板名称"
+                    aria-label="新增模板名称"
+                    onChange={event => setNewTemplateName(event.target.value)}
+                    onBlur={confirmAddTemplate}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        confirmAddTemplate();
+                      }
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cancelAddTemplate();
+                      }
+                    }}
+                  />
+                )}
+                <button
+                  className="template-btn add-btn"
+                  type="button"
+                  title="新增模板"
+                  aria-label="新增模板"
+                  onClick={addTemplate}
+                  disabled={isAddingTemplate}
+                >
+                  +
+                </button>
               </div>
             </div>
           </div>
