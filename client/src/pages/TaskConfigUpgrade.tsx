@@ -295,8 +295,13 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
   const [draftRemarks, setDraftRemarks] = useState('');
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
+  const [editingTemplateId, setEditingTemplateId] = useState('');
+  const [editingTemplateName, setEditingTemplateName] = useState('');
+  const [deletingTemplateId, setDeletingTemplateId] = useState('');
   const newTemplateInputRef = useRef<HTMLInputElement | null>(null);
+  const editTemplateInputRef = useRef<HTMLInputElement | null>(null);
   const skipTemplateBlurRef = useRef(false);
+  const skipTemplateRenameBlurRef = useRef(false);
   const effectiveRelatedParty = relatedParty || defaultRelatedParty;
   const effectiveTask = task || defaultTask;
 
@@ -371,6 +376,13 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
       newTemplateInputRef.current?.focus();
     }
   }, [isAddingTemplate]);
+
+  useEffect(() => {
+    if (editingTemplateId) {
+      editTemplateInputRef.current?.focus();
+      editTemplateInputRef.current?.select();
+    }
+  }, [editingTemplateId]);
 
   const relatedPartyOptions = summary?.relatedParties?.length ? summary.relatedParties : DEFAULT_RELATED_PARTIES;
   const taskTypeOptions = summary?.taskTypes?.length ? summary.taskTypes : DEFAULT_TASK_TYPES;
@@ -546,6 +558,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
       return;
     }
 
+    setDeletingTemplateId('');
     const nextNodeState = catalogNodes.reduce<Record<string, boolean>>((acc, node) => {
       acc[node.key] = hashTemplateNode(templateId, node.key);
       return acc;
@@ -570,6 +583,9 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
 
   const addTemplate = () => {
     skipTemplateBlurRef.current = false;
+    setEditingTemplateId('');
+    setEditingTemplateName('');
+    setDeletingTemplateId('');
     setNewTemplateName('');
     setIsAddingTemplate(true);
   };
@@ -600,39 +616,74 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
     showMessage('已新增模板。', 2200);
   };
 
-  const renameTemplate = (templateId: string) => {
+  const startRenameTemplate = (templateId: string) => {
     const template = templates.find(item => item.id === templateId);
     if (!template) {
       return;
     }
 
-    const name = window.prompt('重命名模板：', template.name);
-    if (!name?.trim()) {
+    skipTemplateRenameBlurRef.current = false;
+    setIsAddingTemplate(false);
+    setNewTemplateName('');
+    setDeletingTemplateId('');
+    setEditingTemplateId(templateId);
+    setEditingTemplateName(template.name);
+  };
+
+  const cancelRenameTemplate = () => {
+    skipTemplateRenameBlurRef.current = true;
+    setEditingTemplateId('');
+    setEditingTemplateName('');
+  };
+
+  const confirmRenameTemplate = () => {
+    if (skipTemplateRenameBlurRef.current) {
+      skipTemplateRenameBlurRef.current = false;
+      return;
+    }
+
+    const templateId = editingTemplateId;
+    const name = editingTemplateName.trim();
+    const template = templates.find(item => item.id === templateId);
+
+    if (!templateId || !template || !name || name === template.name) {
+      setEditingTemplateId('');
+      setEditingTemplateName('');
       return;
     }
 
     setTemplates(current => current.map(item => (
-      item.id === templateId ? { ...item, name: name.trim() } : item
+      item.id === templateId ? { ...item, name } : item
     )));
+    setEditingTemplateId('');
+    setEditingTemplateName('');
     showMessage('模板名称已更新。', 2200);
   };
 
-  const deleteTemplate = (templateId: string) => {
+  const startDeleteTemplate = (templateId: string) => {
     if (templates.length <= 1) {
-      window.alert('请至少保留一个模板。');
+      showMessage('请至少保留一个模板。', 2200);
       return;
     }
 
-    const template = templates.find(item => item.id === templateId);
-    if (!window.confirm(`确定要删除模板 "${template?.name || templateId}" 吗？`)) {
-      return;
-    }
+    setIsAddingTemplate(false);
+    setNewTemplateName('');
+    setEditingTemplateId('');
+    setEditingTemplateName('');
+    setDeletingTemplateId(templateId);
+  };
 
+  const cancelDeleteTemplate = () => {
+    setDeletingTemplateId('');
+  };
+
+  const confirmDeleteTemplate = (templateId: string) => {
     setTemplates(current => current.filter(item => item.id !== templateId));
     if (activeTemplateId === templateId) {
       const nextTemplate = templates.find(item => item.id !== templateId);
       setActiveTemplateId(nextTemplate?.id || '');
     }
+    setDeletingTemplateId('');
     showMessage('模板已删除。', 2200);
   };
 
@@ -913,42 +964,87 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
               <span className="template-label">模板：</span>
               <div className="template-list">
                 {templates.map(template => (
-                  <div
-                    className={`template-btn${template.id === activeTemplateId ? ' active' : ''}`}
-                    key={template.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => selectTemplate(template.id)}
-                    onDoubleClick={() => renameTemplate(template.id)}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        selectTemplate(template.id);
-                      }
-                    }}
-                  >
-                    <span className="tpl-name">{template.name}</span>
-                    <span className="template-actions" onClick={event => event.stopPropagation()}>
-                      <button
-                        className="tpl-action-btn"
-                        type="button"
-                        title="重命名"
-                        aria-label="重命名"
-                        onClick={() => renameTemplate(template.id)}
-                      >
-                        <i className="fa fa-pencil" aria-hidden="true" />
-                      </button>
-                      <button
-                        className="tpl-action-btn"
-                        type="button"
-                        title="删除"
-                        aria-label="删除"
-                        onClick={() => deleteTemplate(template.id)}
-                      >
-                        <i className="fa fa-times" aria-hidden="true" />
-                      </button>
-                    </span>
-                  </div>
+                  editingTemplateId === template.id ? (
+                    <input
+                      key={template.id}
+                      ref={editTemplateInputRef}
+                      className="template-name-input template-rename-input"
+                      value={editingTemplateName}
+                      aria-label="重命名模板"
+                      onChange={event => setEditingTemplateName(event.target.value)}
+                      onBlur={confirmRenameTemplate}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          confirmRenameTemplate();
+                        }
+                        if (event.key === 'Escape') {
+                          event.preventDefault();
+                          cancelRenameTemplate();
+                        }
+                      }}
+                    />
+                  ) : deletingTemplateId === template.id ? (
+                    <div
+                      className={`template-btn template-delete-confirm${template.id === activeTemplateId ? ' active' : ''}`}
+                      key={template.id}
+                    >
+                      <span className="tpl-name">{template.name}</span>
+                      <span className="template-confirm-actions">
+                        <button
+                          className="tpl-confirm-btn tpl-confirm-danger"
+                          type="button"
+                          onClick={() => confirmDeleteTemplate(template.id)}
+                        >
+                          删除
+                        </button>
+                        <button
+                          className="tpl-confirm-btn tpl-confirm-cancel"
+                          type="button"
+                          onClick={cancelDeleteTemplate}
+                        >
+                          取消
+                        </button>
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className={`template-btn${template.id === activeTemplateId ? ' active' : ''}`}
+                      key={template.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => selectTemplate(template.id)}
+                      onDoubleClick={() => startRenameTemplate(template.id)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          selectTemplate(template.id);
+                        }
+                      }}
+                    >
+                      <span className="tpl-name">{template.name}</span>
+                      <span className="template-actions" onClick={event => event.stopPropagation()}>
+                        <button
+                          className="tpl-action-btn"
+                          type="button"
+                          title="重命名"
+                          aria-label="重命名"
+                          onClick={() => startRenameTemplate(template.id)}
+                        >
+                          <i className="fa fa-pencil" aria-hidden="true" />
+                        </button>
+                        <button
+                          className="tpl-action-btn"
+                          type="button"
+                          title="删除"
+                          aria-label="删除"
+                          onClick={() => startDeleteTemplate(template.id)}
+                        >
+                          <i className="fa fa-times" aria-hidden="true" />
+                        </button>
+                      </span>
+                    </div>
+                  )
                 ))}
                 {isAddingTemplate && (
                   <input
@@ -977,7 +1073,7 @@ const TaskConfigUpgrade = ({ title = '任务项运行配置工具', config }: Ta
                   title="新增模板"
                   aria-label="新增模板"
                   onClick={addTemplate}
-                  disabled={isAddingTemplate}
+                  disabled={isAddingTemplate || !!editingTemplateId || !!deletingTemplateId}
                 >
                   +
                 </button>

@@ -185,7 +185,7 @@
         .status-bar {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: space-between;
             gap: 24px;
             flex-wrap: wrap;
             margin-bottom: 16px;
@@ -954,7 +954,9 @@
         .template-selector {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             gap: 12px;
+            margin-left: auto;
         }
 
         .template-label {
@@ -968,6 +970,7 @@
             gap: 8px;
             flex-wrap: wrap;
             align-items: center;
+            justify-content: flex-end;
         }
 
         .template-btn {
@@ -1008,6 +1011,75 @@
 
         .template-btn.add-btn:hover {
             background: var(--primary-soft);
+        }
+
+        .template-btn.add-btn:disabled {
+            border-color: #dce5f2;
+            background: #f8fafc;
+            color: #9aa8bd;
+            cursor: not-allowed;
+        }
+
+        .template-name-input {
+            width: 130px;
+            height: 28px;
+            padding: 0 10px;
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            background: #fff;
+            color: #1f2329;
+            font-size: 13px;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+        }
+
+        .template-delete-confirm {
+            border-color: #ffb4a8;
+            background: #fff7f6;
+            color: #ad2b1f;
+            cursor: default;
+        }
+
+        .template-delete-confirm.active {
+            border-color: #ffb4a8;
+            background: #fff7f6;
+            color: #ad2b1f;
+        }
+
+        .template-confirm-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tpl-confirm-btn {
+            min-height: 22px;
+            padding: 0 8px;
+            border: 1px solid #d6dce7;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .tpl-confirm-danger {
+            border-color: #ff8f83;
+            background: #fff1ef;
+            color: #b42318;
+        }
+
+        .tpl-confirm-danger:hover {
+            border-color: #f04438;
+            background: #ffe7e3;
+        }
+
+        .tpl-confirm-cancel {
+            color: #53627a;
+        }
+
+        .tpl-confirm-cancel:hover {
+            border-color: #aab6c8;
+            background: #f7f9fc;
         }
 
         .template-actions {
@@ -1511,6 +1583,11 @@
                 { id: "tpl-5", name: "基础贯标版" }
             ];
             let activeTemplateId = "tpl-1";
+            let isAddingTemplate = false;
+            let newTemplateName = "";
+            let editingTemplateId = "";
+            let editingTemplateName = "";
+            let deletingTemplateId = "";
             let isDirty = false;
 
             function markDirty() {
@@ -1523,6 +1600,26 @@
                 
                 const html = templates.map(function(tpl) {
                     const isActive = tpl.id === activeTemplateId ? " active" : "";
+                    if (editingTemplateId === tpl.id) {
+                        return [
+                            '<input class="template-name-input template-rename-input" type="text"',
+                            ' data-template-mode="rename"',
+                            ' data-tpl-id="' + escapeHtml(tpl.id) + '"',
+                            ' value="' + escapeHtml(editingTemplateName) + '"',
+                            ' aria-label="重命名模板">'
+                        ].join("");
+                    }
+                    if (deletingTemplateId === tpl.id) {
+                        return [
+                            '<div class="template-btn template-delete-confirm' + isActive + '" data-tpl-id="' + escapeHtml(tpl.id) + '">',
+                            '<span class="tpl-name">' + escapeHtml(tpl.name) + '</span>',
+                            '<span class="template-confirm-actions">',
+                            '<button class="tpl-confirm-btn tpl-confirm-danger" type="button" data-action="confirm-delete-template" data-tpl-id="' + escapeHtml(tpl.id) + '">删除</button>',
+                            '<button class="tpl-confirm-btn tpl-confirm-cancel" type="button" data-action="cancel-delete-template">取消</button>',
+                            '</span>',
+                            '</div>'
+                        ].join("");
+                    }
                     return [
                         '<button class="template-btn' + isActive + '" type="button" data-action="select-template" data-tpl-id="' + escapeHtml(tpl.id) + '">',
                         '<span class="tpl-name">' + escapeHtml(tpl.name) + '</span>',
@@ -1534,7 +1631,131 @@
                     ].join("");
                 }).join("");
                 
-                templateList.innerHTML = html + '<button id="addTemplateBtn" class="template-btn add-btn" type="button" data-action="add-template" title="新增模板">+</button>';
+                const addInput = isAddingTemplate
+                    ? '<input class="template-name-input template-add-input" type="text" data-template-mode="add" value="' + escapeHtml(newTemplateName) + '" placeholder="模板名称" aria-label="新增模板名称">'
+                    : "";
+                const addDisabled = isAddingTemplate || editingTemplateId || deletingTemplateId ? " disabled" : "";
+                templateList.innerHTML = html + addInput + '<button id="addTemplateBtn" class="template-btn add-btn" type="button" data-action="add-template" title="新增模板" aria-label="新增模板"' + addDisabled + '>+</button>';
+                focusTemplateInput();
+            }
+
+            function focusTemplateInput() {
+                if (!isAddingTemplate && !editingTemplateId) {
+                    return;
+                }
+                setTimeout(function () {
+                    const input = document.querySelector(".template-name-input");
+                    if (input instanceof HTMLInputElement) {
+                        input.focus();
+                        input.select();
+                    }
+                }, 0);
+            }
+
+            function resetTemplateInlineState() {
+                isAddingTemplate = false;
+                newTemplateName = "";
+                editingTemplateId = "";
+                editingTemplateName = "";
+                deletingTemplateId = "";
+            }
+
+            function startAddTemplate() {
+                resetTemplateInlineState();
+                isAddingTemplate = true;
+                renderTemplates();
+            }
+
+            function cancelAddTemplate() {
+                isAddingTemplate = false;
+                newTemplateName = "";
+                renderTemplates();
+            }
+
+            function confirmAddTemplate() {
+                if (!isAddingTemplate) {
+                    return;
+                }
+                const name = newTemplateName.trim();
+                if (!name) {
+                    cancelAddTemplate();
+                    return;
+                }
+                const newId = "tpl-" + Date.now();
+                templates.push({ id: newId, name: name });
+                activeTemplateId = newId;
+                isAddingTemplate = false;
+                newTemplateName = "";
+                deletingTemplateId = "";
+                renderTemplates();
+                renderGroups();
+                markDirty();
+                setMessage("已新增模板。", 2200);
+            }
+
+            function startRenameTemplate(tplId) {
+                const tpl = templates.find(function(t) { return t.id === tplId; });
+                if (!tpl) {
+                    return;
+                }
+                resetTemplateInlineState();
+                editingTemplateId = tplId;
+                editingTemplateName = tpl.name;
+                renderTemplates();
+            }
+
+            function cancelRenameTemplate() {
+                editingTemplateId = "";
+                editingTemplateName = "";
+                renderTemplates();
+            }
+
+            function confirmRenameTemplate() {
+                const tplId = editingTemplateId;
+                const tpl = templates.find(function(t) { return t.id === tplId; });
+                const name = editingTemplateName.trim();
+                if (!tplId || !tpl || !name || name === tpl.name) {
+                    cancelRenameTemplate();
+                    return;
+                }
+                tpl.name = name;
+                editingTemplateId = "";
+                editingTemplateName = "";
+                renderTemplates();
+                markDirty();
+                setMessage("模板名称已更新。", 2200);
+            }
+
+            function startDeleteTemplate(tplId) {
+                if (templates.length <= 1) {
+                    setMessage("请至少保留一个模板。", 2200);
+                    return;
+                }
+                resetTemplateInlineState();
+                deletingTemplateId = tplId;
+                renderTemplates();
+            }
+
+            function cancelDeleteTemplate() {
+                deletingTemplateId = "";
+                renderTemplates();
+            }
+
+            function confirmDeleteTemplate(tplId) {
+                const tplIndex = templates.findIndex(function(t) { return t.id === tplId; });
+                if (tplIndex === -1) {
+                    cancelDeleteTemplate();
+                    return;
+                }
+                templates.splice(tplIndex, 1);
+                if (activeTemplateId === tplId && templates.length) {
+                    activeTemplateId = templates[0].id;
+                    renderGroups();
+                }
+                deletingTemplateId = "";
+                renderTemplates();
+                markDirty();
+                setMessage("模板已删除。", 2200);
             }
 
             const relatedPartyOptions = [
@@ -4527,6 +4748,9 @@
             if (templateListElement) {
                 templateListElement.addEventListener("click", function (event) {
                     const target = event.target;
+                    if (!(target instanceof Element)) {
+                        return;
+                    }
                     const actionTarget = target.closest("[data-action]");
                     if (!actionTarget) return;
 
@@ -4549,42 +4773,68 @@
                             if (tpl) setMessage("已加载模板配置：" + tpl.name, 2000);
                         }
                     } else if (action === "add-template") {
-                        const newName = prompt("请输入新模板名称：");
-                        if (newName && newName.trim()) {
-                            const newId = "tpl-" + Date.now();
-                            templates.push({ id: newId, name: newName.trim() });
-                            activeTemplateId = newId;
-                            renderTemplates();
-                            renderGroups();
-                            markDirty();
-                        }
+                        startAddTemplate();
                     } else if (action === "edit-template") {
-                        const tpl = templates.find(t => t.id === tplId);
-                        if (tpl) {
-                            const newName = prompt("重命名模板：", tpl.name);
-                            if (newName && newName.trim()) {
-                                tpl.name = newName.trim();
-                                renderTemplates();
-                                markDirty();
-                            }
-                        }
+                        startRenameTemplate(tplId);
                     } else if (action === "delete-template") {
-                        if (templates.length <= 1) {
-                            alert("请至少保留一个模板。");
-                            return;
+                        startDeleteTemplate(tplId);
+                    } else if (action === "confirm-delete-template") {
+                        confirmDeleteTemplate(tplId);
+                    } else if (action === "cancel-delete-template") {
+                        cancelDeleteTemplate();
+                    }
+                });
+
+                templateListElement.addEventListener("input", function (event) {
+                    const target = event.target;
+                    if (!(target instanceof HTMLInputElement) || !target.classList.contains("template-name-input")) {
+                        return;
+                    }
+                    const mode = target.getAttribute("data-template-mode");
+                    if (mode === "add") {
+                        newTemplateName = target.value;
+                    } else if (mode === "rename") {
+                        editingTemplateName = target.value;
+                    }
+                });
+
+                templateListElement.addEventListener("keydown", function (event) {
+                    const target = event.target;
+                    if (!(target instanceof HTMLInputElement) || !target.classList.contains("template-name-input")) {
+                        return;
+                    }
+                    const mode = target.getAttribute("data-template-mode");
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        if (mode === "add") {
+                            newTemplateName = target.value;
+                            confirmAddTemplate();
+                        } else if (mode === "rename") {
+                            editingTemplateName = target.value;
+                            confirmRenameTemplate();
                         }
-                        const tplIndex = templates.findIndex(t => t.id === tplId);
-                        if (tplIndex > -1) {
-                            if (confirm("确定要删除模板 \"" + templates[tplIndex].name + "\" 吗？")) {
-                                templates.splice(tplIndex, 1);
-                                if (activeTemplateId === tplId) {
-                                    activeTemplateId = templates[0].id;
-                                    renderGroups();
-                                }
-                                renderTemplates();
-                                markDirty();
-                            }
+                    } else if (event.key === "Escape") {
+                        event.preventDefault();
+                        if (mode === "add") {
+                            cancelAddTemplate();
+                        } else if (mode === "rename") {
+                            cancelRenameTemplate();
                         }
+                    }
+                });
+
+                templateListElement.addEventListener("focusout", function (event) {
+                    const target = event.target;
+                    if (!(target instanceof HTMLInputElement) || !target.classList.contains("template-name-input")) {
+                        return;
+                    }
+                    const mode = target.getAttribute("data-template-mode");
+                    if (mode === "add") {
+                        newTemplateName = target.value;
+                        confirmAddTemplate();
+                    } else if (mode === "rename") {
+                        editingTemplateName = target.value;
+                        confirmRenameTemplate();
                     }
                 });
             }
@@ -4731,15 +4981,7 @@
                 const btn = target.closest(".template-btn[data-tpl-id]");
                 if (btn) {
                     const tplId = btn.getAttribute("data-tpl-id");
-                    const tpl = templates.find(function(t) { return t.id === tplId; });
-                    if (tpl) {
-                        const newName = prompt("重命名模板：", tpl.name);
-                        if (newName && newName.trim()) {
-                            tpl.name = newName.trim();
-                            renderTemplates();
-                            markDirty();
-                        }
-                    }
+                    startRenameTemplate(tplId);
                 }
             });
 

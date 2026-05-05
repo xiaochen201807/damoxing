@@ -306,6 +306,41 @@
   color: #1677ff;
 }
 
+.task-config-upgrade .template-delete-confirm {
+  border-color: #ffb4a8;
+  background: #fff7f6;
+  color: #ad2b1f;
+}
+
+.task-config-upgrade .template-confirm-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-config-upgrade .tpl-confirm-btn {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.task-config-upgrade .tpl-confirm-danger {
+  border-color: #ff8f83;
+  background: #fff1ef;
+  color: #b42318;
+}
+
+.task-config-upgrade .tpl-confirm-danger:hover {
+  border-color: #f04438;
+  background: #ffe7e3;
+}
+
+.task-config-upgrade .tpl-confirm-cancel {
+  border-color: #d6dce7;
+  color: #53627a;
+}
+
 .task-config-upgrade .catalog-layout {
   display: grid;
   grid-template-columns: 1fr;
