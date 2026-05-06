@@ -22,6 +22,7 @@
 
         {# 3. 核心功能区 (导入按钮 + AI 分析按钮 + Loading 遮罩 + Service 结果区) #}
         {# 导入配置从页面参数中读取 #}
+        {% set analysis_requires_import = true %}
         {% include 'components/import_Ai.j2' %},
 
         {# 4. 底部 Footer #}

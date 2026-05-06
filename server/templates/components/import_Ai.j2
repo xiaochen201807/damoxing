@@ -19,11 +19,15 @@
   @param enable_query_input 是否启用分析需求输入框
   @param query_label 分析需求输入框标签
   @param query_placeholder 分析需求输入框占位符 
-  @param ai_generate_api AI生成页面API地址
-  @param page_key 页面唯一标识
-  @param workflow_type AI 工作流类型标识（默认：ai_analysis）
-  @param query AI分析查询参数
-#}
+	  @param ai_generate_api AI生成页面API地址
+	  @param page_key 页面唯一标识
+	  @param workflow_type AI 工作流类型标识（默认：ai_analysis）
+	  @param query AI分析查询参数
+	  @param import_check_api 智能分析前检查导入状态的接口
+	  @param import_check_api_method 导入状态检查接口请求方法
+	  @param import_check_data 导入状态检查接口固定参数
+	  @param import_check_adaptor 导入状态检查接口适配器，需未导入时返回 status 非 0
+	#}
 {# 定义默认的导入项配置 #}
 {% set default_items = [
     { "title": "各区县逾期率 & 房价跌幅数据", "desc": "支持格式: .xls,.xlsx", "key": "file_rate", "template_url": "/api/template/rate.xlsx" },
@@ -165,24 +169,24 @@
                                                 "accept": "{{ item.accept | default('.xls,.xlsx') }}",
                                                 "autoUpload": true,
                                                 "drag": false,
-                                                "receiver": {
-                                                    "method": "post",
-                                                    "url": "{{ item.upload_api }}",
-                                                    "data": {{ item.upload_data | default('{}') | fromjson | tojson }}
-                                                }
-                                            }
-                                            {% else %}
+	                                                "receiver": {
+	                                                    "method": "post",
+	                                                    "url": "{{ item.upload_api }}",
+	                                                    "data": {{ item.upload_data | default('{}') | fromjson | tojson }}
+	                                                }
+	                                            }
+	                                            {% else %}
                                             { 
                                                 "type": "input-file", 
                                                 "name": "{{ item.key }}", 
                                                 "btnLabel": "上传文件",  
                                                 "level": "primary", 
-                                                "icon": "fa fa-cloud-upload",
-                                                "accept": "{{ item.accept | default('.xls,.xlsx') }}",
-                                                "drag": false,
-                                                "asBlob": true
-                                            }
-                                            {% endif %}
+	                                                "icon": "fa fa-cloud-upload",
+	                                                "accept": "{{ item.accept | default('.xls,.xlsx') }}",
+	                                                "drag": false,
+	                                                "asBlob": true
+	                                            }
+	                                            {% endif %}
                                         ]
                                     }
                                     {% if not loop.last %},{% endif %}
@@ -197,10 +201,10 @@
                         {% if enable_ai_analysis | default(true) %}
                         {{ btn_comma() }}
                         {
-                            "type": "button",
-                            "label": "📊 智能分析",
-                            "level": "danger",
-                            "style": {
+	                            "type": "button",
+	                            "label": "📊 智能分析",
+	                            "level": "danger",
+	                            "style": {
                                 "background": "linear-gradient(180deg, #ff4d4f 0%, #cf1322 100%)",
                                 "border": "none",
                                 "boxShadow": "0 4px 10px rgba(207, 19, 34, 0.3)",
@@ -208,11 +212,24 @@
                                 "width": "140px",
                                 "height": "40px"
                             },
-                            "onEvent": {
-                                "click": {
-                                    "actions": [
-                                        {# 1. 修改最外层 Page 变量：开启遮罩，显示区域 #}
-                                        {
+	                            "onEvent": {
+	                                "click": {
+	                                    "actions": [
+	                                        {% if analysis_requires_import | default(false) %}
+	                                        {
+	                                            "actionType": "ajax",
+	                                            "outputVar": "importCheckResult",
+	                                            "api": {
+	                                                "method": "{{ import_check_api_method | default('post') }}",
+	                                                "url": "{{ import_check_api | default('/HFB/common/dmx/management=gjznkm_drzt.service') }}",
+	                                                "dataType": "json",
+	                                                "data": {{ import_check_data | default('{}') | fromjson | tojson }},
+	                                                "adaptor": {% if import_check_adaptor %}{{ import_check_adaptor | tojson }}{% else %}"const raw = payload && payload.data !== undefined ? payload.data : (payload || {}); const data = raw && raw.data !== undefined ? raw.data : raw; const statusOk = (payload && payload.status === 0) || (raw && raw.status === 0); const count = Array.isArray(data) ? data.length : Number((data && (data.count || data.total || data.rows || data.size)) || 0); const ok = statusOk && (count > 0 || (data && (data.canAnalyze === true || data.can_analysis === true || data.imported === true || data.is_imported === true || data.hasData === true || data.has_data === true || data.sfdr === '1' || data.drzt === '1'))); if (!ok) { return { status: 1, msg: (raw && raw.msg) || (payload && payload.msg) || '请先完成数据导入后再进行智能分析', data: raw }; } return { status: 0, msg: '', data: raw }; "{% endif %}
+	                                            }
+	                                        },
+	                                        {% endif %}
+	                                        {# 1. 修改最外层 Page 变量：开启遮罩，显示区域 #}
+	                                        {
                                             "actionType": "setValue",
                                             "componentId": "global_page_root",
                                             "args": {

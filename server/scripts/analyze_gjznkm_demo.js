@@ -70,7 +70,8 @@ function extractVariables(content) {
 
     const builtins = new Set([
         'theme', 'now', 'date', 'g', 'f', 'a', 'i', 'v', 'k', 'comma', 'btn_comma', 'inner_comma', 'footer_comma',
-        'subtitle_tpl', 'report_button_json', 'ai_loading', 'show_analysis_result', 'show_prediction'
+        'subtitle_tpl', 'report_button_json', 'ai_loading', 'show_analysis_result', 'show_prediction',
+        'analysis_requires_import'
     ]);
 
     const filtered = Array.from(vars).filter(v => {
@@ -108,6 +109,19 @@ function inferType(varName) {
     if (varName.startsWith('enable_') || varName.startsWith('is_')) {
         result.type = 'boolean';
         result.default = true;
+    } else if (varName === 'import_check_api') {
+        result.description = '智能分析前检查导入状态的接口地址';
+        result.default = '/HFB/common/dmx/management=gjznkm_drzt.service';
+    } else if (varName === 'import_check_api_method') {
+        result.description = '导入状态检查接口请求方法';
+        result.default = 'post';
+    } else if (varName === 'import_check_data') {
+        result.type = 'json';
+        result.description = '导入状态检查接口固定参数(JSON)';
+        result.default = '{}';
+    } else if (varName === 'import_check_adaptor') {
+        result.description = '导入状态检查接口适配器，未导入时返回 status 非 0';
+        result.default = '';
     } else if (varName.endsWith('_api')) {
         result.description = varName.replace(/_/g, ' ') + ' 地址';
         result.default = `/api/${varName.replace('_api', '')}`;
