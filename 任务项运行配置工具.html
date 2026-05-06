@@ -1513,6 +1513,11 @@
                         </select>
                     </div>
                     <div class="form-item">
+                        <select id="taskUnit" name="taskUnit">
+                            <option value="">任务单元</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
                         <select id="businessType" name="businessType">
                             <option value="">任务项</option>
                         </select>
@@ -1802,6 +1807,14 @@
                     { value: "prepayAll", label: "全部提前还款" },
                     { value: "overdue", label: "逾期还款" },
                     { value: "deduct", label: "委托扣款" }
+                ]
+            };
+
+            const taskUnitOptions = {
+                tq: taskBusinessOptions.tq,
+                jc: [
+                    { value: "jc_unit_supplement", label: "缴存单位汇补缴" },
+                    { value: "jc_flexible_deposit", label: "灵活就业缴存" }
                 ]
             };
 
@@ -3570,6 +3583,7 @@
             const catalogItemExpandState = {};
             const nodeEnabledState = {};
             const relatedParty = document.getElementById("relatedParty");
+            const taskUnit = document.getElementById("taskUnit");
             const businessType = document.getElementById("businessType");
             const globalEnabledFilter = document.getElementById("globalEnabledFilter");
             const businessCategory = document.getElementById("businessCategory");
@@ -3667,6 +3681,18 @@
                     return item.value === currentValue;
                 }) ? currentValue : "";
                 businessType.value = nextValue;
+            }
+
+            function syncTaskUnitOptions() {
+                const options = taskUnitOptions[businessType.value] || [];
+                const currentValue = taskUnit.value;
+                taskUnit.innerHTML = renderSelectOptions(options, "任务单元");
+                taskUnit.disabled = !options.length;
+
+                const nextValue = options.some(function (item) {
+                    return item.value === currentValue;
+                }) ? currentValue : "";
+                taskUnit.value = nextValue;
             }
 
             function syncBusinessCategoryOptions() {
@@ -4735,11 +4761,13 @@
 
             relatedParty.addEventListener("change", function () {
                 syncTaskOptions();
+                syncTaskUnitOptions();
                 renderGroups();
                 setMessage("");
             });
 
             businessType.addEventListener("change", function () {
+                syncTaskUnitOptions();
                 renderGroups();
                 setMessage("");
             });
@@ -4988,6 +5016,7 @@
             relatedParty.innerHTML = renderSelectOptions(relatedPartyOptions, "业务关联方");
             relatedParty.value = "";
             syncTaskOptions();
+            syncTaskUnitOptions();
             renderTemplates();
             renderGroups();
         })();
