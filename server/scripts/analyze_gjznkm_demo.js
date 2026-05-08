@@ -109,9 +109,12 @@ function inferType(varName) {
     if (varName.startsWith('enable_') || varName.startsWith('is_')) {
         result.type = 'boolean';
         result.default = true;
+        if (varName === 'enable_import_check') {
+            result.description = '是否启用智能分析前导入状态检查';
+        }
     } else if (varName === 'import_check_api') {
         result.description = '智能分析前检查导入状态的接口地址';
-        result.default = '/HFB/common/dmx/management=gjznkm_drzt.service';
+        result.default = '';
     } else if (varName === 'import_check_api_method') {
         result.description = '导入状态检查接口请求方法';
         result.default = 'post';

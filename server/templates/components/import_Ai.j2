@@ -23,6 +23,7 @@
 	  @param page_key 页面唯一标识
 	  @param workflow_type AI 工作流类型标识（默认：ai_analysis）
 	  @param query AI分析查询参数
+	  @param enable_import_check 是否启用智能分析前导入状态检查
 	  @param import_check_api 智能分析前检查导入状态的接口
 	  @param import_check_api_method 导入状态检查接口请求方法
 	  @param import_check_data 导入状态检查接口固定参数
@@ -221,7 +222,7 @@
 	                                            "outputVar": "importCheckResult",
 	                                            "api": {
 	                                                "method": "{{ import_check_api_method | default('post') }}",
-	                                                "url": "{{ import_check_api | default('/HFB/common/dmx/management=gjznkm_drzt.service') }}",
+	                                                "url": "{{ import_check_api }}",
 	                                                "dataType": "json",
 	                                                "data": {{ import_check_data | default('{}') | fromjson | tojson }},
 	                                                "adaptor": {% if import_check_adaptor %}{{ import_check_adaptor | tojson }}{% else %}"const raw = payload && payload.data !== undefined ? payload.data : (payload || {}); const data = raw && raw.data !== undefined ? raw.data : raw; const statusOk = (payload && payload.status === 0) || (raw && raw.status === 0); const count = Array.isArray(data) ? data.length : Number((data && (data.count || data.total || data.rows || data.size)) || 0); const ok = statusOk && (count > 0 || (data && (data.canAnalyze === true || data.can_analysis === true || data.imported === true || data.is_imported === true || data.hasData === true || data.has_data === true || data.sfdr === '1' || data.drzt === '1'))); if (!ok) { return { status: 1, msg: (raw && raw.msg) || (payload && payload.msg) || '请先完成数据导入后再进行智能分析', data: raw }; } return { status: 0, msg: '', data: raw }; "{% endif %}
