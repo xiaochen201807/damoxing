@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>任务项运行配置工具</title>
+    <title>任务单元定义工具</title>
     <style>
         :root {
             color-scheme: light;
@@ -168,6 +169,21 @@
         .btn-default:hover {
             border-color: #b7c9e5;
             background: #f7fbff;
+        }
+
+        /* 导入/导出按钮样式 */
+        .btn-action {
+            background: #1890ff;
+            border: 1px solid #1890ff;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(22, 119, 255, 0.15);
+            margin-right: 8px;
+        }
+
+        .btn-action:hover {
+            background: #40a9ff;
+            border-color: #40a9ff;
+            transform: translateY(-1px);
         }
 
         .btn-link {
@@ -398,7 +414,7 @@
             background: #e7f1ff;
             box-shadow: inset 3px 0 0 #7da7df;
         }
-        
+
         .catalog-tree-node.disabled.active .catalog-tree-node-row {
             background: #f2f5f9;
             box-shadow: inset 3px 0 0 #b7c7dc;
@@ -555,7 +571,7 @@
             border-color: var(--primary);
             background: #fff;
         }
-        
+
         .catalog-tree-node.active .node-toggle-checkbox {
             box-shadow: 0 0 0 4px #e7f1ff;
         }
@@ -890,16 +906,51 @@
             white-space: nowrap;
         }
 
-        .usage-cell {
-            width: 240px;
-            white-space: normal;
-            padding-right: 20px;
-        }
-
         .actions-cell {
             width: 88px;
             white-space: nowrap;
             text-align: center;
+        }
+
+        /* Switch Styling */
+        .ant-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 100px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            vertical-align: middle;
+            outline: none;
+        }
+
+        .ant-switch[aria-checked="true"] {
+            background-color: #1890ff;
+        }
+
+        .ant-switch-handle {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background-color: #fff;
+            border-radius: 50%;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 35, 11, 0.2);
+        }
+
+        .ant-switch[aria-checked="true"] .ant-switch-handle {
+            left: 24px;
+        }
+
+        .usage-cell {
+            width: 120px;
+            text-align: center !important;
         }
 
         .usage-list {
@@ -1436,6 +1487,7 @@
         }
 
         @media (max-width: 720px) {
+
             .filter-layout,
             .filter-form,
             .filter-actions,
@@ -1497,9 +1549,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app-wrapper">
-        <h1 class="page-title">任务项运行配置工具</h1>
+        <h1 class="page-title">任务单元定义工具</h1>
 
         <section class="panel filter-panel">
             <div class="filter-layout">
@@ -1517,15 +1570,11 @@
                             <option value="">任务单元</option>
                         </select>
                     </div>
-                    <div class="form-item">
-                        <select id="businessType" name="businessType">
-                            <option value="">任务项</option>
-                        </select>
-                    </div>
                     <button id="searchBtn" hidden class="btn-primary" type="button">查询</button>
                 </div>
                 <div class="filter-actions">
-                    <button id="toggleAllCatalogNodesBtn" class="catalog-tree-control-btn status-action-btn" type="button">展开</button>
+                    <button id="toggleAllCatalogNodesBtn" class="catalog-tree-control-btn status-action-btn"
+                        type="button">展开</button>
                     <div class="inline-filter" style="display: none;">
                         <select id="globalEnabledFilter" name="globalEnabledFilter" aria-label="节点启停">
                             <option value="">节点启停</option>
@@ -1534,7 +1583,7 @@
                         </select>
                     </div>
                     <div class="inline-filter">
-                        <select id="businessCategory" name="businessCategory" aria-label="应用于"></select>
+                        <select id="businessCategory" name="businessCategory" aria-label="应用任务项"></select>
                     </div>
                 </div>
             </div>
@@ -1544,6 +1593,11 @@
             <div class="status-bar">
                 <div id="totalText" class="status-text">共 0 个算法，0 条内容</div>
                 <div class="template-selector">
+                    <button id="importBtn" class="btn-action" type="button">导入</button>
+                    <button id="exportBtn" class="btn-action" type="button">导出</button>
+                    <button id="saveGlobalBtn" class="btn-primary"
+                        style="margin-right: 20px; background: #d9d9d9; border-color: #d9d9d9; color: #fff; cursor: not-allowed;"
+                        disabled>保存</button>
                     <span class="template-label">模板：</span>
                     <div id="templateList" class="template-list"></div>
                 </div>
@@ -1562,9 +1616,9 @@
                 <button id="closeBusinessConfigBtn" class="btn-default" type="button">关闭</button>
             </div>
             <div class="modal-body">
-                <p class="modal-tip">请选择当前清册内容需要应用到哪些业务；如果一个业务都不选，则该内容视为未使用。</p>
+                <p class="modal-tip" style="display: none;">请选择当前清册内容需要应用到哪些业务；如果一个业务都不选，则该内容视为未使用。</p>
                 <div id="configTargetText" class="config-target"></div>
-                <div id="businessOptionList" class="checkbox-grid"></div>
+                <div id="businessOptionList" class="checkbox-grid" style="display: none;"></div>
                 <div id="algorithmParamSection" class="modal-section">
                     <h4 class="modal-section-title">算法参数配置</h4>
                     <div id="algorithmParamGroupList" class="param-group-list"></div>
@@ -1597,13 +1651,32 @@
 
             function markDirty() {
                 isDirty = true;
+                const saveGlobalBtn = document.getElementById("saveGlobalBtn");
+                if (saveGlobalBtn) {
+                    saveGlobalBtn.disabled = false;
+                    saveGlobalBtn.style.background = "#1890ff";
+                    saveGlobalBtn.style.borderColor = "#1890ff";
+                    saveGlobalBtn.style.cursor = "pointer";
+                }
+            }
+
+            function saveGlobal() {
+                isDirty = false;
+                setMessage("配置已保存", 2000);
+                const saveGlobalBtn = document.getElementById("saveGlobalBtn");
+                if (saveGlobalBtn) {
+                    saveGlobalBtn.disabled = true;
+                    saveGlobalBtn.style.background = "#d9d9d9";
+                    saveGlobalBtn.style.borderColor = "#d9d9d9";
+                    saveGlobalBtn.style.cursor = "not-allowed";
+                }
             }
 
             function renderTemplates() {
                 const templateList = document.getElementById("templateList");
                 if (!templateList) return;
-                
-                const html = templates.map(function(tpl) {
+
+                const html = templates.map(function (tpl) {
                     const isActive = tpl.id === activeTemplateId ? " active" : "";
                     if (editingTemplateId === tpl.id) {
                         return [
@@ -1635,7 +1708,7 @@
                         '</button>'
                     ].join("");
                 }).join("");
-                
+
                 const addInput = isAddingTemplate
                     ? '<input class="template-name-input template-add-input" type="text" data-template-mode="add" value="' + escapeHtml(newTemplateName) + '" placeholder="模板名称" aria-label="新增模板名称">'
                     : "";
@@ -1699,7 +1772,7 @@
             }
 
             function startRenameTemplate(tplId) {
-                const tpl = templates.find(function(t) { return t.id === tplId; });
+                const tpl = templates.find(function (t) { return t.id === tplId; });
                 if (!tpl) {
                     return;
                 }
@@ -1717,7 +1790,7 @@
 
             function confirmRenameTemplate() {
                 const tplId = editingTemplateId;
-                const tpl = templates.find(function(t) { return t.id === tplId; });
+                const tpl = templates.find(function (t) { return t.id === tplId; });
                 const name = editingTemplateName.trim();
                 if (!tplId || !tpl || !name || name === tpl.name) {
                     cancelRenameTemplate();
@@ -1747,7 +1820,7 @@
             }
 
             function confirmDeleteTemplate(tplId) {
-                const tplIndex = templates.findIndex(function(t) { return t.id === tplId; });
+                const tplIndex = templates.findIndex(function (t) { return t.id === tplId; });
                 if (tplIndex === -1) {
                     cancelDeleteTemplate();
                     return;
@@ -1773,7 +1846,7 @@
                 { value: "jc", label: "缴存", parties: ["person", "unit"] },
                 { value: "tq", label: "提取", parties: ["person"] },
                 { value: "dk", label: "贷款", parties: ["person", "developer"] },
-                { value: "hk", label: "还款", parties: ["person"] }
+                { value: "hk", label: "还款", parties: ["person", "unit"] }
             ];
 
             const taskBusinessOptions = {
@@ -1783,40 +1856,50 @@
                     { value: "repayLoan", label: "偿还购房贷款本息" },
                     { value: "elevator", label: "既有住宅加装电梯" },
                     { value: "rent", label: "租赁住房" },
-                    { value: "medical", label: "物业费" },
+                    { value: "propertyFee", label: "物业费" },
                     { value: "retire", label: "离休退休" },
                     { value: "settleAbroad", label: "出境定居" }
                 ],
                 jc: [
-                    { value: "openAccount", label: "开户缴存" },
-                    { value: "baseAdjust", label: "基数调整" },
-                    { value: "ratioAdjust", label: "比例调整" },
-                    { value: "supplement", label: "补缴" },
-                    { value: "lateFee", label: "滞纳金处理" }
+                    { value: "unitDeposit", label: "缴存单位汇补缴" },
+                    { value: "flexibleDeposit", label: "灵活就业缴存" },
+                    { value: "fundIn", label: "资金收入" },
+                    { value: "fundOut", label: "资金支出" }
                 ],
                 dk: [
-                    { value: "firstHome", label: "首套房贷款" },
-                    { value: "secondHome", label: "二套房贷款" },
-                    { value: "combination", label: "组合贷" },
-                    { value: "remote", label: "异地贷款" },
-                    { value: "pledge", label: "抵押登记" }
+                    { value: "loanApply", label: "公积金贷款申请" }
                 ],
                 hk: [
-                    { value: "monthly", label: "按月还款" },
-                    { value: "prepayPart", label: "部分提前还款" },
-                    { value: "prepayAll", label: "全部提前还款" },
-                    { value: "overdue", label: "逾期还款" },
-                    { value: "deduct", label: "委托扣款" }
+                    { value: "prepay", label: "提前还款" },
+                    { value: "counterRepay", label: "柜台还款" },
+                    { value: "batchRepay", label: "贷款批量还款" }
                 ]
             };
 
-            const taskUnitOptions = {
-                tq: taskBusinessOptions.tq,
-                jc: [
-                    { value: "jc_unit_supplement", label: "缴存单位汇补缴" },
-                    { value: "jc_flexible_deposit", label: "灵活就业缴存" }
-                ]
-            };
+
+            const applicationTaskOptions = [
+                { value: "tq", label: "提取" },
+                { value: "loanApply", label: "公积金贷款申请" },
+                { value: "unitDeposit", label: "汇补缴办理" },
+                { value: "hk", label: "贷款还款" },
+                { value: "fundIn", label: "资金收入" },
+                { value: "fundOut", label: "资金支出" }
+            ];
+
+            const taskUnitToTypeMap = (function () {
+                const map = {};
+                for (const type in taskBusinessOptions) {
+                    taskBusinessOptions[type].forEach(function (item) {
+                        map[item.value] = type;
+                    });
+                }
+                // 特殊处理 jc 的覆盖项 (如果需要)
+                map["unitDeposit"] = "jc";
+                map["flexibleDeposit"] = "jc";
+                map["fundIn"] = "jc";
+                map["fundOut"] = "jc";
+                return map;
+            })();
 
             const taskPathTextMap = {
                 tq: "缴存人/提取服务/提取服务/提取",
@@ -1830,7 +1913,7 @@
                     primaryLabel: "流程节点",
                     secondaryLabel: "配置项",
                     nodes: [
-                        { key: "verify-identity", title: "核实身份", groupTitles: ["展示内容配置-核实身份"] },
+                        { key: "verify-identity", title: "核实身份", groupTitles: [] },
                         { key: "qualification-check", title: "资格校验", groupTitles: ["业务办理资格"] },
                         { key: "authorization-confirm", title: "授权确认", groupTitles: ["展示内容配置-授权确认"] },
                         { key: "confirm-amount-reason", title: "确定提取金额及拟定提取原因", groupTitles: ["展示内容配置-确定提取金额及拟定提取原因", "业务办理资格", "业务互斥"] },
@@ -2623,7 +2706,7 @@
                                 id: "tq-amount-3",
                                 formula: "提取限额公式三：物业费 * 可提取月数",
                                 description: "物业费为200元/月/人",
-                                appliedBusinesses: ["medical"],
+                                appliedBusinesses: ["propertyFee"],
                                 paramConfig: {
                                     label: "物业费提取规则",
                                     options: ["物业费标准"],
@@ -2844,7 +2927,7 @@
                             }
                         ]
                     },
-                   
+
                     {
                         id: "tq-material-ai",
                         title: "材料完整性校验",
@@ -3070,10 +3153,9 @@
                     id: "tq-node-qualification-check",
                     title: "业务办理资格-资格校验",
                     rows: [
-                        { formula: "提取事项属于当前申请人可办业务范围", description: "根据缴存人身份、业务类型和申请场景校验是否具备发起资格。" },
-                        { formula: "个人账户状态正常且未冻结", description: "账户封存、冻结或销户状态下，不允许继续办理提取业务。" },
-                        { formula: "不存在骗提失信限制或业务禁办状态", description: "命中失信名单、骗提限制名单或政策禁办规则时，系统应拦截申请。" },
-                        { formula: "账户余额及缴存状态满足基本受理条件", description: "需满足账户有余额、缴存关系有效等基本资格条件，才进入后续流程。" }
+                        { formula: "个人账户状态 = 正常", description: "缴存人住房公积金账户状态正常时，才允许继续办理提取业务。", appliedBusinesses: ["purchase", "rent", "repayLoan"] },
+                        { formula: "失信状态 = 失信", description: "存在骗提、骗贷行为且在限制期限内的缴存人，不得办理提取业务。", appliedBusinesses: ["purchase", "repayLoan"] },
+                        { formula: "个人账户余额 > 0", description: "缴存人账户余额为 0 时，不支持提取业务办理。", appliedBusinesses: [] }
                     ]
                 },
                 "authorization-confirm": {
@@ -3254,6 +3336,18 @@
             }
 
             function getResolvedNodeGroupTitles(task, node) {
+                if (task === "tq") {
+                    var nodeDef = null;
+                    for (var i = 0; i < tqNodeElementDefinitions.length; i++) {
+                        if (tqNodeElementDefinitions[i].key === (node && node.key)) {
+                            nodeDef = tqNodeElementDefinitions[i];
+                            break;
+                        }
+                    }
+                    if (nodeDef) {
+                        return nodeDef.elements;
+                    }
+                }
                 const groupTitles = (node && node.groupTitles ? node.groupTitles : []).filter(function (title) {
                     return title !== "业务办理资格";
                 });
@@ -3269,46 +3363,32 @@
             taskGroupStore.tq = taskGroupStore.tq.concat(buildTqNodeQualificationGroups());
 
             const tqNodeElementDefinitions = [
-                { key: "verify-identity", title: "核实身份", elements: ["角色", "时效", "内容", "办理条件"] },
+                { key: "verify-identity", title: "核实身份", elements: ["办理条件"] },
                 { key: "qualification-check", title: "资格校验", elements: ["办理条件"] },
-                { key: "authorization-confirm", title: "授权确认", elements: ["内容", "办理条件", "业务附件", "凭条"] },
+                { key: "authorization-confirm", title: "授权确认", elements: ["内容", "办理条件"] },
                 { key: "confirm-amount-reason", title: "确定提取金额及拟定提取原因", elements: ["内容", "办理条件"] },
                 { key: "complete-profile", title: "完善个人信息", elements: ["内容", "办理条件"] },
                 { key: "complete-material-info", title: "完善证明材料信息", elements: ["内容", "办理条件"] },
                 { key: "confirm-material", title: "确认证明材料", elements: ["内容", "办理条件"] },
                 { key: "amount-calculate-confirm", title: "金额计算与确认", elements: ["内容", "办理条件", "办理标准"] },
-                { key: "select-bank-card", title: "选择收款银行卡", elements: ["内容", "业务附件", "办理条件"] },
-                { key: "submit-finish", title: "提取申请完成", elements: ["内容", "办理条件", "凭条"] },
-                { key: "review-submit", title: "提取复核", elements: ["角色", "时效", "内容", "流程节点推送规则", "材料完整性校验", "办理条件", "待办任务描述"] },
-                { key: "review-audit", title: "提取审核", elements: ["角色", "时效", "内容", "流程节点推送规则", "办理条件", "业务风险", "待办任务描述"] },
-                { key: "review-approve", title: "提取审批", elements: ["角色", "时效", "内容", "流程节点推送规则", "办理条件", "待办任务描述"] },
-                { key: "task-result-submit", title: "任务成果提交", elements: ["消息", "任务结果"] },
-                { key: "task-accounting", title: "任务核算", elements: ["事项处理规则", "指标"] },
-                { key: "fund-settlement", title: "资金结算", elements: ["事项处理规则", "资金支付"] },
-                { key: "accounting", title: "会计核算", elements: ["事项处理规则", "三流水一致性校验", "会计核算"] },
-                { key: "archive", title: "档案归档", elements: ["事项处理规则", "档案归档"] }
+                { key: "select-bank-card", title: "选择收款银行卡", elements: ["内容", "办理条件"] },
+                { key: "submit-finish", title: "提取申请完成", elements: ["内容", "办理条件"] },
+                { key: "review-submit", title: "提取复核", elements: ["内容", "流程节点推送规则", "办理条件"] },
+                { key: "review-audit", title: "提取审核", elements: ["内容", "流程节点推送规则", "办理条件", "业务风险"] },
+                { key: "review-approve", title: "提取审批", elements: ["内容", "流程节点推送规则", "办理条件"] },
+                { key: "task-result-submit", title: "任务成果提交", elements: [] },
+                { key: "task-accounting", title: "任务核算", elements: [] },
+                { key: "fund-settlement", title: "资金结算", elements: [] },
+                { key: "accounting", title: "会计核算", elements: [] },
+                { key: "archive", title: "档案归档", elements: [] }
             ];
 
             const tqElementColumnConfig = {
-                "角色": { formula: "角色配置", description: "配置说明" },
-                "时效": { formula: "时效", description: "" },
                 "内容": { objectName: "内容所属对象", formula: "内容名称", description: "内容说明" },
-                "办理条件": { formula: "办理条件", description: "条件说明" },
-                "办理标准": { formula: "办理标准", description: "标准说明" },
-                "业务附件": { formula: "附件配置", description: "配置说明" },
-                "凭条": { formula: "凭条配置", description: "配置说明" },
+                "办理条件": { formula: "业务资格公式", description: "业务资格制度描述" },
+                "办理标准": { formula: "额度计算公式", description: "配置内容" },
                 "流程节点推送规则": { formula: "推送规则", description: "规则说明" },
-                "材料完整性校验": { formula: "校验项", description: "校验说明" },
-                "待办任务描述": { formula: "待办配置", description: "配置说明" },
-                "业务风险": { formula: "风险配置", description: "配置说明" },
-                "消息": { formula: "消息配置", description: "配置说明" },
-                "任务结果": { formula: "结果配置", description: "配置说明" },
-                "事项处理规则": { formula: "处理规则", description: "规则说明" },
-                "指标": { formula: "指标名称", description: "指标描述" },
-                "资金支付": { formula: "支付配置", description: "配置说明" },
-                "三流水一致性校验": { formula: "校验规则", description: "规则说明" },
-                "会计核算": { formula: "核算规则", description: "核算说明" },
-                "档案归档": { formula: "归档规则", description: "归档说明" }
+                "业务风险": { formula: "风险配置", description: "配置说明" }
             };
 
             function getTqElementGroupTitle(nodeTitle, elementTitle) {
@@ -3332,207 +3412,91 @@
             }
 
             function buildTqElementRows(nodeKey, nodeTitle, elementTitle) {
-                if (elementTitle === "角色") {
-                    if (nodeKey === "review-submit") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "综合复核岗", description: "" }
-                        ]);
-                    }
-
-                    if (nodeKey === "review-audit") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "综合审核岗", description: "" }
-                        ]);
-                    }
-
-                    if (nodeKey === "review-approve") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "服务部主任", description: "" }
-                        ]);
-                    }
-
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "综合柜员", description: "" },
-                        { formula: "缴存人", description: "" },
-                        { formula: "灵活就业缴存人", description: "" }
-                    ]);
-                }
-
-                if (elementTitle === "时效") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "实时", description: "" },
-                        { formula: "1天", description: "" },
-                        { formula: "1月", description: "" },
-                        { formula: "1季", description: "" },
-                        { formula: "1年", description: "" }
-                    ]);
-                }
-
                 if (elementTitle === "内容") {
                     return createTqTextRows(nodeKey, nodeTitle, elementTitle, ["申请信息", "校验信息", "结果信息", "提示信息", "关联信息"], [
-                        { formula: "基础展示信息", description: "展示“" + nodeTitle + "”节点办理所需的基础申请信息，便于快速确认业务上下文。"},
-                        { formula: "关键校验信息", description: "补充“" + nodeTitle + "”节点对应的身份、资格、材料或规则校验结果。"},
-                        { formula: "处理结果信息", description: "展示“" + nodeTitle + "”节点当前处理状态、结论及关键结果数据。"},
-                        { formula: "操作引导信息", description: "提供“" + nodeTitle + "”节点的办理提示、风险提醒和补正说明。"},
-                        { formula: "关联补充信息", description: "关联“" + nodeTitle + "”节点上下游所需的辅助信息，提升办理连续性。"}
+                        { formula: "基础展示信息", description: "展示“" + nodeTitle + "”节点办理所需的基础申请信息，便于快速确认业务上下文。" },
+                        { formula: "关键校验信息", description: "补充“" + nodeTitle + "”节点对应的身份、资格、材料或规则校验结果。" },
+                        { formula: "处理结果信息", description: "展示“" + nodeTitle + "”节点当前处理状态、结论及关键结果数据。" },
+                        { formula: "操作引导信息", description: "提供“" + nodeTitle + "”节点的办理提示、风险提醒和补正说明。" },
+                        { formula: "关联补充信息", description: "关联“" + nodeTitle + "”节点上下游所需的辅助信息，提升办理连续性。" }
                     ]);
                 }
 
                 if (elementTitle === "办理条件") {
+                    if (nodeKey === "qualification-check") {
+                        return [
+                            { formula: "个人账户状态 = 正常", description: "缴存人住房公积金账户状态正常时，才允许继续办理提取业务。", appliedBusinesses: ["purchase", "rent", "repayLoan"] },
+                            { formula: "失信状态 = 失信", description: "存在骗提、骗贷行为且在限制期限内的缴存人，不得办理提取业务。", appliedBusinesses: ["purchase", "repayLoan"] },
+                            { formula: "个人账户余额 > 0", description: "缴存人账户余额为 0 时，不支持提取业务办理。", appliedBusinesses: [] }
+                        ].map(function (row, index) {
+                            row.id = "tq-generated-" + nodeKey + "-" + elementTitle + "-" + (index + 1);
+                            return row;
+                        });
+                    }
                     return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "前置受理条件", description: "明确进入“" + nodeTitle + "”节点前必须满足的前置受理条件。"},
-                        { formula: "身份资格条件", description: "校验“" + nodeTitle + "”节点对应的身份、账户或权限条件是否满足。"},
-                        { formula: "材料数据条件", description: "确认“" + nodeTitle + "”节点需要的材料、数据和字段是否齐全有效。"},
-                        { formula: "规则命中条件", description: "判断“" + nodeTitle + "”节点是否触发当前政策规则、限制规则或例外规则。"}
+                        { formula: "前置受理条件", description: "明确进入“" + nodeTitle + "”节点前必须满足的前置受理条件。" },
+                        { formula: "身份资格条件", description: "校验“" + nodeTitle + "”节点对应的身份、账户或权限条件是否满足。" },
+                        { formula: "材料数据条件", description: "确认“" + nodeTitle + "”节点需要的材料、数据和字段是否齐全有效。" },
+                        { formula: "规则命中条件", description: "判断“" + nodeTitle + "”节点是否触发当前政策规则、限制规则或例外规则。" }
                     ]);
                 }
 
                 if (elementTitle === "办理标准") {
+                    if (nodeKey === "amount-calculate-confirm") {
+                        return [
+                            { formula: "提取限额公式一：房屋总价 * 产权份额", description: "", appliedBusinesses: ["purchase"] },
+                            { formula: "提取限额公式二：月租金 * 可提取月数", description: "租赁合同是否在本市住房租赁监管服务平台备案为未备案时，月租金为500元/月/人\n租赁合同是否在本市住房租赁监管服务平台备案为已备案时，月租金为900元/月/人", appliedBusinesses: ["rent"] },
+                            { formula: "提取限额公式三：物业费 * 可提取月数", description: "物业费为200元/月/人", appliedBusinesses: ["propertyFee"] },
+                            { formula: "账户保留金额公式一：账户保留固定金额", description: "账户保留固定金额为100元", appliedBusinesses: ["purchase"] },
+                            { formula: "账户保留金额公式二：月缴存额 * 账户保留缴存额月数", description: "账户保留缴存额月数为3个月", appliedBusinesses: ["purchase"] }
+                        ].map(function (row, index) {
+                            row.id = "tq-generated-" + nodeKey + "-" + elementTitle + "-" + (index + 1);
+                            return row;
+                        });
+                    }
                     return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "受理标准", description: "定义“" + nodeTitle + "”节点的受理口径和基本处理标准。"},
-                        { formula: "校验标准", description: "明确“" + nodeTitle + "”节点的规则校验、结果判断和通过标准。"},
-                        { formula: "确认标准", description: "规范“" + nodeTitle + "”节点的确认动作、留痕要求和结果输出标准。"},
-                        { formula: "异常处理标准", description: "补充“" + nodeTitle + "”节点遇到异常场景时的处理口径和兜底标准。"}
+                        { formula: "受理标准", description: "定义“" + nodeTitle + "”节点的受理口径和基本处理标准。" },
+                        { formula: "校验标准", description: "明确“" + nodeTitle + "”节点的规则校验、结果判断和通过标准。" },
+                        { formula: "确认标准", description: "规范“" + nodeTitle + "”节点的确认动作、留痕要求和结果输出标准。" },
+                        { formula: "异常处理标准", description: "补充“" + nodeTitle + "”节点遇到异常场景时的处理口径和兜底标准。" }
                     ]);
                 }
 
-                if (elementTitle === "业务附件") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "居民身份证", description: "必扫、自动固化" },
-                        { formula: "不动产权证书", description: "必扫、自动固化" },
-                        { formula: "购房合同", description: "必扫、自动固化" },
-                        { formula: "购房发票", description: "必扫、自动固化" },
-                        { formula: "婚姻关系证明", description: "必扫、自动固化" }
-                    ]);
-                }
-
-                if (elementTitle === "凭条") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "公积金提取凭条", description: "签字方式、ca认证方式" }
+                if (nodeKey === "complete-material-info" && elementTitle === "内容") {
+                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, "购房记录", [
+                        { formula: "购房类型", description: "区分交易性质，如商品住宅、商业公寓、二手房、保障性住房、共有产权房等，用于匹配不同的交易流程、税费标准与监管规则。" },
+                        { formula: "权利人关系", description: "明确产权共有人的身份关系，如夫妻共有、直系亲属共有、非亲属共有、个人单独所有，是后续产权份额分配、继承/析产业务的基础依据。" },
+                        { formula: "购房合同编号", description: "房产交易监管系统生成的唯一标识，是合同备案、交易核验、产权办理的核心凭证，可关联不动产登记、贷款审批等全链条业务数据。" },
+                        { formula: "网签备案编号", description: "房产管理部门对购房合同网签备案后生成的专属编号，用于确认交易的合规性与公示效力，可防范一房多卖、虚假交易等风险。" },
+                        { formula: "登记日期", description: "记录交易或产权信息在监管系统完成登记的日期，是界定交易时间、产权取得时间、税费缴纳节点等关键时间维度数据。" },
+                        { formula: "网签备案日期", description: "合同完成网签并在房产监管系统备案的时间节点，标志着交易进入公示监管阶段，是交易流程进度管控的重要指标。" },
+                        { formula: "房屋所属区域", description: "记录房屋所属的市、区/县、街道等行政归属，用于匹配当地的购房政策、限购要求、税费标准及不动产登记管辖机构。" }
                     ]);
                 }
 
                 if (elementTitle === "流程节点推送规则") {
                     return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "正常流转规则", description: "配置“" + nodeTitle + "”节点在正常办理场景下的默认推送路径。"},
-                        { formula: "异常转人工规则", description: "当“" + nodeTitle + "”节点命中异常时，自动切换为人工处理路径。"},
-                        { formula: "退回补正规则", description: "定义“" + nodeTitle + "”节点退回补正时的回退目标和再次流转条件。"},
-                        { formula: "超时催办规则", description: "设置“" + nodeTitle + "”节点超时后的催办提醒和升级处理规则。"}
-                    ]);
-                }
-
-                if (elementTitle === "材料完整性校验") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "要件清单校验", description: "根据“" + nodeTitle + "”节点受理清单校验材料是否齐全。"},
-                        { formula: "影像完整性校验", description: "检查“" + nodeTitle + "”节点上传影像是否存在缺页、遮挡或模糊。"},
-                        { formula: "OCR字段校验", description: "核验“" + nodeTitle + "”节点材料识别出的关键字段是否完整准确。"},
-                        { formula: "交叉比对校验", description: "对“" + nodeTitle + "”节点申请信息和材料信息进行交叉比对，避免不一致。"}
-                    ]);
-                }
-
-                if (elementTitle === "待办任务描述") {
-                    if (nodeKey === "review-submit") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "待办提取复核任务，重点核对申请信息、材料完整性和办理条件，形成复核结论。", description: "" }
-                        ]);
-                    }
-
-                    if (nodeKey === "review-audit") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "待办提取审核任务，重点审核提取原因、金额测算结果及风险校验情况，输出审核意见。", description: "" }
-                        ]);
-                    }
-
-                    if (nodeKey === "review-approve") {
-                        return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                            { formula: "待办提取审批任务，重点确认审核结论、审批权限及支付前置条件，作出最终审批决定。", description: "" }
-                        ]);
-                    }
-
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "待办处理任务，按当前节点规则完成信息核对、结果确认和状态回写。", description: "" }
+                        { formula: "正常流转规则", description: "配置“" + nodeTitle + "”节点在正常办理场景下的默认推送路径。" },
+                        { formula: "异常转人工规则", description: "当“" + nodeTitle + "”节点命中异常时，自动切换为人工处理路径。" },
+                        { formula: "退回补正规则", description: "定义“" + nodeTitle + "”节点退回补正时的回退目标和再次流转条件。" },
+                        { formula: "超时催办规则", description: "设置“" + nodeTitle + "”节点超时后的催办提醒和升级处理规则。" }
                     ]);
                 }
 
                 if (elementTitle === "业务风险") {
                     return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "风险识别项", description: "识别“" + nodeTitle + "”节点中需要重点关注的异常风险信号。"},
-                        { formula: "风险等级", description: "划分“" + nodeTitle + "”节点命中风险后的等级和优先处置顺序。"},
-                        { formula: "处置策略", description: "配置“" + nodeTitle + "”节点风险命中后的拦截、复核或放行策略。"},
-                        { formula: "风险留痕", description: "保留“" + nodeTitle + "”节点风险判断依据、处理意见和过程痕迹。"}
-                    ]);
-                }
-
-                if (elementTitle === "消息") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "公积金提取任务成果已生成，请及时查看提取金额、办理结果及后续办理提示。", description: "" }
-                    ]);
-                }
-
-                if (elementTitle === "任务结果") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "提取金额", description: "" }
-                    ]);
-                }
-
-                if (elementTitle === "事项处理规则") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "受理规则", description: "定义“" + nodeTitle + "”节点事项的受理范围、前置条件和入口规则。"},
-                        { formula: "执行规则", description: "明确“" + nodeTitle + "”节点事项处理时的核心执行逻辑和口径。"},
-                        { formula: "异常规则", description: "补充“" + nodeTitle + "”节点事项命中异常后的限制、分流或拦截规则。"},
-                        { formula: "回退规则", description: "说明“" + nodeTitle + "”节点事项在失败、退回或撤销时的回退逻辑。"}
-                    ]);
-                }
-
-                if (elementTitle === "指标") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "提取金额", description: "统计公积金提取业务的提取总金额。"},
-                        { formula: "提取人数", description: "统计公积金提取业务的办理人数。"},
-                        { formula: "提取购房面积", description: "统计购房提取业务对应的房屋建筑面积。"}
-                    ]);
-                }
-
-                if (elementTitle === "资金支付") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "支付账户校验", description: "核验“" + nodeTitle + "”节点支付账户、户名和开户信息是否一致。"},
-                        { formula: "支付金额校验", description: "确保“" + nodeTitle + "”节点支付金额与审批、结算结果保持一致。"},
-                        { formula: "支付渠道控制", description: "配置“" + nodeTitle + "”节点支付渠道的可用性、额度和控制规则。"},
-                        { formula: "支付结果回写", description: "将“" + nodeTitle + "”节点支付结果同步回写到业务主单和流程记录。"}
-                    ]);
-                }
-
-                if (elementTitle === "三流水一致性校验") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "申请流水校验", description: "校验“" + nodeTitle + "”节点申请流水与业务受理数据是否一致。"},
-                        { formula: "支付流水校验", description: "校验“" + nodeTitle + "”节点支付流水与资金执行结果是否一致。"},
-                        { formula: "记账流水校验", description: "校验“" + nodeTitle + "”节点账务流水与会计处理结果是否一致。"},
-                        { formula: "差异处理规则", description: "当“" + nodeTitle + "”节点三流水不一致时，按差异处理规则进行拦截或复核。"}
-                    ]);
-                }
-
-                if (elementTitle === "会计核算") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "会计科目映射", description: "建立“" + nodeTitle + "”节点业务事项与会计科目的映射关系。"},
-                        { formula: "记账方向规则", description: "明确“" + nodeTitle + "”节点借贷方向、金额口径和入账逻辑。"},
-                        { formula: "核算时点控制", description: "控制“" + nodeTitle + "”节点执行会计核算的时点和前置条件。"},
-                        { formula: "凭证生成规则", description: "定义“" + nodeTitle + "”节点会计凭证生成、编号和留痕规则。"}
-                    ]);
-                }
-
-                if (elementTitle === "档案归档") {
-                    return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                        { formula: "归档范围", description: "明确“" + nodeTitle + "”节点需要归档的单据、影像和日志范围。"},
-                        { formula: "归档目录", description: "配置“" + nodeTitle + "”节点档案的分类目录和归档标识。"},
-                        { formula: "归档时点", description: "定义“" + nodeTitle + "”节点进入归档的触发时机和完成条件。"},
-                        { formula: "归档回执", description: "保留“" + nodeTitle + "”节点归档完成后的回执、索引和追溯信息。"}
+                        { formula: "风险识别项", description: "识别“" + nodeTitle + "”节点中需要重点关注的异常风险信号。" },
+                        { formula: "风险等级", description: "划分“" + nodeTitle + "”节点命中风险后的等级和优先处置顺序。" },
+                        { formula: "处置策略", description: "配置“" + nodeTitle + "”节点风险命中后的拦截、复核或放行策略。" },
+                        { formula: "风险留痕", description: "保留“" + nodeTitle + "”节点风险判断依据、处理意见和过程痕迹。" }
                     ]);
                 }
 
                 return createTqTextRows(nodeKey, nodeTitle, elementTitle, null, [
-                    { formula: "配置项一", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的基础配置内容。"},
-                    { formula: "配置项二", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的校验与处理内容。"},
-                    { formula: "配置项三", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的结果与留痕内容。"},
-                    { formula: "配置项四", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的异常处理内容。"}
+                    { formula: "配置项一", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的基础配置内容。" },
+                    { formula: "配置项二", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的校验与处理内容。" },
+                    { formula: "配置项三", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的结果与留痕内容。" },
+                    { formula: "配置项四", description: "补充“" + nodeTitle + "”节点“" + elementTitle + "”的异常处理内容。" }
                 ]);
             }
 
@@ -3584,7 +3548,6 @@
             const nodeEnabledState = {};
             const relatedParty = document.getElementById("relatedParty");
             const taskUnit = document.getElementById("taskUnit");
-            const businessType = document.getElementById("businessType");
             const globalEnabledFilter = document.getElementById("globalEnabledFilter");
             const businessCategory = document.getElementById("businessCategory");
             const searchBtn = document.getElementById("searchBtn");
@@ -3611,7 +3574,7 @@
             }
 
             function getCurrentTask() {
-                return businessType.value || "tq";
+                return taskUnitToTypeMap[taskUnit.value] || "tq";
             }
 
             function getCurrentRelatedParty() {
@@ -3638,7 +3601,7 @@
             }
 
             function getBusinessFilterOptions() {
-                return [{ value: UNAPPLIED_FILTER_VALUE, label: "未应用" }].concat(getBusinessOptions());
+                return applicationTaskOptions;
             }
 
             function ensureExpandedState(task) {
@@ -3667,24 +3630,15 @@
                 ).join("");
             }
 
-            function syncTaskOptions() {
-                const options = getAvailableTaskOptions();
-                const currentValue = businessType.value;
-                businessType.innerHTML = renderSelectOptions(options, "任务项");
-
-                if (!options.length) {
-                    businessType.value = "";
-                    return;
-                }
-
-                const nextValue = options.some(function (item) {
-                    return item.value === currentValue;
-                }) ? currentValue : "";
-                businessType.value = nextValue;
-            }
-
             function syncTaskUnitOptions() {
-                const options = taskUnitOptions[businessType.value] || [];
+                const availableTypes = getAvailableTaskOptions().map(function (opt) { return opt.value; });
+                let options = [];
+                availableTypes.forEach(function (type) {
+                    const units = taskBusinessOptions[type] || [];
+                    options = options.concat(units);
+                });
+
+
                 const currentValue = taskUnit.value;
                 taskUnit.innerHTML = renderSelectOptions(options, "任务单元");
                 taskUnit.disabled = !options.length;
@@ -3706,7 +3660,7 @@
                     filter.businessCategory = "";
                 }
 
-                businessCategory.innerHTML = renderSelectOptions(options, "应用于");
+                businessCategory.innerHTML = renderSelectOptions(options, "应用任务项");
                 businessCategory.value = filter.businessCategory;
             }
 
@@ -3767,7 +3721,22 @@
                             key: node.key,
                             title: node.title,
                             items: getResolvedNodeGroupTitles(task, node).map(function (title) {
-                                const group = groupTitleMap[title];
+                                let group = null;
+                                if (task === "tq") {
+                                    const groupId = "tq-generated-" + node.key + "-" + title;
+                                    for (var i = 0; i < groups.length; i++) {
+                                        if (groups[i].id === groupId) {
+                                            group = groups[i];
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!group) {
+                                    const resolvedTitle = (task === "tq" && typeof getTqElementGroupTitle === "function")
+                                        ? getTqElementGroupTitle(node.title, title)
+                                        : title;
+                                    group = groupTitleMap[resolvedTitle];
+                                }
                                 return group ? {
                                     key: group.id,
                                     title: group.displayTitle || group.title,
@@ -3945,6 +3914,7 @@
                 }
             }
 
+
             function isCatalogItemExpanded(task, catalogNodes, nodeKey, itemKey) {
                 ensureCatalogItemExpandState(task, catalogNodes);
                 return Boolean(
@@ -4111,7 +4081,6 @@
                         }]
                     };
                 }
-
                 if (groupTitle === "业务风险") {
                     return {
                         paramConfig: {
@@ -4224,7 +4193,7 @@
                     return [
                         '<div class="param-group-card" data-param-group="' + index + '">',
                         '<div class="param-group-header">',
-                        
+
                         index > 0
                             ? '<button class="btn-link" type="button" data-action="remove-param-group" data-group-index="' + index + '">删除</button>'
                             : '<span></span>',
@@ -4269,14 +4238,7 @@
             }
 
             function getVisibleRows(group) {
-                const filter = getUsageFilter();
-                return (group.rows || []).filter(function (row) {
-                    const rowUsed = isRowUsed(row);
-                    const matchedCategory = !filter.businessCategory
-                        || (filter.businessCategory === UNAPPLIED_FILTER_VALUE && !rowUsed)
-                        || ((row.appliedBusinesses || []).indexOf(filter.businessCategory) > -1);
-                    return matchedCategory;
-                });
+                return group.rows || [];
             }
 
             function getVisibleCatalogNodes(catalogNodes) {
@@ -4321,64 +4283,43 @@
                 return escapeHtml(text);
             }
 
+            function escapeMarkdownTableCell(value) {
+                return String(value === undefined || value === null ? "" : value)
+                    .replace(/\r?\n/g, "<br>")
+                    .replace(/\|/g, "\\|")
+                    .trim();
+            }
+
+            function renderMarkdownTableRow(cells) {
+                return "| " + cells.map(escapeMarkdownTableCell).join(" | ") + " |\n";
+            }
+
+            function getMarkdownParamRows(row, group) {
+                const parameterConfig = getParameterConfig(row, group) || {};
+                const paramLabel = parameterConfig.label || "配置参数";
+                return getNormalizedAlgorithmParamGroups(row, group).map(function (paramGroup) {
+                    const selectedValues = Array.isArray(paramGroup.selectedValues)
+                        ? paramGroup.selectedValues.filter(Boolean)
+                        : [];
+                    return {
+                        label: paramLabel,
+                        selectedText: selectedValues.length ? selectedValues.join("、") : "",
+                        result: typeof paramGroup.result === "string" ? paramGroup.result.trim() : ""
+                    };
+                }).filter(function (paramGroup) {
+                    return paramGroup.selectedText || paramGroup.result;
+                });
+            }
+
             function renderGroupTable(group) {
-                const isRoleGroup = getGroupDisplayTitle(group) === "角色";
-                const isTimeGroup = getGroupDisplayTitle(group) === "时效";
-                const isAttachmentGroup = getGroupDisplayTitle(group) === "业务附件";
-                const isVoucherGroup = getGroupDisplayTitle(group) === "凭条";
-                const isTodoGroup = getGroupDisplayTitle(group) === "待办任务描述";
-                const isMessageGroup = getGroupDisplayTitle(group) === "消息";
-                const isTaskResultGroup = getGroupDisplayTitle(group) === "任务结果";
+                const displayTitle = getGroupDisplayTitle(group);
+                const isContentGroup = displayTitle === "内容" || displayTitle === "展示内容配置";
                 const hasObjectColumn = Object.prototype.hasOwnProperty.call(group.columns, "objectName");
-                const emptyColspan = (isRoleGroup || isTimeGroup || isTodoGroup || isMessageGroup || isTaskResultGroup)
-                    ? 3
-                    : ((isTimeGroup || isAttachmentGroup || isVoucherGroup) ? 4 : (hasObjectColumn ? 6 : 5));
+                const emptyColspan = (hasObjectColumn ? 6 : 5) - (isContentGroup ? 1 : 0);
                 const visibleRows = getVisibleRows(group);
                 const currentSelection = getCurrentCatalogSelection(getCatalogNodes());
                 const isCurrentNodeDisabled = currentSelection.node && currentSelection.node.enabled === false;
-                const colGroupHtml = isRoleGroup
-                    ? [
-                        "<colgroup>",
-                        '<col style="width: 420px;">',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 88px;">',
-                        "</colgroup>"
-                    ].join("")
-                    : (isTodoGroup || isMessageGroup || isTaskResultGroup)
-                    ? [
-                        "<colgroup>",
-                        '<col>',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 88px;">',
-                        "</colgroup>"
-                    ].join("")
-                    : isVoucherGroup
-                    ? [
-                        "<colgroup>",
-                        '<col style="width: 280px;">',
-                        '<col style="width: 260px;">',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 88px;">',
-                        "</colgroup>"
-                    ].join("")
-                    : isAttachmentGroup
-                    ? [
-                        "<colgroup>",
-                        '<col style="width: 280px;">',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 88px;">',
-                        "</colgroup>"
-                    ].join("")
-                    : isTimeGroup
-                    ? [
-                        "<colgroup>",
-                        '<col style="width: 360px;">',
-                        '<col style="width: 220px;">',
-                        '<col style="width: 88px;">',
-                        "</colgroup>"
-                    ].join("")
-                    : hasObjectColumn
+                const colGroupHtml = hasObjectColumn
                     ? [
                         "<colgroup>",
                         '<col style="width: 72px;">',
@@ -4386,7 +4327,7 @@
                         '<col style="width: 220px;">',
                         '<col>',
                         '<col style="width: 320px;">',
-                        '<col style="width: 110px;">',
+                        isContentGroup ? "" : '<col style="width: 110px;">',
                         "</colgroup>"
                     ].join("")
                     : [
@@ -4395,51 +4336,21 @@
                         '<col style="width: 300px;">',
                         '<col style="width: 500px;">',
                         '<col style="width: 200px;">',
-                        '<col style="width: 80px;">',
+                        isContentGroup ? "" : '<col style="width: 80px;">',
                         "</colgroup>"
                     ].join("");
                 const rowsHtml = visibleRows.length ? visibleRows.map(function (row, index) {
-                    const actionTitle = isCurrentNodeDisabled ? "当前节点已停用，暂不可配置" : "业务配置";
-                    return isRoleGroup ? [
-                        "<tr>",
-                        "<td>" + escapeHtml(row.formula) + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
-                        "</tr>"
-                    ].join("") : (isTodoGroup || isMessageGroup || isTaskResultGroup) ? [
-                        "<tr>",
-                        "<td>" + escapeHtml(row.formula) + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
-                        "</tr>"
-                    ].join("") : isVoucherGroup ? [
-                        "<tr>",
-                        "<td>" + escapeHtml(row.formula) + "</td>",
-                        "<td>" + escapeHtml(row.description || "") + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
-                        "</tr>"
-                    ].join("") : isAttachmentGroup ? [
-                        "<tr>",
-                        "<td>" + escapeHtml(row.formula) + "</td>",
-                        "<td>" + escapeHtml(row.description || "") + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
-                        "</tr>"
-                    ].join("") : isTimeGroup ? [
-                        "<tr>",
-                        "<td>" + escapeHtml(row.formula) + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
-                        "</tr>"
-                    ].join("") : [
+                    const isRowDisabled = row.enabled === false;
+                    const actionTitle = isCurrentNodeDisabled ? "当前节点已停用，暂不可配置" : (isRowDisabled ? "请先启用该配置项" : "业务配置");
+                    const isActionDisabled = isCurrentNodeDisabled || isRowDisabled;
+                    return [
                         "<tr>",
                         '<td class="index-cell">' + (index + 1) + "</td>",
                         hasObjectColumn ? '<td class="object-cell">' + escapeHtml(row.objectName || "") + "</td>" : "",
                         "<td>" + escapeHtml(row.formula) + "</td>",
                         "<td>" + renderDescriptionContent(row) + "</td>",
-                        '<td class="usage-cell">' + renderUsageContent(row.appliedBusinesses) + "</td>",
-                        '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isCurrentNodeDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
+                        '<td class="usage-cell"><button type="button" role="switch" aria-checked="' + (row.enabled !== false) + '" class="ant-switch" data-action="toggle-row-enabled" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"><span class="ant-switch-handle"></span></button></td>',
+                        isContentGroup ? "" : '<td class="actions-cell"><button class="icon-button" type="button" title="' + actionTitle + '" aria-label="' + actionTitle + '" data-action="config-business" data-group-id="' + escapeHtml(group.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + (isActionDisabled ? " disabled" : "") + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.69 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.81 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg></button></td>',
                         "</tr>"
                     ].join("");
                 }).join("") : '<tr><td colspan="' + emptyColspan + '"><div class="table-empty-state">当前筛选条件下暂无清册</div></td></tr>';
@@ -4450,22 +4361,12 @@
                     colGroupHtml,
                     "<thead>",
                     "<tr>",
-                    (isRoleGroup || isTimeGroup || isAttachmentGroup || isVoucherGroup || isTodoGroup || isMessageGroup || isTaskResultGroup) ? "" : '<th class="index-cell">序号</th>',
-                    (isRoleGroup || isTimeGroup || isAttachmentGroup || isVoucherGroup || isTodoGroup || isMessageGroup || isTaskResultGroup) ? "" : (hasObjectColumn ? '<th class="object-cell">' + escapeHtml(group.columns.objectName) + "</th>" : ""),
-                    "<th>" + escapeHtml(
-                        isRoleGroup ? "角色名称"
-                            : (isTimeGroup ? "时效"
-                                : (isAttachmentGroup ? "附件名称"
-                                    : (isVoucherGroup ? "凭条名称"
-                                        : (isTodoGroup ? "待办任务描述"
-                                            : (isMessageGroup ? "消息内容"
-                                                : (isTaskResultGroup ? "任务结果" : group.columns.formula))))))
-                    ) + "</th>",
-                    (isRoleGroup || isTimeGroup || isTodoGroup || isMessageGroup || isTaskResultGroup)
-                        ? ""
-                        : ("<th>" + escapeHtml(isTimeGroup ? "时效值" : ((isAttachmentGroup || isVoucherGroup) ? "配置说明" : group.columns.description)) + "</th>"),
-                    '<th class="usage-cell">应用于</th>',
-                    '<th class="actions-cell">操作</th>',
+                    '<th class="index-cell">序号</th>',
+                    hasObjectColumn ? '<th class="object-cell">' + escapeHtml(group.columns.objectName) + "</th>" : "",
+                    "<th>" + escapeHtml(group.columns.formula) + "</th>",
+                    "<th>" + escapeHtml(group.columns.description) + "</th>",
+                    '<th class="usage-cell">是否应用</th>',
+                    isContentGroup ? "" : '<th class="actions-cell">操作</th>',
                     "</tr>",
                     "</thead>",
                     "<tbody>",
@@ -4535,7 +4436,6 @@
             }
 
             function renderGroups() {
-                syncTaskOptions();
                 const task = getCurrentTask();
                 const groups = getCurrentGroups();
                 ensureUsageFilterState(task);
@@ -4617,15 +4517,7 @@
                     escapeHtml(context.row.formula)
                 ].join("");
 
-                businessOptionList.innerHTML = options.map(function (item) {
-                    const checked = appliedSet.has(item.value) ? " checked" : "";
-                    return [
-                        "<label>",
-                        '<input type="checkbox" data-business-option="' + escapeHtml(item.value) + '"' + checked + ">",
-                        "<span>" + escapeHtml(item.label) + "</span>",
-                        "</label>"
-                    ].join("");
-                }).join("");
+                businessOptionList.innerHTML = "";
 
                 algorithmParamSection.classList.toggle("section-hidden", !shouldShowAlgorithmParams);
                 if (shouldShowAlgorithmParams) {
@@ -4653,14 +4545,8 @@
                     return;
                 }
 
-                const selectedValues = Array.from(
-                    businessOptionList.querySelectorAll("input[data-business-option]:checked")
-                ).map(function (input) {
-                    return input.getAttribute("data-business-option");
-                });
                 const algorithmParamGroups = collectAlgorithmParamGroups();
 
-                currentConfigContext.row.appliedBusinesses = selectedValues;
                 currentConfigContext.row.algorithmParams = {
                     groups: algorithmParamGroups
                 };
@@ -4668,12 +4554,7 @@
                 renderGroups();
                 markDirty();
 
-                if (!selectedValues.length) {
-                    setMessage("业务配置已清空，该清册当前为未使用状态。", 2600);
-                    return;
-                }
-
-                setMessage("业务配置已更新，共关联 " + selectedValues.length + " 个业务。", 2600);
+                setMessage("高级配置已更新。", 2600);
             }
 
             function handleSearch() {
@@ -4760,14 +4641,12 @@
             });
 
             relatedParty.addEventListener("change", function () {
-                syncTaskOptions();
                 syncTaskUnitOptions();
                 renderGroups();
                 setMessage("");
             });
 
-            businessType.addEventListener("change", function () {
-                syncTaskUnitOptions();
+            taskUnit.addEventListener("change", function () {
                 renderGroups();
                 setMessage("");
             });
@@ -4880,6 +4759,23 @@
 
                 const action = actionTarget.getAttribute("data-action");
 
+                if (action === "toggle-row-enabled") {
+                    const groupId = actionTarget.getAttribute("data-group-id");
+                    const rowId = actionTarget.getAttribute("data-row-id");
+                    const groups = getCurrentGroups();
+                    const group = groups.find(function (g) { return g.id === groupId; });
+                    if (group) {
+                        const row = group.rows.find(function (r) { return r.id === rowId; });
+                        if (row) {
+                            const isChecked = actionTarget.getAttribute("aria-checked") === "true";
+                            row.enabled = !isChecked;
+                            markDirty();
+                            renderGroups();
+                        }
+                    }
+                    return;
+                }
+
                 if (action === "select-catalog-node") {
                     const task = getCurrentTask();
                     const catalogNodes = getCatalogNodes();
@@ -4984,22 +4880,179 @@
                 if (openSelect instanceof Element && !openSelect.contains(target)) {
                     closeTalentTypeDropdown();
                 }
-
-                // 处理修改后的空白处保存提示
-                if (isDirty) {
-                    const isBlankArea = target.classList.contains("app-wrapper") || 
-                                       target.classList.contains("panel") || 
-                                       target.classList.contains("status-bar") ||
-                                       target === document.body || 
-                                       target === document.documentElement;
-                    if (isBlankArea) {
-                        if (confirm("发现配置已修改，是否确认保存？")) {
-                            isDirty = false;
-                            setMessage("配置已成功保存！", 3000);
-                        }
-                    }
-                }
             });
+
+            const saveGlobalBtn = document.getElementById("saveGlobalBtn");
+            const importBtn = document.getElementById("importBtn");
+            const exportBtn = document.getElementById("exportBtn");
+
+            if (saveGlobalBtn) {
+                saveGlobalBtn.addEventListener("click", function () {
+                    saveGlobal();
+                });
+            }
+
+            if (exportBtn) {
+                exportBtn.addEventListener("click", function () {
+                    exportToMarkdown();
+                });
+            }
+
+            if (importBtn) {
+                importBtn.addEventListener("click", function () {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = ".json,.md";
+                    input.onchange = function (e) {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            const content = event.target.result;
+                            if (file.name.endsWith(".json")) {
+                                try {
+                                    const data = JSON.parse(content);
+                                    if (data.templates) templates = data.templates;
+                                    if (data.taskGroupStore) {
+                                        Object.keys(data.taskGroupStore).forEach(function(k) {
+                                            taskGroupStore[k] = data.taskGroupStore[k];
+                                        });
+                                    }
+                                    if (data.activeTemplateId) activeTemplateId = data.activeTemplateId;
+                                    renderTemplates();
+                                    renderGroups();
+                                    setMessage("配置导入成功", 2000);
+                                } catch (err) {
+                                    setMessage("导入失败：无效的 JSON 格式", 3000);
+                                }
+                            } else if (file.name.endsWith(".md")) {
+                                try {
+                                    importFromMarkdown(content);
+                                    setMessage("Markdown 配置导入成功", 2000);
+                                } catch (err) {
+                                    console.error(err);
+                                    setMessage("导入失败：Markdown 格式不兼容", 3000);
+                                }
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                });
+            }
+
+            function toChineseNumber(n) {
+                const dict = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"];
+                return dict[n] || n;
+            }
+
+            function exportToMarkdown() {
+                const task = getCurrentTask();
+                const templateBtn = document.querySelector(".template-btn.active");
+                const templateName = templateBtn ? templateBtn.querySelector(".tpl-name").textContent : "未知模板";
+
+                const relatedPartyText = (relatedParty.selectedOptions && relatedParty.selectedOptions[0]) ? relatedParty.selectedOptions[0].text : "未选择";
+                const taskUnitText = (taskUnit.selectedOptions && taskUnit.selectedOptions[0]) ? taskUnit.selectedOptions[0].text : "未选择";
+                const appTaskText = (businessCategory.selectedOptions && businessCategory.selectedOptions[0]) ? businessCategory.selectedOptions[0].text : "未选择";
+
+                let md = "";
+                md += "模板：" + templateName + "\n\n";
+                md += "一、业务：\n";
+                md += relatedPartyText + "\\" + taskUnitText + "\\" + appTaskText + "\n\n";
+                md += "输出形式：\n";
+                md += "业务关联方：" + relatedPartyText + "\n";
+                md += "业务单元：" + taskUnitText + "\n";
+                md += "任务单元：" + appTaskText + "\n\n";
+
+                md += "二、流程及要素内容\n";
+
+                const catalogNodes = getVisibleCatalogNodes(getCatalogNodes());
+                catalogNodes.forEach(function (node, nodeIdx) {
+                    if (node.enabled === false) return;
+
+                    md += "（" + toChineseNumber(nodeIdx + 1) + "） " + node.title + "\n";
+                    node.items.forEach(function (item, itemIdx) {
+                        var group = null;
+                        var currentGroups = getCurrentGroups();
+                        for (var i = 0; i < currentGroups.length; i++) {
+                            if (currentGroups[i].id === item.groupId) {
+                                group = currentGroups[i];
+                                break;
+                            }
+                        }
+                        if (group) {
+                            md += (itemIdx + 1) + "、" + item.title + "：\n\n";
+                            md += renderGroupToMarkdownTable(group);
+                            md += "\n";
+                        }
+                    });
+                });
+
+                const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = templateName + "_" + appTaskText + ".md";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setMessage("Markdown 导出成功", 2000);
+            }
+
+            function renderGroupToMarkdownTable(group) {
+                const rows = getVisibleRows(group);
+                if (!rows.length) return "（暂无内容）\n";
+
+                const hasObject = Object.prototype.hasOwnProperty.call(group.columns, "objectName");
+                const groupTitle = group.displayTitle || group.title;
+                const isContent = groupTitle === "内容" || groupTitle === "展示内容配置" || groupTitle.indexOf("内容") > -1;
+
+                let header = "| 序号 |";
+                if (hasObject) header += " " + group.columns.objectName + " |";
+                header += " " + group.columns.formula + " | " + group.columns.description + " | 是否应用 |";
+                if (!isContent) header += " 配置参数 |";
+                header += "\n";
+
+                let separator = "| --- |";
+                if (hasObject) separator += " --- |";
+                separator += " --- | --- | --- |";
+                if (!isContent) separator += " --- |";
+                separator += "\n";
+
+                let rowsHtml = "";
+                rows.forEach(function (row, idx) {
+                    const isApplied = row.enabled === false ? "否" : "是";
+                    const paramRows = isContent ? [] : getMarkdownParamRows(row, group);
+                    const primaryCells = [idx + 1];
+                    if (hasObject) primaryCells.push(row.objectName || "");
+                    primaryCells.push(row.formula || "");
+                    primaryCells.push(row.description || "");
+                    primaryCells.push(isApplied);
+                    if (!isContent) primaryCells.push(paramRows.length ? "见下级参数" : "无");
+                    rowsHtml += renderMarkdownTableRow(primaryCells);
+
+                    paramRows.forEach(function (paramRow, paramIdx) {
+                        const secondaryCells = [(idx + 1) + "." + (paramIdx + 1)];
+                        const standardText = paramRow.result ? "业务标准值：" + paramRow.result : "";
+                        if (hasObject) {
+                            secondaryCells.push("配置参数");
+                            secondaryCells.push(paramRow.label);
+                            secondaryCells.push(paramRow.selectedText ? "参数值：" + paramRow.selectedText : standardText);
+                            secondaryCells.push("");
+                            secondaryCells.push(standardText && paramRow.selectedText ? standardText : "");
+                        } else {
+                            secondaryCells.push("配置参数：" + paramRow.label);
+                            secondaryCells.push(paramRow.selectedText ? "参数值：" + paramRow.selectedText : standardText);
+                            secondaryCells.push("");
+                            secondaryCells.push(standardText && paramRow.selectedText ? standardText : "");
+                        }
+                        rowsHtml += renderMarkdownTableRow(secondaryCells);
+                    });
+                });
+
+                return header + separator + rowsHtml;
+            }
 
             document.addEventListener("dblclick", function (event) {
                 const target = event.target;
@@ -5015,11 +5068,194 @@
 
             relatedParty.innerHTML = renderSelectOptions(relatedPartyOptions, "业务关联方");
             relatedParty.value = "";
-            syncTaskOptions();
             syncTaskUnitOptions();
             renderTemplates();
             renderGroups();
+
+            function importFromMarkdown(content) {
+                const lines = content.split(/\r?\n/);
+                let templateName = "";
+                let businessPath = "";
+
+                // 1. First pass: Parse Template & Business Path
+                lines.forEach(function(line) {
+                    if (line.startsWith("模板：")) {
+                        templateName = line.substring(3).trim();
+                    } else if (line.indexOf("\\") > -1 && line.indexOf("一、业务：") === -1 && line.indexOf("|") === -1) {
+                        businessPath = line.trim();
+                    }
+                });
+
+                // 2. Apply Template & Dropdowns first so getCurrentTask() is correct
+                if (templateName) {
+                    for (var i = 0; i < templates.length; i++) {
+                        if (templates[i].name === templateName) {
+                            activeTemplateId = templates[i].id;
+                            break;
+                        }
+                    }
+                }
+                if (businessPath) {
+                    const segments = businessPath.split("\\");
+                    if (segments.length >= 3) {
+                        setDropdownByText(relatedParty, segments[0]);
+                        syncTaskUnitOptions();
+                        setDropdownByText(taskUnit, segments[1]);
+                        syncBusinessCategoryOptions();
+                        setDropdownByText(businessCategory, segments[2]);
+                    }
+                }
+
+                // 3. Second pass: Parse Tables with correct task context
+                let currentNode = null;
+                let currentElement = null;
+                let columnMap = {};
+
+                lines.forEach(function(line) {
+                    if (line.match(/^（[一二三四五六七八九十]+）/)) {
+                        const title = line.replace(/^（[一二三四五六七八九十]+）\s*/, "").trim();
+                        currentNode = title;
+                    } else if (line.match(/^\d+、/)) {
+                        currentElement = line.replace(/^\d+、/, "").replace(/：\s*$/, "").trim();
+                    } else if (line.startsWith("|")) {
+                        const parts = line.split("|").map(function(s) { return s.trim(); }).filter(function(s, i, arr) {
+                            return i > 0 && i < arr.length - 1;
+                        });
+                        if (parts.length >= 3) {
+                            if (parts[0] === "序号") {
+                                columnMap = {};
+                                parts.forEach(function(p, i) { columnMap[p] = i; });
+                            } else if (!parts[0].match(/^-+$/)) {
+                                updateStoreFromMdRow(currentNode, currentElement, parts, columnMap);
+                            }
+                        }
+                    }
+                });
+
+                renderTemplates();
+                renderGroups();
+                markDirty();
+            }
+
+            function setDropdownByText(select, text) {
+                for (var i = 0; i < select.options.length; i++) {
+                    if (select.options[i].text === text) {
+                        select.selectedIndex = i;
+                        select.dispatchEvent(new Event("change"));
+                        break;
+                    }
+                }
+            }
+
+            function updateStoreFromMdRow(nodeTitle, elementTitle, rowParts, columnMap) {
+                const task = getCurrentTask();
+                const groups = getCurrentGroups();
+                const rowNo = rowParts[0] || "";
+                if (/^\d+\.\d+/.test(rowNo)) {
+                    return;
+                }
+
+                // Identify columns
+                function getFirstColumn(keys) {
+                    for (var keyIndex = 0; keyIndex < keys.length; keyIndex += 1) {
+                        if (columnMap[keys[keyIndex]] !== undefined) {
+                            return columnMap[keys[keyIndex]];
+                        }
+                    }
+                    return undefined;
+                }
+
+                const formulaCol = getFirstColumn([
+                    "属性名称",
+                    "指标名称",
+                    "公式",
+                    "业务资格公式",
+                    "额度计算公式",
+                    "推送规则",
+                    "风险配置",
+                    "配置项",
+                    "内容名称"
+                ]);
+                const enabledCol = getFirstColumn(["是否应用", "状态"]);
+                const configCol = getFirstColumn(["配置参数", "参数"]);
+
+                if (formulaCol === undefined || enabledCol === undefined) return;
+
+                const formula = rowParts[formulaCol];
+                const isApplied = rowParts[enabledCol] === "是";
+                const configStr = rowParts[configCol];
+
+                // Find group
+                let targetGroup = null;
+                const nodeKey = findNodeKeyByTitle(task, nodeTitle);
+
+                // Strategy A: Generated ID for TQ
+                const genGroupId = "tq-generated-" + nodeKey + "-" + elementTitle;
+                for (var i = 0; i < groups.length; i++) {
+                    if (groups[i].id === genGroupId) {
+                        targetGroup = groups[i];
+                        break;
+                    }
+                }
+
+                // Strategy B: Fallback to title matching if no generated group found
+                if (!targetGroup) {
+                    for (var i = 0; i < groups.length; i++) {
+                        if (groups[i].title === elementTitle || groups[i].displayTitle === elementTitle) {
+                            targetGroup = groups[i];
+                            break;
+                        }
+                    }
+                }
+
+                if (targetGroup) {
+                    if (!taskGroupStore[task]) taskGroupStore[task] = [];
+                    const storeRows = taskGroupStore[task];
+                    let rowInStore = null;
+                    for (var j = 0; j < storeRows.length; j++) {
+                        if (storeRows[j].groupId === targetGroup.id && storeRows[j].formula === formula) {
+                            rowInStore = storeRows[j];
+                            break;
+                        }
+                    }
+
+                    if (!rowInStore) {
+                        rowInStore = { groupId: targetGroup.id, formula: formula, enabled: true };
+                        storeRows.push(rowInStore);
+                    }
+
+                    rowInStore.enabled = isApplied;
+                    if (configStr && configStr !== "无" && configStr !== "见下级参数") {
+                        rowInStore.algorithmParams = parseMdConfigParams(configStr);
+                    } else if (configStr === "无") {
+                        delete rowInStore.algorithmParams;
+                    }
+                }
+            }
+
+            function findNodeKeyByTitle(task, title) {
+                const mapping = taskCatalogMappings[task];
+                if (mapping) {
+                    for (var i = 0; i < mapping.nodes.length; i++) {
+                        if (mapping.nodes[i].title === title) return mapping.nodes[i].key;
+                    }
+                }
+                return title;
+            }
+
+            function parseMdConfigParams(text) {
+                if (!text || text === "无") return null;
+                const lines = text.split("<br>");
+                const groups = lines.map(function(line) {
+                    return {
+                        selectedValues: line.split(",").map(function(s) { return s.trim(); }),
+                        result: ""
+                    };
+                }).filter(function(g) { return g.selectedValues.length > 0; });
+                return { groups: groups };
+            }
         })();
     </script>
 </body>
+
 </html>
