@@ -373,14 +373,14 @@ COMMENT ON COLUMN gjj_ywbz_debug_case.gxsj IS '更新时间';
 
 COMMIT;
 
--- 可选校验：
--- SELECT table_name FROM user_tables
---  WHERE table_name IN ('GJJ_YWNRFL', 'GJJ_YWBZKHC', 'GJJ_YWBZ_DEBUG_CASE');
---
--- SELECT column_name FROM user_tab_columns
---  WHERE table_name = 'GJJ_YWBZK'
---    AND column_name IN ('ZDYBM', 'YWBLFL', 'TSYSXMC', 'TSYSXDW', 'FENZHI');
---
--- SELECT column_name FROM user_tab_columns
---  WHERE table_name = 'GJJ_YWNRFL'
---    AND column_name = 'QUANZHONG';
+-- [同步 ID 20 业务内容分类]
+INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy, cjsj, gxsj)
+SELECT '20', flbm, flmc, quanzhong, pxh, sfqy, SYSTIMESTAMP, SYSTIMESTAMP
+FROM gjj_ywnrfl
+WHERE gjsjsf = '1'
+  AND NOT EXISTS (
+      SELECT 1 FROM gjj_ywnrfl t2 
+      WHERE t2.gjsjsf = '20' AND t2.flbm = gjj_ywnrfl.flbm
+  );
+
+COMMIT;

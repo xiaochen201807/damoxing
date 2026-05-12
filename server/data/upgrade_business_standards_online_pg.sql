@@ -197,20 +197,9 @@ COMMENT ON COLUMN public.gjj_ywbz_debug_case.zjgbh IS '子机构编号';
 COMMENT ON COLUMN public.gjj_ywbz_debug_case.cjsj IS '创建时间';
 COMMENT ON COLUMN public.gjj_ywbz_debug_case.gxsj IS '更新时间';
 
--- 可选校验：
--- SELECT table_name
---   FROM information_schema.tables
---  WHERE table_schema = 'public'
---    AND table_name IN ('gjj_ywnrfl', 'gjj_ywbzkhc', 'gjj_ywbz_debug_case');
---
--- SELECT column_name
---   FROM information_schema.columns
---  WHERE table_schema = 'public'
---    AND table_name = 'gjj_ywbzk'
---    AND column_name IN ('zdybm', 'ywblfl', 'tsysxmc', 'tsysxdw', 'fenzhi');
---
--- SELECT column_name
---   FROM information_schema.columns
---  WHERE table_schema = 'public'
---    AND table_name = 'gjj_ywnrfl'
---    AND column_name = 'quanzhong';
+-- [同步 ID 20 业务内容分类]
+INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy, cjsj, gxsj)
+SELECT '20', flbm, flmc, quanzhong, pxh, sfqy, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM gjj_ywnrfl
+WHERE gjsjsf = '1'
+ON CONFLICT (gjsjsf, flbm) DO NOTHING;

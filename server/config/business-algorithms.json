@@ -112,5 +112,11 @@
         "label": "提取自动化风控引擎算法",
         "sort": 19,
         "enabled": true
+    },
+    {
+        "value": "20",
+        "label": "提取流程推送规则",
+        "sort": 20,
+        "enabled": true
     }
 ]

@@ -286,3 +286,13 @@ CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_yw ON gjj_ywbzsx (ywid);
 
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbzsx_mc ON gjj_ywbzsx (sxmc);
 CREATE INDEX IF NOT EXISTS idx_gjj_ywbz_debug_case_scope ON gjj_ywbz_debug_case (jgbh, zjgbh, ywsf, ywnrfl);
+
+-- [业务分类同步] 为算法 20 同步算法 1 的分类数据
+INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy)
+SELECT '20', flbm, flmc, quanzhong, pxh, sfqy
+FROM gjj_ywnrfl
+WHERE gjsjsf = '1'
+  AND NOT EXISTS (
+      SELECT 1 FROM gjj_ywnrfl t2 
+      WHERE t2.gjsjsf = '20' AND t2.flbm = gjj_ywnrfl.flbm
+  );

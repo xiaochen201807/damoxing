@@ -287,3 +287,15 @@ CREATE INDEX idx_gjj_ywbz_jg ON gjj_ywbz (jgbh, zjgbh);
 CREATE INDEX idx_gjj_ywbzsx_yw ON gjj_ywbzsx (ywid);
 CREATE INDEX idx_gjj_ywbzsx_k1 ON gjj_ywbzsx (k1);
 CREATE INDEX idx_gjj_ywbz_debug_case_scope ON gjj_ywbz_debug_case (jgbh, zjgbh, ywsf, ywnrfl);
+
+-- [同步 ID 20 业务内容分类]
+INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy, cjsj, gxsj)
+SELECT '20', flbm, flmc, quanzhong, pxh, sfqy, SYSTIMESTAMP, SYSTIMESTAMP
+FROM gjj_ywnrfl
+WHERE gjsjsf = '1'
+  AND NOT EXISTS (
+      SELECT 1 FROM gjj_ywnrfl t2 
+      WHERE t2.gjsjsf = '20' AND t2.flbm = gjj_ywnrfl.flbm
+  );
+
+COMMIT;
