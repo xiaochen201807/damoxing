@@ -118,6 +118,9 @@ export const fetcher = <T = unknown>({
   const axiosConfig: AxiosRequestConfig = {
     method: requestMethod as Method,
     url: requestUrl,
+    // 默认 2 分钟超时。防止无限制挂死，同时尽量不影响大模型或复杂报表等慢接口
+    // 如果特定的接口需要更长的时间，可以在 AMIS 的 api 配置中显式传入 timeout 参数覆盖此默认值
+    timeout: 120000, 
     ...requestConfig
   };
 
@@ -255,15 +258,29 @@ export const fetcher = <T = unknown>({
     if (error.response) {
       type ErrorBody = { msg?: string } & Record<string, unknown>;
       const errorBody = error.response.data as ErrorBody;
+      
+      // 优化网关和服务器异常的提示
+      let friendlyMsg = errorBody?.msg || '网络请求错误';
+      if ([502, 503, 504].includes(error.response.status)) {
+        friendlyMsg = '服务正在重启或网络异常，请稍后重试';
+      }
+
       return {
         status: error.response.status,
-        msg: errorBody?.msg || '网络请求错误',
+        msg: friendlyMsg,
         data: error.response.data as T
       } as FetcherResponse<T>;
     }
+
+    // 优化断网或连接被拒（如服务未启动）时的提示
+    let friendlyMsg = error.message;
+    if (error.message === 'Network Error' || error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      friendlyMsg = '无法连接到服务器或请求超时，请检查网络或等待服务恢复';
+    }
+
     return {
       status: 500,
-      msg: error.message,
+      msg: friendlyMsg,
       data: null as unknown as T
     } as FetcherResponse<T>;
   });
