@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION public.f_gjj_get_sql_by_dialect(
     v_sql_config TEXT,
-    v_db_format CHARACTER VARYING DEFAULT NULL::CHARACTER VARYING
+    v_db_type CHARACTER VARYING
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -8,7 +8,7 @@ AS $function$
 DECLARE
     v_input TEXT := v_sql_config;
     v_trimmed TEXT;
-    v_target TEXT := LOWER(COALESCE(NULLIF(BTRIM(v_db_format), ''), f_gjj_get_db_format()));
+    v_target TEXT := LOWER(TRIM(v_db_type));
     v_result TEXT;
 BEGIN
     IF v_input IS NULL THEN
