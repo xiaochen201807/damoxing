@@ -52,6 +52,13 @@ echo "[Init] Generating frontend runtime config..."
 # 设置默认值
 export API_ROUTE_PREFIX=${API_ROUTE_PREFIX:-/api}
 export APP_BASE_PATH=${APP_BASE_PATH:-/}
+export LINEAGE_ROUTE_PREFIX=${LINEAGE_ROUTE_PREFIX:-${APP_BASE_PATH%/}/lineage}
+export LINEAGE_ROUTE_PREFIX=${LINEAGE_ROUTE_PREFIX%/}
+export LINEAGE_UPSTREAM=${LINEAGE_UPSTREAM:-http://oracle-lineage-poc:8000}
+
+if [ -z "$LINEAGE_ROUTE_PREFIX" ]; then
+    export LINEAGE_ROUTE_PREFIX=/lineage
+fi
 
 cat > /usr/share/nginx/html/config.js <<EOF
 window.__APP_CONFIG__ = {
@@ -66,6 +73,8 @@ echo "[Init] Generating Nginx configuration..."
 # 使用 | 作为分隔符避免路径中的 / 冲突
 sed -e "s|\${API_ROUTE_PREFIX}|${API_ROUTE_PREFIX}|g" \
     -e "s|\${APP_BASE_PATH}|${APP_BASE_PATH}|g" \
+    -e "s|\${LINEAGE_ROUTE_PREFIX}|${LINEAGE_ROUTE_PREFIX}|g" \
+    -e "s|\${LINEAGE_UPSTREAM}|${LINEAGE_UPSTREAM}|g" \
     /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
 
 # 6. 启动 supervisord（管理 nginx、node、crond）

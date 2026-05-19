@@ -28,6 +28,36 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
 
+    # Docker 内部 DNS，配合变量 proxy_pass 避免启动时强依赖血缘服务已解析
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $lineage_upstream "${LINEAGE_UPSTREAM}";
+
+    # ============================================
+    # SQL 血缘分析服务反向代理
+    # 默认外部路径：
+    # - APP_BASE_PATH=/ 时为 /lineage/
+    # - APP_BASE_PATH=/gjj_gjsjjsmx/ 时为 /gjj_gjsjjsmx/lineage/
+    # ============================================
+    location = ${LINEAGE_ROUTE_PREFIX} {
+        return 301 ${LINEAGE_ROUTE_PREFIX}/;
+    }
+
+    location ${LINEAGE_ROUTE_PREFIX}/ {
+        rewrite ^${LINEAGE_ROUTE_PREFIX}/(.*)$ /$1 break;
+
+        proxy_pass $lineage_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+
     # ============================================
     # MCP SSE 端点 (需要在通用 API 前缀前面)
     # 注意：路径包含应用基础路径 ${APP_BASE_PATH}

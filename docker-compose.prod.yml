@@ -12,6 +12,9 @@ services:
     networks:
       - damoxing-net
 
+    depends_on:
+      - oracle-lineage-poc
+
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -27,6 +30,7 @@ services:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - GATEWAY_ENABLED=true
       - SKIP_LOCAL_AUTH=true
+      - LINEAGE_UPSTREAM=http://oracle-lineage-poc:8000
 
     volumes:
       - ./data:/app/data
@@ -35,9 +39,37 @@ services:
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
-      timeout: 3så
+      timeout: 3s
       retries: 3
       start_period: 10s
+
+  oracle-lineage-poc:
+    image: ${LINEAGE_IMAGE:-harbor.sjgjj.cn:10443/gjjrgzn/damoxing:latest-POC}
+    container_name: oracle-lineage-poc
+    restart: unless-stopped
+
+    networks:
+      - damoxing-net
+
+    environment:
+      - LINEAGE_API_HOST=0.0.0.0
+      - LINEAGE_API_PORT=8000
+      - LINEAGE_DATASOURCES_FILE=/app/config/datasources.json
+      - LINEAGE_POOL_STRICT=false
+      - LINEAGE_DIMENSION_FIELDS_CACHE_TTL_SECONDS=300
+
+    volumes:
+      - ./config/datasources.json:/app/config/datasources.json:ro
+
+    expose:
+      - "8000"
+
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 networks:
   damoxing-net:
