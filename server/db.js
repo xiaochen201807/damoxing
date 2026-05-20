@@ -37,7 +37,7 @@ async function initDataSources() {
                 adapter = new DmAdapter(ds.config, ds.id);
             } else if (ds.type === 'pg') {
                 adapter = new PgAdapter(ds.config, ds.id);
-            } else if (ds.type === 'gauss') {
+            } else if (ds.type === 'gauss' || ds.type === 'opengauss') {
                 adapter = new GaussAdapter(ds.config, ds.id);
             } else if (ds.type === 'kingbase') {
                 adapter = new KingbaseAdapter(ds.config, ds.id);
