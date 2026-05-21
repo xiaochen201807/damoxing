@@ -12,9 +12,9 @@ DROP TABLE IF EXISTS gjj_ywnrfl;
 DROP TABLE IF EXISTS tmp_gjj_ywblsxz;
 DROP TABLE IF EXISTS gjj_ywblbz_log;
 DROP TABLE IF EXISTS t_wa_sys_log_err;
-DROP TABLE IF EXISTS pt_dx_ggcs_mx;
-DROP TABLE IF EXISTS pt_dx_ggcs;
-DROP TABLE IF EXISTS pt_dxsl_1305282028_01;
+-- DROP TABLE IF EXISTS pt_dx_ggcs_mx;
+-- DROP TABLE IF EXISTS pt_dx_ggcs;
+-- DROP TABLE IF EXISTS pt_dxsl_1305282028_01;
 
 CREATE TABLE public.gjj_ywblbz_log (
     pcid CHARACTER VARYING(200) DEFAULT ' ' NOT NULL,
@@ -152,24 +152,24 @@ CREATE TABLE public.tmp_gjj_ywblsxz (
     value CHARACTER VARYING(4000)
 );
 
-CREATE TABLE public.pt_dx_ggcs (
-    ggcs_wybs CHARACTER VARYING(200),
-    jgbh CHARACTER VARYING(50)
-);
+-- CREATE TABLE public.pt_dx_ggcs (
+--     ggcs_wybs CHARACTER VARYING(200),
+--     jgbh CHARACTER VARYING(50)
+-- );
 
-CREATE TABLE public.pt_dx_ggcs_mx (
-    id BIGINT,
-    ggcs_wybs CHARACTER VARYING(200),
-    jgbh CHARACTER VARYING(100),
-    cs CHARACTER VARYING(20),
-    jgbs CHARACTER VARYING(100),
-    csz CHARACTER VARYING(200)
-);
+-- CREATE TABLE public.pt_dx_ggcs_mx (
+--     id BIGINT,
+--     ggcs_wybs CHARACTER VARYING(200),
+--     jgbh CHARACTER VARYING(100),
+--     cs CHARACTER VARYING(20),
+--     jgbs CHARACTER VARYING(100),
+--     csz CHARACTER VARYING(200)
+-- );
 
-CREATE TABLE public.pt_dxsl_1305282028_01 (
-    dx_01_dxbh CHARACTER VARYING(50),
-    dx_01_zjbzxbm CHARACTER VARYING(100)
-);
+-- CREATE TABLE public.pt_dxsl_1305282028_01 (
+--     dx_01_dxbh CHARACTER VARYING(50),
+--     dx_01_zjbzxbm CHARACTER VARYING(100)
+-- );
 
 COMMENT ON TABLE public.gjj_ywnrfl IS '业务内容分类基础表';
 COMMENT ON COLUMN public.gjj_ywnrfl.id IS '主键ID';
@@ -287,9 +287,41 @@ CREATE INDEX idx_gjj_ywbzsx_k1 ON public.gjj_ywbzsx (k1);
 CREATE INDEX idx_gjj_ywbzsx_yw ON public.gjj_ywbzsx (ywid);
 CREATE INDEX idx_gjj_ywbz_debug_case_scope ON public.gjj_ywbz_debug_case (jgbh, zjgbh, ywsf, ywnrfl);
 
--- [同步 ID 20 业务内容分类]
+-- [插入数据库后再执行  同步 ID 20 业务内容分类]
 INSERT INTO gjj_ywnrfl (gjsjsf, flbm, flmc, quanzhong, pxh, sfqy, cjsj, gxsj)
 SELECT '20', flbm, flmc, quanzhong, pxh, sfqy, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM gjj_ywnrfl
 WHERE gjsjsf = '1'
 ON CONFLICT (gjsjsf, flbm) DO NOTHING;
+
+
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*)
+    INTO v_count
+    FROM user_tab_columns
+   WHERE table_name = 'GJJ_YWBZK'
+     AND column_name = 'LINEAGE_FIELDS';
+
+  IF v_count > 0 THEN
+    EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywbzk DROP COLUMN lineage_fields';
+  END IF;
+END;
+/
+
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*)
+    INTO v_count
+    FROM user_tab_columns
+   WHERE table_name = 'GJJ_YWBZK'
+     AND column_name = 'LINEAGE_FIELDS';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE 'ALTER TABLE gjj_ywbzk ADD (lineage_fields CLOB)';
+    EXECUTE IMMEDIATE q'[COMMENT ON COLUMN gjj_ywbzk.lineage_fields IS 'api/lineage/analyze-rule-fields接口返回的非空fields JSON数组']';
+  END IF;
+END;
+/
