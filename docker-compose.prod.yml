@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202603051100-gjsj
+    image: harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202605201736-gjsj
     container_name: damoxing-gjsj
     restart: unless-stopped
 
