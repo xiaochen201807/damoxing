@@ -77,6 +77,8 @@ const TEMPLATE_METADATA = {
     }
 };
 
+const DEFAULT_RISK_WARNING_HTML = "<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>";
+
 // 提取 include 指令
 function extractIncludes(content) {
     const includes = [];
@@ -202,6 +204,10 @@ function inferType(varName) {
     } else if (varName === 'page_key') {
         result.description = '页面唯一标识';
         result.default = '';
+    } else if (varName === 'risk_warning_html') {
+        result.description = '页面顶部风险说明提示内容，支持 HTML';
+        result.default = DEFAULT_RISK_WARNING_HTML;
+        result.format = 'textarea';
     }
     return result;
 }
@@ -334,6 +340,10 @@ function analyzeTemplate(templateFile, templatesDir) {
                 paramsSchema.properties[param.name].default = defaultValue;
                 defaultParams[param.name] = defaultValue;
             }
+
+            if (inferred.format) {
+                paramsSchema.properties[param.name].format = inferred.format;
+            }
         });
     });
 
@@ -355,6 +365,10 @@ function analyzeTemplate(templateFile, templatesDir) {
         if (inferred.default !== undefined) {
             paramsSchema.properties[varName].default = inferred.default;
             defaultParams[varName] = inferred.default;
+        }
+
+        if (inferred.format) {
+            paramsSchema.properties[varName].format = inferred.format;
         }
     });
 
@@ -409,6 +423,21 @@ function analyzeTemplate(templateFile, templatesDir) {
                 paramsSchema.properties[varName]['ui:order'] = map.order || paramsSchema.properties[varName]['ui:order'];
             }
         });
+    }
+
+    if (templateFile.includes('credit_risk_monitor') && paramsSchema.properties.risk_warning_html) {
+        paramsSchema.properties.risk_warning_html = {
+            ...paramsSchema.properties.risk_warning_html,
+            type: 'string',
+            format: 'textarea',
+            title: '风险说明内容',
+            description: '页面顶部风险说明提示内容，支持 HTML',
+            default: DEFAULT_RISK_WARNING_HTML,
+            'ui:group': '📄 页面参数',
+            'ui:groupOrder': 1,
+            'ui:order': 0
+        };
+        defaultParams.risk_warning_html = DEFAULT_RISK_WARNING_HTML;
     }
 
     return {

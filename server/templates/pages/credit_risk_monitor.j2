@@ -23,12 +23,14 @@
   - title: 页面标题
   - page_name: 页面组件名称
   - default_subject: 默认主体类型
+  - risk_warning_html: 风险说明 HTML 内容
 #}
 
 {# ========== 默认配置 ========== #}
 {% set title = title | default('风险监控') %}
 {% set page_name = page_name | default('riskPage') %}
 {% set default_subject = default_subject | default('缴存单位') %}
+{% set risk_warning_html = risk_warning_html | default("<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>") %}
 
 {# ========== API 配置 ========== #}
 {% set chart_level_api = chart_level_api | default('/api/demo/credit/risk/chart/level') %}
@@ -102,7 +104,7 @@
       "className": "m-b-md",
       "body": {
         "type": "html",
-        "html": "<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>"
+        "html": {{ risk_warning_html | tojson }}
       }
     },
     {

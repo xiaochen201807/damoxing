@@ -1,14 +1,27 @@
 /**
  * credit_risk_monitor 模板专属参数分析脚本
  * 风险监控页面
- * 保留8个API配置：4个图表 + 3个钻取 + 1个报告，每个API包含url和data
+ * 保留页面配置 + 8个API配置：4个图表 + 3个钻取 + 1个报告，每个API包含url和data
  */
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 
+const DEFAULT_RISK_WARNING_HTML = "<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>";
+
 // API 参数配置定义
 const API_PARAMS = {
+    // ========== 页面配置 ==========
+    risk_warning_html: {
+        type: 'string',
+        format: 'textarea',
+        title: '风险说明内容',
+        description: '页面顶部风险说明提示内容，支持 HTML',
+        default: DEFAULT_RISK_WARNING_HTML,
+        group: '📄 页面参数',
+        groupOrder: 1,
+        order: 0
+    },
     // ========== 图表接口 ==========
     // 信用级别饼图
     chart_level_api: {
@@ -17,7 +30,7 @@ const API_PARAMS = {
         description: '信用级别分布饼图 API 地址',
         default: '/api/demo/credit/risk/chart/level',
         group: '📊 信用级别饼图配置',
-        groupOrder: 1,
+        groupOrder: 2,
         order: 1
     },
     chart_level_data: {
@@ -26,7 +39,7 @@ const API_PARAMS = {
         description: '信用级别饼图 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '📊 信用级别饼图配置',
-        groupOrder: 1,
+        groupOrder: 2,
         order: 2
     },
     // 风险行为柱状图
@@ -36,7 +49,7 @@ const API_PARAMS = {
         description: '风险行为分布柱状图 API 地址',
         default: '/api/demo/credit/risk/chart/behavior',
         group: '📊 风险行为柱状图配置',
-        groupOrder: 2,
+        groupOrder: 3,
         order: 3
     },
     chart_behavior_data: {
@@ -45,7 +58,7 @@ const API_PARAMS = {
         description: '风险行为柱状图 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '📊 风险行为柱状图配置',
-        groupOrder: 2,
+        groupOrder: 3,
         order: 4
     },
     // 区域风险柱状图
@@ -55,7 +68,7 @@ const API_PARAMS = {
         description: '区域风险分布柱状图 API 地址',
         default: '/api/demo/credit/risk/chart/region',
         group: '📊 区域风险柱状图配置',
-        groupOrder: 3,
+        groupOrder: 4,
         order: 5
     },
     chart_region_data: {
@@ -64,7 +77,7 @@ const API_PARAMS = {
         description: '区域风险柱状图 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '📊 区域风险柱状图配置',
-        groupOrder: 3,
+        groupOrder: 4,
         order: 6
     },
     // 风险趋势折线图
@@ -74,7 +87,7 @@ const API_PARAMS = {
         description: '近30天风险趋势折线图 API 地址',
         default: '/api/demo/credit/risk/chart/trend',
         group: '📈 风险趋势折线图配置',
-        groupOrder: 4,
+        groupOrder: 5,
         order: 7
     },
     chart_trend_data: {
@@ -83,7 +96,7 @@ const API_PARAMS = {
         description: '风险趋势折线图 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '📈 风险趋势折线图配置',
-        groupOrder: 4,
+        groupOrder: 5,
         order: 8
     },
     // ========== 钻取接口 ==========
@@ -94,7 +107,7 @@ const API_PARAMS = {
         description: '饼图点击钻取 API 地址',
         default: '/api/demo/credit/risk/drilldown/level',
         group: '🔍 信用等级钻取配置',
-        groupOrder: 5,
+        groupOrder: 6,
         order: 9
     },
     drilldown_level_data: {
@@ -103,7 +116,7 @@ const API_PARAMS = {
         description: '信用等级钻取 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '🔍 信用等级钻取配置',
-        groupOrder: 5,
+        groupOrder: 6,
         order: 10
     },
     // 风险行为钻取
@@ -113,7 +126,7 @@ const API_PARAMS = {
         description: '风险行为柱状图点击钻取 API 地址',
         default: '/api/demo/credit/risk/drilldown/behavior',
         group: '🔍 风险行为钻取配置',
-        groupOrder: 6,
+        groupOrder: 7,
         order: 11
     },
     drilldown_behavior_data: {
@@ -122,7 +135,7 @@ const API_PARAMS = {
         description: '风险行为钻取 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '🔍 风险行为钻取配置',
-        groupOrder: 6,
+        groupOrder: 7,
         order: 12
     },
     // 区域钻取
@@ -132,7 +145,7 @@ const API_PARAMS = {
         description: '区域柱状图点击钻取 API 地址',
         default: '/api/demo/credit/risk/drilldown/region',
         group: '🔍 区域钻取配置',
-        groupOrder: 7,
+        groupOrder: 8,
         order: 13
     },
     drilldown_region_data: {
@@ -141,7 +154,7 @@ const API_PARAMS = {
         description: '区域钻取 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '🔍 区域钻取配置',
-        groupOrder: 7,
+        groupOrder: 8,
         order: 14
     },
     // ========== 报告接口 ==========
@@ -151,7 +164,7 @@ const API_PARAMS = {
         description: '信用体系管理分析报告生成 API 地址',
         default: '/api/demo/credit/risk/generate-report',
         group: '📝 AI报告生成配置',
-        groupOrder: 8,
+        groupOrder: 9,
         order: 15
     },
     generate_report_data: {
@@ -160,7 +173,7 @@ const API_PARAMS = {
         description: 'AI报告生成 API 的固定请求参数（JSON格式）',
         default: '{}',
         group: '📝 AI报告生成配置',
-        groupOrder: 8,
+        groupOrder: 9,
         order: 16
     }
 };
@@ -191,6 +204,9 @@ async function analyzeCreditRiskMonitor() {
                 'ui:order': config.order,
                 default: config.default
             };
+            if (config.format) {
+                paramsSchema.properties[name].format = config.format;
+            }
             defaultParams[name] = config.default;
         });
 
