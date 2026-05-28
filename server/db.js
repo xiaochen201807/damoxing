@@ -14,6 +14,14 @@ let defaultAdapter = null;
 let strictRouting = false;
 let initComplete = false;
 
+function describeAdapter(adapter) {
+    if (!adapter) {
+        return 'none';
+    }
+    const type = adapter.adapterType || adapter.constructor?.name || 'unknown';
+    return `${type}-${adapter.id || 'unnamed'}`;
+}
+
 // Initialize multi-datasource
 async function initDataSources() {
     const configPath = path.join(__dirname, 'config/datasources.json');
@@ -50,9 +58,12 @@ async function initDataSources() {
                 dsInstances.set(ds.id, adapter);
                 if (ds.id === conf.default_datasource) {
                     defaultAdapter = adapter;
+                    logger.info(`[DB-Router] Default datasource: ${describeAdapter(adapter)}`);
                 }
                 for (const jgbh of ds.jgbh_list || []) {
-                    routingMap.set(String(jgbh), adapter);
+                    const routeJgbh = String(jgbh);
+                    routingMap.set(routeJgbh, adapter);
+                    logger.info(`[DB-Router] Registered route: jgbh=${routeJgbh} -> ${describeAdapter(adapter)}`);
                 }
             }).catch(err => {
                 logger.error(`Datasource ${ds.id} failed to initialize:`, err);
@@ -81,16 +92,25 @@ const db = {
         if (!initComplete) {
             logger.warn('Calling getByJgbh before multi-datasource init finished!');
         }
-        if (!jgbh) {
-            return defaultAdapter || this.oracleFallback;
+        const routeJgbh = typeof jgbh === 'undefined' || jgbh === null ? '' : String(jgbh).trim();
+        if (!routeJgbh) {
+            const fallbackAdapter = defaultAdapter || this.oracleFallback;
+            logger.warn(`[DB-Router] Empty jgbh, using default datasource: ${describeAdapter(fallbackAdapter)}`);
+            return fallbackAdapter;
         }
-        const adapter = routingMap.get(String(jgbh));
-        if (adapter) return adapter;
+        const adapter = routingMap.get(routeJgbh);
+        if (adapter) {
+            logger.info(`[DB-Router] Routed jgbh=${routeJgbh} -> ${describeAdapter(adapter)}`);
+            return adapter;
+        }
 
         if (strictRouting) {
+            logger.error(`[DB-Router] No datasource route for jgbh=${routeJgbh}; strict routing enabled.`);
             throw new Error(`未找到机构 [${jgbh}] 对应的数据源配置，且开启了严格路由。`);
         }
-        return defaultAdapter || this.oracleFallback;
+        const fallbackAdapter = defaultAdapter || this.oracleFallback;
+        logger.warn(`[DB-Router] No datasource route for jgbh=${routeJgbh}; fallback to default datasource: ${describeAdapter(fallbackAdapter)}`);
+        return fallbackAdapter;
     },
 
     // Graceful shutdown
