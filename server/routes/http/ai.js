@@ -43,7 +43,6 @@ const MOCK_AMIS_JSON = {
     {
       type: "chart",
       height: 300,
-      api: "https://echarts.apache.org/examples/data/asset/data/aqi-beijing.json",
       config: {
         title: { text: "Mock Chart Data" },
         xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
@@ -52,6 +51,17 @@ const MOCK_AMIS_JSON = {
       },
     },
   ],
+};
+
+const getEnvDifyConfig = () => {
+  const apiKey = process.env.DIFY_API_KEY;
+  const apiUrl = process.env.DIFY_API_URL;
+
+  if (!apiKey || apiKey === "YOUR_DIFY_API_KEY" || !apiUrl) {
+    return null;
+  }
+
+  return { api_url: apiUrl, api_key: apiKey, enabled: 1 };
 };
 
 // POST /api/ai/generate
@@ -90,26 +100,12 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate, 'body', { strip
 
           // 数据库中没有找到配置，使用环境变量兜底
           logger.warn(`⚠️  页面 ${pageId} 未配置工作流，尝试使用环境变量`);
-          const apiKey = process.env.DIFY_API_KEY;
-          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-
-          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-            return resolve(null); // 返回 null 表示使用 Mock 模式
-          }
-
-          return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
+          return resolve(getEnvDifyConfig()); // 返回 null 表示使用 Mock 模式
         });
       } else {
         // 没有提供 pageId，直接使用环境变量
         logger.warn('[AI Generate] 未提供 pageId，使用环境变量配置');
-        const apiKey = process.env.DIFY_API_KEY;
-        const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-
-        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
-          return resolve(null); // 返回 null 表示使用 Mock 模式
-        }
-
-        return resolve({ api_url: apiUrl, api_key: apiKey, enabled: 1 });
+        return resolve(getEnvDifyConfig()); // 返回 null 表示使用 Mock 模式
       }
     });
   };
@@ -294,10 +290,9 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { 
         }
 
         if (!row) {
-          const apiKey = process.env.DIFY_API_KEY;
-          const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+          const envConfig = getEnvDifyConfig();
 
-          if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+          if (!envConfig) {
             const errorMsg = workflow_type
               ? `页面 ${pageId} 的工作流类型 ${workflow_type} 未配置`
               : `页面 ${pageId} 未配置工作流`;
@@ -305,7 +300,7 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { 
           }
 
           logger.warn(`⚠️  页面 ${pageId} 未配置工作流，使用默认环境变量`);
-          return resolve({ api_url: apiUrl, api_key: apiKey });
+          return resolve(envConfig);
         }
 
         resolve(row);

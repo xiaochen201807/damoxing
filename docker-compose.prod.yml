@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   app:
-    # 使用 GitHub Container Registry 镜像
-    image: ghcr.io/xiaoguan521/damoxing:latest
-
-    # 或使用特定版本
-    # image: ghcr.io/xiaoguan521/damoxing:v1.0.0
-
-    # 或使用 x86 快速构建版本
-    # image: ghcr.io/xiaoguan521/damoxing:x86
+    # 默认本地构建，避免生产部署时拉取公网镜像。
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:18-alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+    image: ${DAMOXING_IMAGE:-damoxing:local}
 
     container_name: damoxing-app
     restart: unless-stopped
@@ -25,8 +25,8 @@ services:
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
-      # CORS 配置（允许 jbysoft.com 子域名访问）
-      - CORS_ORIGIN=https://appcs.jbysoft.com,https://appsy.jbysoft.com,https://app.jbysoft.com
+      # CORS 配置（请通过环境变量配置公司内网访问域名，多个用逗号分隔）
+      - CORS_ORIGIN=${CORS_ORIGIN}
       # AI 接口超时时间 (毫秒)，默认 5分钟
       - DIFY_API_TIMEOUT=300000
       # MCP 鉴权密钥 (用于 CherryStudio/Dify 连接)
@@ -48,9 +48,9 @@ services:
       # ============================================
       # 第三方网关配置
       # ============================================
-      - GATEWAY_VALIDATE_URL=https://appsy.jbysoft.com/tyrz/cheque/validate.service
+      - GATEWAY_VALIDATE_URL=${GATEWAY_VALIDATE_URL}
       # 网关集成开关（true=启用真实调用，false=使用模拟数据）
-      - GATEWAY_ENABLED=true
+      - GATEWAY_ENABLED=${GATEWAY_ENABLED:-false}
       # 是否跳过本地用户验证
       - SKIP_LOCAL_AUTH=${SKIP_LOCAL_AUTH}
       # 以下参数作为兜底配置，优先使用前端URL传入的参数

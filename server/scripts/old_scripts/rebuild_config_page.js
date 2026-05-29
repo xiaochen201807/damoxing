@@ -668,7 +668,7 @@ const newConfigSchema = {
                                                                             "name": "api_url",
                                                                             "label": "API 地址",
                                                                             "required": true,
-                                                                            "value": "https://api.dify.ai/v1"
+                                                                            "value": ""
                                                                         },
                                                                         {
                                                                             "type": "input-password",

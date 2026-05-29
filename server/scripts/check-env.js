@@ -13,7 +13,7 @@ const REQUIRED_VARS = [];
 
 // 推荐的环境变量（有默认值，但建议配置）
 const RECOMMENDED_VARS = [
-    { key: 'DIFY_API_URL', default: 'https://api.dify.ai/v1', description: 'Dify API 地址' },
+    { key: 'DIFY_API_URL', default: null, description: 'Dify API 地址（配置为公司内网或私有部署地址；未配置则使用 Mock 模式）' },
     { key: 'DIFY_API_KEY', default: null, description: 'Dify API 密钥（可选，未配置将使用 Mock 模式）' },
     { key: 'LOG_LEVEL', default: 'info', description: '日志级别' },
     { key: 'LOG_DIR', default: './logs', description: '日志目录' },

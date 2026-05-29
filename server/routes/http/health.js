@@ -101,7 +101,7 @@ router.get('/health/detailed', async (req, res) => {
     };
 
     // 4. 检查环境配置
-    const requiredEnvVars = ['DIFY_API_URL'];
+    const requiredEnvVars = [];
     const missingEnvVars = requiredEnvVars.filter(key => !process.env[key]);
 
     healthStatus.checks.environment = {

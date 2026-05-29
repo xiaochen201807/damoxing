@@ -51,6 +51,10 @@ const aiLimiter = rateLimit({
     },
 });
 
+const extraConnectSrc = process.env.CSP_CONNECT_SRC
+    ? process.env.CSP_CONNECT_SRC.split(',').map(origin => origin.trim()).filter(Boolean)
+    : [];
+
 /**
  * Helmet 安全头配置
  */
@@ -61,7 +65,7 @@ const helmetConfig = helmet({
             styleSrc: ["'self'", "'unsafe-inline'"], // AMIS 需要内联样式
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // AMIS 需要 eval
             imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'", 'https://api.dify.ai'], // 允许连接到 Dify API
+            connectSrc: ["'self'", ...extraConnectSrc],
         },
     },
     crossOriginEmbedderPolicy: false, // AMIS 需要跨域资源

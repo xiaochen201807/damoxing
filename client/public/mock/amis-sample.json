@@ -1,0 +1,44 @@
+{
+  "status": 0,
+  "msg": "",
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "engine": "张明",
+        "browser": "经营贷",
+        "platform": "2026-05-20 09:31",
+        "version": 682
+      },
+      {
+        "id": 2,
+        "engine": "李华",
+        "browser": "消费贷",
+        "platform": "2026-05-20 10:18",
+        "version": 611
+      },
+      {
+        "id": 3,
+        "engine": "王磊",
+        "browser": "住房贷",
+        "platform": "2026-05-20 11:06",
+        "version": 735
+      },
+      {
+        "id": 4,
+        "engine": "赵敏",
+        "browser": "经营贷",
+        "platform": "2026-05-20 14:42",
+        "version": 598
+      },
+      {
+        "id": 5,
+        "engine": "陈晨",
+        "browser": "消费贷",
+        "platform": "2026-05-20 16:09",
+        "version": 706
+      }
+    ],
+    "total": 5
+  }
+}
