@@ -1,13 +1,13 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
-// 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名
+// 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名；未配置时不兜底到公网地址。
 const GATEWAY_BASE_URL = (() => {
     try {
         const url = new URL(process.env.GATEWAY_VALIDATE_URL || '');
-        return url.origin; // 如 https://appcs.jbysoft.com
+        return url.origin;
     } catch {
-        return 'https://appcs.jbysoft.com'; // 兜底默认值
+        return '';
     }
 })();
 
@@ -20,6 +20,10 @@ const GATEWAY_BASE_URL = (() => {
  * @returns {Promise<object>} - 返回 data 部分
  */
 async function gatewayRequest(path, data = {}, headers = {}) {
+    if (!GATEWAY_BASE_URL) {
+        throw new Error('GATEWAY_VALIDATE_URL 未配置，无法调用统一网关');
+    }
+
     // 确保 path 以 / 开头或正确拼接
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     const url = `${GATEWAY_BASE_URL}${cleanPath}`;

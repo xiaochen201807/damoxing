@@ -20,13 +20,13 @@ services:
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
       - LOG_DIR=/app/data/logs
-      - CORS_ORIGIN=https://appcs.jbysoft.com,https://appsy.jbysoft.com,https://app.jbysoft.com
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
       - DIFY_API_TIMEOUT=300000
       - API_ROUTE_PREFIX=/gjj_gjsjjsmx/api
       - APP_BASE_PATH=/gjj_gjsjjsmx/
       - JWT_SECRET=4671d0ca-6bc0-41e2-95f0-ade07b6eef0c
       - JWT_EXPIRES_IN=24h
-      - GATEWAY_VALIDATE_URL=https://appcs.jbysoft.com/tyrz/cheque/validate.service
+      - GATEWAY_VALIDATE_URL=${GATEWAY_VALIDATE_URL:-}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - GATEWAY_ENABLED=true
       - SKIP_LOCAL_AUTH=true

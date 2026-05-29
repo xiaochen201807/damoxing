@@ -43,7 +43,6 @@ const MOCK_AMIS_JSON = {
     {
       type: "chart",
       height: 300,
-      api: "https://echarts.apache.org/examples/data/asset/data/aqi-beijing.json",
       config: {
         title: { text: "Mock Chart Data" },
         xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
@@ -90,9 +89,9 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate, 'body', { strip
       // 数据库中没有找到配置，使用环境变量兜底
       logger.warn(`⚠️  页面 ${pageId} 未配置工作流，尝试使用环境变量`);
       const apiKey = process.env.DIFY_API_KEY;
-      const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+      const apiUrl = process.env.DIFY_API_URL;
 
-      if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+      if (!apiKey || apiKey === "YOUR_DIFY_API_KEY" || !apiUrl) {
         return null; // 返回 null 表示使用 Mock 模式
       }
 
@@ -101,9 +100,9 @@ router.post("/generate", aiLimiter, validate(schemas.aiGenerate, 'body', { strip
       // 没有提供 pageId，直接使用环境变量
       logger.warn('[AI Generate] 未提供 pageId，使用环境变量配置');
       const apiKey = process.env.DIFY_API_KEY;
-      const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+      const apiUrl = process.env.DIFY_API_URL;
 
-      if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+      if (!apiKey || apiKey === "YOUR_DIFY_API_KEY" || !apiUrl) {
         return null; // 返回 null 表示使用 Mock 模式
       }
 
@@ -288,9 +287,9 @@ router.post("/generate-page", aiLimiter, validate(schemas.aiGenerate, 'body', { 
 
       if (!row) {
         const apiKey = process.env.DIFY_API_KEY;
-        const apiUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+        const apiUrl = process.env.DIFY_API_URL;
 
-        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY") {
+        if (!apiKey || apiKey === "YOUR_DIFY_API_KEY" || !apiUrl) {
           const errorMsg = workflow_type
             ? `页面 ${pageId} 的工作流类型 ${workflow_type} 未配置`
             : `页面 ${pageId} 未配置工作流`;

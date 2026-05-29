@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Damoxing AI Vision Prototype</title>
     <!-- Amis SDK -->
-    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/sdk.css">
-    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/helper.css">
-    <link rel="stylesheet" href="https://registry.npmmirror.com/amis/6.9.0/files/sdk/iconfont.css">
-    <script src="https://registry.npmmirror.com/amis/6.9.0/files/sdk/sdk.js"></script>
-    <script src="https://registry.npmmirror.com/vue/2.7.16/files/dist/vue.min.js"></script>
+    <link rel="stylesheet" href="libs/amis/sdk.css">
+    <link rel="stylesheet" href="libs/amis/helper.css">
+    <link rel="stylesheet" href="libs/amis/iconfont.css">
+    <script src="libs/amis/sdk.js"></script>
+    <script src="libs/vue.min.js"></script>
 
     <style>
         body,
@@ -321,7 +321,11 @@
                 },
                 {
                     type: "crud",
-                    api: "https://aisuda.bce.baidu.com/amis/api/mock2/sample",
+                    source: [
+                        { id: 1, engine: "张三", browser: "住房贷款", platform: "2026-05-01", version: "720" },
+                        { id: 2, engine: "李四", browser: "组合贷款", platform: "2026-05-02", version: "665" },
+                        { id: 3, engine: "王五", browser: "商转公", platform: "2026-05-03", version: "598" }
+                    ],
                     syncLocation: false,
                     columns: [
                         { name: "id", label: "ID" },
@@ -381,7 +385,6 @@
                         response.uiSchema = {
                             type: "chart",
                             height: 300,
-                            api: "https://aisuda.bce.baidu.com/amis/api/mock2/chart/chart",
                             config: {
                                 title: { text: "近30天逾期风险趋势" },
                                 tooltip: {},

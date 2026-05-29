@@ -1267,10 +1267,10 @@ router.post('/selection_ai_apply', async (req, res) => {
             'SELECT * FROM sys_dify_config WHERE page_key = ? AND workflow_type = ? AND enabled = 1',
             [pageId, workflowType]
         );
-        const difyApiUrl = difyConfig?.api_url || process.env.DIFY_API_URL || 'https://api.dify.ai/v1';
+        const difyApiUrl = difyConfig?.api_url || process.env.DIFY_API_URL;
         const difyApiKey = difyConfig?.api_key || process.env.DIFY_API_KEY;
 
-        if (!difyApiKey || difyApiKey === 'YOUR_DIFY_API_KEY') {
+        if (!difyApiKey || difyApiKey === 'YOUR_DIFY_API_KEY' || !difyApiUrl) {
             return res.status(500).json({
                 status: 1,
                 msg: `页面 ${pageId} 的工作流类型 ${workflowType} 未配置`

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="GBK">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>³ÌÐò¿ØÖÆ¹æÔò¹ÜÀí</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>ç¨‹åºæŽ§åˆ¶è§„åˆ™ç®¡ç†</title>
+    <link rel="stylesheet" href="libs/font-awesome/css/font-awesome.min.css">
     <style>
         * {
             margin: 0;
@@ -423,54 +423,54 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-shield-alt"></i> ³ÌÐò¿ØÖÆ¹æÔò¹ÜÀí</h1>
+            <h1><i class="fa fa-shield"></i> ç¨‹åºæŽ§åˆ¶è§„åˆ™ç®¡ç†</h1>
         </header>
         
         <!-- Filter Section -->
         <div class="filter-section">
             <div class="filter-row">
                 <div class="filter-item">
-                    <label for="filterRuleName">³ÌÐò¿ØÖÆ¹æÔòÃû³Æ</label>
-                    <input type="text" id="filterRuleName" placeholder="ÇëÊäÈë¹æÔòÃû³Æ">
+                    <label for="filterRuleName">ç¨‹åºæŽ§åˆ¶è§„åˆ™åç§°</label>
+                    <input type="text" id="filterRuleName" placeholder="è¯·è¾“å…¥è§„åˆ™åç§°">
                 </div>
                 <div class="filter-item">
-                    <label for="filterPromptText">³ÌÐò¿ØÖÆ¹æÔòÌáÊ¾Óï</label>
-                    <input type="text" id="filterPromptText" placeholder="ÇëÊäÈëÌáÊ¾Óï">
+                    <label for="filterPromptText">ç¨‹åºæŽ§åˆ¶è§„åˆ™æç¤ºè¯­</label>
+                    <input type="text" id="filterPromptText" placeholder="è¯·è¾“å…¥æç¤ºè¯­">
                 </div>
                 <div class="filter-item">
-                    <label for="filterTaskItem">ÈÎÎñÏî</label>
-                    <input type="text" id="filterTaskItem" placeholder="ÇëÊäÈëÈÎÎñÏî">
+                    <label for="filterTaskItem">ä»»åŠ¡é¡¹</label>
+                    <input type="text" id="filterTaskItem" placeholder="è¯·è¾“å…¥ä»»åŠ¡é¡¹">
                 </div>
             </div>
             <div class="filter-row">
                 <div class="filter-item">
-                    <label for="filterIsEnabled">ÊÇ·ñÆôÓÃ</label>
+                    <label for="filterIsEnabled">æ˜¯å¦å¯ç”¨</label>
                     <select id="filterIsEnabled">
-                        <option value="">È«²¿</option>
-                        <option value="yes">ÊÇ</option>
-                        <option value="no">·ñ</option>
+                        <option value="">å…¨éƒ¨</option>
+                        <option value="yes">æ˜¯</option>
+                        <option value="no">å¦</option>
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label for="filterCanDisable">ÊÇ·ñÔÊÐíÍ£ÆôÓÃ</label>
+                    <label for="filterCanDisable">æ˜¯å¦å…è®¸åœå¯ç”¨</label>
                     <select id="filterCanDisable">
-                        <option value="">È«²¿</option>
-                        <option value="yes">ÊÇ</option>
-                        <option value="no">·ñ</option>
+                        <option value="">å…¨éƒ¨</option>
+                        <option value="yes">æ˜¯</option>
+                        <option value="no">å¦</option>
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label for="filterCanAdjustPrompt">ÊÇ·ñÔÊÐíµ÷ÕûÌáÊ¾Óï</label>
+                    <label for="filterCanAdjustPrompt">æ˜¯å¦å…è®¸è°ƒæ•´æç¤ºè¯­</label>
                     <select id="filterCanAdjustPrompt">
-                        <option value="">È«²¿</option>
-                        <option value="yes">ÊÇ</option>
-                        <option value="no">·ñ</option>
+                        <option value="">å…¨éƒ¨</option>
+                        <option value="yes">æ˜¯</option>
+                        <option value="no">å¦</option>
                     </select>
                 </div>
             </div>
             <div class="filter-actions">
                 <button class="btn btn-primary">
-                    <i class="fas fa-search"></i> ²éÑ¯
+                    <i class="fa fa-search"></i> æŸ¥è¯¢
                 </button>
             </div>
         </div>
@@ -478,15 +478,15 @@
         <div class="toolbar">
             <div class="btn-group">
                 <button id="addBtn" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> ÐÂÔö
+                    <i class="fa fa-plus"></i> æ–°å¢ž
                 </button>
             </div>
             <div class="btn-group">
                 <button class="btn btn-secondary">
-                    <i class="fas fa-file-import"></i> µ¼Èë
+                    <i class="fa fa-upload"></i> å¯¼å…¥
                 </button>
                 <button class="btn btn-secondary">
-                    <i class="fas fa-file-export"></i> µ¼³ö
+                    <i class="fa fa-download"></i> å¯¼å‡º
                 </button>
             </div>
         </div>
@@ -496,90 +496,90 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;"><input type="checkbox"></th>
-                        <th>ÈÎÎñÏî</th>
-                        <th>³ÌÐò¿ØÖÆ¹æÔòÃû³Æ</th>
-                        <th class="hidden-mobile">³ÌÐò¿ØÖÆ¹æÔòÌáÊ¾Óï</th>
-                        <th>ÊÇ·ñÆôÓÃ</th>
-                        <th>ÊÇ·ñÔÊÐíÍ£ÆôÓÃ</th>
-                        <th>ÊÇ·ñÔÊÐíµ÷ÕûÌáÊ¾Óï</th>
-                        <th style="width: 10%;">²Ù×÷Ò»</th>
-                        <th style="width: 10%;">²Ù×÷¶þ</th>
+                        <th>ä»»åŠ¡é¡¹</th>
+                        <th>ç¨‹åºæŽ§åˆ¶è§„åˆ™åç§°</th>
+                        <th class="hidden-mobile">ç¨‹åºæŽ§åˆ¶è§„åˆ™æç¤ºè¯­</th>
+                        <th>æ˜¯å¦å¯ç”¨</th>
+                        <th>æ˜¯å¦å…è®¸åœå¯ç”¨</th>
+                        <th>æ˜¯å¦å…è®¸è°ƒæ•´æç¤ºè¯­</th>
+                        <th style="width: 10%;">æ“ä½œä¸€</th>
+                        <th style="width: 10%;">æ“ä½œäºŒ</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td class="checkbox-cell"><input type="checkbox"></td>
-                        <td>´û¿îÉóÅú</td>
-                        <td>´û¿î¶î¶ÈÐ£Ñé¹æÔò</td>
-                        <td class="hidden-mobile">´û¿î½ð¶î²»ÄÜ³¬¹ýÕË»§Óà¶îµÄ10±¶</td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-inactive">·ñ</span></td>
+                        <td>è´·æ¬¾å®¡æ‰¹</td>
+                        <td>è´·æ¬¾é¢åº¦æ ¡éªŒè§„åˆ™</td>
+                        <td class="hidden-mobile">è´·æ¬¾é‡‘é¢ä¸èƒ½è¶…è¿‡è´¦æˆ·ä½™é¢çš„10å€</td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-inactive">å¦</span></td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="1">
-                                <i class="fas fa-edit"></i> µ÷Õû
+                                <i class="fa fa-edit"></i> è°ƒæ•´
                             </button>
                                                     </td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="1">
-                                <i class="fas fa-edit"></i> É¾³ý
+                                <i class="fa fa-edit"></i> åˆ é™¤
                             </button>
                         </td>
                     </tr>
                     <tr>
                         <td class="checkbox-cell"><input type="checkbox"></td>
-                        <td>ÌáÈ¡ÉóºË</td>
-                        <td>¹º·¿ÌáÈ¡²ÄÁÏÑéÖ¤</td>
-                        <td class="hidden-mobile">ÇëÉÏ´«¹º·¿ºÏÍ¬ºÍ·¢Æ±</td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-inactive">·ñ</span></td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
+                        <td>æå–å®¡æ ¸</td>
+                        <td>è´­æˆ¿æå–ææ–™éªŒè¯</td>
+                        <td class="hidden-mobile">è¯·ä¸Šä¼ è´­æˆ¿åˆåŒå’Œå‘ç¥¨</td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-inactive">å¦</span></td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="2">
-                                <i class="fas fa-edit"></i> µ÷Õû
+                                <i class="fa fa-edit"></i> è°ƒæ•´
                             </button>
                         </td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="2">
-                                <i class="fas fa-edit"></i> É¾³ý
+                                <i class="fa fa-edit"></i> åˆ é™¤
                             </button>
                         </td>
                     </tr>
                     <tr>
                         <td class="checkbox-cell"><input type="checkbox"></td>
-                        <td>ÕË»§¹ÜÀí</td>
-                        <td>ÕË»§¶³½á¹æÔò</td>
-                        <td class="hidden-mobile">Á¬Ðø6¸öÔÂÎ´½É´æ½«¶³½áÕË»§</td>
-                        <td><span class="status-badge status-inactive">·ñ</span></td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
+                        <td>è´¦æˆ·ç®¡ç†</td>
+                        <td>è´¦æˆ·å†»ç»“è§„åˆ™</td>
+                        <td class="hidden-mobile">è¿žç»­6ä¸ªæœˆæœªç¼´å­˜å°†å†»ç»“è´¦æˆ·</td>
+                        <td><span class="status-badge status-inactive">å¦</span></td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="3">
-                                <i class="fas fa-edit"></i> µ÷Õû
+                                <i class="fa fa-edit"></i> è°ƒæ•´
                             </button>
                         </td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="3">
-                                <i class="fas fa-edit"></i> É¾³ý
+                                <i class="fa fa-edit"></i> åˆ é™¤
                             </button>
                         </td>
                     </tr>
                     <tr>
                         <td class="checkbox-cell"><input type="checkbox"></td>
-                        <td>ÐÅÏ¢±ä¸ü</td>
-                        <td>¸öÈËÐÅÏ¢ÐÞ¸ÄÏÞÖÆ</td>
-                        <td class="hidden-mobile">Éí·ÝÖ¤ºÅ²»¿ÉÐÞ¸Ä</td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-active">ÊÇ</span></td>
-                        <td><span class="status-badge status-inactive">·ñ</span></td>
+                        <td>ä¿¡æ¯å˜æ›´</td>
+                        <td>ä¸ªäººä¿¡æ¯ä¿®æ”¹é™åˆ¶</td>
+                        <td class="hidden-mobile">èº«ä»½è¯å·ä¸å¯ä¿®æ”¹</td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-active">æ˜¯</span></td>
+                        <td><span class="status-badge status-inactive">å¦</span></td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="4">
-                                <i class="fas fa-edit"></i> µ÷Õû
+                                <i class="fa fa-edit"></i> è°ƒæ•´
                             </button>
                         </td>
                         <td class="action-cell">
                             <button class="action-btn adjust-btn" data-id="4">
-                                <i class="fas fa-edit"></i> É¾³ý
+                                <i class="fa fa-edit"></i> åˆ é™¤
                             </button>
                         </td>
                     </tr>
@@ -588,11 +588,11 @@
         </div>
         
         <div class="pagination">
-            <button><i class="fas fa-chevron-left"></i></button>
+            <button><i class="fa fa-chevron-left"></i></button>
             <button class="active">1</button>
             <button>2</button>
             <button>3</button>
-            <button><i class="fas fa-chevron-right"></i></button>
+            <button><i class="fa fa-chevron-right"></i></button>
         </div>
     </div>
     
@@ -600,61 +600,61 @@
     <div id="addModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>ÐÂÔö³ÌÐò¿ØÖÆ¹æÔò</h2>
+                <h2>æ–°å¢žç¨‹åºæŽ§åˆ¶è§„åˆ™</h2>
                 <button class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="addRuleForm">
                     <div class="form-group">
-                        <label for="taskItem">ÈÎÎñÏî</label>
+                        <label for="taskItem">ä»»åŠ¡é¡¹</label>
                         <select id="taskItem" class="form-control">
-                            <option value="">ÇëÑ¡ÔñÈÎÎñÏî</option>
-                            <option value="loan">´û¿îÉóÅú</option>
-                            <option value="withdraw">ÌáÈ¡ÉóºË</option>
-                            <option value="account">ÕË»§¹ÜÀí</option>
-                            <option value="info">ÐÅÏ¢±ä¸ü</option>
-                            <option value="payment">½É´æ´¦Àí</option>
+                            <option value="">è¯·é€‰æ‹©ä»»åŠ¡é¡¹</option>
+                            <option value="loan">è´·æ¬¾å®¡æ‰¹</option>
+                            <option value="withdraw">æå–å®¡æ ¸</option>
+                            <option value="account">è´¦æˆ·ç®¡ç†</option>
+                            <option value="info">ä¿¡æ¯å˜æ›´</option>
+                            <option value="payment">ç¼´å­˜å¤„ç†</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="ruleName">³ÌÐò¿ØÖÆ¹æÔòÃû³Æ</label>
-                        <input type="text" id="ruleName" class="form-control" placeholder="ÇëÊäÈë¹æÔòÃû³Æ">
+                        <label for="ruleName">ç¨‹åºæŽ§åˆ¶è§„åˆ™åç§°</label>
+                        <input type="text" id="ruleName" class="form-control" placeholder="è¯·è¾“å…¥è§„åˆ™åç§°">
                     </div>
                     
                     <div class="form-group">
-                        <label for="promptText">³ÌÐò¿ØÖÆ¹æÔòÌáÊ¾Óï</label>
-                        <textarea id="promptText" class="form-control" rows="3" placeholder="ÇëÊäÈëÌáÊ¾ÓïÄÚÈÝ"></textarea>
+                        <label for="promptText">ç¨‹åºæŽ§åˆ¶è§„åˆ™æç¤ºè¯­</label>
+                        <textarea id="promptText" class="form-control" rows="3" placeholder="è¯·è¾“å…¥æç¤ºè¯­å†…å®¹"></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label for="isEnabled">ÊÇ·ñÆôÓÃ</label>
+                        <label for="isEnabled">æ˜¯å¦å¯ç”¨</label>
                         <select id="isEnabled" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="canDisable">ÊÇ·ñÔÊÐíÍ£ÆôÓÃ</label>
+                        <label for="canDisable">æ˜¯å¦å…è®¸åœå¯ç”¨</label>
                         <select id="canDisable" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="canAdjustPrompt">ÊÇ·ñÔÊÐíµ÷ÕûÌáÊ¾Óï</label>
+                        <label for="canAdjustPrompt">æ˜¯å¦å…è®¸è°ƒæ•´æç¤ºè¯­</label>
                         <select id="canAdjustPrompt" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary close-modal">È¡Ïû</button>
-                <button class="btn btn-primary">±£´æ¹æÔò</button>
+                <button class="btn btn-secondary close-modal">å–æ¶ˆ</button>
+                <button class="btn btn-primary">ä¿å­˜è§„åˆ™</button>
             </div>
         </div>
     </div>
@@ -663,54 +663,54 @@
     <div id="adjustModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>µ÷Õû³ÌÐò¿ØÖÆ¹æÔò</h2>
+                <h2>è°ƒæ•´ç¨‹åºæŽ§åˆ¶è§„åˆ™</h2>
                 <button class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="adjustRuleForm">
                     <div class="form-group">
-                        <label for="adjustTaskItem">ÈÎÎñÏî</label>
+                        <label for="adjustTaskItem">ä»»åŠ¡é¡¹</label>
                         <input type="text" id="adjustTaskItem" class="form-control" readonly>
                     </div>
                     
                     <div class="form-group">
-                        <label for="adjustRuleName">³ÌÐò¿ØÖÆ¹æÔòÃû³Æ</label>
+                        <label for="adjustRuleName">ç¨‹åºæŽ§åˆ¶è§„åˆ™åç§°</label>
                         <input type="text" id="adjustRuleName" class="form-control" readonly>
                     </div>
                     
                     <div class="form-group">
-                        <label for="adjustPromptText">³ÌÐò¿ØÖÆ¹æÔòÌáÊ¾Óï</label>
-                        <textarea id="adjustPromptText" class="form-control" rows="3" placeholder="ÇëÊäÈëÌáÊ¾ÓïÄÚÈÝ"></textarea>
+                        <label for="adjustPromptText">ç¨‹åºæŽ§åˆ¶è§„åˆ™æç¤ºè¯­</label>
+                        <textarea id="adjustPromptText" class="form-control" rows="3" placeholder="è¯·è¾“å…¥æç¤ºè¯­å†…å®¹"></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label for="adjustIsEnabled">ÊÇ·ñÆôÓÃ</label>
+                        <label for="adjustIsEnabled">æ˜¯å¦å¯ç”¨</label>
                         <select id="adjustIsEnabled" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="adjustCanDisable">ÊÇ·ñÔÊÐíÍ£ÆôÓÃ</label>
+                        <label for="adjustCanDisable">æ˜¯å¦å…è®¸åœå¯ç”¨</label>
                         <select id="adjustCanDisable" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="adjustCanAdjustPrompt">ÊÇ·ñÔÊÐíµ÷ÕûÌáÊ¾Óï</label>
+                        <label for="adjustCanAdjustPrompt">æ˜¯å¦å…è®¸è°ƒæ•´æç¤ºè¯­</label>
                         <select id="adjustCanAdjustPrompt" class="form-control">
-                            <option value="yes">ÊÇ</option>
-                            <option value="no">·ñ</option>
+                            <option value="yes">æ˜¯</option>
+                            <option value="no">å¦</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary close-adjust-modal">È¡Ïû</button>
-                <button class="btn btn-info">±£´æµ÷Õû</button>
+                <button class="btn btn-secondary close-adjust-modal">å–æ¶ˆ</button>
+                <button class="btn btn-info">ä¿å­˜è°ƒæ•´</button>
             </div>
         </div>
     </div>
@@ -769,9 +769,9 @@
                 const taskItem = row.cells[1].textContent;
                 const ruleName = row.cells[2].textContent;
                 const promptText = row.cells[3].textContent;
-                const isEnabled = row.cells[4].querySelector('.status-badge').textContent === 'ÊÇ' ? 'yes' : 'no';
-                const canDisable = row.cells[5].querySelector('.status-badge').textContent === 'ÊÇ' ? 'yes' : 'no';
-                const canAdjustPrompt = row.cells[6].querySelector('.status-badge').textContent === 'ÊÇ' ? 'yes' : 'no';
+                const isEnabled = row.cells[4].querySelector('.status-badge').textContent === 'æ˜¯' ? 'yes' : 'no';
+                const canDisable = row.cells[5].querySelector('.status-badge').textContent === 'æ˜¯' ? 'yes' : 'no';
+                const canAdjustPrompt = row.cells[6].querySelector('.status-badge').textContent === 'æ˜¯' ? 'yes' : 'no';
                 
                 // Populate the adjust form
                 document.getElementById('adjustTaskItem').value = taskItem;

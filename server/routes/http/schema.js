@@ -934,7 +934,7 @@ router.get('/env-config', (req, res) => {
                 {
                     key: 'DIFY_API_URL',
                     label: 'Dify API 地址',
-                    value: process.env.DIFY_API_URL || 'https://api.dify.ai/v1',
+                    value: process.env.DIFY_API_URL || '未配置',
                     description: 'Dify 服务的 API 基础地址'
                 },
                 {

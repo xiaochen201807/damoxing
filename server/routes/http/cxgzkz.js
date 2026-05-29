@@ -19,9 +19,16 @@ const GATEWAY_BASE_URL = (() => {
         const url = new URL(process.env.GATEWAY_VALIDATE_URL || '');
         return url.origin;
     } catch {
-        return 'https://appcs.jbysoft.com';
+        return '';
     }
 })();
+
+function buildGatewayUrl(path) {
+    if (!GATEWAY_BASE_URL) {
+        throw new Error('GATEWAY_VALIDATE_URL 未配置，无法调用统一网关');
+    }
+    return `${GATEWAY_BASE_URL}${path}`;
+}
 
 // 配置 Multer 内存存储，用于处理文件上传
 const upload = multer({ storage: multer.memoryStorage() });
@@ -102,7 +109,7 @@ function buildMatterSubjectGatewayRequest(req, overrides = {}) {
     };
 
     return {
-        gatewayUrl: `${GATEWAY_BASE_URL}/V2/GLDX/business/common/matterSubject$m=query.service`,
+        gatewayUrl: buildGatewayUrl('/V2/GLDX/business/common/matterSubject$m=query.service'),
         headers,
         payload
     };

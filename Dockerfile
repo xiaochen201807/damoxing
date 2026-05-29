@@ -7,11 +7,13 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/client
 
+ARG NPM_REGISTRY=
+
 # 复制前端 package 文件（先复制依赖文件，利用 Docker 缓存）
 COPY client/package*.json ./
 
 # 配置 npm 并安装依赖 (合并为单层以减少镜像大小)
-RUN npm config set registry https://registry.npmmirror.com && \
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi && \
     npm config set fetch-timeout 600000 && \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
@@ -38,6 +40,8 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine
 
+ARG NPM_REGISTRY=
+
 # 安装 Nginx、SQLite、cronie 和 gettext (envsubst)
 RUN apk add --no-cache nginx sqlite supervisor dcron gettext
 
@@ -47,7 +51,7 @@ WORKDIR /app
 COPY server/package*.json ./
 
 # 配置 npm 并安装后端依赖 (合并为单层)
-RUN npm config set registry https://registry.npmmirror.com && \
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi && \
     npm config set fetch-timeout 600000 && \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \

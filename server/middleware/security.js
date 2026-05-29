@@ -60,8 +60,8 @@ const helmetConfig = helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"], // AMIS 需要内联样式
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // AMIS 需要 eval
-            imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'", 'https://api.dify.ai'], // 允许连接到 Dify API
+            imgSrc: ["'self'", 'data:'],
+            connectSrc: ["'self'"],
         },
     },
     crossOriginEmbedderPolicy: false, // AMIS 需要跨域资源

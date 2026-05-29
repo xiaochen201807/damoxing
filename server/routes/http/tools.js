@@ -12,15 +12,22 @@ const { info } = require('winston');
 const algorithmConfig = require('../../utils/business-algorithms');
 const { normalizeMalformedBody } = require('../../middleware/requestNormalizer');
 
-// 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名
+// 从 GATEWAY_VALIDATE_URL 环境变量提取网关域名；未配置时不兜底到公网地址。
 const GATEWAY_BASE_URL = (() => {
     try {
         const url = new URL(process.env.GATEWAY_VALIDATE_URL || '');
-        return url.origin; // 如 https://appcs.jbysoft.com
+        return url.origin;
     } catch {
-        return 'https://appcs.jbysoft.com'; // 兜底默认值
+        return '';
     }
 })();
+
+function buildGatewayUrl(path) {
+    if (!GATEWAY_BASE_URL) {
+        throw new Error('GATEWAY_VALIDATE_URL 未配置，无法调用统一网关');
+    }
+    return `${GATEWAY_BASE_URL}${path}`;
+}
 
 function getFirstNonBlankValue(item, keys) {
     if (!item || !Array.isArray(keys)) {
@@ -136,7 +143,6 @@ router.post('/business-content-classes', async (req, res) => {
 });
 
 router.post('/business-content-class-options', async (req, res) => {
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/objectAttributeOptionScope$m=query.service`;
     const { jgbh, login_token } = req.body;
 
     const headers = {
@@ -159,6 +165,7 @@ router.post('/business-content-class-options', async (req, res) => {
     logger.info(`[Tools API] Payload to gateway: ${JSON.stringify(payload)}`);
 
     try {
+        const gatewayUrl = buildGatewayUrl('/GLDX/business/common/objectAttributeOptionScope$m=query.service');
         const response = await axios.post(gatewayUrl, payload, { headers });
         logger.info(`[Tools API] Gateway response status: ${response.status}`);
         const gatewayData = response.data;
@@ -194,8 +201,6 @@ router.post('/business-content-class-options', async (req, res) => {
  * 现：调用外部网关接口获取公共参数
  */
 router.post('/business-standard-values', normalizeMalformedBody(), async (req, res) => {
-    // 网关接口地址
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/publicparam$m=query.service`;
     const body = req.body;
 
     // 2. 提取 Header 参数
@@ -220,6 +225,7 @@ router.post('/business-standard-values', normalizeMalformedBody(), async (req, r
     logger.info(`[Tools API] Payload to gateway (standard-values): ${JSON.stringify(payload)}`);
 
     try {
+        const gatewayUrl = buildGatewayUrl('/GLDX/business/common/publicparam$m=query.service');
         const response = await axios.post(gatewayUrl, payload, { headers });
         const gatewayData = response.data;
         // 处理返回数据
@@ -257,8 +263,6 @@ router.post('/business-standard-values', normalizeMalformedBody(), async (req, r
  * 现：调用外部网关接口获取服务对象
  */
 router.post('/service-objects', normalizeMalformedBody(), async (req, res) => {
-    // 网关接口地址
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/queryxjSxdx.service`;
     const body = req.body;
 
     // 2. 提取 Header 参数
@@ -285,6 +289,7 @@ router.post('/service-objects', normalizeMalformedBody(), async (req, res) => {
     logger.info(`[Tools API] Payload to gateway (service-objects): ${JSON.stringify(payload)}`);
 
     try {
+        const gatewayUrl = buildGatewayUrl('/GLDX/business/common/queryxjSxdx.service');
         const response = await axios.post(gatewayUrl, payload, { headers });
         const gatewayData = response.data;
 
@@ -321,8 +326,6 @@ router.post('/service-objects', normalizeMalformedBody(), async (req, res) => {
  * 现：调用外部网关接口获取对象属性
  */
 router.post('/business-standard-attributes', normalizeMalformedBody(), async (req, res) => {
-    // 网关接口地址
-    const gatewayUrl = `${GATEWAY_BASE_URL}/GLDX/business/common/manageObjectProperties$m=query.service`;
     const body = req.body;
 
     // 2. 提取 Header 参数
@@ -351,6 +354,7 @@ router.post('/business-standard-attributes', normalizeMalformedBody(), async (re
     logger.info(`[Tools API] Payload to gateway (standard-attributes): ${JSON.stringify(payload)}`);
 
     try {
+        const gatewayUrl = buildGatewayUrl('/GLDX/business/common/manageObjectProperties$m=query.service');
         const response = await axios.post(gatewayUrl, payload, { headers });
         const gatewayData = response.data;
 
@@ -492,8 +496,6 @@ router.post('/key-data-algorithm-usage', normalizeMalformedBody(), async (req, r
  * 调用外部网关接口获取任务项列表（支持模糊查询）
  */
 router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
-    // 网关接口地址
-    const gatewayUrl = `${GATEWAY_BASE_URL}/jobApi/jobinfo/getTaskInfo`;
     const body = req.body;
 
     // 2. 提取 Header 参数
@@ -517,6 +519,7 @@ router.post('/task-info', normalizeMalformedBody(), async (req, res) => {
     logger.info(`[Tools API] Payload to gateway (task-info): ${JSON.stringify(payload)}`);
 
     try {
+        const gatewayUrl = buildGatewayUrl('/jobApi/jobinfo/getTaskInfo');
         const response = await axios.post(gatewayUrl, payload, { headers });
         const gatewayData = response.data;
 
