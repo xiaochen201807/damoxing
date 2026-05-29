@@ -17,11 +17,11 @@ on:
       v_base_path:
         description: '应用基础路径 (VITE_BASE_PATH)'
         required: false
-        default: '/'
+        default: '/gjj_gjsjjsmx/'
       v_api_prefix:
         description: 'API 路由前缀 (VITE_API_ROUTE_PREFIX)'
         required: false
-        default: '/api'
+        default: '/gjj_gjsjjsmx/api'
       v_app_name:
         description: '应用名称 (VITE_APP_NAME)'
         required: false
