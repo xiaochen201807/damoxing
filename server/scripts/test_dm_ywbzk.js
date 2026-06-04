@@ -1,4 +1,4 @@
-﻿const { DmAdapter } = require('../db_dm');
+const { DmAdapter } = require('@damoxing/datasource-manager');
 
 const config = {
     user: process.env.DM_TEST_USER || 'SY_PTDX_CS',

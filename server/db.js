@@ -1,18 +1,17 @@
-const fs = require('fs');
 const path = require('path');
 const dbSqlite = require('./db_sqlite');
-const { OracleAdapter } = require('./db_oracle');
-const { DmAdapter } = require('./db_dm');
-const { PgAdapter, GaussAdapter, KingbaseAdapter } = require('./db_pg');
+const { DataSourceManager, createDefaultAdapterFactories } = require('@damoxing/datasource-manager');
 const logger = require('./utils/logger');
 const sqlite3 = require('sqlite3').verbose();
 require('dotenv').config();
 
-// Global routing map
-const routingMap = new Map();
-let defaultAdapter = null;
-let strictRouting = false;
-let initComplete = false;
+const datasourceManager = new DataSourceManager({
+    configPath: path.join(__dirname, 'config/datasources.json'),
+    logger,
+    shutdownSignals: ['SIGTERM', 'SIGINT'],
+    exitOnShutdownSignal: true,
+    adapterFactories: createDefaultAdapterFactories(logger),
+});
 
 function describeAdapter(adapter) {
     if (!adapter) {
@@ -24,63 +23,27 @@ function describeAdapter(adapter) {
 
 // Initialize multi-datasource
 async function initDataSources() {
-    const configPath = path.join(__dirname, 'config/datasources.json');
-    if (!fs.existsSync(configPath)) {
-        logger.warn('No config/datasources.json found, skipping multi-datasource init');
-        return;
-    }
-
     try {
-        const conf = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        strictRouting = !!conf.strict_routing;
-
-        const initPromises = [];
-        const dsInstances = new Map();
-
-        for (const ds of conf.datasources || []) {
-            let adapter;
-            if (ds.type === 'oracle') {
-                adapter = new OracleAdapter(ds.config, ds.id);
-            } else if (ds.type === 'dm') {
-                adapter = new DmAdapter(ds.config, ds.id);
-            } else if (ds.type === 'pg') {
-                adapter = new PgAdapter(ds.config, ds.id);
-            } else if (ds.type === 'gauss' || ds.type === 'opengauss') {
-                adapter = new GaussAdapter(ds.config, ds.id);
-            } else if (ds.type === 'kingbase') {
-                adapter = new KingbaseAdapter(ds.config, ds.id);
-            } else {
-                logger.warn(`Unknown datasource type: ${ds.type}`);
-                continue;
+        const health = await datasourceManager.initialize();
+        for (const datasource of health.datasources || []) {
+            if (datasource.isDefault) {
+                logger.info(`[DB-Router] Default datasource: ${datasource.type}-${datasource.id}`);
             }
-
-            const p = adapter.initialize().then(() => {
-                dsInstances.set(ds.id, adapter);
-                if (ds.id === conf.default_datasource) {
-                    defaultAdapter = adapter;
-                    logger.info(`[DB-Router] Default datasource: ${describeAdapter(adapter)}`);
-                }
-                for (const jgbh of ds.jgbh_list || []) {
-                    const routeJgbh = String(jgbh);
-                    routingMap.set(routeJgbh, adapter);
-                    logger.info(`[DB-Router] Registered route: jgbh=${routeJgbh} -> ${describeAdapter(adapter)}`);
-                }
-            }).catch(err => {
-                logger.error(`Datasource ${ds.id} failed to initialize:`, err);
-            });
-            initPromises.push(p);
         }
-
-        await Promise.allSettled(initPromises);
-        initComplete = true;
-        logger.info(`Multi-Datasource initialization complete. Loaded ${routingMap.size} routing rules.`);
+        logger.info(`Multi-Datasource initialization complete. Loaded ${health.routeCount} routing rules.`);
+        return health;
     } catch (e) {
-        logger.error('Failed to parse datasources.json', e);
+        logger.error('Failed to initialize datasource manager', e);
+        return datasourceManager.getHealth();
     }
 }
 
-// Automatically trigger init but don't block exports
-initDataSources();
+const shouldAutoInitDatasources = process.env.DATASOURCE_AUTO_INIT !== 'false' && process.env.NODE_ENV !== 'test';
+
+// Automatically trigger init in runtime, but allow tests/library hosts to initialize explicitly.
+const datasourceReadyPromise = shouldAutoInitDatasources
+    ? initDataSources()
+    : Promise.resolve(datasourceManager.getHealth());
 
 // Unified Promise-style interface
 const db = {
@@ -89,40 +52,40 @@ const db = {
 
     // Core routing method for multi-tenant
     getByJgbh(jgbh) {
-        if (!initComplete) {
-            logger.warn('Calling getByJgbh before multi-datasource init finished!');
-        }
         const routeJgbh = typeof jgbh === 'undefined' || jgbh === null ? '' : String(jgbh).trim();
-        if (!routeJgbh) {
-            const fallbackAdapter = defaultAdapter || this.oracleFallback;
-            logger.warn(`[DB-Router] Empty jgbh, using default datasource: ${describeAdapter(fallbackAdapter)}`);
-            return fallbackAdapter;
-        }
-        const adapter = routingMap.get(routeJgbh);
-        if (adapter) {
-            logger.info(`[DB-Router] Routed jgbh=${routeJgbh} -> ${describeAdapter(adapter)}`);
+        try {
+            const adapter = datasourceManager.getByJgbh(jgbh) || this.oracleFallback;
+            if (!routeJgbh) {
+                logger.warn(`[DB-Router] Empty jgbh, using default datasource: ${describeAdapter(adapter)}`);
+            } else {
+                logger.info(`[DB-Router] Routed jgbh=${routeJgbh} -> ${describeAdapter(adapter)}`);
+            }
             return adapter;
+        } catch (err) {
+            logger.error(`[DB-Router] No datasource route for jgbh=${routeJgbh}; ${err.message}`);
+            throw err;
         }
-
-        if (strictRouting) {
-            logger.error(`[DB-Router] No datasource route for jgbh=${routeJgbh}; strict routing enabled.`);
-            throw new Error(`未找到机构 [${jgbh}] 对应的数据源配置，且开启了严格路由。`);
-        }
-        const fallbackAdapter = defaultAdapter || this.oracleFallback;
-        logger.warn(`[DB-Router] No datasource route for jgbh=${routeJgbh}; fallback to default datasource: ${describeAdapter(fallbackAdapter)}`);
-        return fallbackAdapter;
     },
 
     // Graceful shutdown
     async closeAll() {
-        const closures = [];
-        for (const adapter of new Set(routingMap.values())) {
-            closures.push(adapter.close());
-        }
-        if (defaultAdapter && !new Set(routingMap.values()).has(defaultAdapter)) {
-            closures.push(defaultAdapter.close());
-        }
-        await Promise.allSettled(closures);
+        await datasourceManager.closeAll();
+    },
+
+    async ready() {
+        return datasourceReadyPromise;
+    },
+
+    async initializeDatasources() {
+        return initDataSources();
+    },
+
+    getDatasourceHealth() {
+        return datasourceManager.getHealth();
+    },
+
+    heartbeatDatasources() {
+        return datasourceManager.heartbeat();
     },
 
     // Fallback stub for legacy single-tenant Oracle behavior 
@@ -138,7 +101,12 @@ const db = {
     // Temporary mapping for legacy code (will fallback if refactoring is incomplete)
     get oracle() {
         // Return default adapter or fallback
-        return defaultAdapter || this.oracleFallback;
+        try {
+            return datasourceManager.getDefaultHandle() || this.oracleFallback;
+        } catch (err) {
+            logger.warn(`Default datasource is not ready: ${err.message}`);
+            return this.oracleFallback;
+        }
     },
 
     // Raw driver reference (SQLite)

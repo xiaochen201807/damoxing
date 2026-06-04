@@ -1,9 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const { OracleAdapter } = require('../db_oracle');
-const { DmAdapter } = require('../db_dm');
-const { PgAdapter, GaussAdapter, KingbaseAdapter } = require('../db_pg');
+const {
+    DmAdapter,
+    GaussAdapter,
+    KingbaseAdapter,
+    OracleAdapter,
+    PgAdapter,
+} = require('@damoxing/datasource-manager');
 
 const logger = console;
 const configPath = process.env.DATASOURCES_CONFIG_PATH

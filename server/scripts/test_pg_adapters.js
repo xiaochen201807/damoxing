@@ -4,7 +4,11 @@
  * 使用方式: node scripts/test_pg_adapters.js
  */
 
-const { PgAdapter, GaussAdapter, KingbaseAdapter } = require('../db_pg');
+const {
+    GaussAdapter,
+    KingbaseAdapter,
+    PgAdapter,
+} = require('@damoxing/datasource-manager');
 const logger = require('../utils/logger');
 
 async function testAdapter(AdapterClass, label, config) {

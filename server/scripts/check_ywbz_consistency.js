@@ -5,8 +5,10 @@ const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const { OracleAdapter } = require('../db_oracle');
-const { DmAdapter } = require('../db_dm');
+const {
+    DmAdapter,
+    OracleAdapter,
+} = require('@damoxing/datasource-manager');
 
 function parseArgs(argv) {
     const args = {};

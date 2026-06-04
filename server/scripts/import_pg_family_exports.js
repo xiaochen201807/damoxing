@@ -11,7 +11,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const { PgAdapter, GaussAdapter, KingbaseAdapter } = require('../db_pg');
+const {
+    GaussAdapter,
+    KingbaseAdapter,
+    PgAdapter,
+} = require('@damoxing/datasource-manager');
 
 const EXPORT_FILES = [
     path.resolve(__dirname, '../exports/ywbzk_full_export.csv'),

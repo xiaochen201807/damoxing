@@ -18,6 +18,7 @@
         "test": "jest"
     },
     "dependencies": {
+        "@damoxing/datasource-manager": "^0.2.0",
         "@modelcontextprotocol/sdk": "^1.0.4",
         "adm-zip": "^0.5.16",
         "axios": "^1.13.2",
