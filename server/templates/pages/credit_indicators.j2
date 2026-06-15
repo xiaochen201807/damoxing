@@ -182,7 +182,7 @@
         { "name": "subject", "label": "主体类型", "width": 100 },
         { "name": "name", "label": "监控指标", "width": 300 },
         { "name": "weight", "label": "权重", "width": 80, "tpl": "${weight}%" },
-        { "name": "elementName", "label": "管理要素", "width": 200, "tpl": "${elementName}: ${elementDesc}${elementValue}" },
+        { "name": "elementName", "label": "管理要素", "width": 200, "tpl": "${elementName}: ${elementDesc | raw}${elementValue}" },
         { "name": "elementDesc", "label": "要素说明", "width": 200 },
         {
           "name": "status",
