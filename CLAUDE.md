@@ -37,8 +37,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run migrations: `cd server && npm run db:migrate`
 - Initialize Oracle business DB: `cd server && npm run db:init:oracle`
 - Initialize 达梦 business DB: `cd server && npm run db:init:dm`
+- Initialize cxgzkz control table (multi-datasource): `cd server && npm run db:init:cxgzkz`
+- Verify cxgzkz table structure and CRUD: `cd server && npm run db:verify:cxgzkz`
 - Check business standard consistency: `cd server && npm run check:ywbz`
 - Run MCP server over stdio: `cd server && npm run mcp`
+
+### PowerShell usage
+
+- All commands should use `pwsh` (PowerShell 7) on Windows, not bash or cmd.
+- Navigate directories with `cd` and run npm commands normally.
 
 ### Useful project-level workflow
 
@@ -195,6 +202,43 @@ Important behavior:
 
 - Short, direct summaries, often in Chinese (e.g. `增加任务项目接口`, `处理子机构问题`).
 - Keep each commit scoped to one change.
+
+## Project-specific skills
+
+### `/setup-beibei-entry` - 配置贝贝入口
+
+插入PT_JG_SX_CSH表的关键数据算法相关记录。
+
+**依赖**：使用新的 `@damoxing/datasource-manager` 进行多数据源路由。
+
+使用方法:
+```bash
+/setup-beibei-entry <机构编号> [基础域名]
+```
+
+示例:
+```bash
+/setup-beibei-entry 2301110003
+/setup-beibei-entry 2301110003 https://custom.domain.com
+```
+
+工作流程:
+1. 等待 datasource manager 初始化完成
+2. 根据机构编号查询PT_JG_SX_CSH表中的"对象定义"记录，获取ZXJSID
+3. 插入四条关键数据算法相关的记录：
+   - 关键数据计算模型
+   - 公积金关键数据计算模型配置
+   - 公积金业务标准库
+   - 程序规则控制管理
+4. 验证插入结果并显示统计信息
+
+注意事项:
+- 需要在 `server/config/datasources.json` 中正确配置该机构的数据源
+- 该机构必须已存在"对象定义"属性记录
+- 如果记录已存在会自动跳过，不会重复插入（通过 jgbh + sxmc 判断）
+- 所有数据库类型统一使用 `f_newid()` 函数生成ID（已在各数据库中自定义）
+- SXBS 字段自动从数据库查询最大值 +1，无需手动指定
+- Skill 会调用 `db.ready()` 等待数据源管理器初始化完成后再执行操作
 
 ## Files worth reading before major changes
 
