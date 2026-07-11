@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # ============================================
 # 大模型项目 - 单容器部署 (前端 + 后端)
 # ============================================
@@ -41,6 +43,10 @@ RUN npm run build
 FROM node:20-alpine
 
 ARG NPM_REGISTRY=
+ARG STANDARD_SQL_KEY_BUILD_ID=local
+
+ENV NODE_ENV=production
+ENV STANDARD_SQL_PRIVATE_KEY_FILE=/app/config/standard_sql_private.pem
 
 # 安装 Nginx、SQLite、cronie 和 gettext (envsubst)
 RUN apk add --no-cache nginx sqlite supervisor dcron gettext
@@ -60,6 +66,13 @@ RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi 
 
 # 复制后端代码
 COPY server/ ./
+
+# 私钥由 BuildKit secret 注入最终镜像。构建编号用于避免密钥更新后复用旧缓存层。
+RUN --mount=type=secret,id=standard_sql_private_key,required=true \
+    test -n "$STANDARD_SQL_KEY_BUILD_ID" && \
+    mkdir -p /app/config && \
+    cp /run/secrets/standard_sql_private_key /app/config/standard_sql_private.pem && \
+    chmod 600 /app/config/standard_sql_private.pem
 
 # 复制数据库模板（用于首次启动时初始化）
 # 注意：使用 server/data/database.sqlite 作为种子数据
@@ -102,5 +115,4 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # 使用 Supervisor 启动 Nginx、Node.js 和 Cron
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
-
 

@@ -87,36 +87,41 @@ const helmetConfig = helmet({
  */
 const sqlInjectionProtection = (req, res, next) => {
     // 需要跳过检测的字段（比如 AMIS schema 中可能包含 SQL 关键字）
-    const skipFields = ['schema_json', 'config', 'body', 'template', 'schema'];
+    const skipFields = new Set(['schema_json', 'config', 'body', 'template', 'schema']);
+    const isStandardSqlSave = req.method === 'POST' && /\/ywbzk\/save\/?$/.test(req.path);
+    if (isStandardSqlSave) {
+        // 这里只跳过经过 AES-GCM 加密的信封；明文业务字段仍继续检测。
+        skipFields.add('sqlEnvelope');
+    }
 
     // 只检测明显的 SQL 注入组合模式
     const dangerousPatterns = [
         // 注释符号与引号的组合（经典 SQL 注入）
-        /['"][\s]*--/gi,                          // ' -- 或 " --
-        /['"][\s]*;/gi,                           // '; 或 ";
-        /['"][\s]*\/\*/gi,                        // '/* 或 "/*
+        /['"][\s]*--/i,                           // ' -- 或 " --
+        /['"][\s]*;/i,                            // '; 或 ";
+        /['"][\s]*\/\*/i,                         // '/* 或 "/*
 
         // 多个 SQL 关键字的组合（更可能是攻击）
-        /\bunion[\s]+select\b/gi,                // UNION SELECT
+        /\bunion[\s]+select\b/i,                 // UNION SELECT
         // 移除过于宽泛的 SELECT FROM 检测，避免误报
         // /\bselect[\s]+.*[\s]+from\b/gi,       // SELECT ... FROM
-        /\bdrop[\s]+table\b/gi,                  // DROP TABLE
-        /\binsert[\s]+into\b/gi,                 // INSERT INTO
-        /\bdelete[\s]+from\b/gi,                 // DELETE FROM
-        /\bexec[\s]*\(/gi,                       // EXEC(
-        /\bexecute[\s]*\(/gi,                    // EXECUTE(
+        /\bdrop[\s]+table\b/i,                   // DROP TABLE
+        /\binsert[\s]+into\b/i,                  // INSERT INTO
+        /\bdelete[\s]+from\b/i,                  // DELETE FROM
+        /\bexec[\s]*\(/i,                        // EXEC(
+        /\bexecute[\s]*\(/i,                     // EXECUTE(
 
         // 危险的存储过程
-        /\bxp_cmdshell\b/gi,
-        /\bsp_executesql\b/gi,
+        /\bxp_cmdshell\b/i,
+        /\bsp_executesql\b/i,
 
         // Base64 encoded SQL patterns (高级攻击)
-        /U0VMRUNUI|RFTEVU|SU5TRVJU|REVMRVRF/g,
+        /U0VMRUNUI|RFTEVU|SU5TRVJU|REVMRVRF/,
     ];
 
     const checkValue = (value, fieldName = '') => {
         // 跳过特定字段的检测
-        if (skipFields.includes(fieldName)) {
+        if (skipFields.has(fieldName)) {
             return false;
         }
 

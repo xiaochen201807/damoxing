@@ -13,6 +13,7 @@ services:
       - damoxing-net
 
     environment:
+      # NODE_ENV 和标准库 SQL 私钥路径已在镜像内设置；此处保留 NODE_ENV 便于现场覆盖确认。
       - NODE_ENV=production
       - PORT=3001
       - DB_PATH=/app/data/database.sqlite
@@ -27,8 +28,10 @@ services:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - GATEWAY_ENABLED=true
       - SKIP_LOCAL_AUTH=true
+      - STANDARD_SQL_PRIVATE_KEY_FILE=/app/config/standard_sql_private.pem
 
     volumes:
+      # 标准库 SQL 私钥已由 GitHub Actions 注入镜像，无需现场挂载。
       - ./data:/app/data
       - ./config/datasources.json:/app/config/datasources.json:ro
 

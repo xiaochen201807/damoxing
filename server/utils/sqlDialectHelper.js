@@ -16,6 +16,25 @@ const DIALECT_LIST = [
     { key: 'pg',       label: 'postgresql数据库' }
 ];
 const DIALECT_KEY_SET = new Set(DIALECT_LIST.map(item => item.key));
+const DEFAULT_MAX_SQL_BYTES = 64 * 1024;
+
+function getMaxSqlBytes() {
+    const configured = Number(process.env.STANDARD_SQL_MAX_BYTES);
+    return Number.isInteger(configured) && configured > 0 ? configured : DEFAULT_MAX_SQL_BYTES;
+}
+
+function validateSqlText(value, fieldLabel = 'SQL') {
+    if (typeof value !== 'string') {
+        throw new Error(`${fieldLabel} 必须是字符串`);
+    }
+    if (value.includes('\0')) {
+        throw new Error(`${fieldLabel} 不能包含空字符`);
+    }
+    if (Buffer.byteLength(value, 'utf8') > getMaxSqlBytes()) {
+        throw new Error(`${fieldLabel} 超过允许的 ${getMaxSqlBytes()} 字节`);
+    }
+    return value;
+}
 
 function createEmptyDialectMap() {
     const result = {};
@@ -53,9 +72,7 @@ function parseDialectEntries(raw, fieldLabel = 'SQL 方言配置') {
         if (!DIALECT_KEY_SET.has(dialect)) {
             throw new Error(`${fieldLabel} 第 ${index + 1} 项包含不支持的 dialect: ${dialect}`);
         }
-        if (typeof item.sql !== 'string') {
-            throw new Error(`${fieldLabel} 第 ${index + 1} 项的 sql 必须是字符串`);
-        }
+        validateSqlText(item.sql, `${fieldLabel} 第 ${index + 1} 项的 sql`);
 
         return {
             dialect,
@@ -79,9 +96,7 @@ function validateDialectSqlObject(dialectObj, fieldLabel = 'SQL 方言配置') {
         if (value === undefined || value === null || value === '') {
             continue;
         }
-        if (typeof value !== 'string') {
-            throw new Error(`${fieldLabel}.${key} 必须是字符串`);
-        }
+        validateSqlText(value, `${fieldLabel}.${key}`);
     }
 
     return dialectObj;
@@ -111,6 +126,7 @@ function parseDialectSql(raw, fieldLabel = 'SQL 方言配置') {
     }
 
     // 旧版纯 SQL → 视为 default
+    validateSqlText(raw, fieldLabel);
     result.default = raw;
     return result;
 }
@@ -175,6 +191,7 @@ function resolveSql(raw, currentDialect) {
 
 module.exports = {
     DIALECT_LIST,
+    validateSqlText,
     validateDialectSqlObject,
     parseDialectSql,
     buildDialectSql,

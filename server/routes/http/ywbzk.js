@@ -8,19 +8,48 @@ const router = express.Router();
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
-const { parseDialectSql, buildDialectSql, validateDialectSqlObject, DIALECT_LIST } = require('../../utils/sqlDialectHelper');
+const {
+    parseDialectSql,
+    buildDialectSql,
+    validateSqlText,
+    validateDialectSqlObject,
+    DIALECT_LIST
+} = require('../../utils/sqlDialectHelper');
 const {
     isBusinessStandardMasterEnabled,
     getBusinessStandardWriteDeniedMessage,
     getBusinessStandardImportDisabledMessage
 } = require('../../utils/business-standard-access');
 const algorithmConfig = require('../../utils/business-algorithms');
+const {
+    getPublicKeyInfo,
+    decryptStandardSqlEnvelope,
+    restoreStandardSqlFields
+} = require('../../utils/standardSqlEnvelope');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
 const fs = require('fs');
 const path = require('path');
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+function decryptStandardSqlRequest(req, res, next) {
+    if (!req.body || !req.body.sqlEnvelope) {
+        return next();
+    }
+
+    try {
+        const sqlPayload = decryptStandardSqlEnvelope(req.body.sqlEnvelope);
+        req.body = restoreStandardSqlFields(req.body, sqlPayload);
+        return next();
+    } catch (error) {
+        logger.warn(`标准库 SQL 解密失败: ${error.message}, user=${req.user?.username || 'unknown'}, ip=${req.ip}`);
+        return res.status(400).json({
+            status: 400,
+            msg: error.message || '标准库 SQL 解密失败，请刷新页面后重试'
+        });
+    }
+}
 
 function getCountValue(row) {
     if (!row) {
@@ -145,6 +174,15 @@ function normalizeBusinessStandardAttributeRows(rows) {
         };
     });
 }
+
+router.get('/sql-public-key', (req, res) => {
+    try {
+        res.json({ status: 0, msg: 'success', data: getPublicKeyInfo() });
+    } catch (error) {
+        logger.error(`获取标准库 SQL 加密公钥失败: ${error.message}`);
+        res.status(500).json({ status: 1, msg: '标准库 SQL 加密配置不可用' });
+    }
+});
 
 /**
  * 1. 获取列表 (POST /list)
@@ -276,7 +314,7 @@ router.post('/get', async (req, res) => {
  * 3. 保存 (新增 or 修改) (POST /save)
  * 自动处理事务和属性组同步
  */
-router.post('/save', async (req, res) => {
+router.post('/save', decryptStandardSqlRequest, async (req, res) => {
     let {
         id,
         pxh,
@@ -329,6 +367,8 @@ router.post('/save', async (req, res) => {
             ywbzjg = buildDialectSql(ywbzjg_dialects, ywbzjgFieldLabel);
         } else if (typeof ywbzjg === 'string' && ywbzjg.trim().startsWith('[')) {
             parseDialectSql(ywbzjg, ywbzjgFieldLabel);
+        } else if (typeof ywbzjg === 'string') {
+            validateSqlText(ywbzjg, ywbzjgFieldLabel);
         }
 
         try {
@@ -455,6 +495,8 @@ router.post('/save', async (req, res) => {
                         sxYwblbzyg = buildDialectSql(sx.ywblbzyg_dialects, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
                     } else if (sx.sxly === 'sql' && typeof sxYwblbzyg === 'string' && sxYwblbzyg.trim().startsWith('[')) {
                         parseDialectSql(sxYwblbzyg, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
+                    } else if (sx.sxly === 'sql' && typeof sxYwblbzyg === 'string') {
+                        validateSqlText(sxYwblbzyg, `属性来源执行语句(${sx.ywblbzsx || sx.sxbm || '未命名属性'})`);
                     } else if (sx.sxly !== 'sql') {
                         sxYwblbzyg = null;
                     }

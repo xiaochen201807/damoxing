@@ -21,6 +21,7 @@ jest.mock('../utils/business-standard-access', () => ({
 jest.mock('../utils/sqlDialectHelper', () => ({
     parseDialectSql: jest.fn(() => ({})),
     buildDialectSql: jest.fn(() => '[]'),
+    validateSqlText: jest.fn(),
     validateDialectSqlObject: jest.fn(),
     DIALECT_LIST: [],
 }));

@@ -2,6 +2,7 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosRequestConfig, Method } from 'axios';
 import type { FetcherConfig, FetcherResponse } from '../types/models';
+import { protectBusinessStandardSql } from './standardSqlEnvelope';
 
 // 后端服务地址（从环境变量读取，默认为空字符串依赖 Vite proxy）
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -16,7 +17,7 @@ const API_PREFIX = window.__APP_CONFIG__?.API_ROUTE_PREFIX || import.meta.env.VI
  * @param data 请求数据
  * @param config 额外配置
  */
-export const fetcher = <T = unknown>({
+export const fetcher = async <T = unknown>({
   url,
   method,
   data,
@@ -153,6 +154,20 @@ export const fetcher = <T = unknown>({
           axiosConfig.data = { ...info, ...axiosConfig.data };
         }
       } catch (_e) { /* ignore */ }
+    }
+
+    try {
+      axiosConfig.data = await protectBusinessStandardSql(
+        axiosConfig.data,
+        requestUrl,
+        requestConfig.headers as Record<string, string>
+      );
+    } catch (error) {
+      return {
+        status: 500,
+        msg: error instanceof Error ? error.message : '标准库 SQL 加密失败',
+        data: null as unknown as T
+      } as FetcherResponse<T>;
     }
   } else {
     // GET、DELETE 等方法如果有数据，放到 params（查询字符串）

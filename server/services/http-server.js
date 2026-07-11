@@ -10,6 +10,7 @@ const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
 const logger = require("../utils/logger");
+const { initializeStandardSqlEncryption } = require("../utils/standardSqlEnvelope");
 const { notFoundHandler, errorHandler } = require("../middleware/errorHandler");
 const { globalLimiter, helmetConfig, sqlInjectionProtection } = require("../middleware/security");
 
@@ -64,7 +65,7 @@ function setupMiddleware(app) {
         if (req.path.includes('/api/mcp/messages')) {
             return next();
         }
-        express.json()(req, res, next);
+        express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' })(req, res, next);
     });
 
     // Gzip 压缩
@@ -98,6 +99,9 @@ async function startHttpServer() {
     const HOST = process.env.HTTP_HOST || '0.0.0.0';
 
     try {
+        // 生产环境缺少共享私钥时在监听端口前直接失败，避免集群随机解密失败。
+        initializeStandardSqlEncryption();
+
         // 配置中间件
         setupMiddleware(app);
 
