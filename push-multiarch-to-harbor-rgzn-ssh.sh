@@ -211,14 +211,15 @@ require_command skopeo
 build_ssh_target
 
 SRC_REF="$(strip_transport_prefix "$SRC")"
-DST_TAG="${DST_TAG:-$(derive_dst_tag_from_src "$SRC_REF")}"
 if [[ -z "$DST" ]]; then
+    DST_TAG="${DST_TAG:-$(derive_dst_tag_from_src "$SRC_REF")}"
     DST="${DST_REPO}:${DST_TAG}"
 fi
 
 parse_registry_ref "$DST"
 DST_HOST="$REF_HOST"
 DST_PATH="$REF_PATH"
+DST_TAG="${DST_TAG:-${REF_PATH_TAG##*:}}"
 DST_REF="$(strip_transport_prefix "$DST")"
 HARBOR_HOST="${HARBOR_HOST:-${DST_HOST%%:*}}"
 HARBOR_PORT="${HARBOR_PORT:-${DST_HOST##*:}}"
