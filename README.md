@@ -256,6 +256,60 @@ npm run build
 # 构建产物在 client/dist/
 ```
 
+### 通过 SSH 白名单主机推送 Harbor 镜像
+
+当本机不能直接访问 Harbor，但可以 SSH 登录一台位于 Harbor IP 白名单内的服务器时，使用：
+
+```text
+push-multiarch-to-harbor-rgzn-ssh.sh
+```
+
+本机需要安装：
+
+- `ssh`
+- `curl`
+- `skopeo`
+
+推荐使用默认的 SSH SOCKS5 模式。该模式会保留 Harbor 原始域名、TLS/SNI 和认证 token realm：
+
+```bash
+SSH_TARGET=deploy@白名单服务器地址 \
+SSH_PORT=22 \
+SSH_KEY=~/.ssh/id_ed25519 \
+SRC=ghcr.io/xiaochen201807/damoxing:20260711-1601-x86 \
+DST=harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202607111601-gjjrgzn \
+REGISTRY_AUTH_FILE=~/.config/containers/auth.json \
+./push-multiarch-to-harbor-rgzn-ssh.sh
+```
+
+如果当前 `skopeo` 不支持通过 `socks5h` 代理访问 Registry，可以改用 SSH 本地端口映射模式：
+
+```bash
+SSH_MODE=local \
+SSH_TARGET=deploy@白名单服务器地址 \
+SSH_PORT=22 \
+SSH_KEY=~/.ssh/id_ed25519 \
+SSH_LOCAL_PORT=18443 \
+SRC=ghcr.io/xiaochen201807/damoxing:20260711-1601-x86 \
+DST=harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202607111601-gjjrgzn \
+REGISTRY_AUTH_FILE=~/.config/containers/auth.json \
+./push-multiarch-to-harbor-rgzn-ssh.sh
+```
+
+认证信息优先通过 `REGISTRY_AUTH_FILE` 提供，文件中应包含源 Registry 和 Harbor 的登录信息。也可以临时设置 `SRC_CREDS=user:token`、`DST_CREDS=user:password`，但不建议把真实密码直接写入脚本或 shell 历史。
+
+如果不传 `DST`，脚本会从 `SRC` 提取 tag，移除其中的连字符，再追加 `DST_SUFFIX`（默认 `gjjrgzn`）：
+
+```bash
+SSH_TARGET=deploy@白名单服务器地址 \
+SRC=ghcr.io/xiaochen201807/damoxing:20260711-1601-x86 \
+DST_REPO=harbor.sjgjj.cn:10443/gjjrgzn/damoxing \
+DST_SUFFIX=gjjrgzn \
+./push-multiarch-to-harbor-rgzn-ssh.sh
+```
+
+脚本会在推送前检查 Harbor `/v2/` 连通性，使用 `skopeo copy --all` 保留多架构 manifest，推送完成后校验目标镜像，并在退出时自动关闭 SSH 隧道。
+
 ### 环境变量
 
 生产环境需要配置：
