@@ -630,11 +630,12 @@ router.all('/export', authenticateToken, async (req, res) => {
     //     return res.status(403).json({ status: 403, msg: "无导出权限" });
     // }
     try {
+        const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
         // 1. 获取所有数据
-        const contentClasses = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywnrfl");
-        const standards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzk");
-        const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzksx");
-        const mutualStandards = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all("SELECT * FROM gjj_ywbzkhc");
+        const contentClasses = await _adapter.all("SELECT * FROM gjj_ywnrfl");
+        const standards = await _adapter.all("SELECT * FROM gjj_ywbzk");
+        const attributes = await _adapter.all("SELECT * FROM gjj_ywbzksx");
+        const mutualStandards = await _adapter.all("SELECT * FROM gjj_ywbzkhc");
 
         // 2. 生成 SQL 脚本 (封装在 CSV 中)
         let sqlScript = "-- 业务标准全量导出 (包含业务内容分类表、标准表、属性表和互斥关系表)\n";
@@ -664,31 +665,83 @@ router.all('/export', authenticateToken, async (req, res) => {
             return val;
         };
 
+        // 辅助函数：生成插入 SQL (支持 Oracle CLOB 字段的超长处理，避开 ORA-01704 错误和 PL/SQL 32K 字面量限制)
+        const buildInsertStatement = (tableName, row, isOracle) => {
+            const keys = Object.keys(row);
+            const declareVars = [];
+            const assignLines = [];
+            const insertValues = [];
+
+            let hasClobVar = false;
+            let varIndex = 1;
+
+            for (const key of keys) {
+                const val = row[key];
+                const formattedVal = formatValue(val);
+
+                // 根据 UTF-8 字节数判断是否超过 3000 字节，规避 Oracle 单条 SQL 4000 字节限制
+                if (isOracle && typeof val === 'string' && Buffer.byteLength(val, 'utf8') > 3000) {
+                    const varName = `v_clob_${varIndex++}`;
+                    declareVars.push(`    ${varName} CLOB;`);
+
+                    // 使用 Array.from 确保按真正的 Unicode 字符拆分，防止 Emoji 截断和代理对计数错误
+                    const chars = Array.from(val);
+                    const chunks = [];
+                    const chunkSize = 1000;
+                    for (let i = 0; i < chars.length; i += chunkSize) {
+                        chunks.push(chars.slice(i, i + chunkSize).join(''));
+                    }
+
+                    // 第一段直接初始化赋值
+                    const escapedChunk0 = chunks[0].replace(/'/g, "''");
+                    assignLines.push(`    ${varName} := '${escapedChunk0}';`);
+
+                    // 剩余段使用 dbms_lob.writeappend 追加
+                    for (let k = 1; k < chunks.length; k++) {
+                        const escapedChunkK = chunks[k].replace(/'/g, "''");
+                        const chunkLen = Array.from(chunks[k]).length;
+                        assignLines.push(`    dbms_lob.writeappend(${varName}, ${chunkLen}, '${escapedChunkK}');`);
+                    }
+
+                    insertValues.push(varName);
+                    hasClobVar = true;
+                } else {
+                    insertValues.push(formattedVal);
+                }
+            }
+
+            if (isOracle && hasClobVar) {
+                let sql = "DECLARE\n";
+                sql += declareVars.join('\n') + '\n';
+                sql += "BEGIN\n";
+                sql += assignLines.join('\n') + '\n';
+                sql += `    INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${insertValues.join(', ')});\n`;
+                sql += "END;\n/\n";
+                return sql;
+            } else {
+                return `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${insertValues.join(', ')});\n`;
+            }
+        };
+
+        const isOracle = SqlHelper.isOracleAdapter(_adapter);
+
         // 插入业务内容分类表数据
         for (const row of contentClasses) {
-            const keys = Object.keys(row);
-            const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywnrfl (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlScript += buildInsertStatement('gjj_ywnrfl', row, isOracle);
         }
 
         // 插入标准表数据
         for (const row of standards) {
-            const keys = Object.keys(row);
-            const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbzk (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlScript += buildInsertStatement('gjj_ywbzk', row, isOracle);
         }
 
         // 插入属性表数据
         for (const row of attributes) {
-            const keys = Object.keys(row);
-            const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbzksx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlScript += buildInsertStatement('gjj_ywbzksx', row, isOracle);
         }
 
         for (const row of mutualStandards) {
-            const keys = Object.keys(row);
-            const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbzkhc (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlScript += buildInsertStatement('gjj_ywbzkhc', row, isOracle);
         }
 
         // sqlScript += "\nCOMMIT;"; // 导入时自动提交
@@ -753,37 +806,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         // 执行 SQL
         // await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').exec(sqlContent);
 
-        // 分割 SQL 语句并逐条执行 (能够正确处理字符串中的分号)
-        const splitSqlStatements = (sql) => {
-            const stmts = [];
-            let buffer = '';
-            let inQuote = false;
-
-            for (let i = 0; i < sql.length; i++) {
-                const char = sql[i];
-                if (char === "'") {
-                    // 处理转义引号 ''
-                    if (inQuote && i + 1 < sql.length && sql[i + 1] === "'") {
-                        buffer += "''";
-                        i++;
-                        continue;
-                    }
-                    inQuote = !inQuote;
-                }
-
-                if (char === ';' && !inQuote) {
-                    const trimmed = buffer.trim();
-                    if (trimmed) stmts.push(trimmed);
-                    buffer = '';
-                } else {
-                    buffer += char;
-                }
-            }
-            if (buffer.trim()) stmts.push(buffer.trim());
-            return stmts;
-        };
-
-        const statements = splitSqlStatements(sqlContent);
+        const statements = SqlHelper.splitSqlStatements(sqlContent);
 
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
             for (const sql of statements) {
