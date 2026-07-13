@@ -270,19 +270,20 @@ push-multiarch-to-harbor-rgzn-ssh.sh
 - `curl`
 - `skopeo`
 
-推荐使用默认的 SSH SOCKS5 模式。该模式会保留 Harbor 原始域名、TLS/SNI 和认证 token realm：
+推荐使用默认的 SSH SOCKS5 模式。脚本默认使用兼容性更好的 `socks5://` 代理写法，并保留 Harbor 原始域名、TLS/SNI 和认证 token realm：
 
 ```bash
 SSH_TARGET=deploy@白名单服务器地址 \
 SSH_PORT=22 \
 SSH_KEY=~/.ssh/id_ed25519 \
+SSH_PROXY_SCHEME=socks5 \
 SRC=ghcr.io/xiaochen201807/damoxing:20260711-1601-x86 \
 DST=harbor.sjgjj.cn:10443/gjjrgzn/damoxing:202607111601-gjjrgzn \
 REGISTRY_AUTH_FILE=~/.config/containers/auth.json \
 ./push-multiarch-to-harbor-rgzn-ssh.sh
 ```
 
-如果当前 `skopeo` 不支持通过 `socks5h` 代理访问 Registry，可以改用 SSH 本地端口映射模式：
+如果当前 `skopeo` 仍不支持通过 SOCKS 代理环境变量访问 Registry，可以改用 SSH 本地端口映射模式：
 
 ```bash
 SSH_MODE=local \

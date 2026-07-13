@@ -8,17 +8,18 @@ set -euo pipefail
 
 SRC="${SRC:-ghcr.io/xiaoguan521/damoxing:20260615-0318}"
 DST_REPO="${DST_REPO:-harbor.sjgj.cn:10443/gjjrgzn/damoxing}"
-DST_SUFFIX="${DST_SUFFIX:-gjjrgzn}"
+DST_SUFFIX="${DST_SUFFIX:-gjsj}"
 DST="${DST:-}"
 SSH_MODE="${SSH_MODE:-socks5}"
 SSH_TARGET="${SSH_TARGET:-}"
 SSH_HOST="${SSH_HOST:-}"
 SSH_USER="${SSH_USER:-}"
-SSH_PORT="${SSH_PORT:-22}"
+SSH_PORT="${SSH_PORT:-2222}"
 SSH_KEY="${SSH_KEY:-}"
 SSH_EXTRA_ARGS="${SSH_EXTRA_ARGS:-}"
 SSH_SOCKS_PORT="${SSH_SOCKS_PORT:-18080}"
 SSH_LOCAL_PORT="${SSH_LOCAL_PORT:-18443}"
+SSH_PROXY_SCHEME="${SSH_PROXY_SCHEME:-socks5}"
 REGISTRY_AUTH_FILE="${REGISTRY_AUTH_FILE:-${AUTH_FILE:-}}"
 SRC_CREDS="${SRC_CREDS:-}"
 DST_CREDS="${DST_CREDS:-}"
@@ -144,7 +145,7 @@ probe_harbor() {
 
     if [[ "$SSH_MODE" == "socks5" ]]; then
         http_code="$(curl --silent --show-error --max-time 15 \
-            --proxy "socks5h://127.0.0.1:${SSH_SOCKS_PORT}" \
+            --proxy "${SSH_PROXY_SCHEME}://127.0.0.1:${SSH_SOCKS_PORT}" \
             -o /dev/null -w '%{http_code}' "$probe_url" || true)"
     else
         http_code="$(curl --silent --show-error --max-time 15 \
@@ -238,13 +239,13 @@ start_ssh_tunnel
 probe_harbor
 
 if [[ "$SSH_MODE" == "socks5" ]]; then
-    # 保持源镜像直连，只有 Harbor 通过 SSH SOCKS5；skopeo/Go 版本若不支持
-    # socks5h HTTPS_PROXY，请改用 SSH_MODE=local。
+    # 保持源镜像直连，只有 Harbor 通过 SSH SOCKS5；旧版 skopeo 如果不支持
+    # SOCKS 代理环境变量，请改用 SSH_MODE=local。
     parse_registry_ref "$SRC_REF"
     SRC_HOST="$REF_HOST"
-    export HTTPS_PROXY="socks5h://127.0.0.1:${SSH_SOCKS_PORT}"
-    export HTTP_PROXY="socks5h://127.0.0.1:${SSH_SOCKS_PORT}"
-    export ALL_PROXY="socks5h://127.0.0.1:${SSH_SOCKS_PORT}"
+    export HTTPS_PROXY="${SSH_PROXY_SCHEME}://127.0.0.1:${SSH_SOCKS_PORT}"
+    export HTTP_PROXY="${SSH_PROXY_SCHEME}://127.0.0.1:${SSH_SOCKS_PORT}"
+    export ALL_PROXY="${SSH_PROXY_SCHEME}://127.0.0.1:${SSH_SOCKS_PORT}"
     export NO_PROXY="${NO_PROXY:+${NO_PROXY},}${SRC_HOST},127.0.0.1,localhost"
     SKOPEO_DST="$DST_REF"
 else
