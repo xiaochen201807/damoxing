@@ -880,12 +880,27 @@
                                 },
                                 {
                                     "type": "crud",
+                                    "id": "ywbzk_export_history_crud",
                                     "syncLocation": false,
+                                    "loadDataOnce": false,
+                                    "affixHeader": false,
+                                    "columnsTogglable": false,
+                                    "placeholder": "暂无导出记录。请先点击「全量导出」生成脚本；成功后会自动写入本列表。",
                                     "api": {
-                                        "method": "get",
+                                        "method": "post",
                                         "url": "${standard_export_history_api}",
-                                        "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: (payload.data && payload.data.items) || [] } };"
+                                        "silent": true,
+                                        "adaptor": "var p = payload || {}; var data = p.data || p; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.items)) { list = data.items; } else if (data && Array.isArray(data.rows)) { list = data.rows; } var st = (typeof p.status === 'number') ? p.status : 0; if (st !== 0 && st !== '0') { return { status: st, msg: p.msg || '查询导出历史失败', data: { items: [], total: 0 } }; } return { status: 0, msg: '', data: { items: list, total: (data && (data.total != null ? data.total : list.length)) || list.length } };"
                                     },
+                                    "headerToolbar": [
+                                        {
+                                            "type": "button",
+                                            "label": "刷新",
+                                            "level": "link",
+                                            "actionType": "reload",
+                                            "target": "ywbzk_export_history_crud"
+                                        }
+                                    ],
                                     "columns": [
                                         { "name": "created_at", "label": "导出时间", "width": 180 },
                                         { "name": "file_name", "label": "文件名" },
@@ -895,7 +910,8 @@
                                         {
                                             "name": "content_sha256",
                                             "label": "校验摘要",
-                                            "width": 160
+                                            "width": 160,
+                                            "tpl": "${content_sha256|default:-}"
                                         },
                                         {
                                             "type": "operation",

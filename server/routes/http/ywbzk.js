@@ -816,36 +816,51 @@ router.all('/export', authenticateToken, async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // 导出历史列表（标准库脚本管理）
+// 兼容 GET/POST，避免部分网关只转发 POST 导致列表空白
 // -----------------------------------------------------------------------------
-router.get('/export_history', authenticateToken, async (req, res) => {
+async function handleExportHistoryList(req, res) {
     try {
+        const limit = Number(req.query?.limit || req.body?.limit) || 50;
         const rows = await listExportScripts({
             packageType: PACKAGE_TYPES.YWBZK,
-            limit: Number(req.query.limit) || 50
+            limit
         });
+        const items = rows.map(r => ({
+            id: r.id,
+            package_type: r.package_type,
+            package_scope: r.package_scope,
+            file_name: r.file_name,
+            content_sha256: r.content_sha256,
+            record_count: r.record_count,
+            jgbh: r.jgbh,
+            zjgbh: r.zjgbh,
+            dialect: r.dialect,
+            operator: r.operator,
+            created_at: r.created_at
+        }));
+        // AMIS CRUD 同时认 items / rows / total
         res.json({
             status: 0,
+            msg: '',
             data: {
-                items: rows.map(r => ({
-                    id: r.id,
-                    package_type: r.package_type,
-                    package_scope: r.package_scope,
-                    file_name: r.file_name,
-                    content_sha256: r.content_sha256,
-                    record_count: r.record_count,
-                    jgbh: r.jgbh,
-                    zjgbh: r.zjgbh,
-                    dialect: r.dialect,
-                    operator: r.operator,
-                    created_at: r.created_at
-                }))
+                items,
+                rows: items,
+                total: items.length,
+                count: items.length
             }
         });
     } catch (err) {
         logger.error(`List export history failed: ${err.message}`);
-        res.status(500).json({ status: 1, msg: '查询导出历史失败: ' + err.message });
+        // 仍返回 200 + status:1，避免前端空白 toast；msg 必须非空
+        res.json({
+            status: 1,
+            msg: '查询导出历史失败: ' + (err.message || '未知错误'),
+            data: { items: [], rows: [], total: 0, count: 0 }
+        });
     }
-});
+}
+router.get('/export_history', authenticateToken, handleExportHistoryList);
+router.post('/export_history', authenticateToken, handleExportHistoryList);
 
 // -----------------------------------------------------------------------------
 // 按历史记录下载标准库脚本
