@@ -16,6 +16,15 @@
         },
         ".wider-select .cxd-Select": {
             "minWidth": "350px"
+        },
+        ".ywbz-import-form .cxd-Form-feedback": {
+            "display": "none !important"
+        },
+        ".ywbz-import-form .cxd-Form-item-feedback": {
+            "display": "none !important"
+        },
+        ".ywbz-import-form .cxd-Alert--danger.cxd-Form-feedback": {
+            "display": "none !important"
         }
     },
     "data": {
@@ -553,51 +562,29 @@
                             "body": {
                                 "type": "form",
                                 "id": "ywbz_full_import_form",
+                                "className": "ywbz-import-form",
                                 "showErrorMsg": false,
+                                "wrapWithPanel": false,
                                 "messages": {
-                                    "success": "",
-                                    "failed": "",
+                                    "success": false,
+                                    "failed": false,
+                                    "saveSuccess": "",
+                                    "saveFailed": "",
                                     "validateFailed": "请先选择要导入的文件"
                                 },
                                 "api": {
                                     "method": "post",
                                     "url": "${rule_import_api}",
                                     "dataType": "form-data",
-                                    "silent": true
+                                    "silent": true,
+                                    "adaptor": "var p = (typeof payload === 'undefined' || payload == null) ? {} : payload; function pickMsg(x){ if(x == null) return ''; if(typeof x === 'string') return x; if(typeof x !== 'object') return String(x); if(typeof x.msg === 'string' && x.msg && x.msg !== '[object Object]') return x.msg; if(typeof x.message === 'string' && x.message) return x.message; if(x.error != null){ var e = pickMsg(x.error); if(e) return e; } if(x.data != null && x.data !== x){ var d = pickMsg(x.data); if(d) return d; } if(x.responseData != null){ var r = pickMsg(x.responseData); if(r) return r; } return ''; } var st = p.status; var ok = (st === 0 || st === '0'); var msg = pickMsg(p); if(ok){ return { status: 0, msg: '', data: { import_ok: true, import_error: '' } }; } return { status: 0, msg: '', data: { import_ok: false, import_error: msg || '导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」' } };"
                                 },
                                 "onEvent": {
                                     "submitSucc": {
                                         "actions": [
                                             {
-                                                "actionType": "setValue",
-                                                "componentId": "ywbz_full_import_form",
-                                                "args": {
-                                                    "value": {
-                                                        "import_error": ""
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "actionType": "toast",
-                                                "args": {
-                                                    "msgType": "success",
-                                                    "msg": "导入成功"
-                                                }
-                                            },
-                                            {
-                                                "actionType": "reload",
-                                                "componentId": "main_crud"
-                                            },
-                                            {
-                                                "actionType": "closeDialog"
-                                            }
-                                        ]
-                                    },
-                                    "submitFail": {
-                                        "actions": [
-                                            {
                                                 "actionType": "custom",
-                                                "script": "var d = event.data || {}; var msg = d.errorMsg || d.msg || d.error || (d.responseData && (d.responseData.msg || d.responseData.message)) || (d.data && (d.data.msg || d.data.message)) || '导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」'; doAction({ actionType: 'setValue', componentId: 'ywbz_full_import_form', args: { value: { import_error: msg } } });"
+                                                "script": "var d = event.data || {}; var ok = d.import_ok === true || d.import_ok === 'true'; var err = (typeof d.import_error === 'string') ? d.import_error : ''; if (!ok) { doAction({ actionType: 'setValue', componentId: 'ywbz_full_import_form', args: { value: { import_error: err || '导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」', import_ok: false } } }); return; } doAction({ actionType: 'setValue', componentId: 'ywbz_full_import_form', args: { value: { import_error: '', import_ok: true } } }); doAction({ actionType: 'toast', args: { msgType: 'success', msg: '导入成功' } }); doAction({ actionType: 'reload', componentId: 'main_crud' }); doAction({ actionType: 'closeDialog' });"
                                             }
                                         ]
                                     }
@@ -616,7 +603,10 @@
                                         "showIcon": true,
                                         "className": "mb-3",
                                         "visibleOn": "${!!import_error}",
-                                        "body": "${import_error}"
+                                        "body": {
+                                            "type": "tpl",
+                                            "tpl": "${import_error|raw}"
+                                        }
                                     },
                                     {
                                         "type": "input-file",
@@ -633,7 +623,8 @@
                                                         "componentId": "ywbz_full_import_form",
                                                         "args": {
                                                             "value": {
-                                                                "import_error": ""
+                                                                "import_error": "",
+                                                                "import_ok": ""
                                                             }
                                                         }
                                                     }
@@ -761,51 +752,29 @@
                             "body": {
                                 "type": "form",
                                 "id": "ywbz_partial_import_form",
+                                "className": "ywbz-import-form",
                                 "showErrorMsg": false,
+                                "wrapWithPanel": false,
                                 "messages": {
-                                    "success": "",
-                                    "failed": "",
+                                    "success": false,
+                                    "failed": false,
+                                    "saveSuccess": "",
+                                    "saveFailed": "",
                                     "validateFailed": "请先选择要导入的文件"
                                 },
                                 "api": {
                                     "method": "post",
                                     "url": "${rule_partial_import_api}",
                                     "dataType": "form-data",
-                                    "silent": true
+                                    "silent": true,
+                                    "adaptor": "var p = (typeof payload === 'undefined' || payload == null) ? {} : payload; function pickMsg(x){ if(x == null) return ''; if(typeof x === 'string') return x; if(typeof x !== 'object') return String(x); if(typeof x.msg === 'string' && x.msg && x.msg !== '[object Object]') return x.msg; if(typeof x.message === 'string' && x.message) return x.message; if(x.error != null){ var e = pickMsg(x.error); if(e) return e; } if(x.data != null && x.data !== x){ var d = pickMsg(x.data); if(d) return d; } if(x.responseData != null){ var r = pickMsg(x.responseData); if(r) return r; } return ''; } var st = p.status; var ok = (st === 0 || st === '0'); var msg = pickMsg(p); if(ok){ return { status: 0, msg: '', data: { import_ok: true, import_error: '' } }; } return { status: 0, msg: '', data: { import_ok: false, import_error: msg || '部分导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」' } };"
                                 },
                                 "onEvent": {
                                     "submitSucc": {
                                         "actions": [
                                             {
-                                                "actionType": "setValue",
-                                                "componentId": "ywbz_partial_import_form",
-                                                "args": {
-                                                    "value": {
-                                                        "import_error": ""
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "actionType": "toast",
-                                                "args": {
-                                                    "msgType": "success",
-                                                    "msg": "部分导入成功"
-                                                }
-                                            },
-                                            {
-                                                "actionType": "reload",
-                                                "componentId": "main_crud"
-                                            },
-                                            {
-                                                "actionType": "closeDialog"
-                                            }
-                                        ]
-                                    },
-                                    "submitFail": {
-                                        "actions": [
-                                            {
                                                 "actionType": "custom",
-                                                "script": "var d = event.data || {}; var msg = d.errorMsg || d.msg || d.error || (d.responseData && (d.responseData.msg || d.responseData.message)) || (d.data && (d.data.msg || d.data.message)) || '部分导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」'; doAction({ actionType: 'setValue', componentId: 'ywbz_partial_import_form', args: { value: { import_error: msg } } });"
+                                                "script": "var d = event.data || {}; var ok = d.import_ok === true || d.import_ok === 'true'; var err = (typeof d.import_error === 'string') ? d.import_error : ''; if (!ok) { doAction({ actionType: 'setValue', componentId: 'ywbz_partial_import_form', args: { value: { import_error: err || '部分导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」', import_ok: false } } }); return; } doAction({ actionType: 'setValue', componentId: 'ywbz_partial_import_form', args: { value: { import_error: '', import_ok: true } } }); doAction({ actionType: 'toast', args: { msgType: 'success', msg: '部分导入成功' } }); doAction({ actionType: 'reload', componentId: 'main_crud' }); doAction({ actionType: 'closeDialog' });"
                                             }
                                         ]
                                     }
@@ -824,7 +793,10 @@
                                         "showIcon": true,
                                         "className": "mb-3",
                                         "visibleOn": "${!!import_error}",
-                                        "body": "${import_error}"
+                                        "body": {
+                                            "type": "tpl",
+                                            "tpl": "${import_error|raw}"
+                                        }
                                     },
                                     {
                                         "type": "input-file",
@@ -841,7 +813,8 @@
                                                         "componentId": "ywbz_partial_import_form",
                                                         "args": {
                                                             "value": {
-                                                                "import_error": ""
+                                                                "import_error": "",
+                                                                "import_ok": ""
                                                             }
                                                         }
                                                     }
