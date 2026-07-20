@@ -3,12 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../../utils/logger');
 const { isSafeFileName, resolveWithin } = require('../../utils/safePath');
+const { isAllowedExportHistoryName, getExportsDir } = require('../../utils/exportPackage');
 
 const router = express.Router();
-
-function getExportsDir() {
-  return process.env.EXPORTS_DIR || path.join(__dirname, '../../exports');
-}
 
 function getAllowlist() {
   const fromEnv = process.env.EXPORTS_ALLOWLIST;
@@ -20,12 +17,21 @@ function getAllowlist() {
         .filter(Boolean)
     );
   }
-  return new Set(['ywbz_full_export.csv', 'ywbzk_full_export.csv']);
+  // 默认空：走 isAllowedExportHistoryName 模式匹配（兼容新旧文件名）
+  return null;
 }
 
 function canDownloadExports(req) {
   const role = req.user?.role;
   return role === 'admin';
+}
+
+function isExportFileAllowed(fileName) {
+  const allowlist = getAllowlist();
+  if (allowlist) {
+    return allowlist.has(fileName);
+  }
+  return isAllowedExportHistoryName(fileName);
 }
 
 router.get('/:fileName', async (req, res) => {
@@ -37,17 +43,30 @@ router.get('/:fileName', async (req, res) => {
   }
 
   const { fileName } = req.params;
-  if (!isSafeFileName(fileName)) {
+  // 兼容：旧 ASCII 名走 isSafeFileName；新中文名走 isAllowedExportHistoryName
+  const asciiSafe = isSafeFileName(fileName);
+  const historySafe = isAllowedExportHistoryName(fileName);
+  if (!asciiSafe && !historySafe) {
     return res.status(400).json({ status: 400, msg: '非法文件名' });
   }
 
-  const allowlist = getAllowlist();
-  if (!allowlist.has(fileName)) {
+  if (!isExportFileAllowed(fileName)) {
     return res.status(404).json({ status: 404, msg: '文件不存在' });
   }
 
-  const exportsDir = getExportsDir();
-  const fullPath = resolveWithin(exportsDir, fileName);
+  const exportsDir = process.env.EXPORTS_DIR || getExportsDir();
+  // resolveWithin 对中文文件名仍可用（主要防路径穿越）；非 ASCII 时用 basename 校验
+  let fullPath = null;
+  if (asciiSafe) {
+    fullPath = resolveWithin(exportsDir, fileName);
+  } else {
+    const base = path.resolve(exportsDir);
+    const candidate = path.resolve(base, path.basename(fileName));
+    const baseWithSep = base.endsWith(path.sep) ? base : base + path.sep;
+    if (candidate.startsWith(baseWithSep)) {
+      fullPath = candidate;
+    }
+  }
   if (!fullPath) {
     return res.status(400).json({ status: 400, msg: '非法路径' });
   }
@@ -59,7 +78,7 @@ router.get('/:fileName', async (req, res) => {
   }
 
   logger.info(`[Exports] Download: ${fileName} by ${req.user.username}`);
-  return res.download(fullPath, fileName);
+  return res.download(fullPath, path.basename(fileName));
 });
 
 module.exports = router;

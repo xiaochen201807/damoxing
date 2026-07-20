@@ -16,6 +16,19 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
+const {
+    PACKAGE_TYPES,
+    PACKAGE_SCOPES,
+    EXECUTION_MODES,
+    YWBZ_ALLOWED_TABLES,
+    buildExportFileName,
+    assembleExportScript,
+    writeExportScript,
+    stripBom,
+    validateYwbzImportPackage,
+    splitSqlStatements
+} = require('../../utils/exportPackage');
+
 // 配置 Multer 内存存储，用于处理文件上传
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -1485,12 +1498,9 @@ router.get('/options/categories', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
+// 导出接口 (带 package 头的 .sql，差异化文件名)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
-    // if (req.user?.role !== 'admin') {
-    //     return res.status(403).json({ status: 403, msg: "无导出权限" });
-    // }
     // 从请求头获取当前机构信息
     const jgbh = req.body.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
@@ -1506,12 +1516,10 @@ router.all('/export', authenticateToken, async (req, res) => {
             attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, ruleIds);
         }
 
-        // 2. 生成 SQL 脚本 (封装在 CSV 中)
-        let sqlScript = "-- 业务规则全量导出 (包含规则表和属性表)\n";
-        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n`;
-        sqlScript += `-- 导出记录数: ${rules.length}\n\n`;
+        // 2. 生成 SQL 正文
+        let sqlBody = "-- 关键数据计算模型全量导出正文 (规则表 + 属性表)\n";
+        sqlBody += `-- 导出记录数: ${rules.length}\n\n`;
 
-        // 辅助函数：格式化值
         const formatValue = (val) => {
             if (val === null || val === undefined) return "NULL";
             if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
@@ -1527,36 +1535,39 @@ router.all('/export', authenticateToken, async (req, res) => {
             return val;
         };
 
-        // 插入规则表数据
         for (const row of rules) {
             const keys = Object.keys(row);
             const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlBody += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
-        // 插入属性表数据
         for (const row of attributes) {
             const keys = Object.keys(row);
             const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlBody += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
-        // 3. 落地到服务器磁盘
-        const exportFileName = 'ywbz_full_export.csv';
-        const exportDir = path.join(__dirname, '../../exports');
-        const exportPath = path.join(exportDir, exportFileName);
+        const operator = req.user?.username || req.user?.name || '';
+        const { content } = assembleExportScript({
+            packageType: PACKAGE_TYPES.YWBZ,
+            scope: PACKAGE_SCOPES.FULL,
+            executionMode: EXECUTION_MODES.APP_IMPORT,
+            jgbh,
+            zjgbh,
+            recordCount: rules.length,
+            tables: YWBZ_ALLOWED_TABLES,
+            operator
+        }, sqlBody);
 
-        // 确保目录存在
-        if (!fs.existsSync(exportDir)) {
-            fs.mkdirSync(exportDir, { recursive: true });
-        }
-
-        // 写入文件 (带 BOM)
-        fs.writeFileSync(exportPath, '\ufeff' + sqlScript, 'utf8');
-        logger.info(`Export CSV written to: ${exportPath}`);
-
-        // 4. 触发下载
-        return res.download(exportPath, exportFileName);
+        const exportFileName = buildExportFileName({
+            packageType: PACKAGE_TYPES.YWBZ,
+            scope: PACKAGE_SCOPES.FULL,
+            jgbh
+        });
+        const { filePath } = writeExportScript(exportFileName, content);
+        logger.info(`Export SQL written to: ${filePath}`);
+        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
+        return res.download(filePath, exportFileName);
 
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);
@@ -1680,12 +1691,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
     logger.info(`Full import: jgbh=${jgbh}, zjgbh=${zjgbh}`);
 
     try {
-        let sqlContent = req.file.buffer.toString('utf8');
-
-        // 移除可能存在的 BOM 头
-        if (sqlContent.startsWith('\ufeff')) {
-            sqlContent = sqlContent.slice(1);
-        }
+        let sqlContent = stripBom(req.file.buffer.toString('utf8'));
 
         // 简单的 SQL 检查
         if (!sqlContent.includes('INSERT INTO') && !sqlContent.includes('DELETE FROM')) {
@@ -1693,15 +1699,18 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         }
 
         // 拆分 SQL 语句（先按行移除注释，再按分号拆分）
-        const statements = sqlContent
-            .split('\n')
-            .filter(line => !line.trim().startsWith('--'))
-            .join('\n')
-            .split(';')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+        const statements = splitSqlStatements(sqlContent);
 
-        // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
+        // 包类型 + 表白名单校验：拒绝业务标准库脚本与任意表 INSERT
+        const packageCheck = validateYwbzImportPackage(sqlContent, { statements });
+        if (!packageCheck.ok) {
+            return res.status(packageCheck.status || 400).json({ status: 1, msg: packageCheck.msg });
+        }
+        if (packageCheck.legacy) {
+            logger.warn(`Full import: legacy script without package header; tables=${(packageCheck.tables || []).join(',')}`);
+        }
+
+// 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
             // 校验 gjj_ywbz 的 mbid
@@ -1796,7 +1805,8 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);
                 } else if (upperStmt.startsWith('INSERT')) {
-                    await tx.run(stmt, []);
+                    // 已通过表白名单校验，仍拒绝未知 INSERT，防止绕过
+                    throw new Error(`不允许的 INSERT 语句（仅支持 gjj_ywbz / gjj_ywbzsx）: ${stmt.slice(0, 80)}`);
                 }
             }
 
@@ -1822,6 +1832,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
 router.post('/partial_export', authenticateToken, async (req, res) => {
     const { ids } = req.body;
     const jgbh = getRequestJgbh(req);
+    const zjgbh = req.body.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     if (!ids) {
         return res.status(400).json({ status: 1, msg: "请选择要导出的记录" });
     }
@@ -1845,10 +1856,9 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
         const attributes = await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').all(`SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders})`, idList);
         logger.info(`Partial export: ids=${idList.join(',')}, rules=${rules.length}, attributes=${attributes.length}`);
 
-        // 3. 生成 SQL 脚本（不含 DELETE 全表语句）
-        let sqlScript = "-- 业务规则部分导出 (仅包含选中记录)\n";
-        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n`;
-        sqlScript += `-- 导出记录数: ${rules.length}\n\n`;
+        // 3. 生成 SQL 正文（不含 DELETE 全表语句）
+        let sqlBody = "-- 关键数据计算模型部分导出正文 (仅包含选中记录)\n";
+        sqlBody += `-- 导出记录数: ${rules.length}\n\n`;
 
         const formatValue = (val) => {
             if (val === null || val === undefined) return "NULL";
@@ -1865,33 +1875,39 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
             return val;
         };
 
-        // 插入规则表数据
         for (const row of rules) {
             const keys = Object.keys(row);
             const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlBody += `INSERT INTO gjj_ywbz (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
-        // 插入属性表数据
         for (const row of attributes) {
             const keys = Object.keys(row);
             const values = Object.values(row).map(formatValue);
-            sqlScript += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+            sqlBody += `INSERT INTO gjj_ywbzsx (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
         }
 
-        // 4. 落地到服务器磁盘
-        const exportFileName = 'ywbz_partial_export.csv';
-        const exportDir = path.join(__dirname, '../../exports');
-        const exportPath = path.join(exportDir, exportFileName);
+        const operator = req.user?.username || req.user?.name || '';
+        const { content } = assembleExportScript({
+            packageType: PACKAGE_TYPES.YWBZ,
+            scope: PACKAGE_SCOPES.PARTIAL,
+            executionMode: EXECUTION_MODES.APP_IMPORT,
+            jgbh,
+            zjgbh,
+            recordCount: rules.length,
+            tables: YWBZ_ALLOWED_TABLES,
+            operator
+        }, sqlBody);
 
-        if (!fs.existsSync(exportDir)) {
-            fs.mkdirSync(exportDir, { recursive: true });
-        }
-
-        fs.writeFileSync(exportPath, '\ufeff' + sqlScript, 'utf8');
-        logger.info(`Partial export CSV written to: ${exportPath}, ${rules.length} rules exported`);
-
-        return res.download(exportPath, exportFileName);
+        const exportFileName = buildExportFileName({
+            packageType: PACKAGE_TYPES.YWBZ,
+            scope: PACKAGE_SCOPES.PARTIAL,
+            jgbh
+        });
+        const { filePath } = writeExportScript(exportFileName, content);
+        logger.info(`Partial export SQL written to: ${filePath}, ${rules.length} rules exported`);
+        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
+        return res.download(filePath, exportFileName);
 
     } catch (err) {
         logger.error(`Partial export failed: ${err.message}`);
@@ -1913,12 +1929,7 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
     logger.info(`Partial import: jgbh=${jgbh}, zjgbh=${zjgbh}`);
 
     try {
-        let sqlContent = req.file.buffer.toString('utf8');
-
-        // 移除可能存在的 BOM 头
-        if (sqlContent.startsWith('\ufeff')) {
-            sqlContent = sqlContent.slice(1);
-        }
+        let sqlContent = stripBom(req.file.buffer.toString('utf8'));
 
         // 简单的 SQL 检查
         if (!sqlContent.includes('INSERT INTO')) {
@@ -1926,15 +1937,18 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
         }
 
         // 拆分 SQL 语句（先按行移除注释，再按分号拆分）
-        const statements = sqlContent
-            .split('\n')
-            .filter(line => !line.trim().startsWith('--'))
-            .join('\n')
-            .split(';')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+        const statements = splitSqlStatements(sqlContent);
 
-        // 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
+        // 包类型 + 表白名单校验：拒绝业务标准库脚本
+        const packageCheck = validateYwbzImportPackage(sqlContent, { statements });
+        if (!packageCheck.ok) {
+            return res.status(packageCheck.status || 400).json({ status: 1, msg: packageCheck.msg });
+        }
+        if (packageCheck.legacy) {
+            logger.warn(`Partial import: legacy script without package header; tables=${(packageCheck.tables || []).join(',')}`);
+        }
+
+// 校验所有 INSERT 语句：gjj_ywbz 的 mbid 不能为空，gjj_ywbzsx 的 ywid 不能为空
         for (const stmt of statements) {
             const upperStmt = stmt.toUpperCase();
             // 校验 gjj_ywbz 的 mbid
@@ -2030,8 +2044,7 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);
                 } else if (upperStmt.startsWith('INSERT')) {
-                    await tx.run(stmt, []);
-                    insertCount++;
+                    throw new Error(`不允许的 INSERT 语句（仅支持 gjj_ywbz / gjj_ywbzsx）: ${stmt.slice(0, 80)}`);
                 }
             }
 

@@ -26,6 +26,23 @@ const {
     decryptStandardSqlEnvelope,
     restoreStandardSqlFields
 } = require('../../utils/standardSqlEnvelope');
+const {
+    PACKAGE_TYPES,
+    PACKAGE_SCOPES,
+    EXECUTION_MODES,
+    YWBZK_TABLES,
+    buildExportFileName,
+    assembleExportScript,
+    writeExportScript,
+    getExportsDir,
+    isAllowedExportHistoryName
+} = require('../../utils/exportPackage');
+const {
+    recordExportScript,
+    listExportScripts,
+    getExportScriptById,
+    pruneExportScripts
+} = require('../../utils/exportScriptHistory');
 const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
 const fs = require('fs');
@@ -622,13 +639,11 @@ router.post('/standards', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 导出接口 (生成 CSV 单文件，包含 SQL 脚本以保证全量恢复)
+// 导出接口 (生成带 package 头的 .sql，时间戳文件名，写入导出历史)
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
     const jgbh = req.body?.jgbh || req.query?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
-    // if (req.user?.role !== 'admin') {
-    //     return res.status(403).json({ status: 403, msg: "无导出权限" });
-    // }
+    const zjgbh = req.body?.zjgbh || req.query?.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
         // 1. 获取所有数据
@@ -637,18 +652,15 @@ router.all('/export', authenticateToken, async (req, res) => {
         const attributes = await _adapter.all("SELECT * FROM gjj_ywbzksx");
         const mutualStandards = await _adapter.all("SELECT * FROM gjj_ywbzkhc");
 
-        // 2. 生成 SQL 脚本 (封装在 CSV 中)
-        let sqlScript = "-- 业务标准全量导出 (包含业务内容分类表、标准表、属性表和互斥关系表)\n";
-        sqlScript += `-- 导出时间: ${new Date().toLocaleString()}\n\n`;
-        // sqlScript += "BEGIN TRANSACTION;\n\n"; // Oracle 不需要显式 BEGIN TRANSACTION
+        // 2. 生成 SQL 正文（破坏性 DELETE + INSERT）
+        let sqlBody = "-- 业务标准库全量导出正文 (业务内容分类 / 标准 / 属性 / 互斥)\n";
+        sqlBody += "-- 警告：本脚本含全表 DELETE，仅允许在数据库客户端按运维流程执行\n\n";
 
-        // 清空旧数据
-        sqlScript += "DELETE FROM gjj_ywbzkhc;\n";
-        sqlScript += "DELETE FROM gjj_ywbzksx;\n";
-        sqlScript += "DELETE FROM gjj_ywbzk;\n\n";
-        sqlScript += "DELETE FROM gjj_ywnrfl;\n\n";
+        sqlBody += "DELETE FROM gjj_ywbzkhc;\n";
+        sqlBody += "DELETE FROM gjj_ywbzksx;\n";
+        sqlBody += "DELETE FROM gjj_ywbzk;\n";
+        sqlBody += "DELETE FROM gjj_ywnrfl;\n\n";
 
-        // 辅助函数：格式化值
         const formatValue = (val) => {
             if (val === null || val === undefined) return "NULL";
             if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
@@ -724,45 +736,72 @@ router.all('/export', authenticateToken, async (req, res) => {
         };
 
         const isOracle = SqlHelper.isOracleAdapter(_adapter);
+        const dialect = isOracle
+            ? 'oracle'
+            : (typeof SqlHelper.isDmAdapter === 'function' && SqlHelper.isDmAdapter(_adapter)
+                ? 'dm'
+                : (String(_adapter?.dbType || _adapter?.type || '')));
 
-        // 插入业务内容分类表数据
         for (const row of contentClasses) {
-            sqlScript += buildInsertStatement('gjj_ywnrfl', row, isOracle);
+            sqlBody += buildInsertStatement('gjj_ywnrfl', row, isOracle);
         }
-
-        // 插入标准表数据
         for (const row of standards) {
-            sqlScript += buildInsertStatement('gjj_ywbzk', row, isOracle);
+            sqlBody += buildInsertStatement('gjj_ywbzk', row, isOracle);
         }
-
-        // 插入属性表数据
         for (const row of attributes) {
-            sqlScript += buildInsertStatement('gjj_ywbzksx', row, isOracle);
+            sqlBody += buildInsertStatement('gjj_ywbzksx', row, isOracle);
         }
-
         for (const row of mutualStandards) {
-            sqlScript += buildInsertStatement('gjj_ywbzkhc', row, isOracle);
+            sqlBody += buildInsertStatement('gjj_ywbzkhc', row, isOracle);
         }
 
-        // sqlScript += "\nCOMMIT;"; // 导入时自动提交
+        const recordCount = standards.length;
+        const operator = req.user?.username || req.user?.name || '';
+        const { content, contentSha256 } = assembleExportScript({
+            packageType: PACKAGE_TYPES.YWBZK,
+            scope: PACKAGE_SCOPES.FULL,
+            executionMode: EXECUTION_MODES.DB_ONLY,
+            jgbh,
+            zjgbh,
+            dialect: String(dialect || ''),
+            recordCount,
+            tables: YWBZK_TABLES,
+            operator
+        }, sqlBody);
 
-        // 3. 落地到服务器磁盘
-        const exportFileName = 'ywbzk_full_export.csv';
-        const exportDir = path.join(__dirname, '../../exports');
-        const exportPath = path.join(exportDir, exportFileName);
+        const exportFileName = buildExportFileName({
+            packageType: PACKAGE_TYPES.YWBZK,
+            scope: PACKAGE_SCOPES.FULL
+        });
+        const { filePath } = writeExportScript(exportFileName, content);
 
-        // 确保目录存在
-        if (!fs.existsSync(exportDir)) {
-            fs.mkdirSync(exportDir, { recursive: true });
+        try {
+            await recordExportScript({
+                packageType: PACKAGE_TYPES.YWBZK,
+                packageScope: PACKAGE_SCOPES.FULL,
+                fileName: exportFileName,
+                contentSha256,
+                recordCount,
+                jgbh,
+                zjgbh,
+                dialect: String(dialect || ''),
+                operator
+            });
+            const pruned = await pruneExportScripts(PACKAGE_TYPES.YWBZK, 30);
+            for (const oldName of pruned) {
+                if (!isAllowedExportHistoryName(oldName)) continue;
+                const oldPath = path.join(getExportsDir(), path.basename(oldName));
+                if (fs.existsSync(oldPath)) {
+                    try { fs.unlinkSync(oldPath); } catch (_e) { /* ignore */ }
+                }
+            }
+        } catch (histErr) {
+            logger.warn(`Export history record failed: ${histErr.message}`);
         }
 
-        // 写入文件 (带 BOM)
-        fs.writeFileSync(exportPath, '\ufeff' + sqlScript, 'utf8');
-        logger.info(`Export CSV written to: ${exportPath}`);
-
-        // 4. 触发下载
+        logger.info(`Export SQL written to: ${filePath}`);
         res.set('Access-Control-Expose-Headers', 'Content-Disposition');
-        return res.download(exportPath, exportFileName);
+        return res.download(filePath, exportFileName);
 
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);
@@ -771,61 +810,70 @@ router.all('/export', authenticateToken, async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 导入接口 (支持 CSV/SQL 单文件上传)
+// 导出历史列表（标准库脚本管理）
+// -----------------------------------------------------------------------------
+router.get('/export_history', authenticateToken, async (req, res) => {
+    try {
+        const rows = await listExportScripts({
+            packageType: PACKAGE_TYPES.YWBZK,
+            limit: Number(req.query.limit) || 50
+        });
+        res.json({
+            status: 0,
+            data: {
+                items: rows.map(r => ({
+                    id: r.id,
+                    package_type: r.package_type,
+                    package_scope: r.package_scope,
+                    file_name: r.file_name,
+                    content_sha256: r.content_sha256,
+                    record_count: r.record_count,
+                    jgbh: r.jgbh,
+                    zjgbh: r.zjgbh,
+                    dialect: r.dialect,
+                    operator: r.operator,
+                    created_at: r.created_at
+                }))
+            }
+        });
+    } catch (err) {
+        logger.error(`List export history failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '查询导出历史失败: ' + err.message });
+    }
+});
+
+// -----------------------------------------------------------------------------
+// 按历史记录下载标准库脚本
+// -----------------------------------------------------------------------------
+router.get('/export_history/:id/download', authenticateToken, async (req, res) => {
+    try {
+        const row = await getExportScriptById(req.params.id);
+        if (!row || row.package_type !== PACKAGE_TYPES.YWBZK) {
+            return res.status(404).json({ status: 404, msg: '导出记录不存在' });
+        }
+        if (!isAllowedExportHistoryName(row.file_name)) {
+            return res.status(400).json({ status: 400, msg: '非法文件名' });
+        }
+        const fullPath = path.join(getExportsDir(), path.basename(row.file_name));
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ status: 404, msg: '脚本文件已不在服务器，请重新导出' });
+        }
+        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
+        return res.download(fullPath, row.file_name);
+    } catch (err) {
+        logger.error(`Download export history failed: ${err.message}`);
+        res.status(500).json({ status: 1, msg: '下载失败: ' + err.message });
+    }
+});
+
+// -----------------------------------------------------------------------------
+// 导入接口（永久禁用：标准库只能通过数据库客户端执行导出脚本）
 // -----------------------------------------------------------------------------
 router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
     return res.status(403).json({
         status: 403,
         msg: getBusinessStandardImportDisabledMessage()
     });
-
-    const jgbh = req.body?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
-    if (!req.file) {
-        return res.status(400).json({ status: 1, msg: "请选择文件" });
-    }
-
-    try {
-        let sqlContent = req.file.buffer.toString('utf8');
-
-        // 移除可能存在的 BOM 头
-        if (sqlContent.startsWith('\ufeff')) {
-            sqlContent = sqlContent.slice(1);
-        }
-
-        // 先移除纯注释行，避免导出文件头部注释与首条 SQL 合并后被整段跳过
-        sqlContent = sqlContent
-            .split(/\r?\n/)
-            .filter(line => !line.trim().startsWith('--'))
-            .join('\n');
-
-        // 简单的 SQL 检查
-        if (!sqlContent.includes('INSERT INTO') && !sqlContent.includes('DELETE FROM')) {
-            return res.status(400).json({ status: 1, msg: "文件内容格式不正确，未包含有效 SQL 语句" });
-        }
-
-        // 执行 SQL
-        // await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').exec(sqlContent);
-
-        const statements = SqlHelper.splitSqlStatements(sqlContent);
-
-        await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
-            for (const sql of statements) {
-                // 跳过可能的事务控制语句
-                if (['BEGIN TRANSACTION', 'COMMIT', 'ROLLBACK'].includes(sql.toUpperCase())) {
-                    continue;
-                }
-
-                await tx.exec(sql);
-            }
-        });
-
-        logger.info("Import successful");
-        res.json({ status: 0, msg: "导入成功" });
-
-    } catch (err) {
-        logger.error(`Import failed: ${err.message}`);
-        res.status(500).json({ status: 1, msg: "导入失败: " + err.message });
-    }
 });
 
 module.exports = router;

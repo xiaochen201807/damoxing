@@ -549,7 +549,7 @@
                         "level": "primary",
                         "actionType": "dialog",
                         "dialog": {
-                            "title": "全量导入业务规则",
+                            "title": "全量导入关键数据计算模型",
                             "body": {
                                 "type": "form",
                                 "api": {
@@ -559,10 +559,17 @@
                                 },
                                 "body": [
                                     {
+                                        "type": "alert",
+                                        "level": "warning",
+                                        "showIcon": true,
+                                        "className": "mb-3",
+                                        "body": "仅接受「关键数据计算模型_ywbz_*.sql」。不要选择「业务标准库_ywbzk_*.sql」——标准库脚本只能在数据库客户端执行，上传到本页会被拒绝。"
+                                    },
+                                    {
                                         "type": "input-file",
                                         "name": "file",
-                                        "label": "选择CSV或SQL文件",
-                                        "accept": ".csv,.sql",
+                                        "label": "选择SQL文件（兼容旧版.csv）",
+                                        "accept": ".sql,.csv",
                                         "asBlob": true,
                                         "required": true
                                     }
@@ -574,11 +581,50 @@
                         "type": "button",
                         "label": "全量导出",
                         "level": "default",
-                        "actionType": "download",
-                        "api": {
-                            "method": "post",
-                            "url": "${rule_export_api}",
-                            "responseType": "blob"
+                        "tooltip": "导出为「关键数据计算模型_ywbz_全量_{机构号}_时间戳.sql」",
+                        "onEvent": {
+                            "click": {
+                                "actions": [
+                                    {
+                                        "actionType": "download",
+                                        "api": {
+                                            "method": "post",
+                                            "url": "${rule_export_api}",
+                                            "responseType": "blob"
+                                        }
+                                    },
+                                    {
+                                        "actionType": "dialog",
+                                        "dialog": {
+                                            "title": "导出完成 — 关键数据计算模型脚本如何执行",
+                                            "size": "md",
+                                            "body": [
+                                                {
+                                                    "type": "alert",
+                                                    "level": "success",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "脚本已开始下载。文件名形如：<code>关键数据计算模型_ywbz_全量_{机构号}_YYYYMMDD_HHmmss.sql</code>"
+                                                },
+                                                {
+                                                    "type": "alert",
+                                                    "level": "info",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "本脚本应在本页通过<strong>「全量导入」</strong>上传执行；不要选择「业务标准库_ywbzk_*.sql」。"
+                                                },
+                                                {
+                                                    "type": "tpl",
+                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>在浏览器下载目录找到刚导出的 <code>.sql</code> 文件。</li><li>打开文件头部注释，确认 <code>@package-type: ywbz</code>、<code>@package-scope: full</code>，以及机构号是否与当前机构一致。</li><li>回到本页点击<strong>「全量导入」</strong>，选择该文件并提交。</li><li>导入成功后刷新列表，抽查规则条数与关键数据算法配置是否正确。</li></ol><p style='margin-top:12px;color:#666;'>注意：全量导入会按文件中的 mbid 覆盖当前机构对应规则；执行前请确认机构与备份策略。</p></div>"
+                                                }
+                                            ],
+                                            "actions": [
+                                                { "type": "button", "label": "我知道了", "level": "primary", "actionType": "close" }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
                         }
                     },
                     {
@@ -586,15 +632,53 @@
                         "label": "部分导出",
                         "level": "default",
                         "disabledOn": "${!_selectedIds}",
-                        "tooltip": "请先勾选要导出的记录",
-                        "actionType": "download",
-                        "api": {
-                            "method": "post",
-                            "url": "${rule_partial_export_api}",
-                            "data": {
-                                "ids": "${_selectedIds}"
-                            },
-                            "responseType": "blob"
+                        "tooltip": "请先勾选要导出的记录；文件名含「关键数据计算模型_ywbz_部分」",
+                        "onEvent": {
+                            "click": {
+                                "actions": [
+                                    {
+                                        "actionType": "download",
+                                        "api": {
+                                            "method": "post",
+                                            "url": "${rule_partial_export_api}",
+                                            "data": {
+                                                "ids": "${_selectedIds}"
+                                            },
+                                            "responseType": "blob"
+                                        }
+                                    },
+                                    {
+                                        "actionType": "dialog",
+                                        "dialog": {
+                                            "title": "导出完成 — 部分脚本如何执行",
+                                            "size": "md",
+                                            "body": [
+                                                {
+                                                    "type": "alert",
+                                                    "level": "success",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "已导出勾选记录。文件名形如：<code>关键数据计算模型_ywbz_部分_{机构号}_YYYYMMDD_HHmmss.sql</code>"
+                                                },
+                                                {
+                                                    "type": "alert",
+                                                    "level": "info",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "部分脚本请在本页通过<strong>「部分导入」</strong>上传；为增量替换，不会清空未涉及的现有数据。"
+                                                },
+                                                {
+                                                    "type": "tpl",
+                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>确认文件头 <code>@package-type: ywbz</code>、<code>@package-scope: partial</code>。</li><li>在本页点击<strong>「部分导入」</strong>，选择该文件提交。</li><li>导入后检查勾选相关规则是否已按预期更新。</li></ol><p style='margin-top:12px;color:#666;'>请勿将本文件与「业务标准库_ywbzk_*.sql」混用。</p></div>"
+                                                }
+                                            ],
+                                            "actions": [
+                                                { "type": "button", "label": "我知道了", "level": "primary", "actionType": "close" }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
                         }
                     },
                     {
@@ -603,7 +687,7 @@
                         "level": "default",
                         "actionType": "dialog",
                         "dialog": {
-                            "title": "部分导入业务规则（增量）",
+                            "title": "部分导入关键数据计算模型（增量）",
                             "body": {
                                 "type": "form",
                                 "api": {
@@ -627,13 +711,13 @@
                                         "level": "warning",
                                         "showIcon": true,
                                         "className": "mb-3",
-                                        "body": "部分导入为增量模式，不会清空现有数据，仅执行文件中的 INSERT 语句。"
+                                        "body": "部分导入为增量模式，不会清空现有数据，仅执行文件中的 INSERT。仅接受「关键数据计算模型_ywbz_*.sql」，拒绝业务标准库脚本。"
                                     },
                                     {
                                         "type": "input-file",
                                         "name": "file",
-                                        "label": "选择CSV或SQL文件",
-                                        "accept": ".csv,.sql",
+                                        "label": "选择SQL文件（兼容旧版.csv）",
+                                        "accept": ".sql,.csv",
                                         "asBlob": true,
                                         "required": true
                                     }

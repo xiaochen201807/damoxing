@@ -23,6 +23,6 @@ describe('业务标准库全量导入接口禁用', () => {
         expect(res.body).toMatchObject({
             status: 403
         });
-        expect(res.body.msg).toContain('已禁用');
+        expect(res.body.msg).toMatch(/已永久关闭|已禁用|数据库客户端/);
     });
 });

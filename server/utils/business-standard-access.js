@@ -11,7 +11,7 @@ function getBusinessStandardWriteDeniedMessage() {
 }
 
 function getBusinessStandardImportDisabledMessage() {
-    return '业务标准全量导入接口已禁用，请通过页面维护标准库数据。';
+    return '业务标准库页面导入已永久关闭。请从本页「导出历史」下载 SQL，在数据库客户端执行；勿将脚本上传到关键数据计算模型页面。';
 }
 
 module.exports = {

@@ -33,6 +33,8 @@
         "mutual_standard_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/mutual-options",
         "standard_import_api": "{{ standard_import_api | default(GLOBAL_API_PREFIX + '/ywbzk/import') }}",
         "standard_export_api": "{{ standard_export_api | default(GLOBAL_API_PREFIX + '/ywbzk/export') }}",
+        "standard_export_history_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/export_history",
+        "standard_export_history_download_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/export_history",
         "mode_api": "{{ GLOBAL_API_PREFIX }}/ywbzk/mode",
         "business_standard_editable": false
     },
@@ -811,11 +813,145 @@
                         "type": "button",
                         "label": "全量导出",
                         "level": "default",
-                        "actionType": "download",
-                        "api": {
-                            "method": "post",
-                            "url": "${standard_export_api}",
-                            "responseType": "blob"
+                        "tooltip": "导出为「业务标准库_ywbzk_全量_时间戳.sql」，仅允许数据库客户端执行，禁止上传到关键数据计算模型页面",
+                        "onEvent": {
+                            "click": {
+                                "actions": [
+                                    {
+                                        "actionType": "download",
+                                        "api": {
+                                            "method": "post",
+                                            "url": "${standard_export_api}",
+                                            "responseType": "blob"
+                                        }
+                                    },
+                                    {
+                                        "actionType": "dialog",
+                                        "dialog": {
+                                            "title": "导出完成 — 业务标准库脚本如何执行",
+                                            "size": "md",
+                                            "body": [
+                                                {
+                                                    "type": "alert",
+                                                    "level": "success",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "脚本已开始下载。文件名形如：<code>业务标准库_ywbzk_全量_YYYYMMDD_HHmmss.sql</code>"
+                                                },
+                                                {
+                                                    "type": "alert",
+                                                    "level": "warning",
+                                                    "showIcon": true,
+                                                    "className": "mb-3",
+                                                    "body": "本脚本<strong>禁止</strong>在「关键数据计算模型」页面导入；页面导入已关闭。脚本含<strong>全表 DELETE</strong>，执行前请确认目标库并做好备份。"
+                                                },
+                                                {
+                                                    "type": "tpl",
+                                                    "className": "mb-0",
+                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>在浏览器下载目录找到刚导出的 <code>.sql</code> 文件（也可从本页「导出历史」再次下载同一版本）。</li><li>打开文件头部注释，核对 <code>@package-type: ywbzk</code>、<code>@execution-mode: db-only</code>、<code>@dialect</code>、<code>@content-sha256</code> 是否与预期一致。</li><li>使用对应数据库客户端连接<strong>目标业务库</strong>（如 PL/SQL Developer、DBeaver、达梦管理工具、psql 等）。</li><li>在客户端中打开并执行该 SQL 脚本；Oracle 含 <code>DECLARE ... END; /</code> 块时请用支持脚本执行的方式运行，勿当单条 SQL 拆开误执行。</li><li>执行后抽查 <code>gjj_ywbzk</code> / <code>gjj_ywbzksx</code> / <code>gjj_ywbzkhc</code> / <code>gjj_ywnrfl</code> 记录数与关键数据是否正常。</li></ol><p style='margin-top:12px;color:#666;'>提示：新旧脚本请以「导出历史」中的时间与校验摘要为准，避免混用旧文件。</p></div>"
+                                                }
+                                            ],
+                                            "actions": [
+                                                { "type": "button", "label": "我知道了", "level": "primary", "actionType": "close" }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "type": "button",
+                        "label": "导出历史",
+                        "level": "link",
+                        "actionType": "dialog",
+                        "tooltip": "查看本环境最近导出的标准库脚本，避免新旧文件混淆",
+                        "dialog": {
+                            "title": "业务标准库导出历史",
+                            "size": "lg",
+                            "body": [
+                                {
+                                    "type": "alert",
+                                    "level": "warning",
+                                    "showIcon": true,
+                                    "className": "mb-3",
+                                    "body": "标准库脚本只能在数据库客户端执行，页面导入已关闭。请从本列表下载需要的版本，勿将「业务标准库_ywbzk_*.sql」上传到「关键数据计算模型」页面。下载后请按文件头注释中的方言与校验摘要执行。"
+                                },
+                                {
+                                    "type": "crud",
+                                    "syncLocation": false,
+                                    "api": {
+                                        "method": "get",
+                                        "url": "${standard_export_history_api}",
+                                        "adaptor": "return { status: payload.status, msg: payload.msg, data: { items: (payload.data && payload.data.items) || [] } };"
+                                    },
+                                    "columns": [
+                                        { "name": "created_at", "label": "导出时间", "width": 180 },
+                                        { "name": "file_name", "label": "文件名" },
+                                        { "name": "record_count", "label": "标准条数", "width": 90 },
+                                        { "name": "dialect", "label": "方言", "width": 90 },
+                                        { "name": "operator", "label": "操作人", "width": 100 },
+                                        {
+                                            "name": "content_sha256",
+                                            "label": "校验摘要",
+                                            "width": 160
+                                        },
+                                        {
+                                            "type": "operation",
+                                            "label": "操作",
+                                            "width": 100,
+                                            "buttons": [
+                                                {
+                                                    "type": "button",
+                                                    "label": "下载",
+                                                    "level": "link",
+                                                    "tooltip": "下载后请在数据库客户端执行，勿上传到关键数据计算模型页面",
+                                                    "onEvent": {
+                                                        "click": {
+                                                            "actions": [
+                                                                {
+                                                                    "actionType": "download",
+                                                                    "api": {
+                                                                        "method": "get",
+                                                                        "url": "${standard_export_history_download_api}/${id}/download",
+                                                                        "responseType": "blob"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "actionType": "dialog",
+                                                                    "dialog": {
+                                                                        "title": "下载完成 — 如何执行标准库脚本",
+                                                                        "size": "md",
+                                                                        "body": [
+                                                                            {
+                                                                                "type": "alert",
+                                                                                "level": "warning",
+                                                                                "showIcon": true,
+                                                                                "className": "mb-3",
+                                                                                "body": "该文件为【业务标准库】脚本，仅允许数据库客户端执行；禁止在「关键数据计算模型」页面导入。"
+                                                                            },
+                                                                            {
+                                                                                "type": "tpl",
+                                                                                "tpl": "<div style='line-height:1.9;font-size:14px;'><ol style='padding-left:1.2em;margin:0;'><li>核对文件名与列表中的校验摘要、方言是否一致。</li><li>用数据库客户端连接目标业务库，执行该 <code>.sql</code> 脚本。</li><li>执行前确认环境与备份；脚本可能包含全表 DELETE。</li><li>执行后抽查标准库相关表数据是否符合预期。</li></ol></div>"
+                                                                            }
+                                                                        ],
+                                                                        "actions": [
+                                                                            { "type": "button", "label": "我知道了", "level": "primary", "actionType": "close" }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "actions": [
+                                { "type": "button", "label": "关闭", "actionType": "close" }
+                            ]
                         }
                     }
                 ]
