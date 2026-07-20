@@ -185,15 +185,15 @@ git rev-parse "${CURRENT_SHA}^"
 
 CI 对模板文件的修改必须提交回触发工作流的当前分支，否则生成的版本只存在于临时工作目录，下一次构建会丢失。
 
-工作流分为两次执行：
+工作流执行过程：
 
 1. 开发提交触发第一次工作流。
 2. 版本脚本发现模板变化，自动写入版本。
 3. CI Bot 将版本修改提交并推送到当前分支。
 4. 第一次工作流不继续构建镜像。
-5. CI Bot 提交触发当前分支第二次工作流。
-6. 第二次执行时只有版本注释发生变化；排除版本注释后正文不变，因此不再递增。
-7. 第二次工作流开始测试和镜像构建。
+5. 默认 `GITHUB_TOKEN` 的推送不会再次触发当前分支工作流。
+6. 功能分支到此结束；版本提交已经持久化到当前分支。
+7. 如果当前分支是 `main/master`，工作流显式 `workflow_dispatch` Docker 工作流，并从版本提交后的最新分支 SHA 开始测试和镜像构建。
 
 示例：
 
@@ -202,8 +202,8 @@ CI 对模板文件的修改必须提交回触发工作流的当前分支，否�
     -> 开发提交修改模板正文
     -> CI 自动改成版本 6
     -> CI Bot 提交到当前分支
-    -> 新工作流确认版本稳定
-    -> 构建镜像
+    -> main/master 显式调度 Docker 工作流
+    -> Docker 工作流确认版本稳定并构建镜像
 ```
 
 CI Bot 版本提交建议使用：
@@ -220,7 +220,7 @@ git push origin "HEAD:${CURRENT_BRANCH}"
 
 不得向固定的 `main`、`master` 或 PR 目标分支推送。
 
-版本提交必须使用仓库 Secret `TEMPLATE_VERSION_TOKEN`。该 Secret 应保存具有当前仓库内容写权限的 Fine-grained PAT 或 GitHub App Token。不能使用默认 `GITHUB_TOKEN` 代替，因为默认 Token 推送产生的提交通常不会再次触发 GitHub Actions，无法形成“版本提交后再构建”的闭环。
+版本提交使用工作流自带的 `GITHUB_TOKEN`，并为工作流授予 `contents: write`。默认 Token 推送产生的提交不会再次触发 GitHub Actions，因此，当 `main/master` 产生版本提交时，版本工作流使用 `actions: write` 权限显式 `workflow_dispatch` Docker 工作流。功能分支只保存版本提交，不自动构建正式镜像。
 
 ## 8. GitHub Actions 参考流程
 
@@ -235,28 +235,19 @@ on:
       - '**'
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 jobs:
   update-template-versions:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Require current-branch push token
-        env:
-          TEMPLATE_VERSION_TOKEN: ${{ secrets.TEMPLATE_VERSION_TOKEN }}
-        run: |
-          if [ -z "$TEMPLATE_VERSION_TOKEN" ]; then
-            echo "TEMPLATE_VERSION_TOKEN is required" >&2
-            exit 1
-          fi
-
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
-          token: ${{ secrets.TEMPLATE_VERSION_TOKEN }}
 
       - name: Update template versions
         env:
@@ -287,6 +278,13 @@ jobs:
           git add server/templates
           git commit -m "chore(templates): update generated template versions"
           git push origin "HEAD:$CURRENT_BRANCH"
+
+      - name: Dispatch Docker build for generated main branch commit
+        if: steps.template_versions.outputs.changed == 'true' && (github.ref_name == 'main' || github.ref_name == 'master')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
+        run: gh workflow run docker-build.yml --repo "$GITHUB_REPOSITORY" --ref "$CURRENT_BRANCH"
 ```
 
 后续测试和镜像构建任务只能在版本脚本没有产生修改时执行：
@@ -297,7 +295,7 @@ if: steps.template_versions.outputs.changed == 'false'
 
 如果版本更新和镜像构建拆分成不同工作流，镜像构建工作流应只构建 CI Bot 提交后的稳定 SHA。
 
-Docker 工作流需要在构建前运行同一个版本脚本做只读预检。预检产生模板差异时，本次构建直接跳过，等待版本 Bot 提交触发的新工作流。稳定提交使用 `ubuntu-latest` 原生构建 `linux/amd64`、使用 `ubuntu-24.04-arm` 原生构建 `linux/arm64`，不使用 QEMU，最后合并并发布多架构 manifest。
+Docker 工作流需要在构建前运行同一个版本脚本做只读预检。预检产生模板差异时，本次 push 自动触发的构建直接跳过；版本 Bot 提交完成后，版本工作流显式调度新的 Docker 工作流。稳定提交使用 `ubuntu-latest` 原生构建 `linux/amd64`、使用 `ubuntu-24.04-arm` 原生构建 `linux/arm64`，不使用 QEMU，最后合并并发布多架构 manifest。
 
 ## 9. CI 异常边界
 
@@ -315,9 +313,9 @@ CI 只在无法安全完成自动处理时失败，例如：
 - 无法获取当前分支的起始提交或结束提交。
 - Git 历史不完整，无法读取提交区间。
 - 模板文件无法读取、解析或写入。
-- CI Bot 没有权限向当前分支推送。
+- 仓库或分支保护规则不允许 `GITHUB_TOKEN` 向当前分支推送。
 - 推送时发生 non-fast-forward，当前分支已被并发更新。
-- CI Bot 提交触发的新工作流仍产生版本差异，说明脚本不具备幂等性。
+- 版本提交完成后，Docker 工作流仍产生模板版本差异，说明脚本不具备幂等性。
 
 ## 10. 程序启动版本注册表
 

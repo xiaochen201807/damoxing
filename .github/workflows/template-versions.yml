@@ -10,28 +10,19 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 jobs:
   update-current-branch:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Require current-branch push token
-        env:
-          TEMPLATE_VERSION_TOKEN: ${{ secrets.TEMPLATE_VERSION_TOKEN }}
-        run: |
-          if [ -z "$TEMPLATE_VERSION_TOKEN" ]; then
-            echo "TEMPLATE_VERSION_TOKEN is required so the generated commit can trigger CI." >&2
-            exit 1
-          fi
-
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
-          token: ${{ secrets.TEMPLATE_VERSION_TOKEN }}
 
       - name: Generate template versions for this push
         run: |
@@ -59,6 +50,13 @@ jobs:
           git commit -m "chore(templates): update generated template versions"
           git push origin "HEAD:$CURRENT_BRANCH"
           echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch Docker build for generated main branch commit
+        if: steps.commit.outputs.changed == 'true' && (github.ref_name == 'main' || github.ref_name == 'master')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
+        run: gh workflow run docker-build.yml --repo "$GITHUB_REPOSITORY" --ref "$CURRENT_BRANCH"
 
       - name: Job summary
         shell: bash
