@@ -9,6 +9,10 @@ const path = require('path');
 const db = require('../../db');
 const logger = require('../../utils/logger');
 const { escapeParamsForFrontend, sanitizeParams, DOLLAR_PLACEHOLDER } = require('../../utils/amis-variable-escape');
+const {
+    applyTemplateVersionMeta,
+    checkTemplateDefinitionVersion
+} = require('../../utils/template-version');
 
 // 配置 Nunjucks 模板引擎
 const env = nunjucks.configure(path.join(__dirname, '../../templates'), {
@@ -284,9 +288,20 @@ router.post('/preview', (req, res) => {
             }
 
             try {
+                const paramsSchema = JSON.parse(template.params_schema || '{}');
+                const versionCheck = checkTemplateDefinitionVersion(template_id, paramsSchema);
+                if (!versionCheck.ok) {
+                    return res.status(409).json({
+                        status: 409,
+                        msg: versionCheck.message,
+                        data: versionCheck
+                    });
+                }
+
                 // 渲染模板
                 const schema_json = env.render(template.template_file, params);
                 const parsed = JSON.parse(schema_json);
+                applyTemplateVersionMeta(parsed, template_id);
 
                 logger.info(`[Schema API] Preview generated for template: ${template_id}`);
                 res.json({
@@ -685,6 +700,16 @@ router.post('/save', (req, res) => {
             }
 
             try {
+                const paramsSchema = JSON.parse(template.params_schema || '{}');
+                const versionCheck = checkTemplateDefinitionVersion(template_id, paramsSchema);
+                if (!versionCheck.ok) {
+                    return res.status(409).json({
+                        status: 409,
+                        msg: versionCheck.message,
+                        data: versionCheck
+                    });
+                }
+
                 // 对 params 中的数组按 sortOrder 排序
                 const sortedParams = { ...params };
                 for (const key of Object.keys(sortedParams)) {
@@ -701,15 +726,10 @@ router.post('/save', (req, res) => {
                 // 注意：传入 page_key, title 和 app_theme 到模板上下文
                 const app_theme = sortedParams.app_theme || 'default';
                 const renderContext = { ...sortedParams, page_key, title, app_theme };
-                const schema_json = env.render(template.template_file, renderContext);
-
-                // 调试：输出生成的JSON
-                console.log('=== 生成的JSON（前2000字符）===');
-                console.log(schema_json.substring(0, 2000));
-                console.log('=== 位置1950-2000附近 ===');
-                console.log(schema_json.substring(1950, 2000));
-
-                JSON.parse(schema_json); // 验证 JSON 格式
+                const renderedSchema = env.render(template.template_file, renderContext);
+                const parsedSchema = JSON.parse(renderedSchema);
+                applyTemplateVersionMeta(parsedSchema, template_id);
+                const schema_json = JSON.stringify(parsedSchema);
 
                 // 开始事务处理保存/更新逻辑
                 db.serialize(() => {

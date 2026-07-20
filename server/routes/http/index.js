@@ -5,6 +5,8 @@
 
 const db = require("../../db");
 const { authenticateToken } = require("../../middleware/auth");
+const logger = require("../../utils/logger");
+const { assessPageTemplateVersion } = require("../../utils/template-version");
 
 // 导入所有路由模块（已经在routes/http/目录下）
 const authRoutes = require("./auth");
@@ -46,7 +48,20 @@ function setupHttpRoutes(app) {
             if (row) {
                 try {
                     const schema = JSON.parse(row.schema_json);
-                    res.json({ status: 0, msg: "success", data: schema });
+                    let templateVersion;
+                    try {
+                        templateVersion = assessPageTemplateVersion(row, schema);
+                    } catch (versionError) {
+                        logger.warn(`[Template Version] Failed to check page ${pageKey}: ${versionError.message}`);
+                        templateVersion = { status: 'check_failed' };
+                    }
+
+                    res.json({
+                        status: 0,
+                        msg: "success",
+                        data: schema,
+                        meta: { templateVersion }
+                    });
                 } catch (e) {
                     res.status(500).json({ error: "Failed to parse schema JSON" });
                 }

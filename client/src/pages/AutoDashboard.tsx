@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AmisRenderer from '../components/AmisRenderer'; // 引入上一环节封装的渲染器
+import TemplateVersionAlert from '../components/TemplateVersionAlert';
 import { fetcher } from '../utils/fetcher';
 import { API_ENDPOINTS } from '../config/constants';
 import { Spinner } from 'amis-ui';
 import type { AmisSchema } from '../types/amis';
-import type { ApiResponse } from '../types/api';
+import type { ApiResponse, TemplateVersionStatus } from '../types/api';
 
 interface MenuItem {
   id: number;
@@ -22,6 +23,7 @@ const AutoDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [templateVersion, setTemplateVersion] = useState<TemplateVersionStatus | null>(null);
 
   useEffect(() => {
     if (!pageId) return;
@@ -30,6 +32,7 @@ const AutoDashboard: React.FC = () => {
     setError('');
     setSchema(null);
     setHasPermission(null);
+    setTemplateVersion(null);
 
     // 第一步：先检查菜单权限（严格验证 routeKey + pageId）
     fetcher<ApiResponse<MenuItem[]>>({
@@ -68,6 +71,7 @@ const AutoDashboard: React.FC = () => {
 
         if (pageRes.data && pageRes.data.status === 0) {
           setSchema(pageRes.data.data as AmisSchema);
+          setTemplateVersion(pageRes.data.meta?.templateVersion || null);
         } else {
           setError(pageRes.data?.msg || '获取页面配置失败');
         }
@@ -80,7 +84,7 @@ const AutoDashboard: React.FC = () => {
         setLoading(false);
       });
 
-  }, [pageId]);
+  }, [pageId, routeKey]);
 
   if (loading) {
     return (
@@ -160,6 +164,7 @@ const AutoDashboard: React.FC = () => {
 
   return (
     <div style={{ padding: '20px' }}>
+      <TemplateVersionAlert key={`${pageId}-${templateVersion?.status || 'none'}`} status={templateVersion} />
       {/* 将获取到的 JSON 配置传递给 AMIS 渲染器 */}
       <AmisRenderer schema={schema} />
     </div>

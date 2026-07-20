@@ -12,6 +12,28 @@ export interface ApiResponse<T = any> {
         field: string;
         message: string;
     }>;
+    meta?: {
+        templateVersion?: TemplateVersionStatus;
+        [key: string]: unknown;
+    };
+}
+
+export type TemplateVersionState =
+    | 'current'
+    | 'unmanaged'
+    | 'unversioned_template'
+    | 'legacy_unversioned'
+    | 'page_outdated'
+    | 'program_version_older'
+    | 'missing_program_template'
+    | 'check_failed';
+
+export interface TemplateVersionStatus {
+    status: TemplateVersionState;
+    templateId?: string;
+    programVersion?: number | null;
+    pageVersion?: number | null;
+    message?: string;
 }
 
 // 菜单项

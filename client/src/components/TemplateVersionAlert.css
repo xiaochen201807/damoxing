@@ -1,0 +1,100 @@
+.template-version-alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border: 1px solid #e5a000;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: #fff9e8;
+  color: #593c00;
+  box-shadow: 0 1px 3px rgba(30, 35, 40, 0.08);
+}
+
+.template-version-alert--program_version_older,
+.template-version-alert--missing_program_template {
+  border-color: #d64545;
+  background: #fff2f0;
+  color: #6d1d1d;
+}
+
+.template-version-alert__icon {
+  font-size: 18px;
+  color: #bd7600;
+}
+
+.template-version-alert--program_version_older .template-version-alert__icon,
+.template-version-alert--missing_program_template .template-version-alert__icon {
+  color: #c52f2f;
+}
+
+.template-version-alert__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.45;
+}
+
+.template-version-alert__content strong {
+  font-size: 14px;
+}
+
+.template-version-alert__content span {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.template-version-alert__content small {
+  color: #75623d;
+  font-size: 12px;
+}
+
+.template-version-alert__action {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #9a6400;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #765000;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.template-version-alert__action:hover {
+  background: #fff3ca;
+}
+
+.template-version-alert__dismiss {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.template-version-alert__dismiss:hover {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .template-version-alert {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .template-version-alert__action {
+    grid-column: 2 / -1;
+    justify-self: start;
+    white-space: normal;
+  }
+}

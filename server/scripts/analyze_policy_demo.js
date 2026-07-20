@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
+const { applyTemplateVersionMeta } = require('../utils/template-version');
 
 // 组件文件名 -> 友好分组名的映射
 const COMPONENT_GROUP_NAMES = {
@@ -348,7 +349,7 @@ async function analyzePolicyDemo() {
                 `UPDATE sys_page_templates_config 
                  SET params_schema = ?, default_params = ? 
                  WHERE template_id = ?`,
-                [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
+                [JSON.stringify(applyTemplateVersionMeta(paramsSchema, templateId)), JSON.stringify(defaultParams), templateId],
                 (err) => {
                     if (!err) {
                         console.log(`   ✅ 已更新: ${templateId}`);

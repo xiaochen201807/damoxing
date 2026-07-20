@@ -6,6 +6,8 @@
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js",
+        "test": "node --test test/*.test.js",
+        "templates:version": "node scripts/update-template-versions.js",
         "migrate": "node data/migrations/migrate.js",
         "init-db": "node data/migrations/init_database.js",
         "mcp": "node mcp-server.js"

@@ -4,6 +4,7 @@
  */
 const db = require('../db');
 const analyzePolicyDemo = require('./analyze_policy_demo');
+const { applyTemplateVersionMeta } = require('../utils/template-version');
 
 const missingTemplates = [
     {
@@ -67,6 +68,9 @@ console.log('正在同步模板到数据库...\n');
 
 const run = async () => {
     for (const tpl of missingTemplates) {
+        const paramsSchema = JSON.parse(tpl.params_schema);
+        applyTemplateVersionMeta(paramsSchema, tpl.template_id);
+
         await new Promise((resolve) => {
             db.run(`
                 INSERT OR REPLACE INTO sys_page_templates_config 
@@ -78,7 +82,7 @@ const run = async () => {
                 tpl.description,
                 tpl.template_file,
                 tpl.components,
-                tpl.params_schema,
+                JSON.stringify(paramsSchema),
                 tpl.default_params,
                 tpl.preview_image,
                 tpl.theme_id

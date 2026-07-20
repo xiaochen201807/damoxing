@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
+const { applyTemplateVersionMeta } = require('../utils/template-version');
 
 const DEFAULT_RISK_WARNING_HTML = "<h4 style='color:#d32f2f;margin:0 0 8px 0'>风险说明</h4><p style='margin:0 0 8px 0'>信用等级C与D的信用主体标记为风险主体。</p><ul style='padding-left:20px;margin:0'><li><strong>C级（较差）</strong>：加强业务审核</li><li><strong>D级（差）</strong>：重点监管</li></ul>";
 
@@ -227,7 +228,7 @@ async function analyzeCreditRiskMonitor() {
                 `UPDATE sys_page_templates_config 
                  SET params_schema = ?, default_params = ? 
                  WHERE template_id = ?`,
-                [JSON.stringify(paramsSchema), JSON.stringify(defaultParams), templateId],
+                [JSON.stringify(applyTemplateVersionMeta(paramsSchema, templateId)), JSON.stringify(defaultParams), templateId],
                 (err) => {
                     if (!err) {
                         console.log(`   ✅ 已更新: ${templateId}`);
