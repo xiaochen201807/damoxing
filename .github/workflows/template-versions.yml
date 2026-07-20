@@ -11,7 +11,6 @@ concurrency:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   update-current-branch:
@@ -50,13 +49,6 @@ jobs:
           git commit -m "chore(templates): update generated template versions"
           git push origin "HEAD:$CURRENT_BRANCH"
           echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Dispatch Docker build for generated main branch commit
-        if: steps.commit.outputs.changed == 'true' && (github.ref_name == 'main' || github.ref_name == 'master')
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CURRENT_BRANCH: ${{ github.ref_name }}
-        run: gh workflow run docker-build.yml --repo "$GITHUB_REPOSITORY" --ref "$CURRENT_BRANCH"
 
       - name: Job summary
         shell: bash

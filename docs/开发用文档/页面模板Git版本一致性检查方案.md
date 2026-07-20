@@ -193,7 +193,7 @@ CI 对模板文件的修改必须提交回触发工作流的当前分支，否�
 4. 第一次工作流不继续构建镜像。
 5. 默认 `GITHUB_TOKEN` 的推送不会再次触发当前分支工作流。
 6. 功能分支到此结束；版本提交已经持久化到当前分支。
-7. 如果当前分支是 `main/master`，工作流显式 `workflow_dispatch` Docker 工作流，并从版本提交后的最新分支 SHA 开始测试和镜像构建。
+7. 模板版本工作流不调用、不修改也不控制 Docker 工作流；功能分支合并到 `main/master` 后，由仓库原有 Docker workflow 按 merge push 正常构建。
 
 示例：
 
@@ -202,8 +202,8 @@ CI 对模板文件的修改必须提交回触发工作流的当前分支，否�
     -> 开发提交修改模板正文
     -> CI 自动改成版本 6
     -> CI Bot 提交到当前分支
-    -> main/master 显式调度 Docker 工作流
-    -> Docker 工作流确认版本稳定并构建镜像
+    -> 功能分支通过 PR 合并 main/master
+    -> 仓库原有 Docker workflow 正常构建镜像
 ```
 
 CI Bot 版本提交建议使用：
@@ -220,7 +220,7 @@ git push origin "HEAD:${CURRENT_BRANCH}"
 
 不得向固定的 `main`、`master` 或 PR 目标分支推送。
 
-版本提交使用工作流自带的 `GITHUB_TOKEN`，并为工作流授予 `contents: write`。默认 Token 推送产生的提交不会再次触发 GitHub Actions，因此，当 `main/master` 产生版本提交时，版本工作流使用 `actions: write` 权限显式 `workflow_dispatch` Docker 工作流。功能分支只保存版本提交，不自动构建正式镜像。
+版本提交使用工作流自带的 `GITHUB_TOKEN`，并为工作流授予 `contents: write`。默认 Token 推送产生的提交不会再次触发 GitHub Actions，因此模板版本必须先在当前功能分支持久化，再通过正常 PR/merge 进入 `main/master`。模板版本工作流不依赖也不修改现有 Docker workflow。
 
 ## 8. GitHub Actions 参考流程
 
@@ -236,7 +236,6 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   update-template-versions:
@@ -279,12 +278,6 @@ jobs:
           git commit -m "chore(templates): update generated template versions"
           git push origin "HEAD:$CURRENT_BRANCH"
 
-      - name: Dispatch Docker build for generated main branch commit
-        if: steps.template_versions.outputs.changed == 'true' && (github.ref_name == 'main' || github.ref_name == 'master')
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CURRENT_BRANCH: ${{ github.ref_name }}
-        run: gh workflow run docker-build.yml --repo "$GITHUB_REPOSITORY" --ref "$CURRENT_BRANCH"
 ```
 
 后续测试和镜像构建任务只能在版本脚本没有产生修改时执行：
@@ -293,9 +286,7 @@ jobs:
 if: steps.template_versions.outputs.changed == 'false'
 ```
 
-如果版本更新和镜像构建拆分成不同工作流，镜像构建工作流应只构建 CI Bot 提交后的稳定 SHA。
-
-Docker 工作流需要在构建前运行同一个版本脚本做只读预检。预检产生模板差异时，本次 push 自动触发的构建直接跳过；版本 Bot 提交完成后，版本工作流显式调度新的 Docker 工作流。稳定提交使用 `ubuntu-latest` 原生构建 `linux/amd64`、使用 `ubuntu-24.04-arm` 原生构建 `linux/arm64`，不使用 QEMU，最后合并并发布多架构 manifest。
+版本更新与镜像构建保持完全独立。现有 Docker workflow 的手动触发参数、分支触发、密钥注入、架构选择和镜像发布逻辑均保持原样；模板版本功能不对其增加前置 Job、条件判断或调度行为。
 
 ## 9. CI 异常边界
 
@@ -315,7 +306,7 @@ CI 只在无法安全完成自动处理时失败，例如：
 - 模板文件无法读取、解析或写入。
 - 仓库或分支保护规则不允许 `GITHUB_TOKEN` 向当前分支推送。
 - 推送时发生 non-fast-forward，当前分支已被并发更新。
-- 版本提交完成后，Docker 工作流仍产生模板版本差异，说明脚本不具备幂等性。
+- CI Bot 提交后再次运行版本脚本仍产生版本差异，说明脚本不具备幂等性。
 
 ## 10. 程序启动版本注册表
 
