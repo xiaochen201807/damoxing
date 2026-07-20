@@ -1,3 +1,8 @@
+/**
+ * 用最新 j2 模板重渲染并写回活跃页面 schema_json
+ * - 关键数据计算模型: page_key=ywbz, template=business_rule
+ * - 业务办理标准库: page_key=main (source_template_id=business_standard)
+ */
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const nunjucks = require('nunjucks');
@@ -22,18 +27,57 @@ env.addFilter('fromjson', function (str) {
     }
 });
 
+const PAGES = [
+    {
+        pageKey: 'ywbz',
+        templateFile: 'pages/business_rule.j2',
+        templateId: 'business_rule'
+    },
+    {
+        pageKey: 'main',
+        templateFile: 'pages/business_standard.j2',
+        templateId: 'business_standard',
+        // 仅刷新标准库来源的 main，避免误伤其它 main 页面
+        requireSourceTemplateId: 'business_standard'
+    }
+];
+
 const db = new sqlite3.Database(DB_PATH);
 
-const PAGE_KEY = 'ywbz';
+function getActivePage(pageKey) {
+    return new Promise((resolve, reject) => {
+        db.get(
+            'SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1',
+            [pageKey],
+            (err, row) => (err ? reject(err) : resolve(row))
+        );
+    });
+}
 
-db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [PAGE_KEY], (err, row) => {
-    if (err) {
-        console.error('DB Error:', err);
-        process.exit(1);
-    }
+function updateSchema(id, schema) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            'UPDATE sys_page_template SET schema_json = ?, updated_at = datetime("now", "+08:00") WHERE id = ?',
+            [schema, id],
+            function (err) {
+                if (err) reject(err);
+                else resolve(this.changes);
+            }
+        );
+    });
+}
+
+async function refreshOne(cfg) {
+    const row = await getActivePage(cfg.pageKey);
     if (!row) {
-        console.error('Page not found');
-        process.exit(1);
+        console.warn(`[skip] active page not found: ${cfg.pageKey}`);
+        return;
+    }
+    if (cfg.requireSourceTemplateId && row.source_template_id !== cfg.requireSourceTemplateId) {
+        console.warn(
+            `[skip] ${cfg.pageKey} source_template_id=${row.source_template_id}, expect ${cfg.requireSourceTemplateId}`
+        );
+        return;
     }
 
     let params = {};
@@ -49,29 +93,40 @@ db.get('SELECT * FROM sys_page_template WHERE page_key = ? AND is_active = 1', [
         ...params,
         page_key: row.page_key,
         title: row.title,
-        GLOBAL_API_PREFIX: '/api', // Force setting this
-        template_id: 'business_rule'
+        GLOBAL_API_PREFIX: process.env.API_ROUTE_PREFIX || '/api',
+        template_id: cfg.templateId
     };
 
-    const templateFile = 'pages/business_rule.j2';
+    console.log(`[render] ${cfg.pageKey} id=${row.id} <- ${cfg.templateFile}`);
+    const schema = env.render(cfg.templateFile, context);
+    JSON.parse(schema); // validate
 
-    console.log('Rendering template...');
+    // 关键标记校验，确保新交互已写入
+    const checks = {
+        ywbz: ['import_error', '导出完成', '全量导入关键数据计算模型', 'silent'],
+        main: ['导出历史', '导出完成', 'export_history', 'silent']
+    };
+    const need = checks[cfg.pageKey] || [];
+    for (const token of need) {
+        if (!schema.includes(token)) {
+            throw new Error(`rendered schema missing expected token: ${token}`);
+        }
+    }
+
+    await updateSchema(row.id, schema);
+    console.log(`[ok] updated schema_json for ${cfg.pageKey} id=${row.id}, len=${schema.length}`);
+}
+
+(async () => {
     try {
-        const schema = env.render(templateFile, context);
-        // Validate JSON
-        JSON.parse(schema);
-
-        console.log(`Updating database for Page ID ${row.id}...`);
-        db.run('UPDATE sys_page_template SET schema_json = ?, updated_at = datetime("now", "+08:00") WHERE id = ?', [schema, row.id], (err) => {
-            if (err) {
-                console.error('Update Error:', err);
-                process.exit(1);
-            }
-            console.log(`Success! Updated schema_json for page ID ${row.id} (${PAGE_KEY})`);
-            db.close();
-        });
+        for (const cfg of PAGES) {
+            await refreshOne(cfg);
+        }
+        db.close();
+        console.log('All done');
     } catch (e) {
-        console.error('Render error:', e);
+        console.error(e);
+        db.close();
         process.exit(1);
     }
-});
+})();

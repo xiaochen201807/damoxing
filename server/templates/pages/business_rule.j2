@@ -552,10 +552,55 @@
                             "title": "全量导入关键数据计算模型",
                             "body": {
                                 "type": "form",
+                                "id": "ywbz_full_import_form",
+                                "showErrorMsg": false,
+                                "messages": {
+                                    "success": "",
+                                    "failed": "",
+                                    "validateFailed": "请先选择要导入的文件"
+                                },
                                 "api": {
                                     "method": "post",
                                     "url": "${rule_import_api}",
-                                    "dataType": "form-data"
+                                    "dataType": "form-data",
+                                    "silent": true
+                                },
+                                "onEvent": {
+                                    "submitSucc": {
+                                        "actions": [
+                                            {
+                                                "actionType": "setValue",
+                                                "componentId": "ywbz_full_import_form",
+                                                "args": {
+                                                    "value": {
+                                                        "import_error": ""
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "actionType": "toast",
+                                                "args": {
+                                                    "msgType": "success",
+                                                    "msg": "导入成功"
+                                                }
+                                            },
+                                            {
+                                                "actionType": "reload",
+                                                "componentId": "main_crud"
+                                            },
+                                            {
+                                                "actionType": "closeDialog"
+                                            }
+                                        ]
+                                    },
+                                    "submitFail": {
+                                        "actions": [
+                                            {
+                                                "actionType": "custom",
+                                                "script": "var d = event.data || {}; var msg = d.errorMsg || d.msg || d.error || (d.responseData && (d.responseData.msg || d.responseData.message)) || (d.data && (d.data.msg || d.data.message)) || '导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」'; doAction({ actionType: 'setValue', componentId: 'ywbz_full_import_form', args: { value: { import_error: msg } } });"
+                                            }
+                                        ]
+                                    }
                                 },
                                 "body": [
                                     {
@@ -566,12 +611,35 @@
                                         "body": "仅接受「关键数据计算模型_ywbz_*.sql」。不要选择「业务标准库_ywbzk_*.sql」——标准库脚本只能在数据库客户端执行，上传到本页会被拒绝。"
                                     },
                                     {
+                                        "type": "alert",
+                                        "level": "danger",
+                                        "showIcon": true,
+                                        "className": "mb-3",
+                                        "visibleOn": "${!!import_error}",
+                                        "body": "${import_error}"
+                                    },
+                                    {
                                         "type": "input-file",
                                         "name": "file",
                                         "label": "选择SQL文件（兼容旧版.csv）",
                                         "accept": ".sql,.csv",
                                         "asBlob": true,
-                                        "required": true
+                                        "required": true,
+                                        "onEvent": {
+                                            "change": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "ywbz_full_import_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "import_error": ""
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     }
                                 ]
                             }
@@ -586,11 +654,12 @@
                             "click": {
                                 "actions": [
                                     {
-                                        "actionType": "download",
+                                        "actionType": "ajax",
                                         "api": {
                                             "method": "post",
                                             "url": "${rule_export_api}",
-                                            "responseType": "blob"
+                                            "responseType": "blob",
+                                            "silent": true
                                         }
                                     },
                                     {
@@ -637,14 +706,15 @@
                             "click": {
                                 "actions": [
                                     {
-                                        "actionType": "download",
+                                        "actionType": "ajax",
                                         "api": {
                                             "method": "post",
                                             "url": "${rule_partial_export_api}",
                                             "data": {
                                                 "ids": "${_selectedIds}"
                                             },
-                                            "responseType": "blob"
+                                            "responseType": "blob",
+                                            "silent": true
                                         }
                                     },
                                     {
@@ -690,17 +760,52 @@
                             "title": "部分导入关键数据计算模型（增量）",
                             "body": {
                                 "type": "form",
+                                "id": "ywbz_partial_import_form",
+                                "showErrorMsg": false,
+                                "messages": {
+                                    "success": "",
+                                    "failed": "",
+                                    "validateFailed": "请先选择要导入的文件"
+                                },
                                 "api": {
                                     "method": "post",
                                     "url": "${rule_partial_import_api}",
-                                    "dataType": "form-data"
+                                    "dataType": "form-data",
+                                    "silent": true
                                 },
                                 "onEvent": {
                                     "submitSucc": {
                                         "actions": [
                                             {
+                                                "actionType": "setValue",
+                                                "componentId": "ywbz_partial_import_form",
+                                                "args": {
+                                                    "value": {
+                                                        "import_error": ""
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "actionType": "toast",
+                                                "args": {
+                                                    "msgType": "success",
+                                                    "msg": "部分导入成功"
+                                                }
+                                            },
+                                            {
                                                 "actionType": "reload",
                                                 "componentId": "main_crud"
+                                            },
+                                            {
+                                                "actionType": "closeDialog"
+                                            }
+                                        ]
+                                    },
+                                    "submitFail": {
+                                        "actions": [
+                                            {
+                                                "actionType": "custom",
+                                                "script": "var d = event.data || {}; var msg = d.errorMsg || d.msg || d.error || (d.responseData && (d.responseData.msg || d.responseData.message)) || (d.data && (d.data.msg || d.data.message)) || '部分导入失败，请检查文件是否为「关键数据计算模型_ywbz_*.sql」'; doAction({ actionType: 'setValue', componentId: 'ywbz_partial_import_form', args: { value: { import_error: msg } } });"
                                             }
                                         ]
                                     }
@@ -714,12 +819,35 @@
                                         "body": "部分导入为增量模式，不会清空现有数据，仅执行文件中的 INSERT。仅接受「关键数据计算模型_ywbz_*.sql」，拒绝业务标准库脚本。"
                                     },
                                     {
+                                        "type": "alert",
+                                        "level": "danger",
+                                        "showIcon": true,
+                                        "className": "mb-3",
+                                        "visibleOn": "${!!import_error}",
+                                        "body": "${import_error}"
+                                    },
+                                    {
                                         "type": "input-file",
                                         "name": "file",
                                         "label": "选择SQL文件（兼容旧版.csv）",
                                         "accept": ".sql,.csv",
                                         "asBlob": true,
-                                        "required": true
+                                        "required": true,
+                                        "onEvent": {
+                                            "change": {
+                                                "actions": [
+                                                    {
+                                                        "actionType": "setValue",
+                                                        "componentId": "ywbz_partial_import_form",
+                                                        "args": {
+                                                            "value": {
+                                                                "import_error": ""
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
                                     }
                                 ]
                             }

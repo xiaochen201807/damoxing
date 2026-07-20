@@ -818,11 +818,12 @@
                             "click": {
                                 "actions": [
                                     {
-                                        "actionType": "download",
+                                        "actionType": "ajax",
                                         "api": {
                                             "method": "post",
                                             "url": "${standard_export_api}",
-                                            "responseType": "blob"
+                                            "responseType": "blob",
+                                            "silent": true
                                         }
                                     },
                                     {
@@ -910,11 +911,12 @@
                                                         "click": {
                                                             "actions": [
                                                                 {
-                                                                    "actionType": "download",
+                                                                    "actionType": "ajax",
                                                                     "api": {
                                                                         "method": "get",
                                                                         "url": "${standard_export_history_download_api}/${id}/download",
-                                                                        "responseType": "blob"
+                                                                        "responseType": "blob",
+                                                                        "silent": true
                                                                     }
                                                                 },
                                                                 {
