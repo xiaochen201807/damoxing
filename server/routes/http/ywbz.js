@@ -22,8 +22,10 @@ const {
     EXECUTION_MODES,
     YWBZ_ALLOWED_TABLES,
     buildExportFileName,
+    buildExportFileNameAscii,
     assembleExportScript,
     writeExportScript,
+    sendExportDownload,
     stripBom,
     validateYwbzImportPackage,
     splitSqlStatements
@@ -1559,15 +1561,16 @@ router.all('/export', authenticateToken, async (req, res) => {
             operator
         }, sqlBody);
 
-        const exportFileName = buildExportFileName({
+        const nameOpts = {
             packageType: PACKAGE_TYPES.YWBZ,
             scope: PACKAGE_SCOPES.FULL,
             jgbh
-        });
+        };
+        const exportFileName = buildExportFileName(nameOpts);
+        const exportFileNameAscii = buildExportFileNameAscii(nameOpts);
         const { filePath } = writeExportScript(exportFileName, content);
         logger.info(`Export SQL written to: ${filePath}`);
-        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
-        return res.download(filePath, exportFileName);
+        return sendExportDownload(res, filePath, exportFileName, exportFileNameAscii);
 
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);
@@ -1899,15 +1902,16 @@ router.post('/partial_export', authenticateToken, async (req, res) => {
             operator
         }, sqlBody);
 
-        const exportFileName = buildExportFileName({
+        const nameOpts = {
             packageType: PACKAGE_TYPES.YWBZ,
             scope: PACKAGE_SCOPES.PARTIAL,
             jgbh
-        });
+        };
+        const exportFileName = buildExportFileName(nameOpts);
+        const exportFileNameAscii = buildExportFileNameAscii(nameOpts);
         const { filePath } = writeExportScript(exportFileName, content);
         logger.info(`Partial export SQL written to: ${filePath}, ${rules.length} rules exported`);
-        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
-        return res.download(filePath, exportFileName);
+        return sendExportDownload(res, filePath, exportFileName, exportFileNameAscii);
 
     } catch (err) {
         logger.error(`Partial export failed: ${err.message}`);

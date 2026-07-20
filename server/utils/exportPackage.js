@@ -93,14 +93,18 @@ function sanitizeFileToken(value, fallback = 'unknown') {
 }
 
 /**
- * 生成差异化导出文件名（.sql）
+ * 生成差异化导出文件名（.sql，含中文前缀，便于肉眼区分）
  * 例：业务标准库_ywbzk_全量_20260720_143022.sql
  *     关键数据计算模型_ywbz_全量_1305282025_20260720_143022.sql
+ *
+ * 同时提供 ASCII 回退名（给 Content-Disposition filename= 用），
+ * 避免浏览器/旧解析器把中文变成下划线。
  */
 function buildExportFileName(options = {}) {
     const packageType = options.packageType;
     const scope = options.scope || PACKAGE_SCOPES.FULL;
     const scopeLabel = scope === PACKAGE_SCOPES.PARTIAL ? '部分' : '全量';
+    const scopeAscii = scope === PACKAGE_SCOPES.PARTIAL ? 'partial' : 'full';
     const ts = options.timestamp || formatTimestamp();
     const label = PACKAGE_LABELS[packageType] || packageType || 'export';
 
@@ -110,6 +114,58 @@ function buildExportFileName(options = {}) {
 
     const jgbhPart = sanitizeFileToken(options.jgbh, 'nojgbh');
     return `${label}_ywbz_${scopeLabel}_${jgbhPart}_${ts}.sql`;
+}
+
+/**
+ * ASCII 安全回退文件名：仅用于 Content-Disposition 的 filename=
+ * 仍包含 ywbzk/ywbz 关键字，避免与另一类脚本混淆。
+ */
+function buildExportFileNameAscii(options = {}) {
+    const packageType = options.packageType;
+    const scope = options.scope || PACKAGE_SCOPES.FULL;
+    const scopeAscii = scope === PACKAGE_SCOPES.PARTIAL ? 'partial' : 'full';
+    const ts = options.timestamp || formatTimestamp();
+
+    if (packageType === PACKAGE_TYPES.YWBZK) {
+        return `BizStandard_ywbzk_${scopeAscii}_${ts}.sql`;
+    }
+
+    const jgbhPart = sanitizeFileToken(options.jgbh, 'nojgbh').replace(/[^a-zA-Z0-9._-]/g, '_');
+    return `KeyDataModel_ywbz_${scopeAscii}_${jgbhPart}_${ts}.sql`;
+}
+
+/**
+ * 设置附件下载头：filename= ASCII 回退 + filename*= UTF-8 中文全名
+ * Express 默认 content-disposition 会把中文变成 ???，导致下载成 ____ywbzk____.sql
+ */
+function setAttachmentDownloadHeaders(res, fileName, asciiFileName) {
+    const displayName = path.basename(String(fileName || 'export.sql'));
+    const fallback =
+        asciiFileName
+            ? path.basename(String(asciiFileName))
+            : displayName.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_');
+    const encoded = encodeURIComponent(displayName).replace(/['()]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    res.set('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.set(
+        'Content-Disposition',
+        `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`
+    );
+    return { displayName, fallback };
+}
+
+/**
+ * 发送导出文件下载：手动设置 Content-Disposition（含 filename* 中文名）
+ * 注意：express.res.download 会强制覆盖 Content-Disposition 并丢弃中文，故用 sendFile
+ */
+function sendExportDownload(res, filePath, fileName, asciiFileName) {
+    setAttachmentDownloadHeaders(res, fileName, asciiFileName);
+    const absolute = path.resolve(filePath);
+    return res.sendFile(absolute, {
+        headers: {
+            'Content-Disposition': res.get('Content-Disposition'),
+            'Access-Control-Expose-Headers': 'Content-Disposition'
+        }
+    });
 }
 
 function sha256Hex(content) {
@@ -379,6 +435,8 @@ function isAllowedExportHistoryName(fileName) {
     return (
         /^业务标准库_ywbzk_.+\.sql$/u.test(name) ||
         /^关键数据计算模型_ywbz_.+\.sql$/u.test(name) ||
+        /^BizStandard_ywbzk_.+\.sql$/i.test(name) ||
+        /^KeyDataModel_ywbz_.+\.sql$/i.test(name) ||
         /^ywbzk_full_export\.(csv|sql)$/i.test(name) ||
         /^ywbz_(full|partial)_export\.csv$/i.test(name)
     );
@@ -396,6 +454,9 @@ module.exports = {
     formatIsoTime,
     sanitizeFileToken,
     buildExportFileName,
+    buildExportFileNameAscii,
+    setAttachmentDownloadHeaders,
+    sendExportDownload,
     sha256Hex,
     buildPackageHeader,
     parsePackageHeader,

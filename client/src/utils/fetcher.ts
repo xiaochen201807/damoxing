@@ -188,13 +188,27 @@ export const fetcher = async <T = unknown>({
     // 注意：有时候 CORS 配置问题会导致无法读取 Content-Disposition，此时降级使用默认文件名
     const disposition = response.headers['content-disposition'];
     if (res instanceof Blob) {
-      // 提取文件名
+      // 提取文件名：优先 RFC 5987 filename*=UTF-8''...（支持中文），再回退 filename=
       let fileName = 'download';
       if (disposition) {
         console.log('Download Disposition:', disposition);
-        const filenameMatch = disposition.match(/filename=(?:["']?)(.*?)(?:["']?)(?:;|$)/);
-        if (filenameMatch && filenameMatch[1]) {
-          fileName = decodeURIComponent(filenameMatch[1]);
+        const starMatch = disposition.match(/filename\*\s*=\s*(?:UTF-8''|utf-8'')([^;]+)/i);
+        if (starMatch && starMatch[1]) {
+          try {
+            fileName = decodeURIComponent(starMatch[1].trim().replace(/^["']|["']$/g, ''));
+          } catch (_e) {
+            fileName = starMatch[1].trim();
+          }
+        } else {
+          const filenameMatch = disposition.match(/filename\s*=\s*(?:(["'])(.*?)\1|([^;]+))/i);
+          if (filenameMatch) {
+            const raw = (filenameMatch[2] || filenameMatch[3] || '').trim();
+            try {
+              fileName = decodeURIComponent(raw);
+            } catch (_e) {
+              fileName = raw;
+            }
+          }
         }
       } else {
         // 尝试从 URL 中提取文件名，或者使用当前时间戳
@@ -202,7 +216,7 @@ export const fetcher = async <T = unknown>({
           const urlParts = response.config.url?.split('/') || [];
           const lastPart = urlParts[urlParts.length - 1];
           if (lastPart && !lastPart.includes('?')) {
-            fileName = lastPart;
+            fileName = decodeURIComponent(lastPart);
           } else {
             fileName = `download_${new Date().getTime()}`;
           }
@@ -221,9 +235,12 @@ export const fetcher = async <T = unknown>({
       console.log('Extracted FileName:', fileName);
 
       const isCsv = res.type.includes('csv') || res.type.includes('excel') || res.type === 'application/vnd.ms-excel';
-      if (isCsv && !fileName.toLowerCase().endsWith('.csv')) {
+      if (isCsv && !fileName.toLowerCase().endsWith('.csv') && !fileName.toLowerCase().endsWith('.sql')) {
         fileName += '.csv';
         console.log('Appended .csv extension. New FileName:', fileName);
+      }
+      if ((res.type.includes('sql') || res.type.includes('plain')) && !/\.(sql|csv)$/i.test(fileName) && disposition?.includes('.sql')) {
+        // 不强制改扩展名，避免误伤
       }
 
       // 触发浏览器下载动作

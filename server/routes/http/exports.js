@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../../utils/logger');
 const { isSafeFileName, resolveWithin } = require('../../utils/safePath');
-const { isAllowedExportHistoryName, getExportsDir } = require('../../utils/exportPackage');
+const { isAllowedExportHistoryName, getExportsDir, sendExportDownload } = require('../../utils/exportPackage');
 
 const router = express.Router();
 
@@ -78,7 +78,14 @@ router.get('/:fileName', async (req, res) => {
   }
 
   logger.info(`[Exports] Download: ${fileName} by ${req.user.username}`);
-  return res.download(fullPath, path.basename(fileName));
+  const base = path.basename(fileName);
+  const asciiFallback = base
+    .replace(/业务标准库/g, 'BizStandard')
+    .replace(/关键数据计算模型/g, 'KeyDataModel')
+    .replace(/全量/g, 'full')
+    .replace(/部分/g, 'partial')
+    .replace(/[^\x20-\x7E]/g, '_');
+  return sendExportDownload(res, fullPath, base, asciiFallback);
 });
 
 module.exports = router;

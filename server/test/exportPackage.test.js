@@ -3,11 +3,13 @@ const {
     PACKAGE_SCOPES,
     EXECUTION_MODES,
     buildExportFileName,
+    buildExportFileNameAscii,
     assembleExportScript,
     parsePackageHeader,
     validateYwbzImportPackage,
     splitSqlStatements,
-    isAllowedExportHistoryName
+    isAllowedExportHistoryName,
+    setAttachmentDownloadHeaders
 } = require('../utils/exportPackage');
 
 describe('exportPackage 防呆工具', () => {
@@ -28,6 +30,41 @@ describe('exportPackage 防呆工具', () => {
         expect(ywbzk).not.toEqual(ywbz);
         expect(ywbzk.endsWith('.sql')).toBe(true);
         expect(ywbz.includes('ywbzk')).toBe(false);
+    });
+
+    test('ASCII 回退文件名不含中文且仍可区分类型', () => {
+        const ywbzk = buildExportFileNameAscii({
+            packageType: PACKAGE_TYPES.YWBZK,
+            scope: PACKAGE_SCOPES.FULL,
+            timestamp: '20260720_120000'
+        });
+        const ywbz = buildExportFileNameAscii({
+            packageType: PACKAGE_TYPES.YWBZ,
+            scope: PACKAGE_SCOPES.FULL,
+            jgbh: '1305282025',
+            timestamp: '20260720_120000'
+        });
+        expect(ywbzk).toBe('BizStandard_ywbzk_full_20260720_120000.sql');
+        expect(ywbz).toBe('KeyDataModel_ywbz_full_1305282025_20260720_120000.sql');
+        expect(/^[\x20-\x7E]+$/.test(ywbzk)).toBe(true);
+        expect(/^[\x20-\x7E]+$/.test(ywbz)).toBe(true);
+    });
+
+    test('Content-Disposition 同时包含 ASCII filename 与 UTF-8 filename*', () => {
+        const headers = {};
+        const res = {
+            set(k, v) { headers[k] = v; },
+            get(k) { return headers[k]; }
+        };
+        setAttachmentDownloadHeaders(
+            res,
+            '业务标准库_ywbzk_全量_20260720_120000.sql',
+            'BizStandard_ywbzk_full_20260720_120000.sql'
+        );
+        const cd = headers['Content-Disposition'];
+        expect(cd).toContain('filename="BizStandard_ywbzk_full_20260720_120000.sql"');
+        expect(cd).toMatch(/filename\*=UTF-8''/);
+        expect(cd).toContain(encodeURIComponent('业务标准库_ywbzk_全量_20260720_120000.sql'));
     });
 
     test('assemble + parse package 头', () => {
@@ -88,6 +125,8 @@ describe('exportPackage 防呆工具', () => {
     test('isAllowedExportHistoryName 覆盖新旧命名', () => {
         expect(isAllowedExportHistoryName('业务标准库_ywbzk_全量_20260720_120000.sql')).toBe(true);
         expect(isAllowedExportHistoryName('关键数据计算模型_ywbz_全量_1_20260720_120000.sql')).toBe(true);
+        expect(isAllowedExportHistoryName('BizStandard_ywbzk_full_20260720_120000.sql')).toBe(true);
+        expect(isAllowedExportHistoryName('KeyDataModel_ywbz_full_1_20260720_120000.sql')).toBe(true);
         expect(isAllowedExportHistoryName('ywbz_full_export.csv')).toBe(true);
         expect(isAllowedExportHistoryName('ywbzk_full_export.csv')).toBe(true);
         expect(isAllowedExportHistoryName('../etc/passwd')).toBe(false);

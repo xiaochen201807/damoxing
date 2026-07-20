@@ -32,8 +32,10 @@ const {
     EXECUTION_MODES,
     YWBZK_TABLES,
     buildExportFileName,
+    buildExportFileNameAscii,
     assembleExportScript,
     writeExportScript,
+    sendExportDownload,
     getExportsDir,
     isAllowedExportHistoryName
 } = require('../../utils/exportPackage');
@@ -800,8 +802,11 @@ router.all('/export', authenticateToken, async (req, res) => {
         }
 
         logger.info(`Export SQL written to: ${filePath}`);
-        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
-        return res.download(filePath, exportFileName);
+        const exportFileNameAscii = buildExportFileNameAscii({
+            packageType: PACKAGE_TYPES.YWBZK,
+            scope: PACKAGE_SCOPES.FULL
+        });
+        return sendExportDownload(res, filePath, exportFileName, exportFileNameAscii);
 
     } catch (err) {
         logger.error(`Export failed: ${err.message}`);
@@ -858,8 +863,14 @@ router.get('/export_history/:id/download', authenticateToken, async (req, res) =
         if (!fs.existsSync(fullPath)) {
             return res.status(404).json({ status: 404, msg: '脚本文件已不在服务器，请重新导出' });
         }
-        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
-        return res.download(fullPath, row.file_name);
+        // 历史文件本身是中文名；ASCII 回退用关键词替换中文
+        const asciiFallback = String(row.file_name)
+            .replace(/业务标准库/g, 'BizStandard')
+            .replace(/关键数据计算模型/g, 'KeyDataModel')
+            .replace(/全量/g, 'full')
+            .replace(/部分/g, 'partial')
+            .replace(/[^ -~]/g, '_');
+        return sendExportDownload(res, fullPath, row.file_name, asciiFallback);
     } catch (err) {
         logger.error(`Download export history failed: ${err.message}`);
         res.status(500).json({ status: 1, msg: '下载失败: ' + err.message });
