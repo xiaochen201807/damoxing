@@ -40,6 +40,7 @@ const {
     isAllowedExportHistoryName
 } = require('../../utils/exportPackage');
 const {
+    DEFAULT_KEEP,
     recordExportScript,
     listExportScripts,
     getExportScriptById,
@@ -49,6 +50,29 @@ const multer = require('multer');
 const { authenticateToken } = require('../../middleware/auth');
 const fs = require('fs');
 const path = require('path');
+
+/**
+ * 导出历史「操作人」展示名：优先姓名/昵称，避免 SSO 下 username 落成个人编号
+ */
+function resolveExportOperator(req) {
+    const u = req.user || {};
+    const candidates = [
+        u.nickname,
+        u.xingming,
+        u.name,
+        u.realName,
+        u.realname,
+        u.displayName,
+        u.username
+    ]
+        .map(v => (v == null ? '' : String(v).trim()))
+        .filter(Boolean);
+
+    // 优先非纯数字（编号）的可读名称
+    const named = candidates.find(v => !/^\d{6,}$/.test(v));
+    if (named) return named;
+    return candidates[0] || '';
+}
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -758,7 +782,7 @@ router.all('/export', authenticateToken, async (req, res) => {
         }
 
         const recordCount = standards.length;
-        const operator = req.user?.username || req.user?.name || '';
+        const operator = resolveExportOperator(req);
         const { content, contentSha256 } = assembleExportScript({
             packageType: PACKAGE_TYPES.YWBZK,
             scope: PACKAGE_SCOPES.FULL,
@@ -789,7 +813,8 @@ router.all('/export', authenticateToken, async (req, res) => {
                 dialect: String(dialect || ''),
                 operator
             });
-            const pruned = await pruneExportScripts(PACKAGE_TYPES.YWBZK, 30);
+            // 最多保留 200 条历史，同步删除磁盘上的旧脚本
+            const pruned = await pruneExportScripts(PACKAGE_TYPES.YWBZK, DEFAULT_KEEP);
             for (const oldName of pruned) {
                 if (!isAllowedExportHistoryName(oldName)) continue;
                 const oldPath = path.join(getExportsDir(), path.basename(oldName));
@@ -816,46 +841,38 @@ router.all('/export', authenticateToken, async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // 导出历史列表（标准库脚本管理）
-// 兼容 GET/POST，避免部分网关只转发 POST 导致列表空白
+// 兼容 GET/POST；支持 page/perPage 分页，总量上限 200
 // -----------------------------------------------------------------------------
 async function handleExportHistoryList(req, res) {
     try {
-        const limit = Number(req.query?.limit || req.body?.limit) || 50;
-        const rows = await listExportScripts({
+        const src = { ...(req.query || {}), ...(req.body || {}) };
+        // AMIS CRUD 常见分页字段：page / perPage
+        const page = Number(src.page) || 1;
+        const perPage = Number(src.perPage || src.pageSize || src.limit) || 10;
+        const result = await listExportScripts({
             packageType: PACKAGE_TYPES.YWBZK,
-            limit
+            page,
+            perPage
         });
-        const items = rows.map(r => ({
-            id: r.id,
-            package_type: r.package_type,
-            package_scope: r.package_scope,
-            file_name: r.file_name,
-            content_sha256: r.content_sha256,
-            record_count: r.record_count,
-            jgbh: r.jgbh,
-            zjgbh: r.zjgbh,
-            dialect: r.dialect,
-            operator: r.operator,
-            created_at: r.created_at
-        }));
-        // AMIS CRUD 同时认 items / rows / total
+        const items = result.items || [];
         res.json({
             status: 0,
             msg: '',
             data: {
                 items,
                 rows: items,
-                total: items.length,
-                count: items.length
+                total: result.total,
+                count: result.total,
+                page: result.page,
+                perPage: result.perPage
             }
         });
     } catch (err) {
         logger.error(`List export history failed: ${err.message}`);
-        // 仍返回 200 + status:1，避免前端空白 toast；msg 必须非空
         res.json({
             status: 1,
             msg: '查询导出历史失败: ' + (err.message || '未知错误'),
-            data: { items: [], rows: [], total: 0, count: 0 }
+            data: { items: [], rows: [], total: 0, count: 0, page: 1, perPage: 10 }
         });
     }
 }
@@ -876,15 +893,17 @@ router.get('/export_history/:id/download', authenticateToken, async (req, res) =
         }
         const fullPath = path.join(getExportsDir(), path.basename(row.file_name));
         if (!fs.existsSync(fullPath)) {
-            return res.status(404).json({ status: 404, msg: '脚本文件已不在服务器，请重新导出' });
+            return res.status(404).json({
+                status: 404,
+                msg: `脚本文件已不在服务器（${row.file_name}），请重新执行全量导出后再下载`
+            });
         }
-        // 历史文件本身是中文名；ASCII 回退用关键词替换中文
         const asciiFallback = String(row.file_name)
             .replace(/业务标准库/g, 'BizStandard')
             .replace(/关键数据计算模型/g, 'KeyDataModel')
             .replace(/全量/g, 'full')
             .replace(/部分/g, 'partial')
-            .replace(/[^ -~]/g, '_');
+            .replace(/[^\x20-\x7E]/g, '_');
         return sendExportDownload(res, fullPath, row.file_name, asciiFallback);
     } catch (err) {
         logger.error(`Download export history failed: ${err.message}`);

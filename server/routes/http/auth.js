@@ -279,10 +279,12 @@ router.post('/login', async (req, res) => {
         // 公共逻辑: 生成 Token 并返回
         // ==========================================
 
-        // 生成 JWT Token（含机构码，用于后端防越权校验）
+        // 生成 JWT Token（含机构码，用于后端防越权校验；含 nickname/xingming 供导出历史等展示）
         const token = generateToken({
             id: user.id,
             username: user.username,
+            nickname: user.nickname || gatewayInfo?.xingming || '',
+            xingming: gatewayInfo?.xingming || user.nickname || '',
             role: user.role,
             jgbh: gatewayInfo?.jgbh || '',
             zjgbh: gatewayInfo?.zjgbh || '',

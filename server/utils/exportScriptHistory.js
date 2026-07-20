@@ -10,7 +10,9 @@ const logger = require('./logger');
 const { getExportsDir, isAllowedExportHistoryName, PACKAGE_TYPES } = require('./exportPackage');
 
 const TABLE = 'sys_export_script_log';
-const DEFAULT_KEEP = 30;
+/** 每种 package_type 最多保留条数，防止表/磁盘无限增长 */
+const DEFAULT_KEEP = 200;
+const MAX_PAGE_SIZE = 50;
 
 let ensurePromise = null;
 
@@ -32,7 +34,6 @@ async function ensureExportScriptLogTable() {
                 created_at TEXT NOT NULL
             )
         `);
-        // 避免部分 SQLite 版本对索引 DESC 语法不兼容
         await db.run(
             `CREATE INDEX IF NOT EXISTS idx_export_script_log_type_time
              ON ${TABLE} (package_type, created_at)`
@@ -46,6 +47,45 @@ async function ensureExportScriptLogTable() {
         throw err;
     });
     return ensurePromise;
+}
+
+/**
+ * 存库用 ISO UTC；列表展示用北京时间 YYYY-MM-DD HH:mm:ss
+ */
+function formatBeijingTime(value) {
+    if (!value) return '';
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) {
+        return String(value);
+    }
+    // en-CA 给出 YYYY-MM-DD，再拼 24 小时制时分秒
+    const datePart = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+    const timePart = d.toLocaleTimeString('en-GB', {
+        timeZone: 'Asia/Shanghai',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    return `${datePart} ${timePart}`;
+}
+
+function resolveExportFilePath(fileName) {
+    const base = path.basename(String(fileName || ''));
+    if (!base || !isAllowedExportHistoryName(base)) {
+        return null;
+    }
+    return path.join(getExportsDir(), base);
+}
+
+function exportFileExists(fileName) {
+    const full = resolveExportFilePath(fileName);
+    if (!full) return false;
+    try {
+        return fs.existsSync(full);
+    } catch (_e) {
+        return false;
+    }
 }
 
 async function recordExportScript(entry = {}) {
@@ -93,6 +133,7 @@ function guessScopeFromFileName(fileName) {
 
 /**
  * 扫描 exports 目录中已有脚本，补录尚未入库的历史（兼容升级前导出、台账写入失败等情况）
+ * 跳过旧固定名 ywbzk_full_export.*，避免干扰新版带时间戳脚本
  */
 async function backfillFromExportsDir(packageType) {
     const exportDir = getExportsDir();
@@ -111,6 +152,10 @@ async function backfillFromExportsDir(packageType) {
     let inserted = 0;
     for (const fileName of files) {
         if (!isAllowedExportHistoryName(fileName)) continue;
+        // 旧固定文件名：仅保留磁盘文件供兼容，不进历史列表（无操作人/校验，易误导）
+        if (/^ywbzk_full_export\.(csv|sql)$/i.test(fileName)) continue;
+        if (/^ywbz_(full|partial)_export\.csv$/i.test(fileName)) continue;
+
         const type = guessPackageTypeFromFileName(fileName);
         if (packageType && type !== packageType) continue;
 
@@ -142,7 +187,7 @@ async function backfillFromExportsDir(packageType) {
                 '',
                 '',
                 '',
-                'filesystem-backfill',
+                '系统回填',
                 createdAt
             ]
         );
@@ -155,6 +200,10 @@ async function backfillFromExportsDir(packageType) {
     return inserted;
 }
 
+/**
+ * 分页列表
+ * @returns {{ items: Array, total: number, page: number, perPage: number }}
+ */
 async function listExportScripts(options = {}) {
     await ensureExportScriptLogTable();
     try {
@@ -163,18 +212,67 @@ async function listExportScripts(options = {}) {
         logger.warn(`[ExportHistory] backfill skipped: ${err.message}`);
     }
 
-    const limit = Math.min(Math.max(Number(options.limit) || 50, 1), 200);
-    const params = [];
-    let sql = `SELECT id, package_type, package_scope, file_name, content_sha256,
-                      record_count, jgbh, zjgbh, dialect, operator, created_at
-               FROM ${TABLE}`;
+    // 列表时也裁剪，防止历史膨胀
     if (options.packageType) {
-        sql += ' WHERE package_type = ?';
+        try {
+            const pruned = await pruneExportScripts(options.packageType, DEFAULT_KEEP);
+            for (const oldName of pruned) {
+                const full = resolveExportFilePath(oldName);
+                if (full && fs.existsSync(full)) {
+                    try { fs.unlinkSync(full); } catch (_e) { /* ignore */ }
+                }
+            }
+        } catch (err) {
+            logger.warn(`[ExportHistory] prune on list skipped: ${err.message}`);
+        }
+    }
+
+    const page = Math.max(Number(options.page) || 1, 1);
+    const perPage = Math.min(Math.max(Number(options.perPage) || 10, 1), MAX_PAGE_SIZE);
+    const offset = (page - 1) * perPage;
+    const params = [];
+    let where = '';
+    if (options.packageType) {
+        where = ' WHERE package_type = ?';
         params.push(options.packageType);
     }
-    sql += ' ORDER BY id DESC LIMIT ?';
-    params.push(limit);
-    return db.all(sql, params);
+
+    const countRow = await db.get(
+        `SELECT COUNT(*) AS total FROM ${TABLE}${where}`,
+        params
+    );
+    const total = Number(countRow?.total || countRow?.TOTAL || 0);
+
+    const rows = await db.all(
+        `SELECT id, package_type, package_scope, file_name, content_sha256,
+                record_count, jgbh, zjgbh, dialect, operator, created_at
+         FROM ${TABLE}${where}
+         ORDER BY id DESC
+         LIMIT ? OFFSET ?`,
+        [...params, perPage, offset]
+    );
+
+    const items = rows.map(r => {
+        const fileExists = exportFileExists(r.file_name);
+        return {
+            id: r.id,
+            package_type: r.package_type,
+            package_scope: r.package_scope,
+            file_name: r.file_name,
+            content_sha256: r.content_sha256 || '',
+            record_count: r.record_count,
+            jgbh: r.jgbh,
+            zjgbh: r.zjgbh,
+            dialect: r.dialect || '',
+            operator: r.operator || '',
+            created_at: r.created_at,
+            created_at_display: formatBeijingTime(r.created_at),
+            file_exists: fileExists ? 1 : 0,
+            downloadable: fileExists
+        };
+    });
+
+    return { items, total, page, perPage };
 }
 
 async function getExportScriptById(id) {
@@ -207,7 +305,7 @@ async function pruneExportScripts(packageType, keep = DEFAULT_KEEP) {
     const placeholders = ids.map(() => '?').join(',');
     await db.run(`DELETE FROM ${TABLE} WHERE id IN (${placeholders})`, ids);
     logger.info(
-        `[ExportHistory] pruned ${toRemove.length} old records for package_type=${packageType}`
+        `[ExportHistory] pruned ${toRemove.length} old records for package_type=${packageType}, keep=${keepN}`
     );
     return toRemove.map(r => r.file_name).filter(Boolean);
 }
@@ -215,10 +313,14 @@ async function pruneExportScripts(packageType, keep = DEFAULT_KEEP) {
 module.exports = {
     TABLE,
     DEFAULT_KEEP,
+    MAX_PAGE_SIZE,
     ensureExportScriptLogTable,
     recordExportScript,
     listExportScripts,
     getExportScriptById,
     pruneExportScripts,
-    backfillFromExportsDir
+    backfillFromExportsDir,
+    formatBeijingTime,
+    exportFileExists,
+    resolveExportFilePath
 };

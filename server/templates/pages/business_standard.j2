@@ -885,12 +885,18 @@
                                     "loadDataOnce": false,
                                     "affixHeader": false,
                                     "columnsTogglable": false,
-                                    "placeholder": "暂无导出记录。请先点击「全量导出」生成脚本；成功后会自动写入本列表。",
+                                    "perPage": 10,
+                                    "perPageAvailable": [10, 20, 50],
+                                    "placeholder": "暂无导出记录。请先点击「全量导出」生成脚本；成功后会自动写入本列表（最多保留 200 条）。",
                                     "api": {
                                         "method": "post",
                                         "url": "${standard_export_history_api}",
+                                        "data": {
+                                            "page": "${page}",
+                                            "perPage": "${perPage}"
+                                        },
                                         "silent": true,
-                                        "adaptor": "var p = payload || {}; var data = p.data || p; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.items)) { list = data.items; } else if (data && Array.isArray(data.rows)) { list = data.rows; } var st = (typeof p.status === 'number') ? p.status : 0; if (st !== 0 && st !== '0') { return { status: st, msg: p.msg || '查询导出历史失败', data: { items: [], total: 0 } }; } return { status: 0, msg: '', data: { items: list, total: (data && (data.total != null ? data.total : list.length)) || list.length } };"
+                                        "adaptor": "var p = payload || {}; var data = p.data || p; var list = []; if (Array.isArray(data)) { list = data; } else if (data && Array.isArray(data.items)) { list = data.items; } else if (data && Array.isArray(data.rows)) { list = data.rows; } var st = (typeof p.status === 'number') ? p.status : 0; if (st !== 0 && st !== '0') { return { status: st, msg: p.msg || '查询导出历史失败', data: { items: [], total: 0 } }; } var total = (data && data.total != null) ? data.total : list.length; return { status: 0, msg: '', data: { items: list, total: total } };"
                                     },
                                     "headerToolbar": [
                                         {
@@ -901,12 +907,36 @@
                                             "target": "ywbzk_export_history_crud"
                                         }
                                     ],
+                                    "footerToolbar": [
+                                        "statistics",
+                                        "pagination",
+                                        "switch-per-page"
+                                    ],
                                     "columns": [
-                                        { "name": "created_at", "label": "导出时间", "width": 180 },
-                                        { "name": "file_name", "label": "文件名" },
-                                        { "name": "record_count", "label": "标准条数", "width": 90 },
-                                        { "name": "dialect", "label": "方言", "width": 90 },
-                                        { "name": "operator", "label": "操作人", "width": 100 },
+                                        {
+                                            "name": "created_at_display",
+                                            "label": "导出时间",
+                                            "width": 170
+                                        },
+                                        { "name": "file_name", "label": "文件名", "width": 280 },
+                                        {
+                                            "name": "record_count",
+                                            "label": "标准条数",
+                                            "width": 90,
+                                            "tpl": "${record_count|default:-}"
+                                        },
+                                        {
+                                            "name": "dialect",
+                                            "label": "方言",
+                                            "width": 80,
+                                            "tpl": "${dialect|default:-}"
+                                        },
+                                        {
+                                            "name": "operator",
+                                            "label": "操作人",
+                                            "width": 120,
+                                            "tpl": "${operator|default:-}"
+                                        },
                                         {
                                             "name": "content_sha256",
                                             "label": "校验摘要",
@@ -916,23 +946,23 @@
                                         {
                                             "type": "operation",
                                             "label": "操作",
-                                            "width": 100,
+                                            "width": 140,
                                             "buttons": [
                                                 {
                                                     "type": "button",
                                                     "label": "下载",
                                                     "level": "link",
+                                                    "visibleOn": "${downloadable || file_exists == 1}",
                                                     "tooltip": "下载后请在数据库客户端执行，勿上传到关键数据计算模型页面",
                                                     "onEvent": {
                                                         "click": {
                                                             "actions": [
                                                                 {
-                                                                    "actionType": "ajax",
+                                                                    "actionType": "download",
                                                                     "api": {
                                                                         "method": "get",
                                                                         "url": "${standard_export_history_download_api}/${id}/download",
-                                                                        "responseType": "blob",
-                                                                        "silent": true
+                                                                        "responseType": "blob"
                                                                     }
                                                                 },
                                                                 {
@@ -961,6 +991,12 @@
                                                             ]
                                                         }
                                                     }
+                                                },
+                                                {
+                                                    "type": "tpl",
+                                                    "visibleOn": "${!downloadable && file_exists != 1}",
+                                                    "className": "text-muted",
+                                                    "tpl": "<span title='磁盘文件已清理或不存在，请重新全量导出'>文件已失效</span>"
                                                 }
                                             ]
                                         }
