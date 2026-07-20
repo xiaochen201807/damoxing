@@ -52,11 +52,46 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * 导出历史「操作人」展示名：优先姓名/昵称，避免 SSO 下 username 落成个人编号
+ * 解码可能被前端 encodeURIComponent 的姓名头
+ */
+function decodeHeaderName(value) {
+    if (value == null) return '';
+    let s = String(value).trim();
+    if (!s) return '';
+    try {
+        // 可能被网关/代理多层编码，最多解两次
+        for (let i = 0; i < 2; i++) {
+            if (!/%[0-9A-Fa-f]{2}/.test(s)) break;
+            const decoded = decodeURIComponent(s);
+            if (decoded === s) break;
+            s = decoded;
+        }
+    } catch (_e) {
+        /* keep raw */
+    }
+    return s.trim();
+}
+
+/**
+ * 导出历史「操作人」展示名：
+ * 1) 请求头 xingming（前端从 gateway_info 透传，最可靠）
+ * 2) JWT 中的 nickname/xingming（重新登录后生效）
+ * 3) 请求体/查询里的 xingming
+ * 4) 最后才回退 username（SSO 下常为个人编号 grbh）
  */
 function resolveExportOperator(req) {
+    const headers = req.headers || {};
+    const body = req.body || {};
+    const query = req.query || {};
     const u = req.user || {};
+
+    const fromHeader = decodeHeaderName(
+        headers.xingming || headers['x-xingming'] || headers['x-user-name'] || headers['x-nickname']
+    );
+    const fromBody = String(body.xingming || body.nickname || body.operator_name || query.xingming || '').trim();
     const candidates = [
+        fromHeader,
+        fromBody,
         u.nickname,
         u.xingming,
         u.name,
@@ -68,7 +103,7 @@ function resolveExportOperator(req) {
         .map(v => (v == null ? '' : String(v).trim()))
         .filter(Boolean);
 
-    // 优先非纯数字（编号）的可读名称
+    // 优先非纯数字（个人编号）的可读名称
     const named = candidates.find(v => !/^\d{6,}$/.test(v));
     if (named) return named;
     return candidates[0] || '';
@@ -783,6 +818,9 @@ router.all('/export', authenticateToken, async (req, res) => {
 
         const recordCount = standards.length;
         const operator = resolveExportOperator(req);
+        logger.info(
+            `[Export] operator resolved: "${operator}" (user.username=${req.user?.username || ''}, user.nickname=${req.user?.nickname || ''}, header.xingming=${req.headers?.xingming || req.headers?.['x-xingming'] || ''})`
+        );
         const { content, contentSha256 } = assembleExportScript({
             packageType: PACKAGE_TYPES.YWBZK,
             scope: PACKAGE_SCOPES.FULL,

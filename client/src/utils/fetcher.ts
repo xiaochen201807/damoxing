@@ -87,8 +87,35 @@ export const fetcher = async <T = unknown>({
       if (info.zzjgdmz) {
         (requestConfig.headers as Record<string, string>)['zzjgdmz'] = info.zzjgdmz;
       }
+
+      // 姓名：供导出历史等后端展示操作人（勿用个人编号 grbh）
+      // 兼容多种网关字段，并做 URI 编码避免中文头被网关截断
+      const displayName = info.xingming || info.nickname || info.name || '';
+      if (displayName) {
+        const encoded = encodeURIComponent(String(displayName));
+        (requestConfig.headers as Record<string, string>)['xingming'] = encoded;
+        (requestConfig.headers as Record<string, string>)['x-xingming'] = encoded;
+      }
     } catch (_e) {
       console.warn('Failed to parse gateway_info:', _e);
+    }
+  }
+
+  // 本地登录时从 user_info 补姓名头
+  if (!(requestConfig.headers as Record<string, string>)['xingming']) {
+    try {
+      const userInfoStr = localStorage.getItem('user_info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        const displayName = userInfo.nickname || userInfo.xingming || userInfo.name || '';
+        if (displayName && !/^\d{6,}$/.test(String(displayName))) {
+          const encoded = encodeURIComponent(String(displayName));
+          (requestConfig.headers as Record<string, string>)['xingming'] = encoded;
+          (requestConfig.headers as Record<string, string>)['x-xingming'] = encoded;
+        }
+      }
+    } catch (_e) {
+      /* ignore */
     }
   }
 
