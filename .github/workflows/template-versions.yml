@@ -3,7 +3,7 @@ name: Update Template Versions
 on:
   push:
     branches:
-      - '**'
+      - v1.0.0
 
 concurrency:
   group: template-versions-${{ github.ref }}
@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update-current-branch:
@@ -49,6 +50,18 @@ jobs:
           git commit -m "chore(templates): update generated template versions"
           git push origin "HEAD:$CURRENT_BRANCH"
           echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch multi-architecture Docker build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
+        run: |
+          gh workflow run docker-build.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$CURRENT_BRANCH" \
+            -f skip_arm=false
+
+          echo "Docker build dispatched for \`$CURRENT_BRANCH\` with amd64 and arm64 enabled." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Job summary
         shell: bash
