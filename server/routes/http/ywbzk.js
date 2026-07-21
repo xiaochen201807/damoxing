@@ -106,23 +106,30 @@ function getLoginTokenFromRequest(req) {
 
 /**
  * JWT/请求头姓名为空时，用 login-token 调统一认证接口取 username
- * GET {base}/PT/business/token/getUserInfoViaToken?token=...
+ * 域名从 GATEWAY_VALIDATE_URL 提取 origin，与 tools/cxgzkz 一致
+ * GET {origin}/PT/business/token/getUserInfoViaToken?token=...
  */
 async function fetchOperatorNameViaLoginToken(loginToken) {
     const token = String(loginToken || '').trim();
     if (!token) return '';
 
-    const base = String(
-        process.env.USERINFO_VIA_TOKEN_BASE
-        || process.env.GATEWAY_USERINFO_BASE
-        || 'https://appcs.jbysoft.com'
-    ).replace(/\/$/, '');
-    const url = `${base}/PT/business/token/getUserInfoViaToken`;
+    let gatewayOrigin = '';
+    try {
+        gatewayOrigin = new URL(process.env.GATEWAY_VALIDATE_URL || '').origin;
+    } catch (_e) {
+        gatewayOrigin = '';
+    }
+    if (!gatewayOrigin) {
+        logger.warn('[Export] GATEWAY_VALIDATE_URL 未配置，无法调用 getUserInfoViaToken 补全操作人');
+        return '';
+    }
+
+    const url = `${gatewayOrigin}/PT/business/token/getUserInfoViaToken`;
 
     try {
         const response = await axios.get(url, {
             params: { token },
-            timeout: Number(process.env.USERINFO_VIA_TOKEN_TIMEOUT_MS) || 5000,
+            timeout: 5000,
             validateStatus: () => true
         });
         const data = response?.data;
