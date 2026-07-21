@@ -829,7 +829,7 @@
                                     {
                                         "actionType": "dialog",
                                         "dialog": {
-                                            "title": "导出完成 — 业务标准库脚本如何执行",
+                                            "title": "导出完成 — 多方言压缩包如何执行",
                                             "size": "md",
                                             "body": [
                                                 {
@@ -837,19 +837,19 @@
                                                     "level": "success",
                                                     "showIcon": true,
                                                     "className": "mb-3",
-                                                    "body": "脚本压缩包已开始下载。文件名形如：<code>业务标准库_ywbzk_全量_多方言_YYYYMMDD_HHmmss.zip</code>。解压后按目标库选择 <code>ywbzk_full_oracle.sql</code> / <code>ywbzk_full_dm.sql</code> / <code>ywbzk_full_pg.sql</code> / <code>ywbzk_full_gauss.sql</code> / <code>ywbzk_full_kingbase.sql</code> 执行。"
+                                                    "body": "多方言压缩包已开始下载。文件名形如：<code>业务标准库_ywbzk_全量_多方言_YYYYMMDD_HHmmss.zip</code>。"
                                                 },
                                                 {
                                                     "type": "alert",
                                                     "level": "warning",
                                                     "showIcon": true,
                                                     "className": "mb-3",
-                                                    "body": "本压缩包<strong>禁止</strong>在「关键数据计算模型」页面导入；页面导入已关闭。各方言脚本均含<strong>全表 DELETE</strong>，请按目标库选择对应文件执行，执行前请确认目标库并做好备份。"
+                                                    "body": "本压缩包<strong>禁止</strong>在「关键数据计算模型」页面导入；页面导入已关闭。包内各方言脚本均含<strong>全表 DELETE</strong>，请按目标库选择对应文件执行，执行前请备份。"
                                                 },
                                                 {
                                                     "type": "tpl",
                                                     "className": "mb-0",
-                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>在浏览器下载目录找到刚导出的 <code>.sql</code> 文件（也可从本页「导出历史」再次下载同一版本）。</li><li>打开文件头部注释，核对 <code>@package-type: ywbzk</code>、<code>@execution-mode: db-only</code>、<code>@dialect</code>、<code>@content-sha256</code> 是否与预期一致。</li><li>使用对应数据库客户端连接<strong>目标业务库</strong>（如 PL/SQL Developer、DBeaver、达梦管理工具、psql 等）。</li><li>在客户端中打开并执行该 SQL 脚本；Oracle 含 <code>DECLARE ... END; /</code> 块时请用支持脚本执行的方式运行，勿当单条 SQL 拆开误执行。</li><li>执行后抽查 <code>gjj_ywbzk</code> / <code>gjj_ywbzksx</code> / <code>gjj_ywbzkhc</code> / <code>gjj_ywnrfl</code> 记录数与关键数据是否正常。</li></ol><p style='margin-top:12px;color:#666;'>提示：新旧脚本请以「导出历史」中的时间与校验摘要为准，避免混用旧文件。</p></div>"
+                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>下载并解压 ZIP（也可从本页「导出历史」再次下载同一版本）。</li><li>阅读包内 <code>README.txt</code>，按目标库选择脚本：<br/><code>ywbzk_full_oracle.sql</code>（Oracle） / <code>ywbzk_full_dm.sql</code>（达梦） / <code>ywbzk_full_pg.sql</code>（PostgreSQL） / <code>ywbzk_full_gauss.sql</code>（Gauss） / <code>ywbzk_full_kingbase.sql</code>（Kingbase）。</li><li>打开所选脚本头部注释，核对 <code>@package-type: ywbzk</code>、<code>@execution-mode: db-only</code>、<code>@dialect</code>、<code>@content-sha256</code>。</li><li>用对应数据库客户端连接<strong>目标业务库</strong>执行该脚本；Oracle/达梦若含 <code>DECLARE ... END; /</code>，请用支持脚本执行的方式运行。</li><li>执行后抽查 <code>gjj_ywbzk</code> / <code>gjj_ywbzksx</code> / <code>gjj_ywbzkhc</code> / <code>gjj_ywnrfl</code> 记录数与关键数据是否正常。</li></ol><p style='margin-top:12px;color:#666;'>提示：请以「导出历史」中的时间与校验摘要区分新旧包，避免混用。</p></div>"
                                                 }
                                             ],
                                             "actions": [
@@ -876,7 +876,7 @@
                                     "level": "warning",
                                     "showIcon": true,
                                     "className": "mb-3",
-                                    "body": "标准库脚本只能在数据库客户端执行，页面导入已关闭。请从本列表下载需要的版本，勿将「业务标准库_ywbzk_*.sql」上传到「关键数据计算模型」页面。下载后请按文件头注释中的方言与校验摘要执行。"
+                                    "body": "标准库现导出为<strong>多方言 ZIP 包</strong>（内含 Oracle/达梦/PG/Gauss/Kingbase 脚本）。请从本列表下载需要的版本，解压后按目标库选择对应 <code>.sql</code> 执行；勿将包内脚本上传到「关键数据计算模型」页面。页面导入已关闭。"
                                 },
                                 {
                                     "type": "crud",
@@ -887,7 +887,7 @@
                                     "columnsTogglable": false,
                                     "perPage": 10,
                                     "perPageAvailable": [10, 20, 50],
-                                    "placeholder": "暂无导出记录。请先点击「全量导出」生成脚本；成功后会自动写入本列表（最多保留 200 条）。",
+                                    "placeholder": "暂无导出记录。请先点击「全量导出」生成多方言 ZIP；成功后会自动写入本列表（最多保留 200 条）。",
                                     "api": {
                                         "method": "post",
                                         "url": "${standard_export_history_api}",
@@ -926,10 +926,10 @@
                                             "tpl": "${record_count|default:-}"
                                         },
                                         {
-                                            "name": "dialect",
-                                            "label": "方言",
-                                            "width": 80,
-                                            "tpl": "${dialect|default:-}"
+                                            "name": "dialect_display",
+                                            "label": "包类型",
+                                            "width": 100,
+                                            "tpl": "${dialect_display|default:${dialect|default:-}}"
                                         },
                                         {
                                             "name": "operator",
@@ -953,7 +953,7 @@
                                                     "label": "下载",
                                                     "level": "link",
                                                     "visibleOn": "${downloadable || file_exists == 1}",
-                                                    "tooltip": "下载后请在数据库客户端执行，勿上传到关键数据计算模型页面",
+                                                    "tooltip": "下载 ZIP 后解压，按目标库选择对应方言脚本在数据库客户端执行；勿上传到关键数据计算模型页面",
                                                     "onEvent": {
                                                         "click": {
                                                             "actions": [
@@ -968,7 +968,7 @@
                                                                 {
                                                                     "actionType": "dialog",
                                                                     "dialog": {
-                                                                        "title": "下载完成 — 如何执行标准库脚本",
+                                                                        "title": "下载完成 — 多方言包如何执行",
                                                                         "size": "md",
                                                                         "body": [
                                                                             {
@@ -976,11 +976,11 @@
                                                                                 "level": "warning",
                                                                                 "showIcon": true,
                                                                                 "className": "mb-3",
-                                                                                "body": "该文件为【业务标准库】脚本，仅允许数据库客户端执行；禁止在「关键数据计算模型」页面导入。"
+                                                                                "body": "该文件为【业务标准库】多方言导出包，仅允许数据库客户端执行；禁止在「关键数据计算模型」页面导入。"
                                                                             },
                                                                             {
                                                                                 "type": "tpl",
-                                                                                "tpl": "<div style='line-height:1.9;font-size:14px;'><ol style='padding-left:1.2em;margin:0;'><li>核对文件名与列表中的校验摘要、方言是否一致。</li><li>用数据库客户端连接目标业务库，执行该 <code>.sql</code> 脚本。</li><li>执行前确认环境与备份；脚本可能包含全表 DELETE。</li><li>执行后抽查标准库相关表数据是否符合预期。</li></ol></div>"
+                                                                                "tpl": "<div style='line-height:1.9;font-size:14px;'><ol style='padding-left:1.2em;margin:0;'><li>核对列表中的文件名、包类型、校验摘要是否与预期一致。</li><li>解压 ZIP，阅读 <code>README.txt</code>。</li><li>按目标库选择脚本执行：<br/><code>ywbzk_full_oracle.sql</code> / <code>ywbzk_full_dm.sql</code> / <code>ywbzk_full_pg.sql</code> / <code>ywbzk_full_gauss.sql</code> / <code>ywbzk_full_kingbase.sql</code>。</li><li>执行前确认环境与备份；脚本含全表 DELETE。</li><li>执行后抽查标准库相关表数据是否符合预期。</li></ol><p style='margin-top:10px;color:#666;'>若显示「文件已失效」，说明磁盘文件已清理，请重新全量导出。</p></div>"
                                                                             }
                                                                         ],
                                                                         "actions": [

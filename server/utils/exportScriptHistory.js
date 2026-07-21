@@ -254,16 +254,36 @@ async function listExportScripts(options = {}) {
 
     const items = rows.map(r => {
         const fileExists = exportFileExists(r.file_name);
+        const fileName = r.file_name || '';
+        const dialectRaw = r.dialect || '';
+        const isZip = /\.zip$/i.test(fileName);
+        const isMulti = isZip || /^multi\(/i.test(dialectRaw) || fileName.includes('多方言') || /multidialect/i.test(fileName);
+        let dialectDisplay = dialectRaw || '-';
+        if (isMulti) {
+            dialectDisplay = '多方言包';
+        } else if (dialectRaw) {
+            const map = {
+                oracle: 'Oracle',
+                dm: '达梦',
+                pg: 'PostgreSQL',
+                gauss: 'Gauss',
+                kingbase: 'Kingbase'
+            };
+            dialectDisplay = map[String(dialectRaw).toLowerCase()] || dialectRaw;
+        }
         return {
             id: r.id,
             package_type: r.package_type,
             package_scope: r.package_scope,
-            file_name: r.file_name,
+            file_name: fileName,
             content_sha256: r.content_sha256 || '',
             record_count: r.record_count,
             jgbh: r.jgbh,
             zjgbh: r.zjgbh,
-            dialect: r.dialect || '',
+            dialect: dialectRaw,
+            dialect_display: dialectDisplay,
+            is_multi_package: isMulti ? 1 : 0,
+            is_zip: isZip ? 1 : 0,
             operator: r.operator || '',
             created_at: r.created_at,
             created_at_display: formatBeijingTime(r.created_at),
