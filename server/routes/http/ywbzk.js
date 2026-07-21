@@ -32,14 +32,18 @@ const {
     PACKAGE_SCOPES,
     EXECUTION_MODES,
     YWBZK_TABLES,
+    formatTimestamp,
     buildExportFileName,
     buildExportFileNameAscii,
     assembleExportScript,
     writeExportScript,
+    writeExportBinary,
     sendExportDownload,
     getExportsDir,
     isAllowedExportHistoryName
 } = require('../../utils/exportPackage');
+const { buildAllDialectExportBodies } = require('../../utils/ywbzkExportSql');
+const AdmZip = require('adm-zip');
 const {
     DEFAULT_KEEP,
     recordExportScript,
@@ -816,155 +820,118 @@ router.post('/standards', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 导出接口 (生成带 package 头的 .sql，时间戳文件名，写入导出历史)
+// 导出接口
+// 源数据通常在 Oracle 维护，但脚本要到 Oracle/达梦/PG/Gauss/Kingbase 执行：
+// 按目标方言生成多份 SQL，并打包 zip 下载（内含各方言 .sql + README）
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
     const jgbh = req.body?.jgbh || req.query?.jgbh || req.headers['jgbh'] || req.headers['zzbs'] || '';
     const zjgbh = req.body?.zjgbh || req.query?.zjgbh || req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
     try {
         const _adapter = db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '');
-        // 1. 获取所有数据
+        // 1. 获取所有数据（与源库类型无关，只取数据）
         const contentClasses = await _adapter.all("SELECT * FROM gjj_ywnrfl");
         const standards = await _adapter.all("SELECT * FROM gjj_ywbzk");
         const attributes = await _adapter.all("SELECT * FROM gjj_ywbzksx");
         const mutualStandards = await _adapter.all("SELECT * FROM gjj_ywbzkhc");
 
-        // 2. 生成 SQL 正文（破坏性 DELETE + INSERT）
-        let sqlBody = "-- 业务标准库全量导出正文 (业务内容分类 / 标准 / 属性 / 互斥)\n";
-        sqlBody += "-- 警告：本脚本含全表 DELETE，仅允许在数据库客户端按运维流程执行\n\n";
-
-        sqlBody += "DELETE FROM gjj_ywbzkhc;\n";
-        sqlBody += "DELETE FROM gjj_ywbzksx;\n";
-        sqlBody += "DELETE FROM gjj_ywbzk;\n";
-        sqlBody += "DELETE FROM gjj_ywnrfl;\n\n";
-
-        const formatValue = (val) => {
-            if (val === null || val === undefined) return "NULL";
-            if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
-            if (val instanceof Date) {
-                const yyyy = val.getFullYear();
-                const mm = String(val.getMonth() + 1).padStart(2, '0');
-                const dd = String(val.getDate()).padStart(2, '0');
-                const hh = String(val.getHours()).padStart(2, '0');
-                const mi = String(val.getMinutes()).padStart(2, '0');
-                const ss = String(val.getSeconds()).padStart(2, '0');
-                // 使用无冒号格式，避免 Oracle 驱动误判为绑定变量 (NJS-098)
-                return `TO_DATE('${yyyy}${mm}${dd}${hh}${mi}${ss}', 'YYYYMMDDHH24MISS')`;
-            }
-            return val;
-        };
-
-        // 辅助函数：生成插入 SQL (支持 Oracle CLOB 字段的超长处理，避开 ORA-01704 错误和 PL/SQL 32K 字面量限制)
-        const buildInsertStatement = (tableName, row, isOracle) => {
-            const keys = Object.keys(row);
-            const declareVars = [];
-            const assignLines = [];
-            const insertValues = [];
-
-            let hasClobVar = false;
-            let varIndex = 1;
-
-            for (const key of keys) {
-                const val = row[key];
-                const formattedVal = formatValue(val);
-
-                // 根据 UTF-8 字节数判断是否超过 3000 字节，规避 Oracle 单条 SQL 4000 字节限制
-                if (isOracle && typeof val === 'string' && Buffer.byteLength(val, 'utf8') > 3000) {
-                    const varName = `v_clob_${varIndex++}`;
-                    declareVars.push(`    ${varName} CLOB;`);
-
-                    // 使用 Array.from 确保按真正的 Unicode 字符拆分，防止 Emoji 截断和代理对计数错误
-                    const chars = Array.from(val);
-                    const chunks = [];
-                    const chunkSize = 1000;
-                    for (let i = 0; i < chars.length; i += chunkSize) {
-                        chunks.push(chars.slice(i, i + chunkSize).join(''));
-                    }
-
-                    // 第一段直接初始化赋值
-                    const escapedChunk0 = chunks[0].replace(/'/g, "''");
-                    assignLines.push(`    ${varName} := '${escapedChunk0}';`);
-
-                    // 剩余段使用 dbms_lob.writeappend 追加
-                    for (let k = 1; k < chunks.length; k++) {
-                        const escapedChunkK = chunks[k].replace(/'/g, "''");
-                        const chunkLen = Array.from(chunks[k]).length;
-                        assignLines.push(`    dbms_lob.writeappend(${varName}, ${chunkLen}, '${escapedChunkK}');`);
-                    }
-
-                    insertValues.push(varName);
-                    hasClobVar = true;
-                } else {
-                    insertValues.push(formattedVal);
-                }
-            }
-
-            if (isOracle && hasClobVar) {
-                let sql = "DECLARE\n";
-                sql += declareVars.join('\n') + '\n';
-                sql += "BEGIN\n";
-                sql += assignLines.join('\n') + '\n';
-                sql += `    INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${insertValues.join(', ')});\n`;
-                sql += "END;\n/\n";
-                return sql;
-            } else {
-                return `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${insertValues.join(', ')});\n`;
-            }
-        };
-
-        const isOracle = SqlHelper.isOracleAdapter(_adapter);
-        const dialect = isOracle
-            ? 'oracle'
-            : (typeof SqlHelper.isDmAdapter === 'function' && SqlHelper.isDmAdapter(_adapter)
-                ? 'dm'
-                : (String(_adapter?.dbType || _adapter?.type || '')));
-
-        for (const row of contentClasses) {
-            sqlBody += buildInsertStatement('gjj_ywnrfl', row, isOracle);
-        }
-        for (const row of standards) {
-            sqlBody += buildInsertStatement('gjj_ywbzk', row, isOracle);
-        }
-        for (const row of attributes) {
-            sqlBody += buildInsertStatement('gjj_ywbzksx', row, isOracle);
-        }
-        for (const row of mutualStandards) {
-            sqlBody += buildInsertStatement('gjj_ywbzkhc', row, isOracle);
-        }
-
+        const datasets = { contentClasses, standards, attributes, mutualStandards };
+        const dialectBodies = buildAllDialectExportBodies(datasets);
         const recordCount = standards.length;
         const operator = await resolveExportOperatorAsync(req);
+        const sourceDialect = SqlHelper.isOracleAdapter(_adapter)
+            ? 'oracle'
+            : String(_adapter?.dbType || _adapter?.type || _adapter?.constructor?.name || 'unknown');
+        const exportTs = formatTimestamp();
+        const dialectKeys = dialectBodies.map(d => d.key).join(',');
+
         logger.info(
-            `[Export] operator resolved: "${operator}" (user.username=${req.user?.username || ''}, user.nickname=${req.user?.nickname || ''}, header.xingming=${req.headers?.xingming || req.headers?.['x-xingming'] || ''}, login-token=${req.headers?.['login-token'] ? 'present' : 'absent'})`
+            `[Export] ywbzk multi-dialect package: source=${sourceDialect}, targets=${dialectKeys}, rows=${recordCount}, operator="${operator}"`
         );
-        const { content, contentSha256 } = assembleExportScript({
-            packageType: PACKAGE_TYPES.YWBZK,
-            scope: PACKAGE_SCOPES.FULL,
-            executionMode: EXECUTION_MODES.DB_ONLY,
-            jgbh,
-            zjgbh,
-            dialect: String(dialect || ''),
-            recordCount,
-            tables: YWBZK_TABLES,
-            operator
-        }, sqlBody);
+
+        // 2. 为每个目标方言生成带 package 头的 SQL，并打入 zip
+        const zip = new AdmZip();
+        const sqlFiles = [];
+        const contentHashes = [];
+
+        for (const item of dialectBodies) {
+            const { content, contentSha256 } = assembleExportScript({
+                packageType: PACKAGE_TYPES.YWBZK,
+                scope: PACKAGE_SCOPES.FULL,
+                executionMode: EXECUTION_MODES.DB_ONLY,
+                jgbh,
+                zjgbh,
+                dialect: item.key,
+                recordCount,
+                tables: YWBZK_TABLES,
+                operator
+            }, item.sqlBody);
+
+            // zip 内使用稳定短文件名，便于运维挑选
+            const entryName = `ywbzk_full_${item.fileSuffix}.sql`;
+            zip.addFile(entryName, Buffer.from(`\ufeff${content}`, 'utf8'));
+            sqlFiles.push({
+                dialect: item.key,
+                label: item.label,
+                entryName,
+                contentSha256
+            });
+            contentHashes.push(`${item.key}:${contentSha256}`);
+        }
+
+        const readmeLines = [
+            '业务标准库全量导出（多方言包）',
+            '================================',
+            '',
+            `导出时间戳: ${exportTs}`,
+            `源库适配器: ${sourceDialect}`,
+            `标准条数: ${recordCount}`,
+            `操作人: ${operator || '-'}`,
+            `机构: jgbh=${jgbh || '-'} zjgbh=${zjgbh || '-'}`,
+            '',
+            '使用说明：',
+            '1. 在 Oracle 维护标准库后导出本压缩包；',
+            '2. 按目标环境选择对应方言脚本执行：',
+            ...sqlFiles.map(f => `   - ${f.entryName}  →  ${f.label} (${f.dialect})`),
+            '3. 脚本含全表 DELETE，执行前请备份目标库；',
+            '4. 禁止在「关键数据计算模型」页面导入本包内任何脚本；',
+            '5. Oracle/达梦超长字段使用 CLOB 分段写入；PG/Gauss/Kingbase 使用 dollar-quote 或拼接。',
+            '',
+            '各方言脚本 content-sha256：',
+            ...sqlFiles.map(f => `   - ${f.entryName}: ${f.contentSha256}`),
+            ''
+        ];
+        zip.addFile('README.txt', Buffer.from(readmeLines.join('\n'), 'utf8'));
+
+        const zipBuffer = zip.toBuffer();
+        const packageSha256 = require('crypto').createHash('sha256').update(zipBuffer).digest('hex');
 
         const exportFileName = buildExportFileName({
             packageType: PACKAGE_TYPES.YWBZK,
-            scope: PACKAGE_SCOPES.FULL
+            scope: PACKAGE_SCOPES.FULL,
+            dialect: '多方言',
+            timestamp: exportTs,
+            extension: 'zip'
         });
-        const { filePath } = writeExportScript(exportFileName, content);
+        const exportFileNameAscii = buildExportFileNameAscii({
+            packageType: PACKAGE_TYPES.YWBZK,
+            scope: PACKAGE_SCOPES.FULL,
+            dialect: 'multidialect',
+            timestamp: exportTs,
+            extension: 'zip'
+        });
+        const { filePath } = writeExportBinary(exportFileName, zipBuffer);
 
         try {
             await recordExportScript({
                 packageType: PACKAGE_TYPES.YWBZK,
                 packageScope: PACKAGE_SCOPES.FULL,
                 fileName: exportFileName,
-                contentSha256,
+                contentSha256: packageSha256,
                 recordCount,
                 jgbh,
                 zjgbh,
-                dialect: String(dialect || ''),
+                dialect: `multi(${dialectKeys});source=${sourceDialect}`,
                 operator
             });
             // 最多保留 200 条历史，同步删除磁盘上的旧脚本
@@ -980,11 +947,7 @@ router.all('/export', authenticateToken, async (req, res) => {
             logger.warn(`Export history record failed: ${histErr.message}`);
         }
 
-        logger.info(`Export SQL written to: ${filePath}`);
-        const exportFileNameAscii = buildExportFileNameAscii({
-            packageType: PACKAGE_TYPES.YWBZK,
-            scope: PACKAGE_SCOPES.FULL
-        });
+        logger.info(`Export ZIP written to: ${filePath}, sha256=${packageSha256}, files=${sqlFiles.map(f => f.entryName).join(',')}`);
         return sendExportDownload(res, filePath, exportFileName, exportFileNameAscii);
 
     } catch (err) {

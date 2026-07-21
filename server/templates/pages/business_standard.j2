@@ -813,7 +813,7 @@
                         "type": "button",
                         "label": "全量导出",
                         "level": "default",
-                        "tooltip": "导出为「业务标准库_ywbzk_全量_时间戳.sql」，仅允许数据库客户端执行，禁止上传到关键数据计算模型页面",
+                        "tooltip": "导出多方言 ZIP（Oracle/达梦/PG/Gauss/Kingbase）。请在目标库选择对应脚本执行；禁止上传到关键数据计算模型页面",
                         "onEvent": {
                             "click": {
                                 "actions": [
@@ -837,14 +837,14 @@
                                                     "level": "success",
                                                     "showIcon": true,
                                                     "className": "mb-3",
-                                                    "body": "脚本已开始下载。文件名形如：<code>业务标准库_ywbzk_全量_YYYYMMDD_HHmmss.sql</code>"
+                                                    "body": "脚本压缩包已开始下载。文件名形如：<code>业务标准库_ywbzk_全量_多方言_YYYYMMDD_HHmmss.zip</code>。解压后按目标库选择 <code>ywbzk_full_oracle.sql</code> / <code>ywbzk_full_dm.sql</code> / <code>ywbzk_full_pg.sql</code> / <code>ywbzk_full_gauss.sql</code> / <code>ywbzk_full_kingbase.sql</code> 执行。"
                                                 },
                                                 {
                                                     "type": "alert",
                                                     "level": "warning",
                                                     "showIcon": true,
                                                     "className": "mb-3",
-                                                    "body": "本脚本<strong>禁止</strong>在「关键数据计算模型」页面导入；页面导入已关闭。脚本含<strong>全表 DELETE</strong>，执行前请确认目标库并做好备份。"
+                                                    "body": "本压缩包<strong>禁止</strong>在「关键数据计算模型」页面导入；页面导入已关闭。各方言脚本均含<strong>全表 DELETE</strong>，请按目标库选择对应文件执行，执行前请确认目标库并做好备份。"
                                                 },
                                                 {
                                                     "type": "tpl",

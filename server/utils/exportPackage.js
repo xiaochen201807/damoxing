@@ -104,16 +104,19 @@ function buildExportFileName(options = {}) {
     const packageType = options.packageType;
     const scope = options.scope || PACKAGE_SCOPES.FULL;
     const scopeLabel = scope === PACKAGE_SCOPES.PARTIAL ? '部分' : '全量';
-    const scopeAscii = scope === PACKAGE_SCOPES.PARTIAL ? 'partial' : 'full';
     const ts = options.timestamp || formatTimestamp();
     const label = PACKAGE_LABELS[packageType] || packageType || 'export';
+    const ext = options.extension || 'sql';
+    const dialectPart = options.dialect ? `_${sanitizeFileToken(options.dialect, options.dialect)}` : '';
 
     if (packageType === PACKAGE_TYPES.YWBZK) {
-        return `${label}_ywbzk_${scopeLabel}_${ts}.sql`;
+        // 例：业务标准库_ywbzk_全量_oracle_20260721_120000.sql
+        //     业务标准库_ywbzk_全量_多方言_20260721_120000.zip
+        return `${label}_ywbzk_${scopeLabel}${dialectPart}_${ts}.${ext}`;
     }
 
     const jgbhPart = sanitizeFileToken(options.jgbh, 'nojgbh');
-    return `${label}_ywbz_${scopeLabel}_${jgbhPart}_${ts}.sql`;
+    return `${label}_ywbz_${scopeLabel}_${jgbhPart}${dialectPart}_${ts}.${ext}`;
 }
 
 /**
@@ -125,13 +128,17 @@ function buildExportFileNameAscii(options = {}) {
     const scope = options.scope || PACKAGE_SCOPES.FULL;
     const scopeAscii = scope === PACKAGE_SCOPES.PARTIAL ? 'partial' : 'full';
     const ts = options.timestamp || formatTimestamp();
+    const ext = options.extension || 'sql';
+    const dialectPart = options.dialect
+        ? `_${sanitizeFileToken(options.dialect, options.dialect).replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        : '';
 
     if (packageType === PACKAGE_TYPES.YWBZK) {
-        return `BizStandard_ywbzk_${scopeAscii}_${ts}.sql`;
+        return `BizStandard_ywbzk_${scopeAscii}${dialectPart}_${ts}.${ext}`;
     }
 
     const jgbhPart = sanitizeFileToken(options.jgbh, 'nojgbh').replace(/[^a-zA-Z0-9._-]/g, '_');
-    return `KeyDataModel_ywbz_${scopeAscii}_${jgbhPart}_${ts}.sql`;
+    return `KeyDataModel_ywbz_${scopeAscii}_${jgbhPart}${dialectPart}_${ts}.${ext}`;
 }
 
 /**
@@ -411,6 +418,24 @@ function writeExportScript(fileName, bodyContent, options = {}) {
 }
 
 /**
+ * 写入二进制导出文件（如 zip），返回 { fileName, filePath, contentSha256, byteLength }
+ */
+function writeExportBinary(fileName, buffer, options = {}) {
+    const exportDir = ensureExportsDir(options.exportDir);
+    const safeName = path.basename(fileName);
+    const filePath = path.join(exportDir, safeName);
+    const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || '');
+    fs.writeFileSync(filePath, data);
+    return {
+        fileName: safeName,
+        filePath,
+        contentSha256: sha256Hex(data),
+        byteLength: data.length,
+        exportDir
+    };
+}
+
+/**
  * 组装完整脚本：先写正文算 hash，再把 hash 填入头
  */
 function assembleExportScript(meta, sqlBody) {
@@ -433,12 +458,12 @@ function isAllowedExportHistoryName(fileName) {
         return false;
     }
     return (
-        /^业务标准库_ywbzk_.+\.sql$/u.test(name) ||
-        /^关键数据计算模型_ywbz_.+\.sql$/u.test(name) ||
-        /^BizStandard_ywbzk_.+\.sql$/i.test(name) ||
-        /^KeyDataModel_ywbz_.+\.sql$/i.test(name) ||
-        /^ywbzk_full_export\.(csv|sql)$/i.test(name) ||
-        /^ywbz_(full|partial)_export\.csv$/i.test(name)
+        /^业务标准库_ywbzk_.+\.(sql|zip)$/u.test(name) ||
+        /^关键数据计算模型_ywbz_.+\.(sql|zip)$/u.test(name) ||
+        /^BizStandard_ywbzk_.+\.(sql|zip)$/i.test(name) ||
+        /^KeyDataModel_ywbz_.+\.(sql|zip)$/i.test(name) ||
+        /^ywbzk_full_export\.(csv|sql|zip)$/i.test(name) ||
+        /^ywbz_(full|partial)_export\.(csv|sql|zip)$/i.test(name)
     );
 }
 
@@ -469,6 +494,7 @@ module.exports = {
     getExportsDir,
     ensureExportsDir,
     writeExportScript,
+    writeExportBinary,
     assembleExportScript,
     isAllowedExportHistoryName
 };
