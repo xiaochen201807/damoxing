@@ -52,7 +52,7 @@ function setupMiddleware(app) {
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "channel", "login-token", "jgbh", "zzbs", "zzjgdmz"],
+        allowedHeaders: ["Content-Type", "Authorization", "channel", "login-token", "jgbh", "zjgbh", "zzbs", "zzjgdmz", "xingming", "x-xingming", "x-user-name", "x-nickname"],
         exposedHeaders: ["Content-Disposition"] // 允许前端读取下载文件名
     };
 

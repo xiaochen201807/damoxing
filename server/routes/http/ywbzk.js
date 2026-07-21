@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const db = require('../../db');
 const SqlHelper = require('../../utils/sqlHelper');
 const logger = require('../../utils/logger');
@@ -72,12 +73,99 @@ function decodeHeaderName(value) {
     return s.trim();
 }
 
+function isReadableDisplayName(value) {
+    const s = String(value == null ? '' : value).trim();
+    if (!s) return false;
+    // SSO 下 username 常为个人编号 grbh
+    if (/^\d{6,}$/.test(s)) return false;
+    return true;
+}
+
+function pickReadableName(...values) {
+    for (const value of values) {
+        const s = String(value == null ? '' : value).trim();
+        if (isReadableDisplayName(s)) return s;
+    }
+    return '';
+}
+
+function getLoginTokenFromRequest(req) {
+    const headers = req.headers || {};
+    const body = req.body || {};
+    const query = req.query || {};
+    return String(
+        headers['login-token']
+        || headers.login_token
+        || body.login_token
+        || body.loginToken
+        || query.login_token
+        || query.loginToken
+        || ''
+    ).trim();
+}
+
 /**
- * 导出历史「操作人」展示名：
- * 1) 请求头 xingming（前端从 gateway_info 透传，最可靠）
- * 2) JWT 中的 nickname/xingming（重新登录后生效）
+ * JWT/请求头姓名为空时，用 login-token 调统一认证接口取 username
+ * GET {base}/PT/business/token/getUserInfoViaToken?token=...
+ */
+async function fetchOperatorNameViaLoginToken(loginToken) {
+    const token = String(loginToken || '').trim();
+    if (!token) return '';
+
+    const base = String(
+        process.env.USERINFO_VIA_TOKEN_BASE
+        || process.env.GATEWAY_USERINFO_BASE
+        || 'https://appcs.jbysoft.com'
+    ).replace(/\/$/, '');
+    const url = `${base}/PT/business/token/getUserInfoViaToken`;
+
+    try {
+        const response = await axios.get(url, {
+            params: { token },
+            timeout: Number(process.env.USERINFO_VIA_TOKEN_TIMEOUT_MS) || 5000,
+            validateStatus: () => true
+        });
+        const data = response?.data;
+        if (!data || typeof data !== 'object') {
+            logger.warn(`[Export] getUserInfoViaToken 无有效响应 status=${response?.status}`);
+            return '';
+        }
+
+        // 优先取根级 username（业务要求）；再尝试 userinfo JSON 内姓名
+        let fromUserinfo = '';
+        if (typeof data.userinfo === 'string' && data.userinfo) {
+            try {
+                const ui = JSON.parse(data.userinfo);
+                fromUserinfo = pickReadableName(
+                    ui.username,
+                    ui.xingming,
+                    ui?.zzjgxx?.results?.personmsg?.[0]?.xingming,
+                    ui?.zzjgxx?.results?.userData?.name
+                );
+            } catch (_e) {
+                /* ignore parse error */
+            }
+        }
+
+        const name = pickReadableName(data.username, fromUserinfo);
+        if (name) {
+            logger.info(`[Export] getUserInfoViaToken 解析操作人: ${name}`);
+        } else {
+            logger.warn('[Export] getUserInfoViaToken 未解析到可读姓名');
+        }
+        return name;
+    } catch (err) {
+        logger.warn(`[Export] getUserInfoViaToken 调用失败: ${err.message}`);
+        return '';
+    }
+}
+
+/**
+ * 导出历史「操作人」展示名（同步路径，不含远端补全）：
+ * 1) 请求头 xingming（前端从 gateway_info 透传）
+ * 2) JWT 中的 nickname/xingming
  * 3) 请求体/查询里的 xingming
- * 4) 最后才回退 username（SSO 下常为个人编号 grbh）
+ * 4) 最后回退 username（SSO 下常为个人编号）
  */
 function resolveExportOperator(req) {
     const headers = req.headers || {};
@@ -103,10 +191,31 @@ function resolveExportOperator(req) {
         .map(v => (v == null ? '' : String(v).trim()))
         .filter(Boolean);
 
-    // 优先非纯数字（个人编号）的可读名称
-    const named = candidates.find(v => !/^\d{6,}$/.test(v));
+    const named = candidates.find(v => isReadableDisplayName(v));
     if (named) return named;
     return candidates[0] || '';
+}
+
+/**
+ * 异步解析操作人：本地可读姓名优先；否则用 login-token 调 getUserInfoViaToken 取 username
+ */
+async function resolveExportOperatorAsync(req) {
+    const local = resolveExportOperator(req);
+    if (isReadableDisplayName(local)) {
+        return local;
+    }
+
+    const loginToken = getLoginTokenFromRequest(req);
+    if (!loginToken) {
+        logger.warn('[Export] 操作人本地为空且无 login-token，回退编号');
+        return local;
+    }
+
+    const remoteName = await fetchOperatorNameViaLoginToken(loginToken);
+    if (isReadableDisplayName(remoteName)) {
+        return remoteName;
+    }
+    return local;
 }
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -817,9 +926,9 @@ router.all('/export', authenticateToken, async (req, res) => {
         }
 
         const recordCount = standards.length;
-        const operator = resolveExportOperator(req);
+        const operator = await resolveExportOperatorAsync(req);
         logger.info(
-            `[Export] operator resolved: "${operator}" (user.username=${req.user?.username || ''}, user.nickname=${req.user?.nickname || ''}, header.xingming=${req.headers?.xingming || req.headers?.['x-xingming'] || ''})`
+            `[Export] operator resolved: "${operator}" (user.username=${req.user?.username || ''}, user.nickname=${req.user?.nickname || ''}, header.xingming=${req.headers?.xingming || req.headers?.['x-xingming'] || ''}, login-token=${req.headers?.['login-token'] ? 'present' : 'absent'})`
         );
         const { content, contentSha256 } = assembleExportScript({
             packageType: PACKAGE_TYPES.YWBZK,
