@@ -118,5 +118,35 @@
         "label": "提取流程推送规则",
         "sort": 20,
         "enabled": true
+    },
+    {
+        "value": "21",
+        "label": "可提取金额算法（新证照版）",
+        "sort": 21,
+        "enabled": true
+    },
+    {
+        "value": "22",
+        "label": "最高可贷金额算法（新证照版）",
+        "sort": 22,
+        "enabled": false
+    },
+    {
+        "value": "23",
+        "label": "最高可贷年限算法（新证照版）",
+        "sort": 23,
+        "enabled": false
+    },
+    {
+        "value": "24",
+        "label": "提取自动化风控引擎算法（新证照版）",
+        "sort": 24,
+        "enabled": false
+    },
+    {
+        "value": "25",
+        "label": "提取流程推送规则（新证照版）",
+        "sort": 25,
+        "enabled": false
     }
 ]
