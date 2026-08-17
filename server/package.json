@@ -18,7 +18,7 @@
         "test": "jest"
     },
     "dependencies": {
-        "@damoxing/datasource-manager": "^0.2.0",
+        "@damoxing/datasource-manager": "^0.5.0",
         "@modelcontextprotocol/sdk": "^1.0.4",
         "adm-zip": "^0.5.16",
         "axios": "^1.13.2",
@@ -36,6 +36,7 @@
         "joi": "^18.0.2",
         "jsonwebtoken": "^9.0.3",
         "multer": "^2.0.2",
+        "mysql2": "^3.23.3",
         "node-cache": "^5.1.2",
         "nunjucks": "^3.2.4",
         "oracledb": "^6.10.0",

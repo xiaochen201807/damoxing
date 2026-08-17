@@ -14,6 +14,18 @@
     },
     {
       "config": {
+        "connectString": "10.0.87.141:2883/sy_ptdx",
+        "password": "env:OB_ORACLE_PASSWORD",
+        "poolMax": 10,
+        "poolMin": 2,
+        "user": "sy_ptdx@oboracle#obdemo"
+      },
+      "id": "oceanbase_oracle_example",
+      "jgbh_list": ["OB_ORACLE_EXAMPLE"],
+      "type": "oceanbase-oracle"
+    },
+    {
+      "config": {
         "connectString": "127.0.0.1:54321",
         "loginEncrypt": false,
         "password": "Kd#0!Py2t1",
