@@ -127,6 +127,9 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
+          # Aliyun Registry does not accept BuildKit OCI provenance/SBOM manifests.
+          provenance: false
+          sbom: false
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=build-${{ steps.platform.outputs.tag }}
           cache-to: type=gha,mode=max,scope=build-${{ steps.platform.outputs.tag }}
