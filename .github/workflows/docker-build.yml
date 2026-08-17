@@ -213,15 +213,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}
+          flavor: |
+            latest=false
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
-            type=raw,value={{date 'YYYYMMDD-HHmm' tz='Asia/Shanghai'}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
+            type=raw,value={{date 'YYYYMMDDHHmm' tz='Asia/Shanghai'}}-gjsj
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -264,31 +260,54 @@ jobs:
           echo "Creating Aliyun multi-arch manifest..."
           docker buildx imagetools create "${ALIYUN_TAG_ARGS[@]}" "${ALIYUN_DIGEST_REFS[@]}"
 
-      - name: Inspect image
+      - name: Inspect published images
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || true
-          docker buildx imagetools inspect ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}:latest || true
+          set -euo pipefail
+
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker buildx imagetools inspect "$tag"
+          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
+
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker buildx imagetools inspect "$tag"
+          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
 
       - name: Multi-arch image summary
         run: |
-          echo "### 🚀 多架构镜像构建成功" >> $GITHUB_STEP_SUMMARY
+          set -euo pipefail
+
+          echo "### 多架构镜像构建成功" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**支持架构:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**GHCR 镜像:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**阿里云镜像:** \`${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**拉取命令:**" >> $GITHUB_STEP_SUMMARY
+          echo "**本次实际发布的拉取命令:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# 1. GHCR 镜像" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "# GHCR 镜像" >> $GITHUB_STEP_SUMMARY
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "docker pull $tag" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# 2. 阿里云镜像" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "# 阿里云镜像（仅 latest 和北京时间版本标签）" >> $GITHUB_STEP_SUMMARY
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "docker pull $tag" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**验证多架构支持:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "docker buildx imagetools inspect ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "docker buildx imagetools inspect $tag" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "docker buildx imagetools inspect $tag" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
           echo '```' >> $GITHUB_STEP_SUMMARY
