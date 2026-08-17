@@ -1,7 +1,7 @@
 /**
  * 业务标准库全量导出 SQL 生成器
  *
- * 源数据通常在 Oracle 维护，但脚本需要到 Oracle / 达梦 / PG / Gauss / Kingbase 执行。
+ * 源数据通常在 Oracle 维护，但脚本需要到 Oracle / OceanBase Oracle / 达梦 / PG / Gauss / Kingbase 执行。
  * 因此按「目标方言」生成 SQL，而不是按源库适配器方言生成。
  */
 
@@ -18,6 +18,17 @@ const EXPORT_DIALECTS = Object.freeze([
             '超长字符串使用 PL/SQL CLOB + dbms_lob.writeappend，避免 ORA-01704',
             '日期使用 TO_DATE(..., YYYYMMDDHH24MISS)',
             '请用支持 @/脚本 的客户端执行（含 END; /）'
+        ]
+    },
+    {
+        key: 'oceanbase-oracle',
+        label: 'OceanBase Oracle 模式',
+        fileSuffix: 'oceanbase_oracle',
+        notes: [
+            '按 OceanBase Oracle 兼容语法生成，不适用于 OceanBase MySQL 租户',
+            '超长字符串使用 PL/SQL CLOB + dbms_lob.writeappend',
+            '日期使用 TO_DATE(..., YYYYMMDDHH24MISS)',
+            '请使用支持 PL/SQL 脚本执行的 OceanBase 客户端运行（含 END; /）'
         ]
     },
     {
@@ -86,7 +97,7 @@ function isPgFamily(dialectKey) {
 }
 
 function isOracleFamily(dialectKey) {
-    return dialectKey === 'oracle' || dialectKey === 'dm';
+    return dialectKey === 'oracle' || dialectKey === 'oceanbase-oracle' || dialectKey === 'dm';
 }
 
 function formatScalarValue(val, dialectKey) {

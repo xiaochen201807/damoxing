@@ -813,7 +813,7 @@
                         "type": "button",
                         "label": "全量导出",
                         "level": "default",
-                        "tooltip": "导出多方言 ZIP（Oracle/达梦/PG/Gauss/Kingbase）。请在目标库选择对应脚本执行；禁止上传到关键数据计算模型页面",
+                        "tooltip": "导出多方言 ZIP（Oracle/OceanBase Oracle/达梦/PG/Gauss/Kingbase）。请在目标库选择对应脚本执行；禁止上传到关键数据计算模型页面",
                         "onEvent": {
                             "click": {
                                 "actions": [
@@ -849,7 +849,7 @@
                                                 {
                                                     "type": "tpl",
                                                     "className": "mb-0",
-                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>下载并解压 ZIP（也可从本页「导出历史」再次下载同一版本）。</li><li>阅读包内 <code>README.txt</code>，按目标库选择脚本：<br/><code>ywbzk_full_oracle.sql</code>（Oracle） / <code>ywbzk_full_dm.sql</code>（达梦） / <code>ywbzk_full_pg.sql</code>（PostgreSQL） / <code>ywbzk_full_gauss.sql</code>（Gauss） / <code>ywbzk_full_kingbase.sql</code>（Kingbase）。</li><li>打开所选脚本头部注释，核对 <code>@package-type: ywbzk</code>、<code>@execution-mode: db-only</code>、<code>@dialect</code>、<code>@content-sha256</code>。</li><li>用对应数据库客户端连接<strong>目标业务库</strong>执行该脚本；Oracle/达梦若含 <code>DECLARE ... END; /</code>，请用支持脚本执行的方式运行。</li><li>执行后抽查 <code>gjj_ywbzk</code> / <code>gjj_ywbzksx</code> / <code>gjj_ywbzkhc</code> / <code>gjj_ywnrfl</code> 记录数与关键数据是否正常。</li></ol><p style='margin-top:12px;color:#666;'>提示：请以「导出历史」中的时间与校验摘要区分新旧包，避免混用。</p></div>"
+                                                    "tpl": "<div style='line-height:1.9;font-size:14px;'><p><strong>推荐执行步骤：</strong></p><ol style='padding-left:1.2em;margin:0;'><li>下载并解压 ZIP（也可从本页「导出历史」再次下载同一版本）。</li><li>阅读包内 <code>README.txt</code>，按目标库选择脚本：<br/><code>ywbzk_full_oracle.sql</code>（Oracle） / <code>ywbzk_full_oceanbase_oracle.sql</code>（OceanBase Oracle 模式） / <code>ywbzk_full_dm.sql</code>（达梦） / <code>ywbzk_full_pg.sql</code>（PostgreSQL） / <code>ywbzk_full_gauss.sql</code>（Gauss） / <code>ywbzk_full_kingbase.sql</code>（Kingbase）。</li><li>打开所选脚本头部注释，核对 <code>@package-type: ywbzk</code>、<code>@execution-mode: db-only</code>、<code>@dialect</code>、<code>@content-sha256</code>。</li><li>用对应数据库客户端连接<strong>目标业务库</strong>执行该脚本；Oracle/OceanBase Oracle/达梦若含 <code>DECLARE ... END; /</code>，请用支持脚本执行的方式运行。OceanBase 脚本仅适用于 Oracle 模式租户。</li><li>执行后抽查 <code>gjj_ywbzk</code> / <code>gjj_ywbzksx</code> / <code>gjj_ywbzkhc</code> / <code>gjj_ywnrfl</code> 记录数与关键数据是否正常。</li></ol><p style='margin-top:12px;color:#666;'>提示：请以「导出历史」中的时间与校验摘要区分新旧包，避免混用。</p></div>"
                                                 }
                                             ],
                                             "actions": [
@@ -876,7 +876,7 @@
                                     "level": "warning",
                                     "showIcon": true,
                                     "className": "mb-3",
-                                    "body": "标准库现导出为<strong>多方言 ZIP 包</strong>（内含 Oracle/达梦/PG/Gauss/Kingbase 脚本）。请从本列表下载需要的版本，解压后按目标库选择对应 <code>.sql</code> 执行；勿将包内脚本上传到「关键数据计算模型」页面。页面导入已关闭。"
+                                    "body": "标准库现导出为<strong>多方言 ZIP 包</strong>（内含 Oracle/OceanBase Oracle/达梦/PG/Gauss/Kingbase 脚本）。请从本列表下载需要的版本，解压后按目标库选择对应 <code>.sql</code> 执行；OceanBase 脚本仅适用于 Oracle 模式租户；勿将包内脚本上传到「关键数据计算模型」页面。页面导入已关闭。"
                                 },
                                 {
                                     "type": "crud",
@@ -980,7 +980,7 @@
                                                                             },
                                                                             {
                                                                                 "type": "tpl",
-                                                                                "tpl": "<div style='line-height:1.9;font-size:14px;'><ol style='padding-left:1.2em;margin:0;'><li>核对列表中的文件名、包类型、校验摘要是否与预期一致。</li><li>解压 ZIP，阅读 <code>README.txt</code>。</li><li>按目标库选择脚本执行：<br/><code>ywbzk_full_oracle.sql</code> / <code>ywbzk_full_dm.sql</code> / <code>ywbzk_full_pg.sql</code> / <code>ywbzk_full_gauss.sql</code> / <code>ywbzk_full_kingbase.sql</code>。</li><li>执行前确认环境与备份；脚本含全表 DELETE。</li><li>执行后抽查标准库相关表数据是否符合预期。</li></ol><p style='margin-top:10px;color:#666;'>若显示「文件已失效」，说明磁盘文件已清理，请重新全量导出。</p></div>"
+                                                                                "tpl": "<div style='line-height:1.9;font-size:14px;'><ol style='padding-left:1.2em;margin:0;'><li>核对列表中的文件名、包类型、校验摘要是否与预期一致。</li><li>解压 ZIP，阅读 <code>README.txt</code>。</li><li>按目标库选择脚本执行：<br/><code>ywbzk_full_oracle.sql</code> / <code>ywbzk_full_oceanbase_oracle.sql</code> / <code>ywbzk_full_dm.sql</code> / <code>ywbzk_full_pg.sql</code> / <code>ywbzk_full_gauss.sql</code> / <code>ywbzk_full_kingbase.sql</code>。OceanBase 脚本仅适用于 Oracle 模式租户。</li><li>执行前确认环境与备份；脚本含全表 DELETE。</li><li>执行后抽查标准库相关表数据是否符合预期。</li></ol><p style='margin-top:10px;color:#666;'>若显示「文件已失效」，说明磁盘文件已清理，请重新全量导出。</p></div>"
                                                                             }
                                                                         ],
                                                                         "actions": [

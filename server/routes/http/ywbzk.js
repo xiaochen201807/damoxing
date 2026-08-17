@@ -821,7 +821,7 @@ router.post('/standards', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // 导出接口
-// 源数据通常在 Oracle 维护，但脚本要到 Oracle/达梦/PG/Gauss/Kingbase 执行：
+// 源数据通常在 Oracle 维护，但脚本要到 Oracle/OceanBase Oracle/达梦/PG/Gauss/Kingbase 执行：
 // 按目标方言生成多份 SQL，并打包 zip 下载（内含各方言 .sql + README）
 // -----------------------------------------------------------------------------
 router.all('/export', authenticateToken, async (req, res) => {
@@ -839,9 +839,9 @@ router.all('/export', authenticateToken, async (req, res) => {
         const dialectBodies = buildAllDialectExportBodies(datasets);
         const recordCount = standards.length;
         const operator = await resolveExportOperatorAsync(req);
-        const sourceDialect = SqlHelper.isOracleAdapter(_adapter)
-            ? 'oracle'
-            : String(_adapter?.dbType || _adapter?.type || _adapter?.constructor?.name || 'unknown');
+        const sourceDialect = String(
+            _adapter?.adapterType || _adapter?.type || _adapter?.dbType || _adapter?.constructor?.name || 'unknown'
+        );
         const exportTs = formatTimestamp();
         const dialectKeys = dialectBodies.map(d => d.key).join(',');
 
@@ -890,12 +890,12 @@ router.all('/export', authenticateToken, async (req, res) => {
             `机构: jgbh=${jgbh || '-'} zjgbh=${zjgbh || '-'}`,
             '',
             '使用说明：',
-            '1. 在 Oracle 维护标准库后导出本压缩包；',
+            '1. 在标准库主环境完成维护后导出本压缩包；',
             '2. 按目标环境选择对应方言脚本执行：',
             ...sqlFiles.map(f => `   - ${f.entryName}  →  ${f.label} (${f.dialect})`),
             '3. 脚本含全表 DELETE，执行前请备份目标库；',
             '4. 禁止在「关键数据计算模型」页面导入本包内任何脚本；',
-            '5. Oracle/达梦超长字段使用 CLOB 分段写入；PG/Gauss/Kingbase 使用 dollar-quote 或拼接。',
+            '5. Oracle/OceanBase Oracle/达梦超长字段使用 CLOB 分段写入；PG/Gauss/Kingbase 使用 dollar-quote 或拼接。',
             '',
             '各方言脚本 content-sha256：',
             ...sqlFiles.map(f => `   - ${f.entryName}: ${f.contentSha256}`),

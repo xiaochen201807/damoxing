@@ -89,6 +89,20 @@ describe('business_standard template', () => {
         expect(rendered.includes('${!business_standard_editable}')).toBe(true);
     });
 
+    test('全量导出说明包含 OceanBase Oracle 模式脚本', () => {
+        const rendered = env.render('pages/business_standard.j2', {
+            GLOBAL_API_PREFIX: '/api',
+            business_content_class_params: '{}',
+            business_standard_value_params: '{}',
+            service_objects_params: '{}',
+            business_standard_attribute_params: '{}'
+        });
+
+        expect(() => JSON.parse(rendered)).not.toThrow();
+        expect(rendered).toContain('OceanBase Oracle');
+        expect(rendered).toContain('ywbzk_full_oceanbase_oracle.sql');
+    });
+
     test('业务内容分类维护成功后会刷新弹窗清单和外层分类下拉', () => {
         const rendered = env.render('pages/business_standard.j2', {
             GLOBAL_API_PREFIX: '/api',

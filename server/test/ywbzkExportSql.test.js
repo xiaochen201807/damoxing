@@ -7,20 +7,26 @@ const {
 } = require('../utils/ywbzkExportSql');
 
 describe('ywbzk multi-dialect export SQL', () => {
-    test('导出目标方言覆盖 Oracle/DM/PG/Gauss/Kingbase', () => {
+    test('导出目标方言覆盖 Oracle/OceanBase Oracle/DM/PG/Gauss/Kingbase', () => {
         expect(EXPORT_DIALECTS.map(d => d.key)).toEqual([
             'oracle',
+            'oceanbase-oracle',
             'dm',
             'pg',
             'gauss',
             'kingbase'
         ]);
+        expect(EXPORT_DIALECTS.find(d => d.key === 'oceanbase-oracle')).toMatchObject({
+            label: 'OceanBase Oracle 模式',
+            fileSuffix: 'oceanbase_oracle'
+        });
     });
 
-    test('Oracle/DM 超长文本生成 CLOB 分段写入，不依赖源库类型', () => {
+    test('Oracle/OceanBase Oracle/DM 超长文本生成 CLOB 分段写入，不依赖源库类型', () => {
         const longText = '中文'.repeat(2000); // > 3000 utf8 bytes
         const row = { id: 1, ywbzjg: longText };
         const oracleSql = buildInsertStatement('gjj_ywbzk', row, 'oracle');
+        const oceanbaseOracleSql = buildInsertStatement('gjj_ywbzk', row, 'oceanbase-oracle');
         const dmSql = buildInsertStatement('gjj_ywbzk', row, 'dm');
 
         expect(oracleSql).toContain('DECLARE');
@@ -28,6 +34,10 @@ describe('ywbzk multi-dialect export SQL', () => {
         expect(oracleSql).toContain('dbms_lob.writeappend');
         expect(oracleSql).toContain('INSERT INTO gjj_ywbzk');
         expect(oracleSql).toContain('END;');
+
+        expect(oceanbaseOracleSql).toContain('DECLARE');
+        expect(oceanbaseOracleSql).toContain('dbms_lob.writeappend');
+        expect(oceanbaseOracleSql).toContain('INSERT INTO gjj_ywbzk');
 
         expect(dmSql).toContain('DECLARE');
         expect(dmSql).toContain('dbms_lob.writeappend');
@@ -49,8 +59,10 @@ describe('ywbzk multi-dialect export SQL', () => {
     test('日期格式按方言区分', () => {
         const row = { id: 1, cjsj: new Date('2026-07-21T01:02:03Z') };
         const oracleSql = buildInsertStatement('gjj_ywbzk', row, 'oracle');
+        const oceanbaseOracleSql = buildInsertStatement('gjj_ywbzk', row, 'oceanbase-oracle');
         const pgSql = buildInsertStatement('gjj_ywbzk', row, 'pg');
         expect(oracleSql).toMatch(/TO_DATE\('/);
+        expect(oceanbaseOracleSql).toMatch(/TO_DATE\('/);
         expect(pgSql).toMatch(/TIMESTAMP '/);
         expect(pgSql).not.toContain('TO_DATE');
     });
@@ -63,7 +75,7 @@ describe('ywbzk multi-dialect export SQL', () => {
             mutualStandards: [{ id: 1, mbid: 1, hcmbid: 2 }]
         };
         const bodies = buildAllDialectExportBodies(datasets);
-        expect(bodies).toHaveLength(5);
+        expect(bodies).toHaveLength(6);
         for (const item of bodies) {
             expect(item.sqlBody).toContain('DELETE FROM gjj_ywbzk');
             expect(item.sqlBody).toContain('INSERT INTO gjj_ywbzk');
