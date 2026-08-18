@@ -1454,6 +1454,8 @@
                             "level": "link",
                             "className": "text-danger",
                             "actionType": "ajax",
+                            "disabledOn": "${ywbz_usage_count > 0}",
+                            "tooltip": "${ywbz_usage_count > 0 ? '该标准已在 ywbz 中使用，请先取消勾选后再删除' : '删除业务办理标准'}",
                             "confirmText": "业务办理标准删除后会导致项目引用错误，请谨慎操作，确认是否删除？",
                             "api": "post:{{ GLOBAL_API_PREFIX }}/ywbzk/delete"
                         }

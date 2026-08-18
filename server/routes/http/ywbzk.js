@@ -392,7 +392,9 @@ router.post('/list', async (req, res) => {
     const offset = (page - 1) * perPage;
 
     let sql = `
-        SELECT t.*, COALESCE(c.flmc, t.ywnrfl) as ywnrfl_label
+        SELECT t.*,
+               (SELECT COUNT(*) FROM gjj_ywbz r WHERE r.mbid = t.id) AS ywbz_usage_count,
+               COALESCE(c.flmc, t.ywnrfl) as ywnrfl_label
         FROM gjj_ywbzk t
         LEFT JOIN gjj_ywnrfl c ON c.gjsjsf = t.gjsjsf AND c.flbm = t.ywnrfl
         WHERE 1=1
@@ -747,11 +749,42 @@ router.post('/delete', async (req, res) => {
 
     try {
         await db.getByJgbh(typeof jgbh !== 'undefined' ? jgbh : '').transaction(async (tx) => {
+            // gjj_ywbz.mbid is the runtime reference to this standard template.
+            // Check it in the same transaction so a standard cannot be removed
+            // while an organization still has the template selected in ywbz.
+            const usageRow = await tx.get(
+                'SELECT COUNT(*) AS usage_count FROM gjj_ywbz WHERE mbid = :1',
+                [id]
+            );
+            const usageCount = Number(usageRow?.usage_count ?? usageRow?.USAGE_COUNT ?? 0);
+            if (usageCount > 0) {
+                const usageRows = await tx.all(
+                    `SELECT DISTINCT COALESCE(jgbh, '') AS jgbh, COALESCE(zjgbh, '') AS zjgbh
+                     FROM gjj_ywbz
+                     WHERE mbid = :1
+                     ORDER BY jgbh, zjgbh`,
+                    [id]
+                );
+                const scopes = usageRows
+                    .map(row => {
+                        const usedJgbh = row?.jgbh ?? row?.JGBH ?? '';
+                        const usedZjgbh = row?.zjgbh ?? row?.ZJGBH ?? '';
+                        return usedZjgbh ? `${usedJgbh}/${usedZjgbh}` : usedJgbh;
+                    })
+                    .filter(Boolean);
+                const scopeText = scopes.length > 0 ? `（使用机构：${scopes.join('、')}）` : '';
+                const error = new Error(`该业务标准已在业务规则中使用，请先在对应机构的 ywbz 页面取消勾选后再删除${scopeText}`);
+                error.code = 'YWBZ_IN_USE';
+                throw error;
+            }
             await tx.run('DELETE FROM gjj_ywbzkhc WHERE mbid = :1 OR hcmbid = :2', [id, id]);
             await tx.run('DELETE FROM gjj_ywbzk WHERE id = :1', [id]);
         });
         res.json({ status: 0, msg: "删除成功" });
     } catch (err) {
+        if (err?.code === 'YWBZ_IN_USE') {
+            return res.status(409).json({ status: 409, msg: err.message });
+        }
         logger.error(`Failed to delete ywbzk: ${err.message}`);
         res.status(500).json({ status: 1, msg: err.message });
     }

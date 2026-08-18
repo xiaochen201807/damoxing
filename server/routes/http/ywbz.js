@@ -1647,6 +1647,38 @@ function processYwbzInsert(stmt, jgbh, zjgbh) {
     return { sql, oldId };
 }
 
+// Oracle/OceanBase 等驱动不一定会从事务 INSERT 返回 lastID。使用导入文件中
+// 必填且已按机构隔离的 mbid 回查，保证属性表能够拿到真实的新主键。
+function getYwbzInsertLookup(sql) {
+    const colsMatch = sql.match(/INSERT\s+INTO\s+gjj_ywbz\s*\(([^)]+)\)/i);
+    const valsMatch = sql.match(/VALUES\s*\((.+)\)/is);
+    if (!colsMatch || !valsMatch) return null;
+    const cols = colsMatch[1].split(',').map(c => c.trim().toLowerCase());
+    const vals = parseInsertValues(valsMatch[1]);
+    const mbidIdx = cols.indexOf('mbid');
+    if (mbidIdx < 0 || !vals[mbidIdx]) return null;
+    const mbid = vals[mbidIdx].replace(/^'|'$/g, '').trim();
+    if (!mbid || /^NULL$/i.test(mbid)) return null;
+    return mbid;
+}
+
+async function resolveInsertedYwbzId(tx, insertResult, sql, jgbh, zjgbh) {
+    const returnedId = insertResult && (insertResult.lastID ?? insertResult.lastId ?? insertResult.insertId);
+    if (returnedId !== undefined && returnedId !== null && returnedId !== '') return returnedId;
+
+    const mbid = getYwbzInsertLookup(sql);
+    if (!mbid) throw new Error('导入失败：插入业务规则后未返回主键，且无法按 mbid 回查');
+    const row = await tx.get(
+        `SELECT id FROM gjj_ywbz WHERE mbid = ? AND COALESCE(jgbh, '') = ? AND COALESCE(zjgbh, '') = ? ORDER BY id DESC`,
+        [mbid, jgbh, zjgbh]
+    );
+    const id = row && (row.id ?? row.ID);
+    if (id === undefined || id === null || id === '') {
+        throw new Error(`导入失败：无法根据 mbid=${mbid} 找到新业务规则主键`);
+    }
+    return id;
+}
+
 // -----------------------------------------------------------------------------
 // 辅助函数：处理 gjj_ywbzsx INSERT 语句 - 替换 ywid 为新 ID
 // -----------------------------------------------------------------------------
@@ -1669,12 +1701,16 @@ function replaceYwidInInsert(stmt, idMapping) {
 
     // 替换 ywid 为新 ID
     const ywidIdx = colsLower.indexOf('ywid');
+    if (ywidIdx < 0 || ywidIdx >= vals.length) {
+        throw new Error('导入失败：规则属性 INSERT 缺少 ywid 字段');
+    }
     if (ywidIdx >= 0 && ywidIdx < vals.length) {
         const oldYwid = vals[ywidIdx].replace(/'/g, '').trim();
         const newYwid = idMapping[oldYwid];
-        if (newYwid !== undefined) {
-            vals[ywidIdx] = String(newYwid);
+        if (newYwid === undefined || newYwid === null || newYwid === '') {
+            throw new Error(`导入失败：规则属性 ywid=${oldYwid || 'NULL'} 未找到对应的新业务规则`);
         }
+        vals[ywidIdx] = String(newYwid);
     }
 
     return `INSERT INTO gjj_ywbzsx (${cols.join(', ')}) VALUES (${vals.join(', ')})`;
@@ -1803,7 +1839,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                     const insertRunResult = await tx.run(sql, []);
                     // 获取数据库自增的新 ID
                     if (oldId) {
-                        idMapping[oldId] = insertRunResult.lastID;
+                        idMapping[oldId] = await resolveInsertedYwbzId(tx, insertRunResult, sql, jgbh, zjgbh);
                     }
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);
@@ -2043,7 +2079,7 @@ router.post('/partial_import', authenticateToken, upload.single('file'), async (
                     const insertRunResult = await tx.run(sql, []);
                     insertCount++;
                     if (oldId) {
-                        idMapping[oldId] = insertRunResult.lastID;
+                        idMapping[oldId] = await resolveInsertedYwbzId(tx, insertRunResult, sql, jgbh, zjgbh);
                     }
                 } else if (upperStmt.startsWith('INSERT INTO GJJ_YWBZSX')) {
                     ywbzsxStmts.push(stmt);
