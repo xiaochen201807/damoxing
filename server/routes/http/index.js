@@ -31,6 +31,7 @@ const exportsRoutes = require("./exports");
 const cxgzkzRoutes = require("./cxgzkz");
 const projectDetailMockRoutes = require("./project_detailmock");
 const taskConfigMockRoutes = require("./task_configmock");
+const initPackageRoutes = require("./initPackage");
 
 
 // API 路由前缀（从环境变量读取，默认 /api）
@@ -101,6 +102,7 @@ function setupHttpRoutes(app) {
     app.use(`${API_PREFIX}/cxgzkz`, authenticateToken, cxgzkzRoutes);
     app.use(`${API_PREFIX}/project_detailmock`, authenticateToken, projectDetailMockRoutes);
     app.use(`${API_PREFIX}/task_configmock`, authenticateToken, taskConfigMockRoutes);
+    app.use(`${API_PREFIX}/init-package`, initPackageRoutes);
 
     console.log(`✅ API routes mounted on prefix: ${API_PREFIX}`);
     console.log(`🔒 JWT authentication enabled for protected routes`);
