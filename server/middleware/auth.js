@@ -16,6 +16,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const WHITELIST_PATHS = [
     '/health',
     '/api/auth/login',
+    '/api/init-package/issue-token',
     '/api/mcp',  // MCP SSE endpoints (带前缀)
     '/mcp',      // MCP SSE endpoints (不带前缀，相对路径)
 ];
