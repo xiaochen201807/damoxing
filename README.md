@@ -191,6 +191,60 @@ curl -X POST http://localhost:3001/api/ai/generate \
 
 系统自动根据 `pageId` 加载对应的 AMIS Schema 并渲染页面。
 
+### 4. 数据初始化与长期 Token 颁发（Java / 自动化运维集成）
+
+系统支持一键聚合抽取「标准库 (ywbzk)」、「关键数据算法 (ywbz)」与「程序规则控制 (cxgzkz)」的 7 张核心表数据（Tabular 紧凑格式 + Gzip 压缩），供 Java 程序初始化入库。
+
+#### 4.1 生成长期 Token (两种方式)
+
+* **方式 A：命令行快速生成（推荐运维使用）**：
+  ```bash
+  cd server
+  # 默认生成 10 年有效期的 admin 长期 Token
+  npm run issue-token
+
+  # 或带参数指定用户、机构码与有效期
+  node scripts/issue_token.js --user=java_admin --jgbh=320100 --expires=3650d
+  ```
+
+* **方式 B：HTTP 接口在线生成（免登录白名单接口）**：
+  ```bash
+  curl -X POST http://localhost:3001/api/init-package/issue-token \
+    -H "Content-Type: application/json" \
+    -d '{
+      "username": "java_init_service",
+      "role": "admin",
+      "jgbh": "",
+      "zjgbh": "",
+      "expiresIn": "3650d"
+    }'
+  ```
+
+#### 4.2 Java 程序获取初始化数据包
+
+携带上述生成的 Token 调用初始化接口：
+
+```bash
+TOKEN="<上一步生成的Token>"
+
+curl -X POST http://localhost:3001/api/init-package/data \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "Accept-Encoding: gzip" \
+  -d '{
+    "targetJgbh": "320100",
+    "targetZjgbh": "32010001",
+    "modules": ["ywbzk", "ywbz", "cxgzkz"]
+  }'
+```
+
+#### 4.3 查看表执行依赖顺序元数据
+
+```bash
+curl -X GET http://localhost:3001/api/init-package/meta \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
 ---
 
 ## 安全特性
