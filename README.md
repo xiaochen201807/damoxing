@@ -222,7 +222,7 @@ curl -X POST http://localhost:3001/api/ai/generate \
 
 #### 4.2 Java 程序获取初始化数据包
 
-携带上述生成的 Token 调用初始化接口：
+携带上述生成的 Token 调用初始化接口（`sourceJgbh` 和 `sourceZjgbh` 为必输参数）：
 
 ```bash
 TOKEN="<上一步生成的Token>"
@@ -232,8 +232,10 @@ curl -X POST http://localhost:3001/api/init-package/data \
   -H "Content-Type: application/json" \
   -H "Accept-Encoding: gzip" \
   -d '{
-    "targetJgbh": "320100",
-    "targetZjgbh": "32010001",
+    "sourceJgbh": "1305282025",   // 必输：源机构编码（用于数据源路由与算法规则抽取）
+    "sourceZjgbh": "1305282025",  // 必输：源子机构编码
+    "targetJgbh": "320100",       // 可选：目标机构编码（自动替换 ywbz 和 cxgzkz）
+    "targetZjgbh": "32010001",    // 可选：目标子机构编码
     "modules": ["ywbzk", "ywbz", "cxgzkz"]
   }'
 ```

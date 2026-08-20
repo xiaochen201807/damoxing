@@ -52,15 +52,18 @@ function rowsToTabular(rows) {
  */
 async function getInitPackageData(options = {}) {
     const {
-        sourceJgbh = '',
-        sourceZjgbh = '',
+        routeJgbh,
+        routeZjgbh,
+        sourceJgbh,
+        sourceZjgbh,
         targetJgbh,
         targetZjgbh,
         modules = ['ywbzk', 'ywbz', 'cxgzkz']
     } = options;
 
     const moduleSet = new Set(Array.isArray(modules) ? modules : [modules]);
-    const adapter = db.getByJgbh(typeof sourceJgbh !== 'undefined' ? sourceJgbh : '');
+    const routeKey = routeJgbh !== undefined ? routeJgbh : (sourceJgbh !== undefined ? sourceJgbh : '');
+    const adapter = db.getByJgbh(routeKey);
     const coalesce = 'COALESCE';
 
     const tablesData = {};
@@ -96,11 +99,20 @@ async function getInitPackageData(options = {}) {
     // -------------------------------------------------------------------------
     if (moduleSet.has('ywbz')) {
         let ywbzSql = `SELECT * FROM gjj_ywbz`;
+        const ywbzConditions = [];
         const ywbzParams = [];
 
-        if (sourceJgbh !== undefined && sourceJgbh !== null && sourceJgbh !== '') {
-            ywbzSql += ` WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-            ywbzParams.push(sourceJgbh, sourceZjgbh || '');
+        if (sourceJgbh !== undefined && sourceJgbh !== null && String(sourceJgbh).trim() !== '') {
+            ywbzConditions.push(`${coalesce}(jgbh, '') = ?`);
+            ywbzParams.push(String(sourceJgbh).trim());
+        }
+        if (sourceZjgbh !== undefined && sourceZjgbh !== null && String(sourceZjgbh).trim() !== '') {
+            ywbzConditions.push(`${coalesce}(zjgbh, '') = ?`);
+            ywbzParams.push(String(sourceZjgbh).trim());
+        }
+
+        if (ywbzConditions.length > 0) {
+            ywbzSql += ` WHERE ${ywbzConditions.join(' AND ')}`;
         }
         ywbzSql += ` ORDER BY id`;
 
@@ -128,8 +140,8 @@ async function getInitPackageData(options = {}) {
                 `SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders}) ORDER BY id`,
                 ywbzIds
             );
-        } else if (sourceJgbh === '') {
-            // 如果未指定特定机构，直接查全部
+        } else if (ywbzConditions.length === 0) {
+            // 如果未指定特定机构过滤，查全部属性表
             ywbzsxRows = await adapter.all(`SELECT * FROM gjj_ywbzsx ORDER BY id`);
         }
         tablesData['gjj_ywbzsx'] = rowsToTabular(ywbzsxRows);
@@ -141,11 +153,20 @@ async function getInitPackageData(options = {}) {
     // -------------------------------------------------------------------------
     if (moduleSet.has('cxgzkz')) {
         let cxgzkzSql = `SELECT * FROM gjj_cxgzkz`;
+        const cxgzkzConditions = [];
         const cxgzkzParams = [];
 
-        if (sourceJgbh !== undefined && sourceJgbh !== null && sourceJgbh !== '') {
-            cxgzkzSql += ` WHERE ${coalesce}(jgbh, '') = ? AND ${coalesce}(zjgbh, '') = ?`;
-            cxgzkzParams.push(sourceJgbh, sourceZjgbh || '');
+        if (sourceJgbh !== undefined && sourceJgbh !== null && String(sourceJgbh).trim() !== '') {
+            cxgzkzConditions.push(`${coalesce}(jgbh, '') = ?`);
+            cxgzkzParams.push(String(sourceJgbh).trim());
+        }
+        if (sourceZjgbh !== undefined && sourceZjgbh !== null && String(sourceZjgbh).trim() !== '') {
+            cxgzkzConditions.push(`${coalesce}(zjgbh, '') = ?`);
+            cxgzkzParams.push(String(sourceZjgbh).trim());
+        }
+
+        if (cxgzkzConditions.length > 0) {
+            cxgzkzSql += ` WHERE ${cxgzkzConditions.join(' AND ')}`;
         }
         cxgzkzSql += ` ORDER BY id`;
 

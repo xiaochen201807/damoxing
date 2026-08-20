@@ -126,13 +126,15 @@ describe('initPackageService and Routes', () => {
             expect(response.body.data.tableExecutionOrder).toEqual(TABLE_EXECUTION_ORDER);
         });
 
-        test('POST /data 正确获取并响应数据 (带有效Token)', async () => {
+        test('POST /data 正确获取并响应数据 (带有效Token及必输源机构)', async () => {
             mockAdapter.all.mockResolvedValue([]);
 
             const response = await request(app)
                 .post('/api/init-package/data')
                 .set('Authorization', `Bearer ${validToken}`)
                 .send({
+                    sourceJgbh: '1305282025',
+                    sourceZjgbh: '1305282025',
                     targetJgbh: '320100',
                     targetZjgbh: '32010001'
                 });
@@ -143,10 +145,26 @@ describe('initPackageService and Routes', () => {
             expect(response.body.data.meta.targetJgbh).toBe('320100');
         });
 
+        test('未提供 sourceJgbh 或 sourceZjgbh 必输参数时返回 400', async () => {
+            const response = await request(app)
+                .post('/api/init-package/data')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    targetJgbh: '320100'
+                });
+
+            expect(response.status).toBe(400);
+            expect(response.body.status).toBe(1);
+            expect(response.body.msg).toContain('缺少必输参数');
+        });
+
         test('未提供 Token 访问 /data 返回 401', async () => {
             const response = await request(app)
                 .post('/api/init-package/data')
-                .send({});
+                .send({
+                    sourceJgbh: '1305282025',
+                    sourceZjgbh: '1305282025'
+                });
 
             expect(response.status).toBe(401);
         });

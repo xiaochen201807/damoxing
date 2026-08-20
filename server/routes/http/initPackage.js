@@ -41,14 +41,25 @@ async function handleGetInitPackageData(req, res) {
     try {
         const payload = req.method === 'POST' ? (req.body || {}) : req.query;
 
-        // 机构解析优先级：Body/Query 显式指定 > 请求头 > 默认空
-        const headerJgbh = req.headers['jgbh'] || req.headers['zzbs'] || '';
-        const headerZjgbh = req.headers['zjgbh'] || req.headers['zzjgdmz'] || '';
+        // 提取 sourceJgbh 与 sourceZjgbh（兼容大小写）
+        const rawSourceJgbh = payload.sourceJgbh !== undefined ? payload.sourceJgbh : payload.sourcejgbh;
+        const rawSourceZjgbh = payload.sourceZjgbh !== undefined ? payload.sourceZjgbh : payload.sourcezjgbh;
 
-        const sourceJgbh = payload.sourceJgbh !== undefined ? payload.sourceJgbh : headerJgbh;
-        const sourceZjgbh = payload.sourceZjgbh !== undefined ? payload.sourceZjgbh : headerZjgbh;
-        const targetJgbh = payload.targetJgbh !== undefined ? payload.targetJgbh : undefined;
-        const targetZjgbh = payload.targetZjgbh !== undefined ? payload.targetZjgbh : undefined;
+        const sourceJgbh = rawSourceJgbh !== undefined && rawSourceJgbh !== null ? String(rawSourceJgbh).trim() : '';
+        const sourceZjgbh = rawSourceZjgbh !== undefined && rawSourceZjgbh !== null ? String(rawSourceZjgbh).trim() : '';
+
+        // 必输项校验
+        if (!sourceJgbh || !sourceZjgbh) {
+            return res.status(400).json({
+                status: 1,
+                msg: '缺少必输参数: sourceJgbh 和 sourceZjgbh 不能为空'
+            });
+        }
+
+        const rawTargetJgbh = payload.targetJgbh !== undefined ? payload.targetJgbh : payload.targetjgbh;
+        const rawTargetZjgbh = payload.targetZjgbh !== undefined ? payload.targetZjgbh : payload.targetzjgbh;
+        const targetJgbh = rawTargetJgbh !== undefined && rawTargetJgbh !== null ? String(rawTargetJgbh).trim() : undefined;
+        const targetZjgbh = rawTargetZjgbh !== undefined && rawTargetZjgbh !== null ? String(rawTargetZjgbh).trim() : undefined;
 
         let modules = payload.modules;
         if (typeof modules === 'string') {
