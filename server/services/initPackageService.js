@@ -81,7 +81,7 @@ async function getInitPackageData(options = {}) {
         effectiveExecutionOrder.push('gjj_ywbzk');
 
         // 1.3 标准库属性表
-        const standardAttrs = await adapter.all('SELECT * FROM gjj_ywbzksx ORDER BY ywid, id');
+        const standardAttrs = await adapter.all('SELECT * FROM gjj_ywbzksx ORDER BY id');
         tablesData['gjj_ywbzksx'] = rowsToTabular(standardAttrs);
         effectiveExecutionOrder.push('gjj_ywbzksx');
 
@@ -125,12 +125,12 @@ async function getInitPackageData(options = {}) {
         if (ywbzIds.length > 0) {
             const placeholders = ywbzIds.map(() => '?').join(',');
             ywbzsxRows = await adapter.all(
-                `SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders}) ORDER BY ywid, id`,
+                `SELECT * FROM gjj_ywbzsx WHERE ywid IN (${placeholders}) ORDER BY id`,
                 ywbzIds
             );
         } else if (sourceJgbh === '') {
             // 如果未指定特定机构，直接查全部
-            ywbzsxRows = await adapter.all(`SELECT * FROM gjj_ywbzsx ORDER BY ywid, id`);
+            ywbzsxRows = await adapter.all(`SELECT * FROM gjj_ywbzsx ORDER BY id`);
         }
         tablesData['gjj_ywbzsx'] = rowsToTabular(ywbzsxRows);
         effectiveExecutionOrder.push('gjj_ywbzsx');
