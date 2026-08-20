@@ -116,7 +116,9 @@ async function getInitPackageData(options = {}) {
         }
         ywbzSql += ` ORDER BY id`;
 
+        logger.info(`[InitPackage] gjj_ywbz querying: SQL="${ywbzSql}", params=${JSON.stringify(ywbzParams)}`);
         const ywbzRows = await adapter.all(ywbzSql, ywbzParams);
+        logger.info(`[InitPackage] gjj_ywbz result count: ${ywbzRows.length}`);
 
         // 如果传入了目标机构码，执行替换
         if (targetJgbh !== undefined && targetJgbh !== null) {
@@ -170,7 +172,9 @@ async function getInitPackageData(options = {}) {
         }
         cxgzkzSql += ` ORDER BY id`;
 
+        logger.info(`[InitPackage] gjj_cxgzkz querying: SQL="${cxgzkzSql}", params=${JSON.stringify(cxgzkzParams)}`);
         const cxgzkzRows = await adapter.all(cxgzkzSql, cxgzkzParams);
+        logger.info(`[InitPackage] gjj_cxgzkz result count: ${cxgzkzRows.length}`);
 
         // 如果传入了目标机构码，执行替换
         if (targetJgbh !== undefined && targetJgbh !== null) {
