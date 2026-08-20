@@ -14,6 +14,7 @@
         "db:verify:cxgzkz": "node scripts/verify_cxgzkz_multids.js",
         "init-db": "node data/migrations/init_database.js",
         "check:ywbz": "node scripts/check_ywbz_consistency.js",
+        "issue-token": "node scripts/issue_token.js",
         "mcp": "node mcp-server.js",
         "test": "jest"
     },
