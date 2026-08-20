@@ -71,7 +71,7 @@ async function getInitPackageData(options = {}) {
     // -------------------------------------------------------------------------
     if (moduleSet.has('ywbzk')) {
         // 1.1 业务内容分类
-        const contentClasses = await adapter.all('SELECT * FROM gjj_ywnrfl ORDER BY px, id');
+        const contentClasses = await adapter.all('SELECT * FROM gjj_ywnrfl ORDER BY id');
         tablesData['gjj_ywnrfl'] = rowsToTabular(contentClasses);
         effectiveExecutionOrder.push('gjj_ywnrfl');
 
