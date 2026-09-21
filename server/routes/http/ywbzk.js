@@ -683,7 +683,17 @@ router.post('/save', decryptStandardSqlRequest, async (req, res) => {
                     ywblfl,
                     bzfl
                 ]);
-                mbid = insertResult.lastID;
+                mbid = insertResult?.lastID;
+                if (!mbid) {
+                    if (zdybm) {
+                        const rowByCode = await tx.get("SELECT id FROM gjj_ywbzk WHERE zdybm = ?", [zdybm]);
+                        mbid = rowByCode?.id ?? rowByCode?.ID;
+                    }
+                    if (!mbid) {
+                        const lastRow = await tx.get("SELECT MAX(id) as id FROM gjj_ywbzk");
+                        mbid = lastRow?.id ?? lastRow?.ID;
+                    }
+                }
             }
 
             if (normalizedAttributeRows.length > 0) {
