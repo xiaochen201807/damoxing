@@ -15,6 +15,11 @@ on:
         required: false
         type: boolean
         default: false
+      push_aliyun:
+        description: '同时推送阿里云镜像仓库（默认仅推送 GHCR）'
+        required: false
+        type: boolean
+        default: false
       v_base_path:
         description: '应用基础路径 (VITE_BASE_PATH)'
         required: false
@@ -42,6 +47,7 @@ env:
   VITE_API_ROUTE_PREFIX: ${{ github.event.inputs.v_api_prefix || vars.API_ROUTE_PREFIX || '/api' }}
   VITE_APP_NAME: ${{ github.event.inputs.v_app_name || vars.VITE_APP_NAME || 'Damoxing' }}
   VITE_APP_VERSION: ${{ github.event.inputs.v_app_version || vars.VITE_APP_VERSION || '1.0.0' }}
+  PUSH_ALIYUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.push_aliyun == 'true' }}
 
 jobs:
   # 并行构建不同架构的镜像
@@ -88,7 +94,7 @@ jobs:
 
       - name: Log in to Aliyun Registry (retry)
         id: login_aliyun
-        if: github.event_name != 'pull_request'
+        if: env.PUSH_ALIYUN == 'true' && github.event_name != 'pull_request'
         continue-on-error: true
         shell: bash
         env:
@@ -130,7 +136,7 @@ jobs:
       - name: Build and push Aliyun digest (primary)
         id: build_aliyun
         # 跳过 ARM64 如果手动触发时选择了 skip_arm
-        if: ${{ (matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true')) && steps.login_aliyun.outcome == 'success' }}
+        if: ${{ env.PUSH_ALIYUN == 'true' && (matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true')) && steps.login_aliyun.outcome == 'success' }}
         continue-on-error: true
         uses: docker/build-push-action@v5
         with:
@@ -151,7 +157,7 @@ jobs:
           secret-files: |
             standard_sql_private_key=${{ runner.temp }}/standard_sql_private.pem
 
-      - name: Build and push GHCR digest (fallback reserve)
+      - name: Build and push GHCR digest
         id: build_ghcr
         if: ${{ (matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true')) && steps.login_ghcr.outcome == 'success' }}
         continue-on-error: true
@@ -227,6 +233,7 @@ jobs:
 
       - name: Log in to Aliyun Registry (retry)
         id: login_aliyun
+        if: env.PUSH_ALIYUN == 'true'
         continue-on-error: true
         shell: bash
         env:
@@ -275,6 +282,7 @@ jobs:
 
       - name: Extract Aliyun metadata (tags, labels)
         id: meta_aliyun
+        if: env.PUSH_ALIYUN == 'true'
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}
@@ -339,7 +347,9 @@ jobs:
             fi
           done
 
-          if [[ "${{ steps.login_aliyun.outcome }}" != "success" ]]; then
+          if [[ "${{ env.PUSH_ALIYUN }}" != "true" ]]; then
+            aliyun_ready=false
+          elif [[ "${{ steps.login_aliyun.outcome }}" != "success" ]]; then
             aliyun_ready=false
           fi
 
@@ -372,7 +382,7 @@ jobs:
 
       - name: Publish Aliyun multi-arch manifest (primary)
         id: publish_aliyun
-        if: steps.readiness.outputs.aliyun_ready == 'true'
+        if: env.PUSH_ALIYUN == 'true' && steps.readiness.outputs.aliyun_ready == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -404,14 +414,18 @@ jobs:
 
           exit 1
 
-      - name: Publish GHCR multi-arch manifest (fallback)
+      - name: Publish GHCR multi-arch manifest
         id: publish_ghcr
-        if: steps.readiness.outputs.ghcr_ready == 'true' && (steps.readiness.outputs.aliyun_ready != 'true' || steps.publish_aliyun.outcome != 'success')
+        if: steps.readiness.outputs.ghcr_ready == 'true' && (env.PUSH_ALIYUN != 'true' || steps.readiness.outputs.aliyun_ready != 'true' || steps.publish_aliyun.outcome != 'success')
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          echo "::warning::Aliyun is unavailable or publish failed; falling back to GitHub Container Registry."
+          if [[ "${{ env.PUSH_ALIYUN }}" == "true" ]]; then
+            echo "::warning::Aliyun is unavailable or publish failed; falling back to GitHub Container Registry."
+          else
+            echo "Publishing multi-arch image to GitHub Container Registry."
+          fi
 
           TAG_ARGS=()
           while IFS= read -r tag; do
@@ -430,7 +444,11 @@ jobs:
               exit 0
             fi
 
-            echo "::warning::GHCR fallback publish failed (attempt ${attempt}/3)."
+            if [[ "${{ env.PUSH_ALIYUN }}" == "true" ]]; then
+              echo "::warning::GHCR fallback publish failed (attempt ${attempt}/3)."
+            else
+              echo "::warning::GHCR publish failed (attempt ${attempt}/3)."
+            fi
             if [ "$attempt" -lt 3 ]; then
               sleep $((attempt * 5))
             fi
@@ -444,7 +462,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${{ steps.publish_aliyun.outcome }}" == "success" ]]; then
+          if [[ "${{ env.PUSH_ALIYUN }}" == "true" && "${{ steps.publish_aliyun.outcome }}" == "success" ]]; then
             echo "target=aliyun" >> "$GITHUB_OUTPUT"
             echo "name=阿里云镜像仓库" >> "$GITHUB_OUTPUT"
             {
@@ -454,15 +472,23 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           elif [[ "${{ steps.publish_ghcr.outcome }}" == "success" ]]; then
             echo "target=ghcr" >> "$GITHUB_OUTPUT"
-            echo "name=GitHub Container Registry (fallback)" >> "$GITHUB_OUTPUT"
+            if [[ "${{ env.PUSH_ALIYUN }}" == "true" ]]; then
+              echo "name=GitHub Container Registry (fallback)" >> "$GITHUB_OUTPUT"
+            else
+              echo "name=GitHub Container Registry" >> "$GITHUB_OUTPUT"
+            fi
             {
               echo "tags<<EOF"
               echo "${{ steps.meta_ghcr.outputs.tags }}"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Aliyun publish failed and no complete GHCR fallback image could be published."
-            echo "::error::Aliyun ready=${{ steps.readiness.outputs.aliyun_ready }}, GHCR ready=${{ steps.readiness.outputs.ghcr_ready }}"
+            if [[ "${{ env.PUSH_ALIYUN }}" == "true" ]]; then
+              echo "::error::Aliyun publish failed and no complete GHCR fallback image could be published."
+              echo "::error::Aliyun ready=${{ steps.readiness.outputs.aliyun_ready }}, GHCR ready=${{ steps.readiness.outputs.ghcr_ready }}"
+            else
+              echo "::error::GHCR image publish failed."
+            fi
             exit 1
           fi
 
@@ -485,8 +511,11 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**实际发布目标:** ${{ steps.published.outputs.name }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [[ "${{ steps.published.outputs.target }}" == "ghcr" ]]; then
-            echo "> 阿里云登录或发布失败，本次已自动回退到 GHCR。" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ env.PUSH_ALIYUN }}" == "true" && "${{ steps.published.outputs.target }}" == "ghcr" ]]; then
+            echo "> 已启用阿里云发布，但阿里云登录或发布失败，本次已自动回退到 GHCR。" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "${{ env.PUSH_ALIYUN }}" != "true" ]]; then
+            echo "> 本次未启用阿里云发布，仅推送 GHCR。" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "**本次实际发布的拉取命令:**" >> "$GITHUB_STEP_SUMMARY"
