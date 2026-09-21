@@ -86,54 +86,62 @@ jobs:
           chmod 600 "${RUNNER_TEMP}/standard_sql_private.pem"
           openssl pkey -in "${RUNNER_TEMP}/standard_sql_private.pem" -check -noout
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Aliyun Registry (retry)
+        id: login_aliyun
         if: github.event_name != 'pull_request'
+        continue-on-error: true
+        shell: bash
+        env:
+          ALIYUN_REGISTRY_USER: ${{ secrets.ALIYUN_REGISTRY_USER }}
+          ALIYUN_REGISTRY_PASSWORD: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            if printf '%s' "$ALIYUN_REGISTRY_PASSWORD" | docker login "${{ env.ALIYUN_REGISTRY }}" \
+              --username "$ALIYUN_REGISTRY_USER" --password-stdin; then
+              exit 0
+            fi
+
+            echo "::warning::Aliyun login failed (attempt ${attempt}/3)."
+            docker logout "${{ env.ALIYUN_REGISTRY }}" >/dev/null 2>&1 || true
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 5))
+            fi
+          done
+
+          exit 1
+
+      - name: Log in to GitHub Container Registry
+        id: login_ghcr
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Aliyun Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.ALIYUN_REGISTRY }}
-          username: ${{ secrets.ALIYUN_REGISTRY_USER }}
-          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
-
-      - name: Extract metadata (tags, labels)
+      - name: Extract metadata (labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
-            type=raw,value={{date 'YYYYMMDD-HHmm' tz='Asia/Shanghai'}}
-            type=raw,value=latest,enable={{is_default_branch}}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push by digest
-        id: build
+      - name: Build and push Aliyun digest (primary)
+        id: build_aliyun
         # 跳过 ARM64 如果手动触发时选择了 skip_arm
-        if: ${{ matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true') }}
+        if: ${{ (matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true')) && steps.login_aliyun.outcome == 'success' }}
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          # Aliyun Registry does not accept BuildKit OCI provenance/SBOM manifests.
           provenance: false
           sbom: false
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=build-${{ steps.platform.outputs.tag }}
           cache-to: type=gha,mode=max,scope=build-${{ steps.platform.outputs.tag }}
-          outputs: type=image,"name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          outputs: type=image,"name=${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=true
           build-args: |
             STANDARD_SQL_KEY_BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}
             VITE_BASE_PATH=${{ env.VITE_BASE_PATH }}
@@ -143,19 +151,57 @@ jobs:
           secret-files: |
             standard_sql_private_key=${{ runner.temp }}/standard_sql_private.pem
 
-      - name: Export digest
-        if: ${{ github.event_name != 'pull_request' && steps.build.conclusion == 'success' }}
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+      - name: Build and push GHCR digest (fallback reserve)
+        id: build_ghcr
+        if: ${{ (matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true')) && steps.login_ghcr.outcome == 'success' }}
+        continue-on-error: true
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          sbom: false
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=build-${{ steps.platform.outputs.tag }}
+          cache-to: type=gha,mode=max,scope=build-${{ steps.platform.outputs.tag }}
+          outputs: type=image,"name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            STANDARD_SQL_KEY_BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}
+            VITE_BASE_PATH=${{ env.VITE_BASE_PATH }}
+            VITE_API_ROUTE_PREFIX=${{ env.VITE_API_ROUTE_PREFIX }}
+            VITE_APP_NAME=${{ env.VITE_APP_NAME }}
+            VITE_APP_VERSION=${{ env.VITE_APP_VERSION }}
+          secret-files: |
+            standard_sql_private_key=${{ runner.temp }}/standard_sql_private.pem
 
-      - name: Upload digest
-        if: ${{ github.event_name != 'pull_request' && steps.build.conclusion == 'success' }}
+      - name: Record registry publish status
+        if: ${{ matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/publish-status
+          status_file="/tmp/publish-status/${{ steps.platform.outputs.tag }}.env"
+
+          echo "PLATFORM=${{ matrix.platform }}" > "$status_file"
+
+          if [[ "${{ steps.build_aliyun.outcome }}" == "success" ]]; then
+            echo "ALIYUN_DIGEST=${{ steps.build_aliyun.outputs.digest }}" >> "$status_file"
+          else
+            echo "ALIYUN_DIGEST=" >> "$status_file"
+          fi
+
+          if [[ "${{ steps.build_ghcr.outcome }}" == "success" ]]; then
+            echo "GHCR_DIGEST=${{ steps.build_ghcr.outputs.digest }}" >> "$status_file"
+          else
+            echo "GHCR_DIGEST=" >> "$status_file"
+          fi
+
+      - name: Upload registry publish status
+        if: ${{ matrix.platform == 'linux/amd64' || (matrix.platform == 'linux/arm64' && github.event.inputs.skip_arm != 'true') }}
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ steps.platform.outputs.tag }}
-          path: /tmp/digests/*
+          name: publish-status-${{ steps.platform.outputs.tag }}
+          path: /tmp/publish-status/*.env
           if-no-files-found: error
           retention-days: 1
 
@@ -169,29 +215,48 @@ jobs:
       packages: write
     
     steps:
-      - name: Download digests
+      - name: Download registry publish status
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
-          pattern: digests-*
+          path: /tmp/publish-status
+          pattern: publish-status-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to Aliyun Registry (retry)
+        id: login_aliyun
+        continue-on-error: true
+        shell: bash
+        env:
+          ALIYUN_REGISTRY_USER: ${{ secrets.ALIYUN_REGISTRY_USER }}
+          ALIYUN_REGISTRY_PASSWORD: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            if printf '%s' "$ALIYUN_REGISTRY_PASSWORD" | docker login "${{ env.ALIYUN_REGISTRY }}" \
+              --username "$ALIYUN_REGISTRY_USER" --password-stdin; then
+              exit 0
+            fi
+
+            echo "::warning::Aliyun login failed (attempt ${attempt}/3)."
+            docker logout "${{ env.ALIYUN_REGISTRY }}" >/dev/null 2>&1 || true
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 5))
+            fi
+          done
+
+          exit 1
+
       - name: Log in to GitHub Container Registry
+        id: login_ghcr
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Aliyun Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.ALIYUN_REGISTRY }}
-          username: ${{ secrets.ALIYUN_REGISTRY_USER }}
-          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
 
       - name: Extract GHCR metadata (tags, labels)
         id: meta_ghcr
@@ -219,46 +284,187 @@ jobs:
             type=raw,value=latest
             type=raw,value={{date 'YYYYMMDDHHmm' tz='Asia/Shanghai'}}-gjsj
 
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
+      - name: Evaluate registry readiness
+        id: readiness
+        working-directory: /tmp/publish-status
+        shell: bash
         run: |
           set -euo pipefail
 
-          # 1. GHCR Multi-arch Manifest
-          GHCR_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          GHCR_DIGEST_REFS=()
-          for f in *; do
-            [ -f "$f" ] || continue
-            GHCR_DIGEST_REFS+=("${GHCR_IMAGE}@sha256:${f}")
-          done
-          printf 'GHCR Digest Refs:\n'; printf '  %s\n' "${GHCR_DIGEST_REFS[@]}"
-
-          GHCR_TAG_ARGS=()
-          while IFS= read -r tag; do
-            [ -n "$tag" ] || continue
-            GHCR_TAG_ARGS+=("-t" "${tag}")
-          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
-
-          echo "Creating GHCR multi-arch manifest..."
-          docker buildx imagetools create "${GHCR_TAG_ARGS[@]}" "${GHCR_DIGEST_REFS[@]}"
-
-          # 2. Aliyun Multi-arch Manifest
           ALIYUN_IMAGE="${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}"
-          ALIYUN_DIGEST_REFS=()
-          for f in *; do
-            [ -f "$f" ] || continue
-            ALIYUN_DIGEST_REFS+=("${ALIYUN_IMAGE}@sha256:${f}")
-          done
-          printf 'Aliyun Digest Refs:\n'; printf '  %s\n' "${ALIYUN_DIGEST_REFS[@]}"
+          GHCR_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          ALIYUN_REFS=()
+          GHCR_REFS=()
+          PLATFORMS=()
+          status_count=0
+          aliyun_ready=true
+          ghcr_ready=true
 
-          ALIYUN_TAG_ARGS=()
+          shopt -s nullglob
+          status_files=(*.env)
+          if [ "${#status_files[@]}" -eq 0 ]; then
+            echo "::error::No registry publish status artifacts were downloaded."
+            exit 1
+          fi
+
+          for status_file in "${status_files[@]}"; do
+            status_count=$((status_count + 1))
+            platform=""
+            aliyun_digest=""
+            ghcr_digest=""
+
+            while IFS='=' read -r key value; do
+              case "$key" in
+                PLATFORM) platform="$value" ;;
+                ALIYUN_DIGEST) aliyun_digest="$value" ;;
+                GHCR_DIGEST) ghcr_digest="$value" ;;
+              esac
+            done < "$status_file"
+
+            echo "Platform ${platform}: Aliyun=${aliyun_digest:-failed}, GHCR=${ghcr_digest:-failed}"
+            if [[ -n "$platform" ]]; then
+              PLATFORMS+=("$platform")
+            fi
+
+            if [[ -n "$aliyun_digest" ]]; then
+              ALIYUN_REFS+=("${ALIYUN_IMAGE}@${aliyun_digest}")
+            else
+              aliyun_ready=false
+            fi
+
+            if [[ -n "$ghcr_digest" ]]; then
+              GHCR_REFS+=("${GHCR_IMAGE}@${ghcr_digest}")
+            else
+              ghcr_ready=false
+            fi
+          done
+
+          if [[ "${{ steps.login_aliyun.outcome }}" != "success" ]]; then
+            aliyun_ready=false
+          fi
+
+          if [[ "${{ steps.login_ghcr.outcome }}" != "success" ]]; then
+            ghcr_ready=false
+          fi
+
+          platform_list=""
+          for platform in "${PLATFORMS[@]}"; do
+            if [[ -z "$platform_list" ]]; then
+              platform_list="$platform"
+            else
+              platform_list="${platform_list}, ${platform}"
+            fi
+          done
+
+          echo "platforms=${platform_list}" >> "$GITHUB_OUTPUT"
+          echo "status_count=${status_count}" >> "$GITHUB_OUTPUT"
+          echo "aliyun_ready=${aliyun_ready}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_ready=${ghcr_ready}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "aliyun_refs<<EOF"
+            printf '%s\n' "${ALIYUN_REFS[@]}"
+            echo "EOF"
+            echo "ghcr_refs<<EOF"
+            printf '%s\n' "${GHCR_REFS[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish Aliyun multi-arch manifest (primary)
+        id: publish_aliyun
+        if: steps.readiness.outputs.aliyun_ready == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_ARGS=()
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
-            ALIYUN_TAG_ARGS+=("-t" "${tag}")
+            TAG_ARGS+=("-t" "$tag")
           done <<< "${{ steps.meta_aliyun.outputs.tags }}"
 
-          echo "Creating Aliyun multi-arch manifest..."
-          docker buildx imagetools create "${ALIYUN_TAG_ARGS[@]}" "${ALIYUN_DIGEST_REFS[@]}"
+          REF_ARGS=()
+          while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            REF_ARGS+=("$ref")
+          done <<< "${{ steps.readiness.outputs.aliyun_refs }}"
+
+          echo "Publishing Aliyun multi-arch manifest..."
+          for attempt in 1 2 3; do
+            if docker buildx imagetools create "${TAG_ARGS[@]}" "${REF_ARGS[@]}"; then
+              exit 0
+            fi
+
+            echo "::warning::Aliyun manifest publish failed (attempt ${attempt}/3)."
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+
+          exit 1
+
+      - name: Publish GHCR multi-arch manifest (fallback)
+        id: publish_ghcr
+        if: steps.readiness.outputs.ghcr_ready == 'true' && (steps.readiness.outputs.aliyun_ready != 'true' || steps.publish_aliyun.outcome != 'success')
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::warning::Aliyun is unavailable or publish failed; falling back to GitHub Container Registry."
+
+          TAG_ARGS=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            TAG_ARGS+=("-t" "$tag")
+          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
+
+          REF_ARGS=()
+          while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            REF_ARGS+=("$ref")
+          done <<< "${{ steps.readiness.outputs.ghcr_refs }}"
+
+          for attempt in 1 2 3; do
+            if docker buildx imagetools create "${TAG_ARGS[@]}" "${REF_ARGS[@]}"; then
+              exit 0
+            fi
+
+            echo "::warning::GHCR fallback publish failed (attempt ${attempt}/3)."
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 5))
+            fi
+          done
+
+          exit 1
+
+      - name: Select published registry
+        id: published
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ steps.publish_aliyun.outcome }}" == "success" ]]; then
+            echo "target=aliyun" >> "$GITHUB_OUTPUT"
+            echo "name=阿里云镜像仓库" >> "$GITHUB_OUTPUT"
+            {
+              echo "tags<<EOF"
+              echo "${{ steps.meta_aliyun.outputs.tags }}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.publish_ghcr.outcome }}" == "success" ]]; then
+            echo "target=ghcr" >> "$GITHUB_OUTPUT"
+            echo "name=GitHub Container Registry (fallback)" >> "$GITHUB_OUTPUT"
+            {
+              echo "tags<<EOF"
+              echo "${{ steps.meta_ghcr.outputs.tags }}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Aliyun publish failed and no complete GHCR fallback image could be published."
+            echo "::error::Aliyun ready=${{ steps.readiness.outputs.aliyun_ready }}, GHCR ready=${{ steps.readiness.outputs.ghcr_ready }}"
+            exit 1
+          fi
 
       - name: Inspect published images
         run: |
@@ -267,47 +473,34 @@ jobs:
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             docker buildx imagetools inspect "$tag"
-          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
-
-          while IFS= read -r tag; do
-            [ -n "$tag" ] || continue
-            docker buildx imagetools inspect "$tag"
-          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
+          done <<< "${{ steps.published.outputs.tags }}"
 
       - name: Multi-arch image summary
         run: |
           set -euo pipefail
 
           echo "### 多架构镜像构建成功" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**支持架构:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**GHCR 镜像:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**阿里云镜像:** \`${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**本次实际发布的拉取命令:**" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# GHCR 镜像" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**支持架构:** ${{ steps.readiness.outputs.platforms }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**实际发布目标:** ${{ steps.published.outputs.name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.published.outputs.target }}" == "ghcr" ]]; then
+            echo "> 阿里云登录或发布失败，本次已自动回退到 GHCR。" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "**本次实际发布的拉取命令:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             echo "docker pull $tag" >> "$GITHUB_STEP_SUMMARY"
-          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# 阿里云镜像（仅 latest 和北京时间版本标签）" >> $GITHUB_STEP_SUMMARY
-          while IFS= read -r tag; do
-            [ -n "$tag" ] || continue
-            echo "docker pull $tag" >> "$GITHUB_STEP_SUMMARY"
-          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**验证多架构支持:**" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          done <<< "${{ steps.published.outputs.tags }}"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**验证多架构支持:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             echo "docker buildx imagetools inspect $tag" >> "$GITHUB_STEP_SUMMARY"
-          done <<< "${{ steps.meta_ghcr.outputs.tags }}"
-          while IFS= read -r tag; do
-            [ -n "$tag" ] || continue
-            echo "docker buildx imagetools inspect $tag" >> "$GITHUB_STEP_SUMMARY"
-          done <<< "${{ steps.meta_aliyun.outputs.tags }}"
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          done <<< "${{ steps.published.outputs.tags }}"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
